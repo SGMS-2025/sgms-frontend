@@ -85,7 +85,7 @@ sgms-frontend/
 
 ## 🔄 API Integration
 
-The application uses Axios for API communication. The base API configuration is in `src/services/api/index.ts`.
+The application uses Axios for API communication. The base API configuration is in `src/services/api/api.ts`.
 
 Example usage:
 ```typescript
@@ -109,6 +109,106 @@ The project includes several useful custom hooks:
 - `useLocalStorage` - Persist state in localStorage
 - `useToggle` - Easily toggle boolean values
 - `useDebounce` - Debounce values for search inputs, etc.
+
+## 🗃️ State Management
+
+The project uses React's built-in state management solutions for optimal performance and simplicity:
+
+### Current Setup
+- **React Context API**: For global state management (auth, theme, etc.)
+- **useState & useReducer**: For local component state
+- **Custom Hooks**: For reusable state logic
+- **useReducer in Context**: Write reducers in the same context file (create separate 'reducers' folder for large projects)
+
+### Context API Example
+```typescript
+// src/contexts/AuthContext.tsx
+import { createContext, useContext, useState, ReactNode } from 'react';
+
+interface AuthContextType {
+  user: User | null;
+  login: (user: User) => void;
+  logout: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+
+  const login = (userData: User) => setUser(userData);
+  const logout = () => setUser(null);
+
+  return (
+    <AuthContext.Provider value={{ user, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
+```
+
+### useReducer Example
+```typescript
+// For complex state logic
+interface TodoState {
+  todos: Todo[];
+  filter: 'all' | 'active' | 'completed';
+}
+
+type TodoAction = 
+  | { type: 'ADD_TODO'; payload: Todo }
+  | { type: 'TOGGLE_TODO'; payload: string }
+  | { type: 'SET_FILTER'; payload: 'all' | 'active' | 'completed' };
+
+function todoReducer(state: TodoState, action: TodoAction): TodoState {
+  switch (action.type) {
+    case 'ADD_TODO':
+      return { ...state, todos: [...state.todos, action.payload] };
+    case 'TOGGLE_TODO':
+      return {
+        ...state,
+        todos: state.todos.map(todo =>
+          todo.id === action.payload 
+            ? { ...todo, completed: !todo.completed }
+            : todo
+        )
+      };
+    case 'SET_FILTER':
+      return { ...state, filter: action.payload };
+    default:
+      return state;
+  }
+}
+```
+
+### Usage in Components
+```typescript
+import { useAuth } from '@/contexts/AuthContext';
+import { useReducer } from 'react';
+
+function TodoApp() {
+  const { user } = useAuth();
+  const [state, dispatch] = useReducer(todoReducer, {
+    todos: [],
+    filter: 'all'
+  });
+
+  return (
+    <div>
+      <h1>Welcome, {user?.name}!</h1>
+      {/* Todo implementation */}
+    </div>
+  );
+}
+```
 
 ## 📐 Styling
 
