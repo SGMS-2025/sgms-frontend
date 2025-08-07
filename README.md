@@ -47,6 +47,7 @@ yarn dev
 - **TypeScript**: For type safety and better developer experience
 - **Vite**: Next-generation frontend tooling
 - **Tailwind CSS**: Utility-first CSS framework
+- **React Router**: For application routing
 - **Axios**: HTTP client for API requests
 - **ESLint & Prettier**: For consistent code style
 
@@ -54,23 +55,31 @@ yarn dev
 
 ```
 sgms-frontend/
-├── public/              # Static files
+├── public/                      # Static files
 ├── src/
-│   ├── assets/          # Images, fonts, and other assets
-│   ├── components/      # Reusable UI components
-│   ├── configs/         # App configurations
-│   ├── constants/       # Constants and enums
-│   ├── contexts/        # React contexts (auth, etc.)
-│   ├── hooks/           # Custom React hooks
-│   ├── layouts/         # Page layouts
-│   ├── pages/           # Application pages
-│   ├── routes/          # Route configurations
-│   ├── services/        # API services and utilities
-│   ├── types/           # TypeScript type definitions
-│   ├── utils/           # Utility functions
-│   ├── App.tsx          # Main App component
-│   └── main.tsx         # Application entry point
-└── ...config files
+│   ├── assets/                  # Images, fonts, and other assets
+│   ├── components/              # Reusable UI components
+│   ├── configs/                 # App configurations
+│   ├── constants/               # Constants and enums
+│   ├── contexts/                # React contexts (auth, etc.)
+│   ├── hooks/                   # Custom React hooks
+│   ├── layouts/                 # Page layouts
+│   ├── pages/                   # Application pages
+│   ├── routes/                  # Route configurations
+│   ├── services/                # API services and utilities
+│   ├── types/                   # TypeScript type definitions
+│   ├── utils/                   # Utility functions
+│   ├── App.tsx                  # Main App component
+│   ├── App.css                  # App-specific styles
+│   ├── index.css                # Global styles
+│   ├── main.tsx                 # Application entry point
+│   └── vite-env.d.ts           # Vite environment type declarations
+├── .env.example                 # Example environment variables
+├── eslint.config.js             # ESLint configuration
+├── tsconfig.json                # TypeScript configuration
+├── package.json                 # Project dependencies and scripts
+├── vite.config.ts               # Vite configuration
+└── ...other config files
 ```
 
 ## 📝 Available Scripts
@@ -83,7 +92,9 @@ sgms-frontend/
 - `npm run prettier` - Check for formatting issues
 - `npm run prettier:fix` - Fix formatting issues automatically
 
-## 🔄 API Integration
+## 🔄 API Integration & Routing
+
+### API Integration
 
 The application uses Axios for API communication. The base API configuration is in `src/services/api/api.ts`.
 
@@ -100,6 +111,62 @@ api.get('/users')
 api.post('/users', { name: 'John Doe', email: 'john@example.com' })
   .then(response => console.log(response.data))
   .catch(error => console.error(error));
+```
+
+### React Router Setup
+
+The application uses React Router v7 for navigation. Routes are defined in `src/routes/AppRoutes.tsx`:
+
+```typescript
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import ExamplePage from '@/pages/example/ExamplePage';
+import ExampleLayout from '@/layouts/example/ExampleLayout';
+
+const AppRoutes: React.FC = () => {
+  return (
+    <Routes>
+      {/* Root Route */}
+      <Route path="/" element={<Navigate to="/example" replace />} />
+
+      {/* Example Routes */}
+      <Route path="/example/*" element={<ExampleLayout />}>
+        <Route path="" element={<ExamplePage />} />
+        {/* Add more example routes here */}
+      </Route>
+
+      {/* Catch all route */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+};
+
+export default AppRoutes;
+```
+
+The project uses a nested routing approach with layouts and features:
+
+1. **Route Groups**: Routes are organized by feature/section
+2. **Layout Components**: Using layout components (like `ExampleLayout`) as parent routes
+3. **Redirection**: Default routes and catch-all routes use `<Navigate>`
+4. **Nested Routes**: The `/*` syntax allows for nested routes within a section
+
+The router is integrated in `App.tsx`:
+
+```typescript
+import './index.css';
+import { BrowserRouter } from 'react-router-dom';
+import AppRoutes from '@/routes/AppRoutes';
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
+}
+
+export default App;
 ```
 
 ## 🧰 Custom Hooks
@@ -253,3 +320,4 @@ The build output will be in the `dist` directory.
 - [TypeScript Documentation](https://www.typescriptlang.org/docs/)
 - [Vite Documentation](https://vitejs.dev/guide/)
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- [Shadcn/ui](https://ui.shadcn.com/docs)
