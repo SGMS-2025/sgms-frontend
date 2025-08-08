@@ -37,8 +37,9 @@ export default tseslint.config([
           printWidth: 120,
           jsxSingleQuote: false
         }
-      ]
-
+      ],
+      // Set the react-refresh/only-export-components rule to warning (warn) instead of error.
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }]
     }
   },
 ])
