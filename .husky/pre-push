@@ -1,6 +1,6 @@
 branch_name=$(git symbolic-ref --short HEAD)
 
-if [ "$branch_name" = "master" ] || [ "$branch_name" = "test" ]; then
+if [ "$branch_name" = "main" ] || [ "$branch_name" = "dev" ]; then
   echo "❌ Direct push to branch $branch_name is not allowed!"
   echo "If you're sure that that's what you want to do, bypass this check via" >&2
   echo "" >&2
