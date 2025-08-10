@@ -69,7 +69,7 @@ function ExamplePage() {
       </div>
 
       {/* API Response */}
-      <div className={`max-w-4xl mx-auto mb-8 ${isMobile ? 'px-1' : ''}`}>
+      <div className={`max-w-3xl mx-auto mb-8 ${isMobile ? 'px-1' : ''}`}>
         <div
           className={`bg-white dark:bg-gray-900 rounded-lg p-4 shadow border border-gray-200 dark:border-gray-700 ${isMobile ? 'p-2' : ''}`}
         >
@@ -159,7 +159,7 @@ function ExamplePage() {
       </div>
 
       {/* Example Components */}
-      <div className={`max-w-4xl mx-auto ${isMobile ? 'px-1' : ''}`}>
+      <div className={`max-w-3xl mx-auto ${isMobile ? 'px-1' : ''}`}>
         <Example />
       </div>
     </div>
