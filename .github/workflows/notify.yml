@@ -1,0 +1,252 @@
+name: PR Notifications
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, closed]
+
+jobs:
+  notify-pr-opened:
+    if: github.event.action == 'opened' || github.event.action == 'ready_for_review'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get PR commit message
+        id: get-commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_COMMITS_API="${{ github.event.pull_request.commits_url }}"
+          echo "🔍 Fetching commits from: $PR_COMMITS_API"
+          
+          # Get commits data with error handling
+          COMMITS_RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" "$PR_COMMITS_API")
+          
+          # Debug: show response type
+          RESPONSE_TYPE=$(echo "$COMMITS_RESPONSE" | jq -r 'type')
+          echo "📋 Response type: $RESPONSE_TYPE"
+          
+          # Check if response is an array
+          if echo "$COMMITS_RESPONSE" | jq -e 'type == "array"' > /dev/null 2>&1; then
+            COMMITS_COUNT=$(echo "$COMMITS_RESPONSE" | jq 'length')
+            echo "✅ Found $COMMITS_COUNT commits"
+            
+            # If array has at least 1 commit
+            if [ "$COMMITS_COUNT" -gt 0 ]; then
+              FIRST_COMMIT_MSG=$(echo "$COMMITS_RESPONSE" | jq -r '.[0].commit.message')
+              echo "💬 Using first commit message: $FIRST_COMMIT_MSG"
+            else
+              # Fallback: use PR title if no commits found
+              FIRST_COMMIT_MSG="${{ github.event.pull_request.title }}"
+              echo "⚠️ No commits found, using PR title: $FIRST_COMMIT_MSG"
+            fi
+          else
+            # Fallback: use PR title if error occurred
+            echo "❌ Error response or not an array, using PR title as fallback"
+            echo "$COMMITS_RESPONSE" | jq '.'
+            FIRST_COMMIT_MSG="${{ github.event.pull_request.title }}"
+          fi
+          
+          echo "msg=${FIRST_COMMIT_MSG}" >> $GITHUB_OUTPUT
+
+      - name: Send PR info to Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_ROLE_ID: ${{ secrets.DISCORD_ROLE_ID }}
+          TITLE: ${{ github.event.pull_request.title }}
+          URL: ${{ github.event.pull_request.html_url }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          COMMIT_MSG: ${{ steps.get-commit.outputs.msg }}
+          SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
+          TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
+        run: |
+          TIMESTAMP=$(TZ='Asia/Ho_Chi_Minh' date +"%Y-%m-%d %H:%M:%S UTC+7")
+
+          curl -X POST "$DISCORD_WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -d @- <<EOF
+          {
+            "content": "<@&${DISCORD_ROLE_ID}>", 
+            "embeds": [
+              {
+                "title": "📢 New SGMS Frontend Pull Request: ${TITLE}",
+                "url": "${URL}",
+                "description": "🌿 **Branch**: \`${SOURCE_BRANCH}\` → \`${TARGET_BRANCH}\`\n📦 **Commit**: \`${COMMIT_MSG}\`\n👤 **Author**: [${AUTHOR}](https://github.com/${AUTHOR})\n🔗 **Repository**: SGMS Frontend",
+                "color": 3447003,
+                "author": {
+                  "name": "${AUTHOR}",
+                  "url": "https://github.com/${AUTHOR}"
+                },
+                "thumbnail": {
+                  "url": "https://github.com/${AUTHOR}.png"
+                },
+                "footer": {
+                  "text": "🕒 Opened at ${TIMESTAMP}"
+                }
+              }
+            ]
+          }
+          EOF
+
+  notify-pr-reopened:
+    if: github.event.action == 'reopened'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get PR commit message
+        id: get-commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_COMMITS_API="${{ github.event.pull_request.commits_url }}"
+          echo "🔍 Fetching commits from: $PR_COMMITS_API"
+          
+          # Get commits data with error handling
+          COMMITS_RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" "$PR_COMMITS_API")
+          
+          # Debug: show response type
+          RESPONSE_TYPE=$(echo "$COMMITS_RESPONSE" | jq -r 'type')
+          echo "📋 Response type: $RESPONSE_TYPE"
+          
+          # Check if response is an array
+          if echo "$COMMITS_RESPONSE" | jq -e 'type == "array"' > /dev/null 2>&1; then
+            COMMITS_COUNT=$(echo "$COMMITS_RESPONSE" | jq 'length')
+            echo "✅ Found $COMMITS_COUNT commits"
+            
+            # If array has at least 1 commit
+            if [ "$COMMITS_COUNT" -gt 0 ]; then
+              FIRST_COMMIT_MSG=$(echo "$COMMITS_RESPONSE" | jq -r '.[0].commit.message')
+              echo "💬 Using first commit message: $FIRST_COMMIT_MSG"
+            else
+              # Fallback: use PR title if no commits found
+              FIRST_COMMIT_MSG="${{ github.event.pull_request.title }}"
+              echo "⚠️ No commits found, using PR title: $FIRST_COMMIT_MSG"
+            fi
+          else
+            # Fallback: use PR title if error occurred
+            echo "❌ Error response or not an array, using PR title as fallback"
+            echo "$COMMITS_RESPONSE" | jq '.'
+            FIRST_COMMIT_MSG="${{ github.event.pull_request.title }}"
+          fi
+          
+          echo "msg=${FIRST_COMMIT_MSG}" >> $GITHUB_OUTPUT
+
+      - name: Send PR reopened info to Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_ROLE_ID: ${{ secrets.DISCORD_ROLE_ID }}
+          TITLE: ${{ github.event.pull_request.title }}
+          URL: ${{ github.event.pull_request.html_url }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          REOPENER: ${{ github.actor }}
+          COMMIT_MSG: ${{ steps.get-commit.outputs.msg }}
+          SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
+          TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
+        run: |
+          TIMESTAMP=$(TZ='Asia/Ho_Chi_Minh' date +"%Y-%m-%d %H:%M:%S UTC+7")
+
+          curl -X POST "$DISCORD_WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -d @- <<EOF
+          {
+            "content": "<@&${DISCORD_ROLE_ID}>", 
+            "embeds": [
+              {
+                "title": "🔄 SGMS Frontend PR Reopened: ${TITLE}",
+                "url": "${URL}",
+                "description": "🌿 **Branch**: \`${SOURCE_BRANCH}\` → \`${TARGET_BRANCH}\`\n📦 **Commit**: \`${COMMIT_MSG}\`\n👤 **Author**: [${AUTHOR}](https://github.com/${AUTHOR})\n🔄 **Reopened by**: [${REOPENER}](https://github.com/${REOPENER})\n🔗 **Repository**: SGMS Frontend",
+                "color": 16776960,
+                "author": {
+                  "name": "${AUTHOR}",
+                  "url": "https://github.com/${AUTHOR}"
+                },
+                "thumbnail": {
+                  "url": "https://github.com/${AUTHOR}.png"
+                },
+                "footer": {
+                  "text": "🕒 Reopened at ${TIMESTAMP}"
+                }
+              }
+            ]
+          }
+          EOF
+
+  notify-pr-merged:
+    if: github.event.action == 'closed' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Notify Discord on PR Merged
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_ROLE_ID: ${{ secrets.DISCORD_ROLE_ID }}
+          TITLE: ${{ github.event.pull_request.title }}
+          URL: ${{ github.event.pull_request.html_url }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          MERGER: ${{ github.event.pull_request.merged_by.login }}
+          SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
+          TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
+        run: |
+          TIMESTAMP=$(TZ='Asia/Ho_Chi_Minh' date +"%Y-%m-%d %H:%M:%S UTC+7")
+
+          curl -X POST "$DISCORD_WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -d @- <<EOF
+          {
+            "content": "<@&${DISCORD_ROLE_ID}>", 
+            "embeds": [
+              {
+                "title": "🎉 SGMS Frontend PR Merged: ${TITLE}",
+                "url": "${URL}",
+                "description": "🌿 **Merged**: \`${SOURCE_BRANCH}\` → \`${TARGET_BRANCH}\`\n✅ **Status**: Successfully merged\n👤 **Author**: [${AUTHOR}](https://github.com/${AUTHOR})\n🔄 **Merged by**: [${MERGER}](https://github.com/${MERGER})\n🚀 **Auto-deployment**: Starting...",
+                "color": 3066993,
+                "footer": {
+                  "text": "🕒 Merged at ${TIMESTAMP}"
+                }
+              }
+            ]
+          }
+          EOF
+
+  notify-pr-closed:
+    if: github.event.action == 'closed' && github.event.pull_request.merged == false
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Notify Discord on PR Closed
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_ROLE_ID: ${{ secrets.DISCORD_ROLE_ID }}
+          TITLE: ${{ github.event.pull_request.title }}
+          URL: ${{ github.event.pull_request.html_url }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          CLOSER: ${{ github.actor }}
+          SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
+          TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
+        run: |
+          TIMESTAMP=$(TZ='Asia/Ho_Chi_Minh' date +"%Y-%m-%d %H:%M:%S UTC+7")
+
+          curl -X POST "$DISCORD_WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -d @- <<EOF
+          {
+            "content": "<@&${DISCORD_ROLE_ID}>", 
+            "embeds": [
+              {
+                "title": "❌ SGMS Frontend PR Closed: ${TITLE}",
+                "url": "${URL}",
+                "description": "🌿 **Branch**: \`${SOURCE_BRANCH}\` → \`${TARGET_BRANCH}\`\n❌ **Status**: Closed without merging\n👤 **Author**: [${AUTHOR}](https://github.com/${AUTHOR})\n🔒 **Closed by**: [${CLOSER}](https://github.com/${CLOSER})\n🔗 **Repository**: SGMS Frontend",
+                "color": 15158332,
+                "author": {
+                  "name": "${AUTHOR}",
+                  "url": "https://github.com/${AUTHOR}"
+                },
+                "thumbnail": {
+                  "url": "https://github.com/${AUTHOR}.png"
+                },
+                "footer": {
+                  "text": "🕒 Closed at ${TIMESTAMP}"
+                }
+              }
+            ]
+          }
+          EOF
