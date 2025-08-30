@@ -3,10 +3,61 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, EyeOff, User, Crown } from 'lucide-react';
 import { useState } from 'react';
+import { authApi } from '@/services/api/authApi';
+import { useNavigate } from 'react-router-dom';
+import { useAuthActions } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+import type { LoginRequest } from '@/types/api/Auth';
 
 export function LoginForm() {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'customer' | 'owner'>('customer');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
+  const { login } = useAuthActions();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!email || !password) {
+      toast.error('Vui lòng điền đầy đủ thông tin');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const loginData: LoginRequest = {
+        email,
+        password
+      };
+
+      const response = await authApi.login(loginData);
+
+      if (response.success) {
+        // Only save user to AuthContext
+        login(response.data.user);
+
+        if (rememberMe) {
+          localStorage.setItem('userEmail', email);
+        }
+
+        // Navigate to home page
+        navigate('/home');
+      }
+    } catch (error: unknown) {
+      console.error('Login error:', error);
+      const errorMessage =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Đăng nhập thất bại';
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div>
@@ -16,12 +67,13 @@ export function LoginForm() {
           Đăng nhập ngay để tiếp tục hành trình biến đổi vóc dáng với đầy cảm hứng!
         </p>
       </div>
-      <div className="bg-white/20 backdrop-blur-sm rounded-2xl px-10 py-4 text-white">
+      <form onSubmit={handleLogin} className="bg-white/20 backdrop-blur-sm rounded-2xl px-10 py-4 text-white">
         {/* Role Selection */}
         <div className="mb-6">
           <p className="text-md text-gray-300 mb-3 font-semibold">Vai trò đăng nhập</p>
           <div className="flex space-x-2">
             <Button
+              type="button"
               onClick={() => setSelectedRole('customer')}
               className={`flex-1 rounded-full py-5 ${
                 selectedRole === 'customer'
@@ -33,6 +85,7 @@ export function LoginForm() {
               Khách hàng
             </Button>
             <Button
+              type="button"
               onClick={() => setSelectedRole('owner')}
               className={`flex-1 rounded-full py-5 ${
                 selectedRole === 'owner'
@@ -55,7 +108,14 @@ export function LoginForm() {
         {/* Email Field */}
         <div className="mb-4">
           <label className="block text-md text-gray-300 mb-2 font-semibold">Email</label>
-          <Input type="text" className="w-full bg-white text-black border-0 rounded-full px-4 py-6" placeholder="" />
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full bg-white text-black border-0 rounded-full px-4 py-6"
+            placeholder="Nhập email của bạn"
+            required
+          />
         </div>
 
         {/* Password Field */}
@@ -64,8 +124,11 @@ export function LoginForm() {
           <div className="relative">
             <Input
               type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-white text-black border-0 rounded-full px-4 py-6 pr-12"
-              placeholder=""
+              placeholder="Nhập mật khẩu"
+              required
             />
             <button
               type="button"
@@ -80,7 +143,12 @@ export function LoginForm() {
         {/* Remember Me & Forgot Password */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-2">
-            <Checkbox id="remember" className="border-white" />
+            <Checkbox
+              id="remember"
+              checked={rememberMe}
+              onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+              className="border-white"
+            />
             <label htmlFor="remember" className="text-sm text-gray-300">
               Ghi nhớ đăng nhập
             </label>
@@ -91,8 +159,12 @@ export function LoginForm() {
         </div>
 
         {/* Login Button */}
-        <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-6 rounded-full mb-6">
-          ĐĂNG NHẬP
+        <Button
+          type="submit"
+          disabled={isLoading}
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-6 rounded-full mb-6 disabled:opacity-50"
+        >
+          {isLoading ? 'ĐANG ĐĂNG NHẬP...' : 'ĐĂNG NHẬP'}
         </Button>
 
         {/* Divider */}
@@ -104,6 +176,7 @@ export function LoginForm() {
 
         {/* Google Login */}
         <Button
+          type="button"
           variant="outline"
           className="mx-auto bg-white text-black border-0 py-6 rounded-full mb-6 hover:bg-gray-100 flex items-center justify-center w-1/2"
         >
@@ -135,7 +208,7 @@ export function LoginForm() {
             Đăng ký ngay
           </a>
         </p>
-      </div>
+      </form>
     </div>
   );
 }
