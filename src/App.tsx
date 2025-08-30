@@ -4,7 +4,7 @@ import AppRoutes from '@/routes/AppRoutes';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
-import { Toast } from '@/components/ui/Toast';
+import { Toast } from '@/components/ui/toast';
 
 function App() {
   return (
