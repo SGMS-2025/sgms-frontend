@@ -13,7 +13,7 @@ export default function LoginPage() {
       <div
         className="relative h-full bg-cover bg-center bg-no-repeat flex items-center justify-center"
         style={{
-          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${backgroundImage})`
+          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('${backgroundImage}')`
         }}
       >
         <div className="w-full max-w-lg mx-2">
