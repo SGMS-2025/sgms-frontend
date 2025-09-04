@@ -10,3 +10,11 @@ export interface LoginResponse {
   accessToken: string;
   refreshToken: string;
 }
+
+export interface RefreshTokenResponse {
+  success: boolean;
+  message: string;
+  data: null;
+  requestId: string;
+  timestamp: string;
+}

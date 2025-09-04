@@ -1,6 +1,7 @@
 import { createContext, useReducer, useContext, useEffect, useMemo, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import type { User } from '@/types/api/User';
+import { authApi } from '@/services/api/authApi';
 
 export interface AuthState {
   isAuthenticated: boolean;
@@ -12,8 +13,7 @@ export type AuthAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'LOGIN'; payload: { user: User } }
   | { type: 'LOGOUT' }
-  | { type: 'RESTORE'; payload: { user: User | null } }
-  | { type: 'UPDATE_USER'; payload: User };
+  | { type: 'RESTORE'; payload: { user: User | null } };
 
 const initialState: AuthState = {
   isAuthenticated: false,
@@ -86,20 +86,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = useCallback((user: User) => {
-    // Save user to localStorage
     localStorage.setItem('user', JSON.stringify(user));
     dispatch({
       type: 'LOGIN',
       payload: { user }
     });
-    console.log('Login successful:', { user });
+    // console.log('Login successful:', { user });
   }, []);
 
-  const logout = useCallback(() => {
-    // Remove user from localStorage
-    localStorage.removeItem('user');
-    dispatch({ type: 'LOGOUT' });
-    console.log('Logout successful');
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error('Error calling logout API:', error);
+      // Continue with local logout even if API fails
+    } finally {
+      localStorage.removeItem('user');
+      dispatch({ type: 'LOGOUT' });
+      // console.log('Logout successful');
+    }
   }, []);
 
   const value: AuthContextType = useMemo(
