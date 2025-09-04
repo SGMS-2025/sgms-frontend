@@ -1,17 +1,9 @@
-import { Header } from '@/components/layout/BaseHeader';
 import { LoginForm } from '@/components/forms/LoginForm';
-import { ScrollingBanner } from '@/components/layout/ScrollingBanner';
-import { Footer } from '@/components/layout/BaseFooter';
-import { useIsMobile } from '@/hooks/use-mobile';
 import backgroundImage from '@/assets/images/background1.png';
 
 export default function LoginPage() {
-  const isMobile = useIsMobile();
-
   return (
     <div className="min-h-screen md:h-screen bg-gray-100">
-      {!isMobile && <Header />}
-
       {/* Login Form */}
       <div
         className="relative min-h-screen md:h-full bg-cover bg-center bg-no-repeat flex items-center justify-center pt-4 md:pt-0 pb-8 md:pb-0 px-4 md:px-0"
@@ -23,9 +15,6 @@ export default function LoginPage() {
           <LoginForm />
         </div>
       </div>
-
-      {!isMobile && <ScrollingBanner />}
-      {!isMobile && <Footer />}
     </div>
   );
 }

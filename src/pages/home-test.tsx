@@ -3,12 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { User, Mail, Phone, Calendar, Shield, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function HomePage() {
   const { isAuthenticated, user, isLoading } = useAuthState();
   const { logout } = useAuthActions();
+  const navigate = useNavigate();
 
-  // Hiển thị loading khi đang tải
+  // Display loading while fetching
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -20,24 +22,42 @@ export default function HomePage() {
     );
   }
 
-  // Redirect về login nếu chưa đăng nhập
+  // Redirect to login if not authenticated
   if (!isAuthenticated || !user) {
-    window.location.href = '/login';
+    navigate('/login');
     return null;
   }
 
-  const handleLogout = () => {
-    logout();
-    window.location.href = '/login';
+  const handleLogout = async () => {
+    try {
+      const logoutButton = document.querySelector('button[onclick*="handleLogout"]') as HTMLButtonElement;
+      if (logoutButton) {
+        logoutButton.disabled = true;
+        logoutButton.textContent = 'Đang đăng xuất...';
+      }
+
+      await logout();
+      localStorage.removeItem('user');
+      sessionStorage.clear();
+
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+
+      localStorage.removeItem('user');
+      sessionStorage.clear();
+
+      navigate('/login');
+    }
   };
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'admin':
+      case 'ADMIN':
         return 'bg-red-100 text-red-800';
-      case 'owner':
+      case 'OWNER':
         return 'bg-purple-100 text-purple-800';
-      case 'customer':
+      case 'CUSTOMER':
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -69,9 +89,9 @@ export default function HomePage() {
           </Button>
         </div>
 
-        {/* Thông tin user */}
+        {/* User Information */}
         <div className="grid gap-6 md:grid-cols-2">
-          {/* Thông tin cơ bản */}
+          {/* Basic Information */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -109,7 +129,7 @@ export default function HomePage() {
             </CardContent>
           </Card>
 
-          {/* Thông tin hệ thống */}
+          {/* System Information */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
