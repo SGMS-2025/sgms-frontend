@@ -1,4 +1,4 @@
-name: CI - Sonar + Jira (Frontend)
+name: CI - Sonar + Jira
 
 on:
   push:
@@ -60,7 +60,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Check Quality Gate & tạo Jira nếu thất bại
+      # Check Quality Gate & create Jira if failed
       - name: Check Quality Gate & create Jira if failed
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
