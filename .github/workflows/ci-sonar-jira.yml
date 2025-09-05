@@ -100,24 +100,42 @@ jobs:
             echo "❌ Quality Gate FAILED for $SONAR_PROJECT_KEY"
             SUMMARY="[SonarCloud] Quality Gate FAILED - $SONAR_PROJECT_KEY"
             ISSUE_TYPE="Bug"
-            DESCRIPTION="Quality Gate failed on project: $SONAR_PROJECT_KEY\n\nTop issues:\n$ISSUES_TEXT\n\nDashboard: $SONAR_HOST_URL/project/overview?id=$SONAR_PROJECT_KEY"
+            DESC_TEXT="Quality Gate failed on project: $SONAR_PROJECT_KEY\n\nTop issues:\n$ISSUES_TEXT\n\nDashboard: $SONAR_HOST_URL/project/overview?id=$SONAR_PROJECT_KEY"
           else
             echo "✅ Quality Gate PASSED for $SONAR_PROJECT_KEY"
             SUMMARY="[SonarCloud] Quality Gate PASSED - $SONAR_PROJECT_KEY"
             ISSUE_TYPE="Task"
-            DESCRIPTION="Quality Gate passed successfully for project: $SONAR_PROJECT_KEY\n\nTop issues (for reference):\n$ISSUES_TEXT\n\nDashboard: $SONAR_HOST_URL/project/overview?id=$SONAR_PROJECT_KEY"
+            DESC_TEXT="Quality Gate passed successfully for project: $SONAR_PROJECT_KEY\n\nTop issues (for reference):\n$ISSUES_TEXT\n\nDashboard: $SONAR_HOST_URL/project/overview?id=$SONAR_PROJECT_KEY"
           fi
 
+          # Chuyển text description sang Atlassian Document Format (ADF)
+          DESCRIPTION_ADF=$(jq -n --arg text "$DESC_TEXT" '{
+            "type": "doc",
+            "version": 1,
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": $text
+                  }
+                ]
+              }
+            ]
+          }')
+
+          # Tạo Jira issue
           curl -s -X POST \
             -H "Content-Type: application/json" \
             -u "$JIRA_USER:$JIRA_API_TOKEN" \
-            --data "{
-              \"fields\": {
-                \"project\": { \"key\": \"$JIRA_PROJECT_KEY\" },
-                \"summary\": \"$SUMMARY\",
-                \"description\": \"$DESCRIPTION\",
-                \"issuetype\": { \"name\": \"$ISSUE_TYPE\" },
-                \"labels\": [\"sonarcloud\",\"quality-gate\",\"$SONAR_PROJECT_KEY\"]
+            --data "$(jq -n --arg summary "$SUMMARY" --arg type "$ISSUE_TYPE" --argjson description "$DESCRIPTION_ADF" --arg key "$JIRA_PROJECT_KEY" '{
+              fields: {
+                project: { key: $key },
+                summary: $summary,
+                description: $description,
+                issuetype: { name: $type },
+                labels: ["sonarcloud","quality-gate",$key]
               }
-            }" \
+            }')" \
             "$JIRA_URL/rest/api/3/issue/" > /dev/null
