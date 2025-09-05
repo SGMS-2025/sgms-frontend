@@ -30,9 +30,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # - name: Run tests (optional, no coverage)
-      #   run: npm test || true
-
       # SonarCloud Scan cho main
       - name: SonarCloud Scan (Main Branch) 
         if: github.ref_name == 'main'
@@ -60,8 +57,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Check Quality Gate & create Jira if failed
-      - name: Check Quality Gate & create Jira if failed
+      # Check Quality Gate & always create Jira issue
+      - name: Check Quality Gate & create Jira
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -86,37 +83,41 @@ jobs:
             sleep 5
           done
 
+          echo "📥 Fetching top issues..."
+          ISSUES_JSON=$(curl -s -u $SONAR_TOKEN: \
+            "$SONAR_HOST_URL/api/issues/search?projects=$SONAR_PROJECT_KEY&severities=BLOCKER,CRITICAL,MAJOR&ps=5&resolved=false")
+
+          ISSUES_TEXT=$(echo "$ISSUES_JSON" | jq -r --arg url "$SONAR_HOST_URL" --arg key "$SONAR_PROJECT_KEY" '
+            ( .issues | map(
+                "- [" + .severity + "] " + .message + " (" +
+                ( .component | split(":")[1] ) + ":" + ( (.textRange.startLine|tostring) // "?" ) + ")\n  " +
+                $url + "/project/issues?id=" + $key + "&open=" + .key + "&resolved=false"
+              ) | join("\n")
+            )
+          ')
+
           if [ "$STATUS" != "OK" ]; then
-            echo "❌ Quality Gate FAILED for $SONAR_PROJECT_KEY. Gathering top issues..."
-
-            ISSUES_JSON=$(curl -s -u $SONAR_TOKEN: \
-              "$SONAR_HOST_URL/api/issues/search?projects=$SONAR_PROJECT_KEY&severities=BLOCKER,CRITICAL,MAJOR&ps=5&resolved=false")
-
-            DESCRIPTION=$(echo "$ISSUES_JSON" | jq -r --arg url "$SONAR_HOST_URL" --arg key "$SONAR_PROJECT_KEY" '
-              "Quality Gate failed on project: " + $key + "\n\nTop issues:\n" +
-              ( .issues | map(
-                  "- [" + .severity + "] " + .message + " (" +
-                  ( .component | split(":")[1] ) + ":" + ( (.textRange.startLine|tostring) // "?" ) + ")\n  " +
-                  $url + "/project/issues?id=" + $key + "&open=" + .key + "&resolved=false"
-                ) | join("\n")
-              )
-            ')
-
-            curl -s -X POST \
-              -H "Content-Type: application/json" \
-              -u "$JIRA_USER:$JIRA_API_TOKEN" \
-              --data "{
-                \"fields\": {
-                  \"project\": { \"key\": \"$JIRA_PROJECT_KEY\" },
-                  \"summary\": \"[SonarCloud] Quality Gate FAILED - $SONAR_PROJECT_KEY\",
-                  \"description\": \"$DESCRIPTION\n\nDashboard: $SONAR_HOST_URL/project/overview?id=$SONAR_PROJECT_KEY\",
-                  \"issuetype\": { \"name\": \"Bug\" },
-                  \"labels\": [\"sonarcloud\",\"quality-gate\",\"$SONAR_PROJECT_KEY\"]
-                }
-              }" \
-              "$JIRA_URL/rest/api/2/issue/" > /dev/null
-
-            exit 1
+            echo "❌ Quality Gate FAILED for $SONAR_PROJECT_KEY"
+            SUMMARY="[SonarCloud] Quality Gate FAILED - $SONAR_PROJECT_KEY"
+            ISSUE_TYPE="Bug"
+            DESCRIPTION="Quality Gate failed on project: $SONAR_PROJECT_KEY\n\nTop issues:\n$ISSUES_TEXT\n\nDashboard: $SONAR_HOST_URL/project/overview?id=$SONAR_PROJECT_KEY"
           else
             echo "✅ Quality Gate PASSED for $SONAR_PROJECT_KEY"
+            SUMMARY="[SonarCloud] Quality Gate PASSED - $SONAR_PROJECT_KEY"
+            ISSUE_TYPE="Task"
+            DESCRIPTION="Quality Gate passed successfully for project: $SONAR_PROJECT_KEY\n\nTop issues (for reference):\n$ISSUES_TEXT\n\nDashboard: $SONAR_HOST_URL/project/overview?id=$SONAR_PROJECT_KEY"
           fi
+
+          curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -u "$JIRA_USER:$JIRA_API_TOKEN" \
+            --data "{
+              \"fields\": {
+                \"project\": { \"key\": \"$JIRA_PROJECT_KEY\" },
+                \"summary\": \"$SUMMARY\",
+                \"description\": \"$DESCRIPTION\",
+                \"issuetype\": { \"name\": \"$ISSUE_TYPE\" },
+                \"labels\": [\"sonarcloud\",\"quality-gate\",\"$SONAR_PROJECT_KEY\"]
+              }
+            }" \
+            "$JIRA_URL/rest/api/2/issue/" > /dev/null
