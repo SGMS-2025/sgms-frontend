@@ -102,12 +102,13 @@ jobs:
           ')
 
           # Summary, issue type, description based on status
+          BRANCH_NAME=${GITHUB_REF_NAME}
           if [ "$STATUS" != "OK" ]; then
-            SUMMARY="[SonarCloud] Quality Gate FAILED - $SONAR_PROJECT_KEY"
+            SUMMARY="[SonarCloud] Quality Gate FAILED - $SONAR_PROJECT_KEY (branch: $BRANCH_NAME)"
             ISSUE_TYPE="Bug"
             STATUS_TEXT="Quality Gate failed"
           else
-            SUMMARY="[SonarCloud] Quality Gate PASSED - $SONAR_PROJECT_KEY"
+            SUMMARY="[SonarCloud] Quality Gate PASSED - $SONAR_PROJECT_KEY (branch: $BRANCH_NAME)"
             ISSUE_TYPE="Task"
             STATUS_TEXT="Quality Gate passed"
           fi
