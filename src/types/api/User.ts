@@ -5,7 +5,15 @@ export interface User {
   role: string;
   fullName?: string;
   phoneNumber?: string;
+  address?: string;
+  dateOfBirth?: string;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  bio?: string;
   status: string;
+  avatar?: {
+    publicId?: string;
+    url?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }

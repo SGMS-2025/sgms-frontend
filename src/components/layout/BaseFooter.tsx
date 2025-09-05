@@ -1,5 +1,3 @@
-import { ImageIcon } from 'lucide-react';
-
 export function Footer() {
   return (
     <>
@@ -9,8 +7,12 @@ export function Footer() {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-start">
             {/* Logo */}
             <div>
-              <div className="bg-gray-300 p-3 rounded w-fit mb-4">
-                <ImageIcon className="w-8 h-8 text-gray-600" />
+              <div className="bg-gray-300 p-3 rounded w-fit mb-4 flex items-center justify-center">
+                <img
+                  src="https://res.cloudinary.com/dqdwaljcc/image/upload/v1756984782/sgms_avatars/mvwyclpnuicmifn6vof7.png"
+                  alt="Logo image"
+                  className="w-8 h-8"
+                />
               </div>
             </div>
 

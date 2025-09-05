@@ -11,7 +11,7 @@ export const api = axios.create({
   withCredentials: true
 });
 
-// console.log('API URL:', API_URL);
+console.log('API URL:', API_URL);
 
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -39,9 +39,26 @@ const handleRefreshFailure = () => {
   }
 };
 
+// Add request interceptor để theo dõi request
+api.interceptors.request.use(
+  (config) => {
+    console.log('Request:', config.method?.toUpperCase(), config.url);
+    return config;
+  },
+  (error) => {
+    console.error('Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('Response:', response.status, response.config.url);
+    return response;
+  },
   async (error) => {
+    console.error('Response Error:', error.message, error.response?.status, error.config?.url);
+    console.error('Error details:', error.response?.data);
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/login')) {
