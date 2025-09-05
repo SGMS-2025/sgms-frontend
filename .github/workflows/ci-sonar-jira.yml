@@ -1,0 +1,139 @@
+name: CI - Sonar + Jira
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - 'feature/**'
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+      - main
+      - dev
+
+jobs:
+  sonar-analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      # SonarCloud Scan cho main
+      - name: SonarCloud Scan (Main Branch) 
+        if: github.ref_name == 'main'
+        uses: SonarSource/sonarcloud-github-action@v2.3.0
+        with:
+          args: >
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ secrets.SONAR_ORG }}
+            -Dsonar.projectName=${{ secrets.SONAR_PROJECT_NAME }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # SonarCloud Scan cho feature/dev
+      - name: SonarCloud Scan (Feature/Dev Branch)
+        if: github.ref_name != 'main'
+        uses: SonarSource/sonarcloud-github-action@v2.3.0
+        with:
+          args: >
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ secrets.SONAR_ORG }}
+            -Dsonar.projectName=${{ secrets.SONAR_PROJECT_NAME }}
+            -Dsonar.branch.name=${{ github.ref_name }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Check Quality Gate & create Jira issue with nice description
+      - name: Check Quality Gate & create Jira
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          JIRA_USER: ${{ secrets.JIRA_USER }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y jq
+
+          echo "⏳ Waiting for SonarCloud Quality Gate..."
+          for i in {1..24}; do
+            STATUS=$(curl -s -u $SONAR_TOKEN: \
+              "$SONAR_HOST_URL/api/qualitygates/project_status?projectKey=$SONAR_PROJECT_KEY" \
+              | jq -r '.projectStatus.status // empty')
+
+            if [ -n "$STATUS" ]; then
+              echo "Quality Gate Status: $STATUS"
+              break
+            fi
+            sleep 5
+          done
+
+          echo "📥 Fetching top issues..."
+          ISSUES_JSON=$(curl -s -u $SONAR_TOKEN: \
+            "$SONAR_HOST_URL/api/issues/search?projects=$SONAR_PROJECT_KEY&severities=BLOCKER,CRITICAL,MAJOR&ps=10&resolved=false")
+
+          # Chuyển thành bullet list ADF
+          ISSUES_BULLETS=$(echo "$ISSUES_JSON" | jq -r --arg url "$SONAR_HOST_URL" --arg key "$SONAR_PROJECT_KEY" '
+            .issues | map({
+              type: "listItem",
+              content: [{
+                type: "paragraph",
+                content: [{
+                  type: "text",
+                  text: ("[" + .severity + "] " + .message + " (" + (.component | split(":")[1]) + ":" + ((.textRange.startLine|tostring)//"?") + ") " + $url + "/project/issues?id=" + $key + "&open=" + .key)
+                }]
+              }]
+            })
+          ')
+
+          # Summary, issue type, description based on status
+          BRANCH_NAME=${GITHUB_REF_NAME}
+          if [ "$STATUS" != "OK" ]; then
+            SUMMARY="[SonarCloud] Quality Gate FAILED - $SONAR_PROJECT_KEY (branch: $BRANCH_NAME)"
+            ISSUE_TYPE="Bug"
+            STATUS_TEXT="Quality Gate failed"
+          else
+            SUMMARY="[SonarCloud] Quality Gate PASSED - $SONAR_PROJECT_KEY (branch: $BRANCH_NAME)"
+            ISSUE_TYPE="Task"
+            STATUS_TEXT="Quality Gate passed"
+          fi
+
+          DESCRIPTION_ADF=$(jq -n --arg status "$STATUS_TEXT" --arg project "$SONAR_PROJECT_KEY" --arg dashboard "$SONAR_HOST_URL/project/overview?id=$SONAR_PROJECT_KEY" --argjson bullets "$ISSUES_BULLETS" '{
+            type: "doc",
+            version: 1,
+            content: [
+              { type: "paragraph", content: [{ type: "text", text: ($status + " for project: " + $project) }] },
+              { type: "bulletList", content: $bullets },
+              { type: "paragraph", content: [{ type: "text", text: ("Dashboard: " + $dashboard) }] }
+            ]
+          }')
+
+          # Tạo Jira issue
+          curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -u "$JIRA_USER:$JIRA_API_TOKEN" \
+            --data "$(jq -n --arg summary "$SUMMARY" --arg type "$ISSUE_TYPE" --argjson description "$DESCRIPTION_ADF" --arg key "$JIRA_PROJECT_KEY" '{
+              fields: {
+                project: { key: $key },
+                summary: $summary,
+                description: $description,
+                issuetype: { name: $type },
+                labels: ["sonarcloud","quality-gate",$key]
+              }
+            }')" \
+            "$JIRA_URL/rest/api/3/issue/" > /dev/null
