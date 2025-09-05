@@ -120,4 +120,4 @@ jobs:
                 \"labels\": [\"sonarcloud\",\"quality-gate\",\"$SONAR_PROJECT_KEY\"]
               }
             }" \
-            "$JIRA_URL/rest/api/2/issue/" > /dev/null
+            "$JIRA_URL/rest/api/3/issue/" > /dev/null
