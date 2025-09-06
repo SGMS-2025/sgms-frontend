@@ -1,8 +1,10 @@
 {
   "hello-world": "Hello world",
   "welcome": "Welcome to sgms-frontend",
+  
   "UNAUTHORIZED": "You are not authorized to perform this action.",
   "system_error": "A system error has occurred. Please try again later.",
   "network_error": "Unable to connect to the server. Please check your network connection.",
-  "unknown_error": "An unknown error has occurred. Please try again later."
+  "unknown_error": "An unknown error has occurred. Please try again later.",
+  "INVALID_CREDENTIALS": "Invalid email/username or password."
 }

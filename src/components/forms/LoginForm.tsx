@@ -13,7 +13,7 @@ export function LoginForm() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'customer' | 'owner'>('customer');
-  const [email, setEmail] = useState('');
+  const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -23,7 +23,7 @@ export function LoginForm() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password) {
+    if (!emailOrUsername || !password) {
       toast.error('Vui lòng điền đầy đủ thông tin');
       return;
     }
@@ -31,7 +31,7 @@ export function LoginForm() {
     setIsLoading(true);
 
     const loginData: LoginRequest = {
-      email,
+      emailOrUsername,
       password
     };
 
@@ -43,7 +43,7 @@ export function LoginForm() {
       login(response.data.user);
 
       if (rememberMe) {
-        localStorage.setItem('userEmail', email);
+        localStorage.setItem('userEmailOrUsername', emailOrUsername);
       }
 
       // Navigate to home page
@@ -102,15 +102,17 @@ export function LoginForm() {
           </p>
         </div>
 
-        {/* Email Field - responsive spacing và sizing */}
+        {/* Email or Username Field - responsive spacing và sizing */}
         <div className="mb-3 md:mb-4">
-          <label className="block text-sm md:text-base text-gray-300 mb-1 md:mb-2 font-semibold">Email</label>
+          <label className="block text-sm md:text-base text-gray-300 mb-1 md:mb-2 font-semibold">
+            Email hoặc Username
+          </label>
           <Input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            value={emailOrUsername}
+            onChange={(e) => setEmailOrUsername(e.target.value)}
             className="w-full bg-white text-black border-0 rounded-full px-4 py-4 md:py-6 text-sm md:text-base"
-            placeholder="Nhập email của bạn"
+            placeholder="Nhập email hoặc username của bạn"
             required
           />
         </div>

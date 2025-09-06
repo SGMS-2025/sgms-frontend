@@ -67,7 +67,7 @@ const handleApiError = (error: AxiosError) => {
 
       // Show toast notification for user-facing errors
       if (response.status >= 400 && response.status < 500) {
-        toast.error(i18n.t(errorCode));
+        toast.error(i18n.t(errorMessage));
       } else {
         toast.error(i18n.t('system_error'));
       }
