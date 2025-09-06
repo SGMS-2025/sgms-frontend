@@ -67,7 +67,7 @@ const handleApiError = (error: AxiosError) => {
 
       // Show toast notification for user-facing errors
       if (response.status >= 400 && response.status < 500) {
-        toast.error(i18n.t(errorCode));
+        toast.error(i18n.t(`error.${errorMessage}`));
       } else {
         toast.error(i18n.t('system_error'));
       }
@@ -84,20 +84,20 @@ const handleApiError = (error: AxiosError) => {
 
   // Handle network errors or unexpected responses
   if (error.code === 'NETWORK_ERROR' || !error.response) {
-    toast.error(i18n.t('network_error'));
+    toast.error(i18n.t('error.network_error'));
     return {
       success: false,
-      message: i18n.t('network_error'),
+      message: i18n.t('error.network_error'),
       statusCode: 0,
       code: 'NETWORK_ERROR'
     };
   }
 
   // Handle other unexpected errors
-  toast.error(i18n.t('unknown_error'));
+  toast.error(i18n.t('error.unknown_error'));
   return {
     success: false,
-    message: i18n.t('unknown_error'),
+    message: i18n.t('error.unknown_error'),
     statusCode: response?.status || 500,
     code: 'UNKNOWN_ERROR'
   };
