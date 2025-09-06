@@ -1,4 +1,8 @@
 {
   "hello-world": "Hello world",
-  "welcome": "Chào mừng đến với sgms-frontend"
+  "welcome": "Chào mừng đến với sgms-frontend",
+  "UNAUTHORIZED": "Bạn không được phép thực hiện hành động này.",
+  "system_error": "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.",
+  "network_error": "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng của bạn.",
+  "unknown_error": "Đã xảy ra lỗi không xác định. Vui lòng thử lại sau."
 }

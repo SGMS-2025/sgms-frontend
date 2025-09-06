@@ -5,3 +5,15 @@ export interface ApiResponse<T> {
   requestId: string;
   timestamp: string;
 }
+
+export interface ApiErrorResponse {
+  success: false;
+  error: {
+    message: string;
+    code: string;
+    statusCode: number;
+    stack?: string;
+  };
+  timestamp: string;
+  requestId: string;
+}

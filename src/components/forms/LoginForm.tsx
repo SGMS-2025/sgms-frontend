@@ -30,33 +30,27 @@ export function LoginForm() {
 
     setIsLoading(true);
 
-    try {
-      const loginData: LoginRequest = {
-        email,
-        password
-      };
+    const loginData: LoginRequest = {
+      email,
+      password
+    };
 
-      const response = await authApi.login(loginData);
+    const response = await authApi.login(loginData);
 
-      if (response.success) {
-        // Only save user to AuthContext
-        login(response.data.user);
+    // Check if response is successful
+    if (response.success) {
+      // Only save user to AuthContext
+      login(response.data.user);
 
-        if (rememberMe) {
-          localStorage.setItem('userEmail', email);
-        }
-
-        // Navigate to home page
-        navigate('/home');
+      if (rememberMe) {
+        localStorage.setItem('userEmail', email);
       }
-    } catch (error: unknown) {
-      console.error('Login error:', error);
-      const errorMessage =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Đăng nhập thất bại';
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
+
+      // Navigate to home page
+      navigate('/home');
     }
+
+    setIsLoading(false);
   };
 
   return (
