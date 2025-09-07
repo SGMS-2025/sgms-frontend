@@ -23,6 +23,27 @@ export function Header() {
   const isMobile = useIsMobile();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Reusable components to avoid duplication
+  const BackdropOverlay = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity duration-300" onClick={closeMobileMenu} />
+  );
+
+  const SidebarHeader = () => (
+    <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      <div className="flex items-center">
+        <img src={LOGO} alt="Logo image" className="w-8 h-8 object-cover rounded" />
+        <span className="ml-3 text-lg font-semibold text-gray-800">Menu</span>
+      </div>
+      <Button
+        aria-label="Close menu"
+        className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 p-0 min-w-0 hover:bg-gray-200"
+        onClick={closeMobileMenu}
+      >
+        <X size={16} />
+      </Button>
+    </div>
+  );
+
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -200,10 +221,7 @@ export function Header() {
           {isMobile && isMobileMenuOpen && (
             <div className="fixed inset-0 z-50">
               {/* Backdrop overlay */}
-              <div
-                className="fixed inset-0 bg-black bg-opacity-50 transition-opacity duration-300"
-                onClick={closeMobileMenu}
-              />
+              <BackdropOverlay />
 
               {/* Sidebar */}
               <div
@@ -212,19 +230,7 @@ export function Header() {
                 }`}
               >
                 {/* Sidebar header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                  <div className="flex items-center">
-                    <img src="{LOGO}" alt="Logo image" className="w-8 h-8 object-cover rounded" />
-                    <span className="ml-3 text-lg font-semibold text-gray-800">Menu</span>
-                  </div>
-                  <Button
-                    aria-label="Close menu"
-                    className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 p-0 min-w-0 hover:bg-gray-200"
-                    onClick={closeMobileMenu}
-                  >
-                    <X size={16} />
-                  </Button>
-                </div>
+                <SidebarHeader />
 
                 {/* Sidebar content */}
                 <div className="flex flex-col h-full">
@@ -319,7 +325,7 @@ export function Header() {
                 }}
                 aria-label="Về trang chủ"
               >
-                <img src="{LOGO}" alt="Logo image" className="w-6 h-6 object-cover" />
+                <img src={LOGO} alt="Logo image" className="w-6 h-6 object-cover" />
               </button>
 
               {/* Navigation Links - Only visible on desktop */}
@@ -384,10 +390,7 @@ export function Header() {
           {!isAuthenticated && isMobile && isMobileMenuOpen && (
             <div className="fixed inset-0 z-50">
               {/* Backdrop overlay */}
-              <div
-                className="fixed inset-0 bg-black bg-opacity-50 transition-opacity duration-300"
-                onClick={closeMobileMenu}
-              />
+              <BackdropOverlay />
 
               {/* Sidebar */}
               <div
@@ -396,19 +399,7 @@ export function Header() {
                 }`}
               >
                 {/* Sidebar header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                  <div className="flex items-center">
-                    <img src="{LOGO}" alt="Logo image" className="w-8 h-8 object-cover rounded" />
-                    <span className="ml-3 text-lg font-semibold text-gray-800">Menu</span>
-                  </div>
-                  <Button
-                    aria-label="Close menu"
-                    className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 p-0 min-w-0 hover:bg-gray-200"
-                    onClick={closeMobileMenu}
-                  >
-                    <X size={16} />
-                  </Button>
-                </div>
+                <SidebarHeader />
 
                 {/* Sidebar content */}
                 <div className="flex flex-col h-full">

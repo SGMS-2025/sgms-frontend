@@ -45,6 +45,129 @@ import {
 } from '@/components/ui/alert-dialog';
 import type { UpdateProfileData } from '@/types/api/User';
 
+// Helper components defined outside to prevent re-creation on each render
+interface FormFieldProps {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  value: string;
+  placeholder?: string;
+  type?: string;
+  isEditing: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  isTextarea?: boolean;
+  rows?: number;
+  min?: string;
+  max?: string;
+}
+
+const FormField: React.FC<FormFieldProps> = ({
+  id,
+  label,
+  icon: Icon,
+  value,
+  placeholder,
+  type = 'text',
+  isEditing,
+  onChange,
+  isTextarea = false,
+  rows = 4,
+  min,
+  max
+}) => (
+  <div className="space-y-3">
+    <Label htmlFor={isEditing ? id : undefined} className="flex items-center gap-2 text-gray-700 font-medium">
+      <Icon className="w-4 h-4 text-orange-500" />
+      {label}
+    </Label>
+    {isEditing ? (
+      isTextarea ? (
+        <Textarea
+          id={id}
+          value={value}
+          onChange={onChange}
+          rows={rows}
+          className="bg-white border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg px-4 py-3 text-base font-medium resize-none"
+          placeholder={placeholder}
+        />
+      ) : (
+        <Input
+          id={id}
+          type={type}
+          value={value}
+          onChange={onChange}
+          className="bg-white border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg px-4 py-3 h-12 text-base font-medium"
+          placeholder={placeholder}
+          min={min}
+          max={max}
+        />
+      )
+    ) : (
+      <div
+        className={`bg-white rounded-lg px-4 py-3 border border-gray-200 ${isTextarea ? 'min-h-[100px] flex items-start' : 'h-12 flex items-center'}`}
+      >
+        <p className="text-gray-900 font-medium">{value || 'Chưa cập nhật'}</p>
+      </div>
+    )}
+  </div>
+);
+
+interface StatusBadgeProps {
+  status: string;
+  completedText?: string;
+  warningText?: string;
+  missedText?: string;
+}
+
+const StatusBadge: React.FC<StatusBadgeProps> = ({
+  status,
+  completedText = 'Hoàn thành',
+  warningText = 'Đi muộn',
+  missedText = 'Vắng mặt'
+}) => {
+  if (status === 'completed') {
+    return (
+      <Badge className="bg-green-100 text-green-800 border-green-200">
+        <CheckCircle className="w-3 h-3 mr-1" />
+        {completedText}
+      </Badge>
+    );
+  }
+  if (status === 'warning') {
+    return (
+      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+        <AlertCircle className="w-3 h-3 mr-1" />
+        {warningText}
+      </Badge>
+    );
+  }
+  if (status === 'missed') {
+    return (
+      <Badge variant="destructive">
+        <XCircle className="w-3 h-3 mr-1" />
+        {missedText}
+      </Badge>
+    );
+  }
+  return null;
+};
+
+interface InfoCardProps {
+  icon: React.ElementType;
+  title: string;
+  children: React.ReactNode;
+}
+
+const InfoCard: React.FC<InfoCardProps> = ({ icon: Icon, title, children }) => (
+  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+    <Label className="font-semibold text-gray-600 mb-3 block flex items-center">
+      <Icon className="w-5 h-5 mr-2 text-orange-500" />
+      {title}
+    </Label>
+    {children}
+  </div>
+);
+
 export function UserProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
@@ -578,28 +701,15 @@ export function UserProfile() {
                       </CardHeader>
                       <CardContent className="space-y-6 p-6 md:p-8 pt-0">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-3">
-                            <Label
-                              htmlFor={isEditing ? 'name' : undefined}
-                              className="flex items-center gap-2 text-gray-700 font-medium"
-                            >
-                              <User className="w-4 h-4 text-orange-500" />
-                              Họ và tên
-                            </Label>
-                            {isEditing ? (
-                              <Input
-                                id="name"
-                                value={formData.fullName}
-                                onChange={handleInputChange}
-                                className="bg-white border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg px-4 py-3 h-12 text-base font-medium"
-                                placeholder="Nhập họ và tên của bạn"
-                              />
-                            ) : (
-                              <div className="bg-white rounded-lg px-4 py-3 border border-gray-200 h-12 flex items-center">
-                                <p className="text-gray-900 font-medium">{userData.name || 'Chưa cập nhật'}</p>
-                              </div>
-                            )}
-                          </div>
+                          <FormField
+                            id="name"
+                            label="Họ và tên"
+                            icon={User}
+                            value={formData.fullName || ''}
+                            placeholder="Nhập họ và tên của bạn"
+                            isEditing={isEditing}
+                            onChange={handleInputChange}
+                          />
 
                           <div className="space-y-3">
                             <Label
@@ -641,28 +751,15 @@ export function UserProfile() {
                             )}
                           </div>
 
-                          <div className="space-y-3">
-                            <Label
-                              htmlFor={isEditing ? 'phone' : undefined}
-                              className="flex items-center gap-2 text-gray-700 font-medium"
-                            >
-                              <Phone className="w-4 h-4 text-orange-500" />
-                              Số điện thoại
-                            </Label>
-                            {isEditing ? (
-                              <Input
-                                id="phone"
-                                value={formData.phoneNumber}
-                                onChange={handleInputChange}
-                                className="bg-white border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg px-4 py-3 h-12 text-base font-medium"
-                                placeholder="Nhập số điện thoại"
-                              />
-                            ) : (
-                              <div className="bg-white rounded-lg px-4 py-3 border border-gray-200 h-12 flex items-center">
-                                <p className="text-gray-900 font-medium">{userData.phone || 'Chưa cập nhật'}</p>
-                              </div>
-                            )}
-                          </div>
+                          <FormField
+                            id="phone"
+                            label="Số điện thoại"
+                            icon={Phone}
+                            value={formData.phoneNumber || ''}
+                            placeholder="Nhập số điện thoại"
+                            isEditing={isEditing}
+                            onChange={handleInputChange}
+                          />
 
                           <div className="space-y-3">
                             <Label className="flex items-center gap-2 text-gray-700 font-medium">
@@ -745,27 +842,16 @@ export function UserProfile() {
                             )}
                           </div>
 
-                          <div className="space-y-3 md:col-span-2">
-                            <Label
-                              htmlFor={isEditing ? 'address' : undefined}
-                              className="flex items-center gap-2 text-gray-700 font-medium"
-                            >
-                              <MapPin className="w-4 h-4 text-orange-500" />
-                              Địa chỉ
-                            </Label>
-                            {isEditing ? (
-                              <Input
-                                id="address"
-                                value={formData.address}
-                                onChange={handleInputChange}
-                                className="bg-white border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg px-4 py-3 h-12 text-base font-medium"
-                                placeholder="Nhập địa chỉ của bạn"
-                              />
-                            ) : (
-                              <div className="bg-white rounded-lg px-4 py-3 border border-gray-200 h-12 flex items-center">
-                                <p className="text-gray-900 font-medium">{userData.address || 'Chưa cập nhật'}</p>
-                              </div>
-                            )}
+                          <div className="md:col-span-2">
+                            <FormField
+                              id="address"
+                              label="Địa chỉ"
+                              icon={MapPin}
+                              value={formData.address || ''}
+                              placeholder="Nhập địa chỉ của bạn"
+                              isEditing={isEditing}
+                              onChange={handleInputChange}
+                            />
                           </div>
 
                           <div className="space-y-3 md:col-span-2">
@@ -778,24 +864,18 @@ export function UserProfile() {
                             </div>
                           </div>
 
-                          <div className="space-y-3 md:col-span-2">
-                            <Label htmlFor={isEditing ? 'bio' : undefined} className="text-gray-700 font-medium">
-                              Giới thiệu bản thân
-                            </Label>
-                            {isEditing ? (
-                              <Textarea
-                                id="bio"
-                                value={formData.bio}
-                                onChange={handleInputChange}
-                                rows={4}
-                                className="bg-white border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg px-4 py-3 text-base font-medium resize-none"
-                                placeholder="Chia sẻ một chút về bản thân bạn..."
-                              />
-                            ) : (
-                              <div className="bg-white rounded-lg px-4 py-3 border border-gray-200 min-h-[100px] flex items-start">
-                                <p className="text-gray-900 font-medium">{userData.bio || 'Chưa cập nhật'}</p>
-                              </div>
-                            )}
+                          <div className="md:col-span-2">
+                            <FormField
+                              id="bio"
+                              label="Giới thiệu bản thân"
+                              icon={User}
+                              value={formData.bio || ''}
+                              placeholder="Chia sẻ một chút về bản thân bạn..."
+                              isEditing={isEditing}
+                              onChange={handleInputChange}
+                              isTextarea={true}
+                              rows={4}
+                            />
                           </div>
                         </div>
 
@@ -903,26 +983,22 @@ export function UserProfile() {
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                              <Label className="font-semibold text-gray-600 mb-3 block">
-                                Huấn luyện viên phụ trách:
-                              </Label>
+                            <InfoCard icon={User} title="Huấn luyện viên phụ trách:">
                               <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
                                   <User className="w-5 h-5 text-orange-600" />
                                 </div>
                                 <span className="font-medium text-lg">{servicePackage.trainer}</span>
                               </div>
-                            </div>
-                            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                              <Label className="font-semibold text-gray-600 mb-3 block">Phòng tập:</Label>
+                            </InfoCard>
+                            <InfoCard icon={MapPin} title="Phòng tập:">
                               <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
                                   <MapPin className="w-5 h-5 text-orange-600" />
                                 </div>
                                 <span className="font-medium text-lg">{servicePackage.gym}</span>
                               </div>
-                            </div>
+                            </InfoCard>
                           </div>
 
                           <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
@@ -992,26 +1068,7 @@ export function UserProfile() {
                                       <p className="font-semibold text-gray-800">{session.date}</p>
                                       <p className="text-sm text-gray-600">{session.time}</p>
                                     </div>
-                                    <div>
-                                      {session.status === 'completed' && (
-                                        <Badge className="bg-green-100 text-green-800 border-green-200">
-                                          <CheckCircle className="w-3 h-3 mr-1" />
-                                          Hoàn thành
-                                        </Badge>
-                                      )}
-                                      {session.status === 'warning' && (
-                                        <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
-                                          <AlertCircle className="w-3 h-3 mr-1" />
-                                          Đi muộn
-                                        </Badge>
-                                      )}
-                                      {session.status === 'missed' && (
-                                        <Badge variant="destructive">
-                                          <XCircle className="w-3 h-3 mr-1" />
-                                          Vắng mặt
-                                        </Badge>
-                                      )}
-                                    </div>
+                                    <StatusBadge status={session.status} />
                                   </div>
                                   {session.workout && (
                                     <div className="bg-white rounded-lg p-3 border border-gray-200">
