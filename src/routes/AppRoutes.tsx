@@ -4,6 +4,7 @@ import ExamplePage from '@/pages/example/ExamplePage';
 import ExampleLayout from '@/layouts/example/ExampleLayout';
 import LoginPage from '@/pages/auth/LoginPage';
 import HomePage from '@/pages/home-test';
+import LandingPage from '@/pages/landing/LandingPage';
 import { useIsAuthenticated } from '@/hooks/useAuth';
 
 // You can add a protected route component here if needed
@@ -18,7 +19,7 @@ const AppRoutes: React.FC = () => {
   return (
     <Routes>
       {/* Root Route - redirect based on auth status */}
-      <Route path="/" element={<Navigate to={isAuthenticated ? '/home' : '/login'} replace />} />
+      <Route path="/" element={<LandingPage />} />
 
       {/* Auth Routes - redirect to home if already authenticated */}
       <Route path="/login" element={isAuthenticated ? <Navigate to="/home" replace /> : <LoginPage />} />
