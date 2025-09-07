@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Star } from 'lucide-react';
-import type { Testimonial, LandingPageProps } from '@/types/pages';
+import type { Testimonial, LandingPageProps } from '@/types/pages/landing';
 import { useBreakpoint } from '@/hooks/useWindowSize';
 
 const TestimonialsSection: React.FC<LandingPageProps> = ({ className = '' }) => {

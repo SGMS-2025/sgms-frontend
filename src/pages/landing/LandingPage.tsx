@@ -2,14 +2,12 @@ import React from 'react';
 import { Header } from '@/components/layout/BaseHeader';
 import { Footer } from '@/components/layout/BaseFooter';
 import { ScrollingBanner } from '@/components/layout/ScrollingBanner';
-import {
-  HeroSection,
-  OffersSection,
-  GymLocationsSection,
-  TrainersSection,
-  FeaturesSection,
-  TestimonialsSection
-} from '@/components/landing';
+import HeroSection from '@/components/landing/HeroSection';
+import OffersSection from '@/components/landing/OffersSection';
+import GymLocationsSection from '@/components/landing/GymLocationsSection';
+import TrainersSection from '@/components/landing/TrainersSection';
+import FeaturesSection from '@/components/landing/FeaturesSection';
+import TestimonialsSection from '@/components/landing/TestimonialsSection';
 
 const LandingPage: React.FC = () => {
   return (

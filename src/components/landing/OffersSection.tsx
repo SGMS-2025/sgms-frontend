@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MapPin, Clock, ArrowRight, ChevronRight } from 'lucide-react';
-import type { LandingPageProps } from '@/types/pages';
+import type { LandingPageProps } from '@/types/pages/landing';
 import { OFFERS, getOfferDescription } from '@/constants/landing-data';
 
 const OffersSection: React.FC<LandingPageProps> = ({ className = '' }) => {

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import type { LandingPageProps } from '@/types/pages';
+import type { LandingPageProps } from '@/types/pages/landing';
 import { TRAINERS } from '@/constants/landing-data';
 import TrainerCard from './TrainerCard';
 import styles from '@/assets/css/trainers-section.module.css';

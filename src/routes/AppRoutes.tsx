@@ -4,7 +4,7 @@ import ExamplePage from '@/pages/example/ExamplePage';
 import ExampleLayout from '@/layouts/example/ExampleLayout';
 import LoginPage from '@/pages/auth/LoginPage';
 import HomePage from '@/pages/home-test';
-import { LandingPage } from '@/pages/landing';
+import LandingPage from '@/pages/landing/LandingPage';
 import { useIsAuthenticated } from '@/hooks/useAuth';
 
 // You can add a protected route component here if needed

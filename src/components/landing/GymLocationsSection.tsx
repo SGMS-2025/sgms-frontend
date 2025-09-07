@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MapPin, Clock, Star, ArrowRight, ChevronRight } from 'lucide-react';
-import type { GymLocation, LandingPageProps } from '@/types/pages';
+import type { GymLocation, LandingPageProps } from '@/types/pages/landing';
 import backgroundImage from '@/assets/images/background1.png';
 
 const GymLocationsSection: React.FC<LandingPageProps> = ({ className = '' }) => {
