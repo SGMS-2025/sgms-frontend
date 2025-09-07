@@ -10,8 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   User,
@@ -34,6 +32,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { userApi } from '@/services/api/userApi';
 import { toast } from 'sonner';
+import { AVATAR_PLACEHOLDER } from '@/constants/images';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,11 +52,40 @@ export function UserProfile() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { state } = useAuth();
   const isMobile = useIsMobile();
+
+  // Helper functions to avoid nested ternary operators
+  const getServiceTabText = (isMobile: boolean): string => {
+    return isMobile ? 'Dịch vụ' : 'Gói dịch vụ';
+  };
+
+  const getBodyMetricLabel = (key: string): string => {
+    switch (key) {
+      case 'weight':
+        return 'Cân nặng';
+      case 'bodyFat':
+        return 'Body Fat';
+      case 'bmi':
+        return 'BMI';
+      default:
+        return key;
+    }
+  };
+
+  const getStrengthMetricLabel = (key: string): string => {
+    switch (key) {
+      case 'squat':
+        return 'Squat';
+      case 'deadlift':
+        return 'Deadlift';
+      case 'benchPress':
+        return 'Bench press';
+      default:
+        return key;
+    }
+  };
 
   // Form data for editing
   const [formData, setFormData] = useState<UpdateProfileData>({
@@ -123,14 +151,6 @@ export function UserProfile() {
           gender: response.data.gender || 'OTHER',
           bio: response.data.bio || ''
         });
-
-        // Set selected date for date picker
-        if (response.data.dateOfBirth) {
-          const parsedDate = new Date(response.data.dateOfBirth);
-          if (!isNaN(parsedDate.getTime())) {
-            setSelectedDate(parsedDate);
-          }
-        }
       }
 
       setIsLoading(false);
@@ -168,24 +188,6 @@ export function UserProfile() {
       ...formData,
       gender: value.toUpperCase() as 'MALE' | 'FEMALE' | 'OTHER'
     });
-  };
-
-  // Handle date selection
-  const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
-      setSelectedDate(date);
-      // Format date to DD/MM/YYYY for display
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const year = date.getFullYear().toString();
-      const formattedDate = `${day}/${month}/${year}`;
-
-      setFormData({
-        ...formData,
-        dateOfBirth: formattedDate
-      });
-      setIsDatePickerOpen(false);
-    }
   };
 
   // Handle form submission
@@ -441,7 +443,7 @@ export function UserProfile() {
                           <Avatar
                             className={`${isMobile ? 'w-28 h-28' : 'w-24 h-24'} border-4 border-white shadow-xl ring-4 ring-white/20`}
                           >
-                            <AvatarImage src={userData.avatar || '/placeholder.svg'} alt={userData.name} />
+                            <AvatarImage src={userData.avatar || AVATAR_PLACEHOLDER} alt={userData.name} />
                             <AvatarFallback className="bg-gradient-to-br from-orange-600 to-orange-700 text-white text-xl font-bold">
                               {userData.name
                                 ? userData.name
@@ -522,7 +524,7 @@ export function UserProfile() {
                       className="data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-md px-4 py-3 rounded-lg m-1 font-medium transition-all duration-200"
                     >
                       <CalendarIcon className="w-4 h-4 mr-2" />
-                      <span className={isMobile ? 'text-sm' : 'text-base'}>{isMobile ? 'Dịch vụ' : 'Gói dịch vụ'}</span>
+                      <span className={isMobile ? 'text-sm' : 'text-base'}>{getServiceTabText(isMobile)}</span>
                     </TabsTrigger>
                     <TabsTrigger
                       value="progress"
@@ -608,29 +610,30 @@ export function UserProfile() {
                               Ngày sinh
                             </Label>
                             {isEditing ? (
-                              <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                                <PopoverTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    className="w-full justify-start text-left font-normal bg-white border-gray-200 hover:border-orange-500 focus:border-orange-500 focus:ring-orange-500 rounded-lg px-4 py-3 h-12 text-base"
-                                  >
-                                    <CalendarIcon className="mr-2 h-4 w-4 text-orange-500" />
-                                    {formData.dateOfBirth || 'Chọn ngày sinh'}
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                  <Calendar
-                                    mode="single"
-                                    selected={selectedDate}
-                                    onSelect={handleDateSelect}
-                                    disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
-                                    initialFocus
-                                    captionLayout="dropdown"
-                                    fromYear={1900}
-                                    toYear={new Date().getFullYear()}
-                                  />
-                                </PopoverContent>
-                              </Popover>
+                              <Input
+                                id="birthDate"
+                                type="date"
+                                value={formData.dateOfBirth ? formData.dateOfBirth.split('/').reverse().join('-') : ''}
+                                onChange={(e) => {
+                                  const date = e.target.value;
+                                  if (date) {
+                                    const [year, month, day] = date.split('-');
+                                    const formattedDate = `${day}/${month}/${year}`;
+                                    setFormData({
+                                      ...formData,
+                                      dateOfBirth: formattedDate
+                                    });
+                                  } else {
+                                    setFormData({
+                                      ...formData,
+                                      dateOfBirth: ''
+                                    });
+                                  }
+                                }}
+                                className="bg-white border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg px-4 py-3 h-12 text-base font-medium"
+                                max={new Date().toISOString().split('T')[0]}
+                                min="1900-01-01"
+                              />
                             ) : (
                               <div className="bg-white rounded-lg px-4 py-3 border border-gray-200 h-12 flex items-center">
                                 <p className="text-gray-900 font-medium">{userData.birthDate || 'Chưa cập nhật'}</p>
@@ -839,7 +842,7 @@ export function UserProfile() {
                     >
                       <CardHeader className="p-6 md:p-8 pb-6">
                         <CardTitle className="text-orange-600 text-xl md:text-2xl font-bold flex items-center">
-                          <Calendar className="w-6 h-6 mr-3" />
+                          <CalendarIcon className="w-6 h-6 mr-3" />
                           GÓI DỊCH VỤ
                         </CardTitle>
                       </CardHeader>
@@ -974,7 +977,7 @@ export function UserProfile() {
                       <Card className="border-0 shadow-lg rounded-xl">
                         <CardHeader className="pb-6">
                           <CardTitle className="text-orange-600 text-xl md:text-2xl font-bold flex items-center">
-                            <Calendar className="w-6 h-6 mr-3" />
+                            <CalendarIcon className="w-6 h-6 mr-3" />
                             LỊCH SỬ TẬP LUYỆN
                           </CardTitle>
                         </CardHeader>
@@ -1123,9 +1126,7 @@ export function UserProfile() {
                                       key={key}
                                       className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200"
                                     >
-                                      <span className="font-medium capitalize">
-                                        {key === 'weight' ? 'Cân nặng' : key === 'bodyFat' ? 'Body Fat' : 'BMI'}:
-                                      </span>
+                                      <span className="font-medium capitalize">{getBodyMetricLabel(key)}:</span>
                                       <div className="flex gap-3">
                                         <Badge variant="secondary" className="bg-gray-200 text-gray-600">
                                           {value.previous}
@@ -1154,9 +1155,7 @@ export function UserProfile() {
                                       key={key}
                                       className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200"
                                     >
-                                      <span className="font-medium capitalize">
-                                        • {key === 'squat' ? 'Squat' : key === 'deadlift' ? 'Deadlift' : 'Bench press'}:
-                                      </span>
+                                      <span className="font-medium capitalize">• {getStrengthMetricLabel(key)}:</span>
                                       <div className="flex gap-3">
                                         <Badge variant="secondary" className="bg-gray-200 text-gray-600">
                                           {value.previous}

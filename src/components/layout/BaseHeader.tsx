@@ -12,6 +12,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
+import { LOGO } from '@/constants/images';
 
 export function Header() {
   // Use AuthContext to get user and role
@@ -84,11 +85,7 @@ export function Header() {
                   }
                 }}
               >
-                <img
-                  src="https://res.cloudinary.com/dqdwaljcc/image/upload/v1756985248/sgms_avatars/lspoumruhhozuzeoszky.png"
-                  alt="Logo image"
-                  className="w-full h-full object-cover"
-                />
+                <img src={LOGO} alt="Logo image" className="w-full h-full object-cover" />
               </button>
             </div>
 
@@ -217,11 +214,7 @@ export function Header() {
                 {/* Sidebar header */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-200">
                   <div className="flex items-center">
-                    <img
-                      src="https://res.cloudinary.com/dqdwaljcc/image/upload/v1756985248/sgms_avatars/lspoumruhhozuzeoszky.png"
-                      alt="Logo image"
-                      className="w-8 h-8 object-cover rounded"
-                    />
+                    <img src="{LOGO}" alt="Logo image" className="w-8 h-8 object-cover rounded" />
                     <span className="ml-3 text-lg font-semibold text-gray-800">Menu</span>
                   </div>
                   <Button
@@ -326,11 +319,7 @@ export function Header() {
                 }}
                 aria-label="Về trang chủ"
               >
-                <img
-                  src="https://res.cloudinary.com/dqdwaljcc/image/upload/v1756985248/sgms_avatars/lspoumruhhozuzeoszky.png"
-                  alt="Logo image"
-                  className="w-6 h-6 object-cover"
-                />
+                <img src="{LOGO}" alt="Logo image" className="w-6 h-6 object-cover" />
               </button>
 
               {/* Navigation Links - Only visible on desktop */}
@@ -409,11 +398,7 @@ export function Header() {
                 {/* Sidebar header */}
                 <div className="flex items-center justify-between p-4 border-b border-gray-200">
                   <div className="flex items-center">
-                    <img
-                      src="https://res.cloudinary.com/dqdwaljcc/image/upload/v1756985248/sgms_avatars/lspoumruhhozuzeoszky.png"
-                      alt="Logo image"
-                      className="w-8 h-8 object-cover rounded"
-                    />
+                    <img src="{LOGO}" alt="Logo image" className="w-8 h-8 object-cover rounded" />
                     <span className="ml-3 text-lg font-semibold text-gray-800">Menu</span>
                   </div>
                   <Button

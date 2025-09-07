@@ -1,3 +1,5 @@
+import { FOOTER_LOGO } from '@/constants/images';
+
 export function Footer() {
   return (
     <>
@@ -8,11 +10,7 @@ export function Footer() {
             {/* Logo */}
             <div>
               <div className="bg-gray-300 p-3 rounded w-fit mb-4 flex items-center justify-center">
-                <img
-                  src="https://res.cloudinary.com/dqdwaljcc/image/upload/v1756984782/sgms_avatars/mvwyclpnuicmifn6vof7.png"
-                  alt="Logo image"
-                  className="w-8 h-8"
-                />
+                <img src={FOOTER_LOGO} alt="Logo image" className="w-8 h-8" />
               </div>
             </div>
 
