@@ -1,4 +1,4 @@
-import type { Offer, Trainer, Feature } from '@/types/landing';
+import type { Offer, Trainer, Feature } from '@/types/pages';
 
 // Animation constants
 export const ANIMATION_DURATIONS = {

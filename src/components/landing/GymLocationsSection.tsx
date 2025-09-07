@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MapPin, Clock, Star, ArrowRight, ChevronRight } from 'lucide-react';
-import type { GymLocation, LandingPageProps } from '@/types/landing';
+import type { GymLocation, LandingPageProps } from '@/types/pages';
+import backgroundImage from '@/assets/images/background1.png';
 
 const GymLocationsSection: React.FC<LandingPageProps> = ({ className = '' }) => {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ const GymLocationsSection: React.FC<LandingPageProps> = ({ className = '' }) => 
       name: 'VYOGAWORLD',
       category: 'Yoga & Wellness',
       description: 'Không gian yoga rộng rãi và yên tĩnh, phù hợp cho mọi cấp độ tập luyện',
-      image: '/src/assets/images/background1.png',
+      image: backgroundImage,
       features: ['Không gian yoga rộng rãi', 'Thiết bị yoga chuyên nghiệp', 'Lớp học đa dạng', 'Môi trường thư giãn'],
       address: 'Tầng M, Cao ốc Saigon, KDC Trung Sơn, H. Bình Chánh',
       hours: '5:00 - 21:00 hàng ngày',

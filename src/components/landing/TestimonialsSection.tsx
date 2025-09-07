@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Star } from 'lucide-react';
-import type { Testimonial, LandingPageProps } from '@/types/landing';
+import type { Testimonial, LandingPageProps } from '@/types/pages';
+import { useBreakpoint } from '@/hooks/useWindowSize';
 
 const TestimonialsSection: React.FC<LandingPageProps> = ({ className = '' }) => {
   const [currentTestimonialSlide, setCurrentTestimonialSlide] = useState(0);
+  const { isMobile } = useBreakpoint();
 
   const testimonials: Testimonial[] = [
     {
@@ -110,8 +112,8 @@ const TestimonialsSection: React.FC<LandingPageProps> = ({ className = '' }) => 
             <div
               className="flex gap-4 sm:gap-6 transition-transform duration-700 ease-in-out"
               style={{
-                transform: `translateX(-${currentTestimonialSlide * (window.innerWidth < 640 ? 280 : 320)}px)`,
-                width: `${testimonials.length * (window.innerWidth < 640 ? 280 : 320)}px`
+                transform: `translateX(-${currentTestimonialSlide * (isMobile ? 280 : 320)}px)`,
+                width: `${testimonials.length * (isMobile ? 280 : 320)}px`
               }}
             >
               {testimonials.map((testimonial, i) => (

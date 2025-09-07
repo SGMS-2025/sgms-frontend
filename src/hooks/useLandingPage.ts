@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { SLIDE_COUNTS, ANIMATION_DURATIONS } from '@/constants/landing-data';
 
 interface LandingPageState {
   currentTrainerSlide: number;
@@ -27,33 +28,33 @@ export const useLandingPage = (): LandingPageState & LandingPageActions => {
   // Auto-slide for trainers
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTrainerSlide((prev) => (prev + 1) % 8); // 8 slides
-    }, 4000);
+      setCurrentTrainerSlide((prev) => (prev + 1) % SLIDE_COUNTS.TRAINERS);
+    }, ANIMATION_DURATIONS.TRAINER_SLIDE);
     return () => clearInterval(interval);
   }, []);
 
   // Auto-slide for testimonials
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTestimonialSlide((prev) => (prev + 1) % 6); // 6 slides
-    }, 6000);
+      setCurrentTestimonialSlide((prev) => (prev + 1) % SLIDE_COUNTS.TESTIMONIALS);
+    }, ANIMATION_DURATIONS.TESTIMONIAL_SLIDE);
     return () => clearInterval(interval);
   }, []);
 
   const nextTrainerSlide = () => {
-    setCurrentTrainerSlide((prev) => (prev + 1) % 8);
+    setCurrentTrainerSlide((prev) => (prev + 1) % SLIDE_COUNTS.TRAINERS);
   };
 
   const prevTrainerSlide = () => {
-    setCurrentTrainerSlide((prev) => (prev - 1 + 8) % 8);
+    setCurrentTrainerSlide((prev) => (prev - 1 + SLIDE_COUNTS.TRAINERS) % SLIDE_COUNTS.TRAINERS);
   };
 
   const nextTestimonialSlide = () => {
-    setCurrentTestimonialSlide((prev) => (prev + 1) % 6);
+    setCurrentTestimonialSlide((prev) => (prev + 1) % SLIDE_COUNTS.TESTIMONIALS);
   };
 
   const prevTestimonialSlide = () => {
-    setCurrentTestimonialSlide((prev) => (prev - 1 + 6) % 6);
+    setCurrentTestimonialSlide((prev) => (prev - 1 + SLIDE_COUNTS.TESTIMONIALS) % SLIDE_COUNTS.TESTIMONIALS);
   };
 
   return {

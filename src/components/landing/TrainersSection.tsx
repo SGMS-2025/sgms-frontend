@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
-import type { LandingPageProps } from '@/types/landing';
+import type { LandingPageProps } from '@/types/pages';
 import { TRAINERS } from '@/constants/landing-data';
 import TrainerCard from './TrainerCard';
-import styles from './trainers-section.module.css';
+import styles from '@/assets/css/trainers-section.module.css';
 
 const TrainersSection: React.FC<LandingPageProps> = ({ className = '' }) => {
   const [isPaused, setIsPaused] = useState(false);

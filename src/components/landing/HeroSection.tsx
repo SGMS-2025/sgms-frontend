@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Star, ChevronRight, ArrowRight, Sparkles } from 'lucide-react';
-import type { LandingPageProps } from '@/types/landing';
+import type { LandingPageProps } from '@/types/pages';
 import backgroundImage from '@/assets/images/background1.png';
 
 const HeroSection: React.FC<LandingPageProps> = ({ className = '' }) => {

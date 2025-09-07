@@ -1,8 +1,9 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import type { Trainer } from '@/types/landing';
+import type { Trainer } from '@/types/pages';
 import { getTrainerColorScheme } from '@/constants/landing-data';
-import styles from './trainers-section.module.css';
+import { renderCustomStars } from '@/utils/rating';
+import styles from '@/assets/css/trainers-section.module.css';
 
 interface TrainerCardProps {
   trainer: Trainer;
@@ -13,14 +14,6 @@ interface TrainerCardProps {
 
 const TrainerCard: React.FC<TrainerCardProps> = ({ trainer, index, onMouseEnter, onMouseLeave }) => {
   const colorScheme = getTrainerColorScheme(index);
-
-  const renderStars = (rating: number) => {
-    return [...Array(5)].map((_, i) => (
-      <span key={i} className={`text-sm ${i < Math.floor(rating) ? 'text-yellow-300' : 'text-white/30'}`}>
-        ★
-      </span>
-    ));
-  };
 
   return (
     <div className="flex-shrink-0 w-80 snap-center">
@@ -60,7 +53,7 @@ const TrainerCard: React.FC<TrainerCardProps> = ({ trainer, index, onMouseEnter,
                   <p className="text-sm opacity-90">{trainer.specialty}</p>
                   <p className="text-sm opacity-90">{trainer.experience}</p>
                   <div className="flex items-center justify-center gap-2 my-3">
-                    <div className="flex items-center">{renderStars(trainer.rating)}</div>
+                    <div className="flex items-center">{renderCustomStars(trainer.rating)}</div>
                     <span className="text-sm font-semibold">{trainer.rating}</span>
                   </div>
                   <p className="text-xl font-bold">{trainer.price}</p>

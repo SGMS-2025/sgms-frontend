@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import type { LandingPageProps } from '@/types/landing';
+import type { LandingPageProps } from '@/types/pages';
 import { FEATURES } from '@/constants/landing-data';
 
 const FeaturesSection: React.FC<LandingPageProps> = ({ className = '' }) => {
