@@ -5,17 +5,21 @@ A modern React frontend application for the Smart Gym Management System (SGMS). 
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js (latest LTS recommended)
 - npm or yarn
 
 ### Setup
+
 1. Clone the repository
+
 ```bash
 git clone https://github.com/SGMS-2025/sgms-frontend.git
 cd sgms-frontend
 ```
 
 2. Install dependencies
+
 ```bash
 npm install
 # or
@@ -23,16 +27,20 @@ yarn
 ```
 
 3. Set up environment variables
+
 ```bash
 cp .env.example .env
 ```
+
 Edit the `.env` file and set your environment variables:
+
 ```
 VITE_API_URL=your_api_url_here
 VITE_PORT=your_port_here
 ```
 
 4. Start the development server
+
 ```bash
 npm run dev
 # or
@@ -99,18 +107,21 @@ sgms-frontend/
 The application uses Axios for API communication. The base API configuration is in `src/services/api/api.ts`.
 
 Example usage:
+
 ```typescript
 import { api } from '@/services/api';
 
 // GET request
-api.get('/users')
-  .then(response => console.log(response.data))
-  .catch(error => console.error(error));
+api
+  .get('/users')
+  .then((response) => console.log(response.data))
+  .catch((error) => console.error(error));
 
 // POST request
-api.post('/users', { name: 'John Doe', email: 'john@example.com' })
-  .then(response => console.log(response.data))
-  .catch(error => console.error(error));
+api
+  .post('/users', { name: 'John Doe', email: 'john@example.com' })
+  .then((response) => console.log(response.data))
+  .catch((error) => console.error(error));
 ```
 
 ### React Router Setup
@@ -182,12 +193,14 @@ The project includes several useful custom hooks:
 The project uses React's built-in state management solutions for optimal performance and simplicity:
 
 ### Current Setup
+
 - **React Context API**: For global state management (auth, theme, etc.)
 - **useState & useReducer**: For local component state
 - **Custom Hooks**: For reusable state logic
 - **useReducer in Context**: Write reducers in the same context file (create separate 'reducers' folder for large projects)
 
 ### Context API Example
+
 ```typescript
 // src/contexts/AuthContext.tsx
 import { createContext, useContext, useState, ReactNode } from 'react';
@@ -223,6 +236,7 @@ export function useAuth() {
 ```
 
 ### useReducer Example
+
 ```typescript
 // For complex state logic
 interface TodoState {
@@ -230,7 +244,7 @@ interface TodoState {
   filter: 'all' | 'active' | 'completed';
 }
 
-type TodoAction = 
+type TodoAction =
   | { type: 'ADD_TODO'; payload: Todo }
   | { type: 'TOGGLE_TODO'; payload: string }
   | { type: 'SET_FILTER'; payload: 'all' | 'active' | 'completed' };
@@ -242,11 +256,7 @@ function todoReducer(state: TodoState, action: TodoAction): TodoState {
     case 'TOGGLE_TODO':
       return {
         ...state,
-        todos: state.todos.map(todo =>
-          todo.id === action.payload 
-            ? { ...todo, completed: !todo.completed }
-            : todo
-        )
+        todos: state.todos.map((todo) => (todo.id === action.payload ? { ...todo, completed: !todo.completed } : todo))
       };
     case 'SET_FILTER':
       return { ...state, filter: action.payload };
@@ -257,6 +267,7 @@ function todoReducer(state: TodoState, action: TodoAction): TodoState {
 ```
 
 ### Usage in Components
+
 ```typescript
 import { useAuth } from '@/contexts/AuthContext';
 import { useReducer } from 'react';
@@ -288,9 +299,7 @@ The project uses Tailwind CSS for styling with a consistent design system. Compo
   <div className="border border-gray-200 rounded-lg p-4 mb-4">
     <h2 className="text-2xl font-bold text-gray-800 mb-2">Card Title</h2>
     <p className="text-gray-600 mb-4">This is the card content with gray text</p>
-    <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors">
-      Button
-    </button>
+    <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors">Button</button>
   </div>
   {/* Additional styling examples... */}
 </div>

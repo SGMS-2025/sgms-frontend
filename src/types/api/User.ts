@@ -26,3 +26,19 @@ export interface UpdateProfileData {
   gender?: 'MALE' | 'FEMALE' | 'OTHER';
   bio?: string;
 }
+
+// Helper components defined outside to prevent re-creation on each render
+export interface FormFieldProps {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  value: string;
+  placeholder?: string;
+  type?: string;
+  isEditing: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  isTextarea?: boolean;
+  rows?: number;
+  min?: string;
+  max?: string;
+}

@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       # SonarCloud Scan cho main
-      - name: SonarCloud Scan (Main Branch) 
+      - name: SonarCloud Scan (Main Branch)
         if: github.ref_name == 'main'
         uses: SonarSource/sonarcloud-github-action@v2.3.0
         with:

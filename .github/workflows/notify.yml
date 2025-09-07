@@ -17,14 +17,14 @@ jobs:
         run: |
           PR_COMMITS_API="${{ github.event.pull_request.commits_url }}"
           echo "🔍 Fetching commits from: $PR_COMMITS_API"
-          
+
           # Get commits data with error handling
           COMMITS_RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" "$PR_COMMITS_API")
-          
+
           # Debug: show response type
           RESPONSE_TYPE=$(echo "$COMMITS_RESPONSE" | jq -r 'type')
           echo "📋 Response type: $RESPONSE_TYPE"
-          
+
           # Check if response is an array
           if echo "$COMMITS_RESPONSE" | jq -e 'type == "array"' > /dev/null 2>&1; then
             COMMITS_COUNT=$(echo "$COMMITS_RESPONSE" | jq 'length')
@@ -45,7 +45,7 @@ jobs:
             echo "$COMMITS_RESPONSE" | jq '.'
             FIRST_COMMIT_MSG="${{ github.event.pull_request.title }}"
           fi
-          
+
           echo "msg=${FIRST_COMMIT_MSG}" >> $GITHUB_OUTPUT
 
       - name: Send PR info to Discord
@@ -99,14 +99,14 @@ jobs:
         run: |
           PR_COMMITS_API="${{ github.event.pull_request.commits_url }}"
           echo "🔍 Fetching commits from: $PR_COMMITS_API"
-          
+
           # Get commits data with error handling
           COMMITS_RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" "$PR_COMMITS_API")
-          
+
           # Debug: show response type
           RESPONSE_TYPE=$(echo "$COMMITS_RESPONSE" | jq -r 'type')
           echo "📋 Response type: $RESPONSE_TYPE"
-          
+
           # Check if response is an array
           if echo "$COMMITS_RESPONSE" | jq -e 'type == "array"' > /dev/null 2>&1; then
             COMMITS_COUNT=$(echo "$COMMITS_RESPONSE" | jq 'length')
@@ -127,7 +127,7 @@ jobs:
             echo "$COMMITS_RESPONSE" | jq '.'
             FIRST_COMMIT_MSG="${{ github.event.pull_request.title }}"
           fi
-          
+
           echo "msg=${FIRST_COMMIT_MSG}" >> $GITHUB_OUTPUT
 
       - name: Send PR reopened info to Discord
