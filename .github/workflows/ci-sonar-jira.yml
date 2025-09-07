@@ -89,16 +89,23 @@ jobs:
 
           # Chuyển thành bullet list ADF
           ISSUES_BULLETS=$(echo "$ISSUES_JSON" | jq -r --arg url "$SONAR_HOST_URL" --arg key "$SONAR_PROJECT_KEY" '
-            .issues | map({
-              type: "listItem",
-              content: [{
-                type: "paragraph",
+            if .issues | length == 0 then
+              []
+            else
+              .issues | map({
+                type: "listItem",
                 content: [{
-                  type: "text",
-                  text: ("[" + .severity + "] " + .message + " (" + (.component | split(":")[1]) + ":" + ((.textRange.startLine|tostring)//"?") + ") " + $url + "/project/issues?id=" + $key + "&open=" + .key)
+                  type: "paragraph",
+                  content: [{
+                    type: "text",
+                    text: ("[" + .severity + "] " + .message + " (" +
+                          (.component | split(":")[1]) + ":" +
+                          ((.textRange.startLine|tostring)//"?") + ") " +
+                          $url + "/project/issues?id=" + $key + "&open=" + .key)
+                  }]
                 }]
-              }]
-            })
+              })
+            end
           ')
 
           # Summary, issue type, description based on status
@@ -141,3 +148,7 @@ jobs:
               }
             }')" \
             "$JIRA_URL/rest/api/3/issue/" > /dev/null
+
+          if [ "$STATUS" != "OK" ]; then
+            exit 1
+          fi
