@@ -103,14 +103,18 @@ jobs:
 
           # Summary, issue type, description based on status
           BRANCH_NAME=${GITHUB_REF_NAME}
-          if [ "$STATUS" != "OK" ]; then
-            SUMMARY="[SonarCloud] Quality Gate FAILED - $SONAR_PROJECT_KEY (branch: $BRANCH_NAME)"
-            ISSUE_TYPE="Bug"
-            STATUS_TEXT="Quality Gate failed"
-          else
+          if [ "$STATUS" = "OK" ]; then
             SUMMARY="[SonarCloud] Quality Gate PASSED - $SONAR_PROJECT_KEY (branch: $BRANCH_NAME)"
             ISSUE_TYPE="Task"
-            STATUS_TEXT="Quality Gate passed"
+            STATUS_TEXT="Quality Gate passed on branch $BRANCH_NAME"
+          elif [ "$STATUS" = "ERROR" ] || [ "$STATUS" = "WARN" ]; then
+            SUMMARY="[SonarCloud] Quality Gate FAILED - $SONAR_PROJECT_KEY (branch: $BRANCH_NAME)"
+            ISSUE_TYPE="Bug"
+            STATUS_TEXT="Quality Gate failed on branch $BRANCH_NAME (Status: $STATUS)"
+          else
+            SUMMARY="[SonarCloud] Quality Gate UNKNOWN - $SONAR_PROJECT_KEY (branch: $BRANCH_NAME)"
+            ISSUE_TYPE="Task"
+            STATUS_TEXT="Quality Gate status unknown for branch $BRANCH_NAME (Status: $STATUS)"
           fi
 
           DESCRIPTION_ADF=$(jq -n --arg status "$STATUS_TEXT" --arg project "$SONAR_PROJECT_KEY" --arg dashboard "$SONAR_HOST_URL/project/overview?id=$SONAR_PROJECT_KEY" --argjson bullets "$ISSUES_BULLETS" '{
