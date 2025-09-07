@@ -424,7 +424,19 @@ export function UserProfile() {
                       />
 
                       {/* Enhanced Avatar */}
-                      <div className="relative cursor-pointer group" onClick={handleAvatarClick}>
+                      <div
+                        className="relative cursor-pointer group"
+                        onClick={handleAvatarClick}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleAvatarClick();
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label="Thay đổi ảnh đại diện"
+                      >
                         <div className="relative">
                           <Avatar
                             className={`${isMobile ? 'w-28 h-28' : 'w-24 h-24'} border-4 border-white shadow-xl ring-4 ring-white/20`}
@@ -441,7 +453,7 @@ export function UserProfile() {
                           </Avatar>
 
                           {/* Enhanced Upload overlay */}
-                          <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 transform group-hover:scale-105">
+                          <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 group-focus:opacity-100 flex items-center justify-center transition-all duration-300 transform group-hover:scale-105 group-focus:scale-105">
                             <div className="text-center">
                               <Upload className="w-6 h-6 text-white mx-auto mb-1" />
                               <span className="text-xs text-white font-medium">Thay đổi</span>

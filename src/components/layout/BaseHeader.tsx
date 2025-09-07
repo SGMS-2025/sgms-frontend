@@ -76,6 +76,13 @@ export function Header() {
               <button
                 aria-label="Image placeholder button"
                 className="flex items-center justify-center w-32 h-10 rounded-md overflow-hidden p-0 bg-[#d9d9d9] text-[#1e293b]"
+                onClick={() => navigate('/')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate('/');
+                  }
+                }}
               >
                 <img
                   src="https://res.cloudinary.com/dqdwaljcc/image/upload/v1756985248/sgms_avatars/lspoumruhhozuzeoszky.png"
@@ -308,15 +315,23 @@ export function Header() {
                 </Button>
               )}
 
-              <div
+              <button
                 className={`${isMobile ? 'flex-1' : 'p-3'} bg-gray-300 rounded overflow-hidden flex items-center justify-center`}
+                onClick={() => navigate('/')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate('/');
+                  }
+                }}
+                aria-label="Về trang chủ"
               >
                 <img
                   src="https://res.cloudinary.com/dqdwaljcc/image/upload/v1756985248/sgms_avatars/lspoumruhhozuzeoszky.png"
                   alt="Logo image"
                   className="w-6 h-6 object-cover"
                 />
-              </div>
+              </button>
 
               {/* Navigation Links - Only visible on desktop */}
               {!isMobile && (
