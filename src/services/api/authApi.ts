@@ -1,11 +1,39 @@
 import type { ApiResponse } from '@/types/api/Api';
 import { api } from './api';
-import type { LoginRequest, LoginResponse, RefreshTokenResponse } from '@/types/api/Auth';
+import type {
+  LoginRequest,
+  LoginResponse,
+  RefreshTokenResponse,
+  RegisterRequest,
+  RegisterResponse,
+  VerifyOTPRequest,
+  VerifyOTPResponse,
+  ResendOTPRequest,
+  ResendOTPResponse
+} from '@/types/api/Auth';
 
 export const authApi = {
   // Login
   login: async (credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> => {
     const response = await api.post('/users/login', credentials);
+    return response.data;
+  },
+
+  // Register
+  register: async (userData: RegisterRequest): Promise<ApiResponse<RegisterResponse>> => {
+    const response = await api.post('/users/register', userData);
+    return response.data;
+  },
+
+  // Verify OTP
+  verifyOTP: async (otpData: VerifyOTPRequest): Promise<ApiResponse<VerifyOTPResponse>> => {
+    const response = await api.post('/users/verify-otp', otpData);
+    return response.data;
+  },
+
+  // Resend OTP
+  resendOTP: async (resendData: ResendOTPRequest): Promise<ApiResponse<ResendOTPResponse>> => {
+    const response = await api.post('/users/resend-otp', resendData);
     return response.data;
   },
 
