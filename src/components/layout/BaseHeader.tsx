@@ -3,7 +3,7 @@ import { Calendar, MessageSquare, User, LogOut, History, KeyRound, Menu, X } fro
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthState, useAuthActions } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -22,6 +22,20 @@ export function Header() {
   const isMobile = useIsMobile();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMobileMenuOpen]);
+
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen((prev) => !prev);
   };
@@ -35,14 +49,30 @@ export function Header() {
     }
     setIsMobileMenuOpen(false);
   };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <>
       {isCustomer ? (
         // LOGGED IN CUSTOMER NAVBAR
         <>
-          <nav className="flex items-center px-4 md:px-6 py-3 bg-[#f3f6f8] border-b border-gray-200">
+          <nav className="flex items-center px-4 md:px-6 py-3 bg-[#f3f6f8] border-b border-gray-200 relative">
+            {/* Mobile menu button - moved to left */}
+            {isMobile && (
+              <Button
+                aria-label="Menu toggle"
+                className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#0f172a] text-white p-0 min-w-0 mr-3"
+                onClick={toggleMobileMenu}
+              >
+                <Menu size={16} />
+              </Button>
+            )}
+
             {/* Logo placeholder - fixed width */}
-            <div className={`${isMobile ? 'w-auto' : 'w-[180px]'} flex items-center`}>
+            <div className={`${isMobile ? 'flex-1' : 'w-[180px]'} flex items-center`}>
               <button
                 aria-label="Image placeholder button"
                 className="flex items-center justify-center w-32 h-10 rounded-md overflow-hidden p-0 bg-[#d9d9d9] text-[#1e293b]"
@@ -96,7 +126,7 @@ export function Header() {
             )}
 
             {/* Right Side Controls */}
-            <div className={`${isMobile ? 'flex-1 justify-end' : 'w-[180px]'} flex items-center gap-3 justify-end`}>
+            <div className={`${isMobile ? 'w-auto' : 'w-[180px]'} flex items-center gap-3 justify-end`}>
               {!isMobile && (
                 <>
                   <Button
@@ -113,17 +143,6 @@ export function Header() {
                     Lịch tập
                   </Button>
                 </>
-              )}
-
-              {/* Mobile menu toggle */}
-              {isMobile && (
-                <Button
-                  aria-label="Menu toggle"
-                  className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#0f172a] text-white p-0 min-w-0"
-                  onClick={toggleMobileMenu}
-                >
-                  {isMobileMenuOpen ? <X size={16} /> : <Menu size={16} />}
-                </Button>
               )}
 
               {/* User profile dropdown - always visible */}
@@ -173,67 +192,102 @@ export function Header() {
             </div>
           </nav>
 
-          {/* Mobile menu - appears when menu is toggled */}
+          {/* Mobile sidebar overlay */}
           {isMobile && isMobileMenuOpen && (
-            <div className="bg-[#f3f6f8] border-b border-gray-200 shadow-md">
-              <ul className="flex flex-col py-3 px-4">
-                <li className="py-2">
-                  <Link
-                    to="/"
-                    className="block w-full px-4 py-2 rounded-md bg-white text-[#f15a24] transition-colors hover:bg-[#fef6f3]"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Về chúng tôi
-                  </Link>
-                </li>
-                <li className="py-2">
-                  <Link
-                    to="/dich-vu"
-                    className="block w-full px-4 py-2 rounded-md bg-white text-[#f15a24] transition-colors hover:bg-[#fef6f3]"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Dịch vụ
-                  </Link>
-                </li>
-                <li className="py-2">
-                  <Link
-                    to="/lich-su-dung-dich-vu"
-                    className="block w-full px-4 py-2 rounded-md bg-white text-[#f15a24] transition-colors hover:bg-[#fef6f3]"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Lịch sử sử dụng dịch vụ
-                  </Link>
-                </li>
-                <li className="py-2">
-                  <Link
-                    to="/khieu-nai-va-danh-gia"
-                    className="block w-full px-4 py-2 rounded-md bg-white text-[#f15a24] transition-colors hover:bg-[#fef6f3]"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Khiếu nại &amp; đánh giá
-                  </Link>
-                </li>
-                <li className="py-2">
+            <div className="fixed inset-0 z-50">
+              {/* Backdrop overlay */}
+              <div
+                className="fixed inset-0 bg-black bg-opacity-50 transition-opacity duration-300"
+                onClick={closeMobileMenu}
+              />
+
+              {/* Sidebar */}
+              <div
+                className={`fixed top-0 left-0 h-full w-80 bg-white shadow-xl transform transition-transform duration-300 ease-in-out ${
+                  isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+                }`}
+              >
+                {/* Sidebar header */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                  <div className="flex items-center">
+                    <img
+                      src="https://res.cloudinary.com/dqdwaljcc/image/upload/v1756985248/sgms_avatars/lspoumruhhozuzeoszky.png"
+                      alt="Logo image"
+                      className="w-8 h-8 object-cover rounded"
+                    />
+                    <span className="ml-3 text-lg font-semibold text-gray-800">Menu</span>
+                  </div>
                   <Button
-                    aria-label="Chat icon button"
-                    className="flex w-full items-center justify-center gap-2 px-4 py-2 rounded-md bg-[#0f172a] text-white text-sm"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    aria-label="Close menu"
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 p-0 min-w-0 hover:bg-gray-200"
+                    onClick={closeMobileMenu}
                   >
-                    <MessageSquare size={16} />
-                    Chat hỗ trợ
+                    <X size={16} />
                   </Button>
-                </li>
-                <li className="py-2">
-                  <Button
-                    aria-label="Lịch tập button"
-                    className="flex w-full items-center justify-center gap-2 px-4 py-2 rounded-md bg-[#0f172a] text-white text-sm"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <Calendar size={16} />
-                    Lịch tập
-                  </Button>
-                </li>
-              </ul>
+                </div>
+
+                {/* Sidebar content */}
+                <div className="flex flex-col h-full">
+                  <ul className="flex flex-col py-4 px-4 space-y-2">
+                    <li>
+                      <Link
+                        to="/"
+                        className="flex items-center w-full px-4 py-3 rounded-lg bg-orange-50 text-[#f15a24] transition-colors hover:bg-orange-100 font-medium"
+                        onClick={closeMobileMenu}
+                      >
+                        Về chúng tôi
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/dich-vu"
+                        className="flex items-center w-full px-4 py-3 rounded-lg text-gray-700 transition-colors hover:bg-gray-50 font-medium"
+                        onClick={closeMobileMenu}
+                      >
+                        Dịch vụ
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/lich-su-dung-dich-vu"
+                        className="flex items-center w-full px-4 py-3 rounded-lg text-gray-700 transition-colors hover:bg-gray-50 font-medium"
+                        onClick={closeMobileMenu}
+                      >
+                        Lịch sử sử dụng dịch vụ
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/khieu-nai-va-danh-gia"
+                        className="flex items-center w-full px-4 py-3 rounded-lg text-gray-700 transition-colors hover:bg-gray-50 font-medium"
+                        onClick={closeMobileMenu}
+                      >
+                        Khiếu nại &amp; đánh giá
+                      </Link>
+                    </li>
+                  </ul>
+
+                  {/* Mobile action buttons */}
+                  <div className="px-4 py-4 space-y-3 border-t border-gray-200 mt-auto">
+                    <Button
+                      aria-label="Chat hỗ trợ"
+                      className="flex w-full items-center justify-center gap-3 px-4 py-3 rounded-lg bg-[#0f172a] text-white text-sm font-medium hover:bg-gray-800"
+                      onClick={closeMobileMenu}
+                    >
+                      <MessageSquare size={18} />
+                      Chat hỗ trợ
+                    </Button>
+                    <Button
+                      aria-label="Lịch tập"
+                      className="flex w-full items-center justify-center gap-3 px-4 py-3 rounded-lg bg-[#f15a24] text-white text-sm font-medium hover:bg-orange-700"
+                      onClick={closeMobileMenu}
+                    >
+                      <Calendar size={18} />
+                      Lịch tập
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </>
@@ -241,24 +295,27 @@ export function Header() {
         // NOT LOGGED IN NAVBAR - Using the new design
         <>
           {/* Header with Logo and Auth Buttons */}
-          <div className="bg-gray-200 px-4 py-3">
+          <div className="bg-gray-200 px-4 py-3 relative">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
+              {/* Mobile menu button for non-logged in users */}
+              {isMobile && (
+                <Button
+                  aria-label="Menu toggle"
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#0f172a] text-white p-0 min-w-0 mr-3"
+                  onClick={toggleMobileMenu}
+                >
+                  <Menu size={14} />
+                </Button>
+              )}
+
               <div
-                className={`${isMobile ? 'p-2' : 'p-3'} bg-gray-300 rounded overflow-hidden flex items-center justify-center`}
+                className={`${isMobile ? 'flex-1' : 'p-3'} bg-gray-300 rounded overflow-hidden flex items-center justify-center`}
               >
-                {isMobile ? (
-                  <img
-                    src="https://res.cloudinary.com/dqdwaljcc/image/upload/v1756985248/sgms_avatars/lspoumruhhozuzeoszky.png"
-                    alt="Logo image"
-                    className="w-6 h-6 object-cover"
-                  />
-                ) : (
-                  <img
-                    src="https://res.cloudinary.com/dqdwaljcc/image/upload/v1756985248/sgms_avatars/lspoumruhhozuzeoszky.png"
-                    alt="Logo image"
-                    className="w-6 h-6 object-cover"
-                  />
-                )}
+                <img
+                  src="https://res.cloudinary.com/dqdwaljcc/image/upload/v1756985248/sgms_avatars/lspoumruhhozuzeoszky.png"
+                  alt="Logo image"
+                  className="w-6 h-6 object-cover"
+                />
               </div>
 
               {/* Navigation Links - Only visible on desktop */}
@@ -302,15 +359,6 @@ export function Header() {
               )}
 
               <div className="flex items-center space-x-2 md:space-x-3">
-                {isMobile && (
-                  <Button
-                    aria-label="Menu toggle"
-                    className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#0f172a] text-white p-0 min-w-0 mr-1"
-                    onClick={toggleMobileMenu}
-                  >
-                    {isMobileMenuOpen ? <X size={14} /> : <Menu size={14} />}
-                  </Button>
-                )}
                 <Button
                   variant="ghost"
                   className={`text-orange-500 bg-white hover:bg-orange-600 hover:text-white text-xs md:text-sm rounded-full ${isMobile ? 'px-3 py-1 h-8' : ''}`}
@@ -328,47 +376,82 @@ export function Header() {
             </div>
           </div>
 
-          {/* Mobile navigation menu for users who are not logged in */}
+          {/* Mobile sidebar for non-logged in users */}
           {!isAuthenticated && isMobile && isMobileMenuOpen && (
-            <div className="bg-gray-100 shadow-md border-b border-gray-200">
-              <ul className="flex flex-col py-2 px-4">
-                <li className="py-1.5">
-                  <Link
-                    to="/"
-                    className="block w-full px-3 py-2 rounded-md bg-white text-gray-700 transition-colors hover:bg-gray-50"
-                    onClick={() => setIsMobileMenuOpen(false)}
+            <div className="fixed inset-0 z-50">
+              {/* Backdrop overlay */}
+              <div
+                className="fixed inset-0 bg-black bg-opacity-50 transition-opacity duration-300"
+                onClick={closeMobileMenu}
+              />
+
+              {/* Sidebar */}
+              <div
+                className={`fixed top-0 left-0 h-full w-80 bg-white shadow-xl transform transition-transform duration-300 ease-in-out ${
+                  isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+                }`}
+              >
+                {/* Sidebar header */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                  <div className="flex items-center">
+                    <img
+                      src="https://res.cloudinary.com/dqdwaljcc/image/upload/v1756985248/sgms_avatars/lspoumruhhozuzeoszky.png"
+                      alt="Logo image"
+                      className="w-8 h-8 object-cover rounded"
+                    />
+                    <span className="ml-3 text-lg font-semibold text-gray-800">Menu</span>
+                  </div>
+                  <Button
+                    aria-label="Close menu"
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 p-0 min-w-0 hover:bg-gray-200"
+                    onClick={closeMobileMenu}
                   >
-                    Giới thiệu
-                  </Link>
-                </li>
-                <li className="py-1.5">
-                  <Link
-                    to="/dich-vu"
-                    className="block w-full px-3 py-2 rounded-md bg-white text-gray-700 transition-colors hover:bg-gray-50"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Các dịch vụ
-                  </Link>
-                </li>
-                <li className="py-1.5">
-                  <Link
-                    to="/lien-he"
-                    className="block w-full px-3 py-2 rounded-md bg-white text-gray-700 transition-colors hover:bg-gray-50"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Liên hệ
-                  </Link>
-                </li>
-                <li className="py-1.5">
-                  <Link
-                    to="/ve-chung-toi"
-                    className="block w-full px-3 py-2 rounded-md bg-white text-gray-700 transition-colors hover:bg-gray-50"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Về chúng tôi
-                  </Link>
-                </li>
-              </ul>
+                    <X size={16} />
+                  </Button>
+                </div>
+
+                {/* Sidebar content */}
+                <div className="flex flex-col h-full">
+                  <ul className="flex flex-col py-4 px-4 space-y-2">
+                    <li>
+                      <Link
+                        to="/"
+                        className="flex items-center w-full px-4 py-3 rounded-lg text-gray-700 transition-colors hover:bg-gray-50 font-medium"
+                        onClick={closeMobileMenu}
+                      >
+                        Giới thiệu
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/dich-vu"
+                        className="flex items-center w-full px-4 py-3 rounded-lg text-gray-700 transition-colors hover:bg-gray-50 font-medium"
+                        onClick={closeMobileMenu}
+                      >
+                        Các dịch vụ
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/lien-he"
+                        className="flex items-center w-full px-4 py-3 rounded-lg text-gray-700 transition-colors hover:bg-gray-50 font-medium"
+                        onClick={closeMobileMenu}
+                      >
+                        Liên hệ
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        to="/ve-chung-toi"
+                        className="flex items-center w-full px-4 py-3 rounded-lg text-gray-700 transition-colors hover:bg-gray-50 font-medium"
+                        onClick={closeMobileMenu}
+                      >
+                        Về chúng tôi
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
           )}
         </>

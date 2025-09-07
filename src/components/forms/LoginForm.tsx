@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, EyeOff, User, Crown } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { authApi } from '@/services/api/authApi';
 import { useNavigate } from 'react-router-dom';
 import { useAuthActions } from '@/hooks/useAuth';
@@ -10,10 +11,11 @@ import { toast } from 'sonner';
 import type { LoginRequest } from '@/types/api/Auth';
 
 export function LoginForm() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'customer' | 'owner'>('customer');
-  const [email, setEmail] = useState('');
+  const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -23,57 +25,49 @@ export function LoginForm() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password) {
-      toast.error('Vui lòng điền đầy đủ thông tin');
+    if (!emailOrUsername || !password) {
+      toast.error(t('error.fill_all_fields'));
       return;
     }
 
     setIsLoading(true);
 
-    try {
-      const loginData: LoginRequest = {
-        email,
-        password
-      };
+    const loginData: LoginRequest = {
+      emailOrUsername,
+      password
+    };
 
-      const response = await authApi.login(loginData);
+    const response = await authApi.login(loginData);
 
-      if (response.success) {
-        // Only save user to AuthContext
-        login(response.data.user);
+    // Check if response is successful
+    if (response.success) {
+      // Only save user to AuthContext
+      login(response.data.user);
 
-        if (rememberMe) {
-          localStorage.setItem('userEmail', email);
-        }
-
-        // Navigate to home page
-        navigate('/home');
+      if (rememberMe) {
+        localStorage.setItem('userEmailOrUsername', emailOrUsername);
       }
-    } catch (error: unknown) {
-      console.error('Login error:', error);
-      const errorMessage =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Đăng nhập thất bại';
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
+
+      // Navigate to home page
+      navigate('/home');
     }
+
+    setIsLoading(false);
   };
 
   return (
     <div>
       {/* Header - responsive text sizing và spacing */}
       <div className="text-center mb-4 md:mb-6">
-        <h1 className="text-3xl md:text-5xl font-bold text-orange-500 mb-2">ĐĂNG NHẬP</h1>
-        <p className="text-gray-300 text-base md:text-xl">
-          Đăng nhập ngay để tiếp tục hành trình biến đổi vóc dáng với đầy cảm hứng!
-        </p>
+        <h1 className="text-3xl md:text-5xl font-bold text-orange-500 mb-2">{t('auth.login_title')}</h1>
+        <p className="text-gray-300 text-base md:text-xl">{t('auth.login_prompt')}</p>
       </div>
 
       {/* Form - responsive padding */}
       <form onSubmit={handleLogin} className="bg-white/20 backdrop-blur-sm rounded-2xl px-6 md:px-10 py-4 text-white">
         {/* Role Selection - responsive spacing và sizing */}
         <div className="mb-4 md:mb-6">
-          <p className="text-sm md:text-base text-gray-300 mb-2 md:mb-3 font-semibold">Vai trò đăng nhập</p>
+          <p className="text-sm md:text-base text-gray-300 mb-2 md:mb-3 font-semibold">{t('auth.login_role')}</p>
           <div className="flex space-x-1 md:space-x-2">
             <Button
               type="button"
@@ -85,7 +79,7 @@ export function LoginForm() {
               }`}
             >
               <User className="w-3 h-3 md:w-4 md:h-4 mr-2" />
-              Khách hàng
+              {t('auth.customer')}{' '}
             </Button>
             <Button
               type="button"
@@ -97,40 +91,44 @@ export function LoginForm() {
               }`}
             >
               <Crown className="w-3 h-3 md:w-4 md:h-4 mr-2" />
-              Owner
+              {t('auth.owner')}{' '}
             </Button>
           </div>
           <p className="text-xs text-gray-400 mt-1 md:mt-2 flex items-center">
             <span className="w-3 h-3 md:w-4 md:h-4 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-2">
               i
             </span>
-            Chọn đúng vai trò để đăng nhập. Nếu chọn sai sẽ không thể đăng nhập.
+            {t('auth.role_selection_warning')}
           </p>
         </div>
 
-        {/* Email Field - responsive spacing và sizing */}
+        {/* Email or Username Field - responsive spacing và sizing */}
         <div className="mb-3 md:mb-4">
-          <label className="block text-sm md:text-base text-gray-300 mb-1 md:mb-2 font-semibold">Email</label>
+          <label className="block text-sm md:text-base text-gray-300 mb-1 md:mb-2 font-semibold">
+            {t('auth.email_or_username')}
+          </label>
           <Input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            value={emailOrUsername}
+            onChange={(e) => setEmailOrUsername(e.target.value)}
             className="w-full bg-white text-black border-0 rounded-full px-4 py-4 md:py-6 text-sm md:text-base"
-            placeholder="Nhập email của bạn"
+            placeholder={t('auth.placeholder_email_or_username')}
             required
           />
         </div>
 
         {/* Password Field - responsive spacing và sizing */}
         <div className="mb-3 md:mb-4">
-          <label className="block text-sm md:text-base text-gray-300 mb-1 md:mb-2 font-semibold">Mật khẩu</label>
+          <label className="block text-sm md:text-base text-gray-300 mb-1 md:mb-2 font-semibold">
+            {t('auth.password')}
+          </label>
           <div className="relative">
             <Input
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-white text-black border-0 rounded-full px-4 py-4 md:py-6 pr-10 md:pr-12 text-sm md:text-base"
-              placeholder="Nhập mật khẩu"
+              placeholder={t('auth.placeholder_password')}
               required
             />
             <button
@@ -153,11 +151,11 @@ export function LoginForm() {
               className="border-white"
             />
             <label htmlFor="remember" className="text-xs md:text-sm text-gray-300">
-              Ghi nhớ đăng nhập
+              {t('auth.remember_me')}{' '}
             </label>
           </div>
           <a href="#" className="text-xs md:text-sm text-orange-500 hover:text-orange-400">
-            Quên mật khẩu?
+            {t('auth.forgot_pass')}{' '}
           </a>
         </div>
 
@@ -167,13 +165,13 @@ export function LoginForm() {
           disabled={isLoading}
           className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-4 md:py-6 text-sm md:text-base rounded-full mb-4 md:mb-6 disabled:opacity-50"
         >
-          {isLoading ? 'ĐANG ĐĂNG NHẬP...' : 'ĐĂNG NHẬP'}
+          {isLoading ? t('auth.logging_in') : t('auth.login_title')}
         </Button>
 
         {/* Divider - responsive spacing và text size */}
         <div className="flex items-center mb-4 md:mb-6">
           <div className="flex-1 border-t border-gray-500"></div>
-          <span className="px-4 text-xs md:text-sm text-gray-400">Hoặc</span>
+          <span className="px-4 text-xs md:text-sm text-gray-400">{t('auth.or')}</span>
           <div className="flex-1 border-t border-gray-500"></div>
         </div>
 
@@ -206,9 +204,9 @@ export function LoginForm() {
 
         {/* Register Link - responsive text size */}
         <p className="text-center text-xs md:text-sm text-gray-400">
-          Bạn chưa có tài khoản?{' '}
+          {t('auth.no_account_prompt')}{' '}
           <a href="#" className="text-orange-500 hover:text-orange-400">
-            Đăng ký ngay
+            {t('auth.register_now')}{' '}
           </a>
         </p>
       </form>

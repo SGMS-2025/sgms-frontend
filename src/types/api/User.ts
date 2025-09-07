@@ -17,3 +17,12 @@ export interface User {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface UpdateProfileData {
+  fullName?: string;
+  phoneNumber?: string;
+  address?: string;
+  dateOfBirth?: string;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  bio?: string;
+}

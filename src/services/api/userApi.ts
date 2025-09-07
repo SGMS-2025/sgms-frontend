@@ -1,15 +1,6 @@
 import type { ApiResponse } from '@/types/api/Api';
 import { api } from './api';
-import type { User } from '@/types/api/User';
-
-export interface UpdateProfileData {
-  fullName?: string;
-  phoneNumber?: string;
-  address?: string;
-  dateOfBirth?: string;
-  gender?: 'MALE' | 'FEMALE' | 'OTHER';
-  bio?: string;
-}
+import type { UpdateProfileData, User } from '@/types/api/User';
 
 export const userApi = {
   /**
@@ -35,7 +26,7 @@ export const userApi = {
     const formData = new FormData();
     formData.append('avatar', file);
 
-    // Sử dụng cấu hình đặc biệt cho multipart/form-data
+    // special config for multipart/form-data
     const response = await api.post('/users/profile/avatar', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
