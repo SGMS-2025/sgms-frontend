@@ -1,16 +1,22 @@
-import { ImageIcon } from 'lucide-react';
+import logoImage from '@/assets/images/logo2.png';
 
 export function Footer() {
   return (
     <>
       {/* Footer */}
-      <footer className="bg-gray-100 py-12">
+      <footer className="bg-gray-100 py-8 sm:py-12">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-start">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-8 items-start">
             {/* Logo */}
             <div>
-              <div className="bg-gray-300 p-3 rounded w-fit mb-4">
-                <ImageIcon className="w-8 h-8 text-gray-600" />
+              <div className="flex items-center gap-3 mb-4">
+                <img src={logoImage} alt="Gym Smart Logo" className="w-10 h-10 object-contain" />
+                <div>
+                  <h2 className="text-xl font-bold">
+                    <span className="text-orange-500">GYM</span>
+                    <span className="text-slate-800 ml-1">SMART</span>
+                  </h2>
+                </div>
               </div>
             </div>
 
@@ -31,8 +37,8 @@ export function Footer() {
             </div>
 
             {/* Advantages */}
-            <div className="md:col-span-2 flex flex-col md:flex-row md:space-x-8">
-              <div className="mb-8 md:mb-0">
+            <div className="sm:col-span-2 lg:col-span-2 flex flex-col lg:flex-row lg:space-x-8">
+              <div className="mb-6 lg:mb-0">
                 <h3 className="font-semibold text-gray-800 mb-4">Ưu đãi</h3>
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li>Gói dịch vụ</li>
@@ -42,7 +48,7 @@ export function Footer() {
               </div>
 
               {/* Contact Support */}
-              <div className="md:ml-auto">
+              <div className="lg:ml-auto">
                 <h4 className="font-semibold text-gray-800 mb-3">Liên hệ hỗ trợ</h4>
                 <div className="flex items-center space-x-3 mb-2">
                   <div className="flex space-x-2">
