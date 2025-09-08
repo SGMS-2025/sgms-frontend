@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from './StatusBadge';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { TrendingUp, Calendar as CalendarIcon, Award, Target, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
-import type { TrainingProgressTabProps } from '@/types/api/FormFieldCustomer';
+import type { TrainingProgressTabProps } from '@/types/components/FormFieldCustomer';
 
 export const TrainingProgressTab: React.FC<TrainingProgressTabProps> = ({
   workoutStats,
