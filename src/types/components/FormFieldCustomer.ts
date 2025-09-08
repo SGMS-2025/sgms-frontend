@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import type { UpdateProfileData } from './User';
+import type { UpdateProfileData } from '@/types/api/User';
 
 //formfieldcustomer.tsx
 export interface FormFieldProps {
