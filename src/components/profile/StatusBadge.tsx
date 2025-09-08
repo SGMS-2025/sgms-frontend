@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge';
-import type { StatusBadgeProps } from '@/types/api/FormFieldCustomer';
+import type { StatusBadgeProps } from '@/types/components/FormFieldCustomer';
 import { CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({

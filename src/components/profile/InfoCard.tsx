@@ -1,5 +1,5 @@
 import { Label } from '@/components/ui/label';
-import type { InfoCardProps } from '@/types/api/FormFieldCustomer';
+import type { InfoCardProps } from '@/types/components/FormFieldCustomer';
 
 export const InfoCard: React.FC<InfoCardProps> = ({ icon: Icon, title, children }) => (
   <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">

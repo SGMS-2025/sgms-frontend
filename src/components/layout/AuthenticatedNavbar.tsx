@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useAuthActions, useUser } from '@/hooks/useAuth';
 import type { User as UserType } from '@/types/api/User';
-import type { AuthenticatedNavbarProps } from '@/types/api/navbar';
+import type { AuthenticatedNavbarProps } from '@/types/components/navbar';
 
 export function AuthenticatedNavbar({ isScrolled }: AuthenticatedNavbarProps) {
   const [notificationCount] = useState(3); // Mock notification count

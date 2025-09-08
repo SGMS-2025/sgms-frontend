@@ -1,7 +1,7 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import type { FormFieldProps } from '@/types/api/FormFieldCustomer';
+import type { FormFieldProps } from '@/types/components/FormFieldCustomer';
 
 export const FormField: React.FC<FormFieldProps> = ({
   id,

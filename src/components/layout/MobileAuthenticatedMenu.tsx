@@ -4,7 +4,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useAuthActions, useUser } from '@/hooks/useAuth';
 import type { User as UserType } from '@/types/api/User';
-import type { MobileAuthenticatedMenuProps } from '@/types/api/navbar';
+import type { MobileAuthenticatedMenuProps } from '@/types/components/navbar';
 
 export function MobileAuthenticatedMenu({ onClose }: MobileAuthenticatedMenuProps) {
   const navigate = useNavigate();

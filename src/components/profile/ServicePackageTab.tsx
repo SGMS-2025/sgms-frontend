@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { InfoCard } from './InfoCard';
 import { Calendar as CalendarIcon, User, MapPin, CheckCircle } from 'lucide-react';
-import type { ServicePackageTabProps } from '@/types/api/FormFieldCustomer';
+import type { ServicePackageTabProps } from '@/types/components/FormFieldCustomer';
 
 export const ServicePackageTab: React.FC<ServicePackageTabProps> = ({ servicePackage }) => {
   return (

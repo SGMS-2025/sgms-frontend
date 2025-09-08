@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { FormField } from './FormField';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { User, Calendar as CalendarIcon, Phone, MapPin, Mail, Edit3, CheckCircle, Loader2 } from 'lucide-react';
-import type { PersonalInfoTabProps } from '@/types/api/FormFieldCustomer';
+import type { PersonalInfoTabProps } from '@/types/components/FormFieldCustomer';
 import type { UpdateProfileData } from '@/types/api/User';
 
 // Helper Components
