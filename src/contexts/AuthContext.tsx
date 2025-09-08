@@ -12,6 +12,7 @@ export interface AuthState {
 export type AuthAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'LOGIN'; payload: { user: User } }
+  | { type: 'UPDATE_USER'; payload: { user: User } }
   | { type: 'LOGOUT' }
   | { type: 'RESTORE'; payload: { user: User | null } };
 
@@ -34,6 +35,11 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         user: action.payload.user,
         isLoading: false
       };
+    case 'UPDATE_USER':
+      return {
+        ...state,
+        user: action.payload.user
+      };
     case 'LOGOUT':
       return {
         ...initialState,
@@ -53,6 +59,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 interface AuthContextType {
   state: AuthState;
   login: (user: User) => void;
+  updateUser: (user: User) => void;
   logout: () => void;
 }
 
@@ -91,29 +98,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       type: 'LOGIN',
       payload: { user }
     });
-    // console.log('Login successful:', { user });
+  }, []);
+
+  const updateUser = useCallback((user: User) => {
+    localStorage.setItem('user', JSON.stringify(user));
+    dispatch({
+      type: 'UPDATE_USER',
+      payload: { user }
+    });
   }, []);
 
   const logout = useCallback(async () => {
-    try {
-      await authApi.logout();
-    } catch (error) {
-      console.error('Error calling logout API:', error);
-      // Continue with local logout even if API fails
-    } finally {
-      localStorage.removeItem('user');
-      dispatch({ type: 'LOGOUT' });
-      // console.log('Logout successful');
-    }
+    await authApi.logout();
+    localStorage.removeItem('user');
+    dispatch({ type: 'LOGOUT' });
   }, []);
 
   const value: AuthContextType = useMemo(
     () => ({
       state,
       login,
+      updateUser,
       logout
     }),
-    [state, login, logout]
+    [state, login, updateUser, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
