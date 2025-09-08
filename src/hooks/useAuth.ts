@@ -17,6 +17,6 @@ export const useIsAuthenticated = () => {
 };
 
 export const useAuthActions = () => {
-  const { login, logout } = useAuth();
-  return { login, logout };
+  const { login, updateUser, logout } = useAuth();
+  return { login, updateUser, logout };
 };
