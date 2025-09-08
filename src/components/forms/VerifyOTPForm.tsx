@@ -5,11 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Mail } from 'lucide-react';
 import { authApi } from '@/services/api/authApi';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import type { VerifyOTPRequest } from '@/types/api/Auth';
 
 const VerifyOTPForm: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
   // Get email from location state (passed from register form) or allow manual input
   const [email, setEmail] = useState(location.state?.email || '');
@@ -62,12 +64,12 @@ const VerifyOTPForm: React.FC = () => {
     e.preventDefault();
 
     if (!email) {
-      toast.error('Vui lòng nhập email');
+      toast.error(t('error.enter_email'));
       return;
     }
 
     if (otpCode.length !== 6) {
-      toast.error('Vui lòng nhập đầy đủ 6 chữ số OTP');
+      toast.error(t('error.enter_full_otp'));
       return;
     }
 
@@ -81,7 +83,7 @@ const VerifyOTPForm: React.FC = () => {
     const response = await authApi.verifyOTP(verifyData);
 
     if (response.success) {
-      toast.success('Xác thực OTP thành công!');
+      toast.success(t('success.otp_verified'));
 
       // Redirect to login page after successful verification
       setTimeout(() => {
@@ -94,7 +96,7 @@ const VerifyOTPForm: React.FC = () => {
 
   const handleResendOTP = async () => {
     if (!email) {
-      toast.error('Vui lòng nhập email trước khi gửi lại mã OTP');
+      toast.error(t('error.enter_email_before_resend'));
       return;
     }
 
@@ -103,7 +105,7 @@ const VerifyOTPForm: React.FC = () => {
     const response = await authApi.resendOTP({ email });
 
     if (response.success) {
-      toast.success('Mã OTP mới đã được gửi đến email của bạn');
+      toast.success(t('success.otp_resent'));
       // Clear OTP inputs
       setOtpDigits(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
@@ -121,15 +123,15 @@ const VerifyOTPForm: React.FC = () => {
     <div className="w-full">
       {/* Header */}
       <div className="text-center mb-6">
-        <h1 className="text-3xl font-bold text-orange-500 mb-2 leading-tight">XÁC THỰC OTP</h1>
-        <p className="text-gray-600 text-base">Nhập mã xác thực 6 chữ số đã được gửi đến email của bạn!</p>
+        <h1 className="text-3xl font-bold text-orange-500 mb-2 leading-tight">{t('auth.verify_otp_title')}</h1>
+        <p className="text-gray-600 text-base">{t('auth.verify_otp_prompt')}</p>
       </div>
 
       {/* Form */}
       <form onSubmit={handleVerifyOTP} className="space-y-4">
         {/* Email Display/Input */}
         <div>
-          <label className="block text-sm text-gray-600 mb-2 font-semibold">Email</label>
+          <label className="block text-sm text-gray-600 mb-2 font-semibold">{t('auth.email')}</label>
           {email ? (
             <div className="bg-orange-100 rounded-lg px-4 py-4 flex items-center">
               <Mail className="w-5 h-5 text-orange-500 mr-3" />
@@ -142,7 +144,7 @@ const VerifyOTPForm: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-gray-50 text-gray-900 border-gray-300 rounded-lg px-4 py-4 pl-12 text-base focus:border-orange-500 focus:ring-orange-500 placeholder-gray-500"
-                placeholder="Nhập email của bạn"
+                placeholder={t('auth.placeholder_email')}
                 required
               />
               <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
@@ -152,7 +154,7 @@ const VerifyOTPForm: React.FC = () => {
 
         {/* OTP Code Field - 6 separate inputs */}
         <div>
-          <label className="block text-sm text-gray-600 mb-2 font-semibold">Mã OTP</label>
+          <label className="block text-sm text-gray-600 mb-2 font-semibold">{t('auth.otp_code')}</label>
           <div className="flex justify-center space-x-3 mb-2">
             {otpDigits.map((digit, index) => (
               <Input
@@ -175,7 +177,7 @@ const VerifyOTPForm: React.FC = () => {
             <span className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-2">
               i
             </span>
-            Mã OTP có hiệu lực trong 10 phút. Vui lòng nhập đúng 6 chữ số.
+            {t('auth.otp_info')}
           </p>
         </div>
 
@@ -188,29 +190,29 @@ const VerifyOTPForm: React.FC = () => {
           {isVerifying ? (
             <>
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              ĐANG XÁC THỰC...
+              {t('auth.verifying')}
             </>
           ) : (
-            'XÁC THỰC OTP'
+            t('auth.verify_otp')
           )}
         </Button>
 
         {/* Divider */}
         <div className="flex items-center mb-4">
           <div className="flex-1 border-t border-gray-300"></div>
-          <span className="px-4 text-base text-gray-600">Hoặc</span>
+          <span className="px-4 text-base text-gray-600">{t('auth.or')}</span>
           <div className="flex-1 border-t border-gray-300"></div>
         </div>
 
         {/* Info Text */}
         <p className="text-center text-sm text-gray-500">
-          Không nhận được mã? Kiểm tra thư mục spam hoặc{' '}
+          {t('auth.not_received')}{' '}
           <button
             onClick={handleResendOTP}
             className="text-orange-500 hover:text-orange-400 underline"
             disabled={isResending}
           >
-            {isResending ? 'đang gửi...' : 'gửi lại'}
+            {isResending ? t('auth.resending') : t('auth.resend')}
           </button>
         </p>
       </form>

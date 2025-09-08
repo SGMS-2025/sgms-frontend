@@ -205,9 +205,12 @@ export function LoginForm() {
         {/* Register Link - responsive text size */}
         <p className="text-center text-xs md:text-sm text-gray-400">
           {t('auth.no_account_prompt')}{' '}
-          <a href="#" className="text-orange-500 hover:text-orange-400">
+          <button
+            onClick={() => navigate('/register')}
+            className="text-orange-500 hover:text-orange-400 underline bg-transparent border-none cursor-pointer"
+          >
             {t('auth.register_now')}{' '}
-          </a>
+          </button>
         </p>
       </form>
     </div>

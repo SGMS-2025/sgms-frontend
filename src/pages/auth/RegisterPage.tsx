@@ -1,7 +1,10 @@
 import { RegisterForm } from '@/components/forms/RegisterForm';
 import backgroundImage from '@/assets/images/background1.png';
+import { useTranslation } from 'react-i18next';
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
+
   return (
     <div className="h-screen w-full bg-gray-100 overflow-hidden flex animate-fadeIn">
       {/* Left Panel - Marketing */}
@@ -29,10 +32,10 @@ export default function RegisterPage() {
           {/* Main Content */}
           <div className="text-white">
             <h2 className="text-3xl font-bold mb-4 animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
-              Tạo tài khoản và bắt đầu hành trình fitness của bạn
+              {t('marketing.create_account_title')}
             </h2>
             <p className="text-lg text-gray-300 mb-8 animate-fadeInUp" style={{ animationDelay: '0.6s' }}>
-              Quản lý phòng gym, thành viên, lớp học và doanh thu một cách dễ dàng và hiệu quả.
+              {t('marketing.manage_description')}
             </p>
 
             {/* Feature Cards */}
@@ -42,28 +45,28 @@ export default function RegisterPage() {
                 style={{ animationDelay: '0.8s' }}
               >
                 <div className="text-2xl font-bold text-orange-500 mb-1">24/7</div>
-                <div className="text-sm text-gray-300">Theo dõi thời gian thực</div>
+                <div className="text-sm text-gray-300">{t('marketing.real_time')}</div>
               </div>
               <div
                 className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center animate-fadeInUp"
                 style={{ animationDelay: '1.0s' }}
               >
                 <div className="text-2xl font-bold text-orange-500 mb-1">ISO</div>
-                <div className="text-sm text-gray-300">Bảo mật cao</div>
+                <div className="text-sm text-gray-300">{t('marketing.high_security')}</div>
               </div>
               <div
                 className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center animate-fadeInUp"
                 style={{ animationDelay: '1.2s' }}
               >
                 <div className="text-2xl font-bold text-orange-500 mb-1">+AI</div>
-                <div className="text-sm text-gray-300">Quản lý thông minh</div>
+                <div className="text-sm text-gray-300">{t('marketing.smart_management')}</div>
               </div>
             </div>
           </div>
 
           {/* Bottom Text */}
           <div className="text-white/70 text-sm animate-fadeInUp" style={{ animationDelay: '1.4s' }}>
-            <p>Đã có hơn 1000+ phòng gym tin tưởng sử dụng</p>
+            <p>{t('marketing.trusted_gyms')}</p>
           </div>
         </div>
       </div>
