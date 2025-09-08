@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import ExamplePage from '@/pages/example/ExamplePage';
 import ExampleLayout from '@/layouts/example/ExampleLayout';
 import LoginPage from '@/pages/auth/LoginPage';
+import RegisterPage from '@/pages/auth/RegisterPage';
+import VerifyOTPPage from '@/pages/auth/VerifyOTPPage';
 import HomePage from '@/pages/home-test';
 import LandingPage from '@/pages/landing/LandingPage';
 import { useIsAuthenticated } from '@/hooks/useAuth';
@@ -23,6 +25,12 @@ const AppRoutes: React.FC = () => {
 
       {/* Auth Routes - redirect to home if already authenticated */}
       <Route path="/login" element={isAuthenticated ? <Navigate to="/home" replace /> : <LoginPage />} />
+
+      {/* Auth Routes - redirect to home if already authenticated */}
+      <Route path="/register" element={isAuthenticated ? <Navigate to="/home" replace /> : <RegisterPage />} />
+
+      {/* Verify OTP Route - redirect to home if already authenticated */}
+      <Route path="/verify-otp" element={isAuthenticated ? <Navigate to="/home" replace /> : <VerifyOTPPage />} />
 
       {/* Home Route - redirect to login if not authenticated */}
       <Route path="/home" element={isAuthenticated ? <HomePage /> : <Navigate to="/login" replace />} />
