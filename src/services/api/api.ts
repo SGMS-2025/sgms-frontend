@@ -69,7 +69,7 @@ const handleApiError = (error: AxiosError) => {
       if (response.status >= 400 && response.status < 500) {
         toast.error(i18n.t(`error.${errorMessage}`));
       } else {
-        toast.error(i18n.t('system_error'));
+        toast.error(i18n.t('error.system_error'));
       }
 
       // Return a standardized error object

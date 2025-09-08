@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Eye, EyeOff, User, Crown } from 'lucide-react';
+import { Eye, EyeOff, User, Crown, Mail, Lock } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authApi } from '@/services/api/authApi';
@@ -56,45 +56,45 @@ export function LoginForm() {
   };
 
   return (
-    <div>
-      {/* Header - responsive text sizing và spacing */}
-      <div className="text-center mb-4 md:mb-6">
-        <h1 className="text-3xl md:text-5xl font-bold text-orange-500 mb-2">{t('auth.login_title')}</h1>
-        <p className="text-gray-300 text-base md:text-xl">{t('auth.login_prompt')}</p>
+    <div className="w-full">
+      {/* Header */}
+      <div className="text-center mb-6 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
+        <h1 className="text-3xl font-bold text-orange-500 mb-2 leading-tight">{t('auth.login_title')}</h1>
+        <p className="text-gray-600 text-base">{t('auth.login_prompt')}</p>
       </div>
 
-      {/* Form - responsive padding */}
-      <form onSubmit={handleLogin} className="bg-white/20 backdrop-blur-sm rounded-2xl px-6 md:px-10 py-4 text-white">
-        {/* Role Selection - responsive spacing và sizing */}
-        <div className="mb-4 md:mb-6">
-          <p className="text-sm md:text-base text-gray-300 mb-2 md:mb-3 font-semibold">{t('auth.login_role')}</p>
-          <div className="flex space-x-1 md:space-x-2">
+      {/* Form */}
+      <form onSubmit={handleLogin} className="space-y-4">
+        {/* Role Selection */}
+        <div className="animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
+          <p className="text-md text-gray-600 mb-3 font-semibold">{t('auth.login_role')}</p>
+          <div className="flex space-x-2">
             <Button
               type="button"
               onClick={() => setSelectedRole('customer')}
-              className={`flex-1 rounded-full py-3 md:py-5 text-sm md:text-base ${
+              className={`flex-1 rounded-lg py-4 text-base ${
                 selectedRole === 'customer'
-                  ? 'bg-orange-500 hover:bg-orange-600'
-                  : 'bg-white hover:bg-gray-100 text-orange-500'
+                  ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-300'
               }`}
             >
-              <User className="w-3 h-3 md:w-4 md:h-4 mr-2" />
-              {t('auth.customer')}{' '}
+              <User className="w-5 h-5 mr-2" />
+              {t('auth.customer')}
             </Button>
             <Button
               type="button"
               onClick={() => setSelectedRole('owner')}
-              className={`flex-1 rounded-full py-3 md:py-5 text-sm md:text-base ${
+              className={`flex-1 rounded-lg py-4 text-base ${
                 selectedRole === 'owner'
-                  ? 'bg-orange-500 hover:bg-orange-600'
-                  : 'bg-white hover:bg-gray-100 text-orange-500'
+                  ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-300'
               }`}
             >
-              <Crown className="w-3 h-3 md:w-4 md:h-4 mr-2" />
-              {t('auth.owner')}{' '}
+              <Crown className="w-5 h-5 mr-2" />
+              {t('auth.owner')}
             </Button>
           </div>
-          <p className="text-xs text-gray-400 mt-1 md:mt-2 flex items-center">
+          <p className="text-xs text-gray-500 mt-1 md:mt-2 flex items-center">
             <span className="w-3 h-3 md:w-4 md:h-4 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-2">
               i
             </span>
@@ -102,86 +102,91 @@ export function LoginForm() {
           </p>
         </div>
 
-        {/* Email or Username Field - responsive spacing và sizing */}
-        <div className="mb-3 md:mb-4">
-          <label className="block text-sm md:text-base text-gray-300 mb-1 md:mb-2 font-semibold">
-            {t('auth.email_or_username')}
-          </label>
-          <Input
-            type="text"
-            value={emailOrUsername}
-            onChange={(e) => setEmailOrUsername(e.target.value)}
-            className="w-full bg-white text-black border-0 rounded-full px-4 py-4 md:py-6 text-sm md:text-base"
-            placeholder={t('auth.placeholder_email_or_username')}
-            required
-          />
-        </div>
+        {/* Input Fields */}
+        <div className="space-y-4 animate-fadeInUp" style={{ animationDelay: '0.6s' }}>
+          {/* Email or Username Field */}
+          <div>
+            <label className="block text-md text-gray-600 mb-2 font-semibold">{t('auth.email_or_username')}</label>
+            <div className="relative">
+              <Input
+                type="text"
+                value={emailOrUsername}
+                onChange={(e) => setEmailOrUsername(e.target.value)}
+                className="w-full bg-gray-50 text-gray-900 border-gray-300 rounded-lg px-4 py-4 pl-12 text-base focus:border-orange-500 focus:ring-orange-500 placeholder-gray-500"
+                placeholder={t('auth.placeholder_email_or_username')}
+                required
+              />
+              <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+            </div>
+          </div>
 
-        {/* Password Field - responsive spacing và sizing */}
-        <div className="mb-3 md:mb-4">
-          <label className="block text-sm md:text-base text-gray-300 mb-1 md:mb-2 font-semibold">
-            {t('auth.password')}
-          </label>
-          <div className="relative">
-            <Input
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-white text-black border-0 rounded-full px-4 py-4 md:py-6 pr-10 md:pr-12 text-sm md:text-base"
-              placeholder={t('auth.placeholder_password')}
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 md:right-4 top-1/2 transform -translate-y-1/2 text-gray-500"
-            >
-              {showPassword ? <EyeOff className="w-4 h-4 md:w-5 md:h-5" /> : <Eye className="w-4 h-4 md:w-5 md:h-5" />}
-            </button>
+          {/* Password Field */}
+          <div>
+            <label className="block text-md text-gray-600 mb-2 font-semibold">{t('auth.password')}</label>
+            <div className="relative">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-gray-50 backdrop-blur-sm text-black border-gray-300 rounded-lg px-4 py-4 pl-12 pr-12 text-base focus:border-orange-500 focus:ring-orange-500 placeholder-gray-300"
+                placeholder={t('auth.placeholder_password')}
+                required
+              />
+              <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Remember Me & Forgot Password - responsive text size */}
-        <div className="flex items-center justify-between mb-4 md:mb-6">
+        {/* Remember Me & Forgot Password */}
+        <div className="flex items-center justify-between mb-4 animate-fadeInUp" style={{ animationDelay: '0.8s' }}>
           <div className="flex items-center space-x-2">
             <Checkbox
               id="remember"
               checked={rememberMe}
               onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-              className="border-white"
+              className="border-gray-300"
             />
-            <label htmlFor="remember" className="text-xs md:text-sm text-gray-300">
-              {t('auth.remember_me')}{' '}
+            <label htmlFor="remember" className="text-sm text-gray-600">
+              {t('auth.remember_me')}
             </label>
           </div>
-          <a href="#" className="text-xs md:text-sm text-orange-500 hover:text-orange-400">
-            {t('auth.forgot_pass')}{' '}
+          <a href="#" className="text-sm text-orange-500 hover:text-orange-400">
+            {t('auth.forgot_pass')}
           </a>
         </div>
 
-        {/* Login Button - responsive padding và text size */}
+        {/* Login Button */}
         <Button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-4 md:py-6 text-sm md:text-base rounded-full mb-4 md:mb-6 disabled:opacity-50"
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-4 text-base rounded-lg mb-4 disabled:opacity-50 animate-fadeInUp"
+          style={{ animationDelay: '1.0s' }}
         >
           {isLoading ? t('auth.logging_in') : t('auth.login_title')}
         </Button>
 
-        {/* Divider - responsive spacing và text size */}
-        <div className="flex items-center mb-4 md:mb-6">
-          <div className="flex-1 border-t border-gray-500"></div>
-          <span className="px-4 text-xs md:text-sm text-gray-400">{t('auth.or')}</span>
-          <div className="flex-1 border-t border-gray-500"></div>
+        {/* Divider */}
+        <div className="flex items-center mb-4 animate-fadeInUp" style={{ animationDelay: '1.2s' }}>
+          <div className="flex-1 border-t border-gray-300"></div>
+          <span className="px-4 text-base text-gray-600">{t('auth.or')}</span>
+          <div className="flex-1 border-t border-gray-300"></div>
         </div>
 
-        {/* Google Login - responsive sizing */}
+        {/* Google Login */}
         <Button
           type="button"
           variant="outline"
-          className="mx-auto bg-white text-black border-0 py-4 md:py-6 rounded-full mb-4 md:mb-6 hover:bg-gray-100 flex items-center justify-center w-3/5 md:w-1/2"
+          className="w-full bg-white/20 backdrop-blur-sm text-white border-gray-300 py-4 rounded-lg mb-4 hover:bg-white/30 flex items-center justify-center animate-fadeInUp"
+          style={{ animationDelay: '1.4s' }}
         >
-          <svg className="w-5 h-5 md:w-7 md:h-7" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
               fill="#4285F4"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -199,18 +204,15 @@ export function LoginForm() {
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
             />
           </svg>
-          <span className="text-sm md:text-base text-gray-500 ml-2">Google</span>
+          <span className="text-sm text-gray-600 ml-2">Google</span>
         </Button>
 
-        {/* Register Link - responsive text size */}
-        <p className="text-center text-xs md:text-sm text-gray-400">
+        {/* Register Link */}
+        <p className="text-center text-sm text-gray-500 animate-fadeInUp" style={{ animationDelay: '1.6s' }}>
           {t('auth.no_account_prompt')}{' '}
-          <button
-            onClick={() => navigate('/register')}
-            className="text-orange-500 hover:text-orange-400 underline bg-transparent border-none cursor-pointer"
-          >
-            {t('auth.register_now')}{' '}
-          </button>
+          <a href="/register" className="text-orange-500 hover:text-orange-400">
+            {t('auth.register_now')}
+          </a>
         </p>
       </form>
     </div>
