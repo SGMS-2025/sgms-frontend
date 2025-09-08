@@ -22,13 +22,8 @@ export function AuthenticatedNavbar({ isScrolled }: AuthenticatedNavbarProps) {
   const user = useUser();
 
   const handleLogout = () => {
-    try {
-      logout();
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-      navigate('/login');
-    }
+    logout();
+    navigate('/login');
   };
 
   const getAvatarFallback = (user: UserType) => {

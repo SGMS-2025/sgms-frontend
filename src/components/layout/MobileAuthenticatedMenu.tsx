@@ -12,15 +12,9 @@ export function MobileAuthenticatedMenu({ onClose }: MobileAuthenticatedMenuProp
   const user = useUser();
 
   const handleLogout = () => {
-    try {
-      logout();
-      onClose();
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-      onClose();
-      navigate('/login');
-    }
+    logout();
+    onClose();
+    navigate('/login');
   };
 
   const handleNavigation = (path: string) => {

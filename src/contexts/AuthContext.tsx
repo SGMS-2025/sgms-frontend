@@ -109,15 +109,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const logout = useCallback(async () => {
-    try {
-      await authApi.logout();
-    } catch (error) {
-      console.error('Error calling logout API:', error);
-      // Continue with local logout even if API fails
-    } finally {
-      localStorage.removeItem('user');
-      dispatch({ type: 'LOGOUT' });
-    }
+    await authApi.logout();
+    localStorage.removeItem('user');
+    dispatch({ type: 'LOGOUT' });
   }, []);
 
   const value: AuthContextType = useMemo(
