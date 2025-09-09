@@ -6,7 +6,7 @@ export default function VerifyOTPPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="h-screen w-full bg-gray-100 overflow-hidden flex">
+    <div className="min-h-screen w-full bg-gray-100 flex">
       {/* Left Panel - Marketing */}
       <div className="hidden lg:flex lg:w-1/2 relative">
         <div
@@ -59,8 +59,8 @@ export default function VerifyOTPPage() {
       </div>
 
       {/* Right Panel - Verify OTP Form */}
-      <div className="w-full lg:w-1/2 bg-white flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
+      <div className="w-full lg:w-1/2 bg-white flex items-center justify-center p-4 overflow-y-auto">
+        <div className="w-full max-w-md py-8">
           <VerifyOTPForm />
         </div>
       </div>

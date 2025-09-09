@@ -116,5 +116,8 @@
   "marketing.verify_otp_title": "Xác thực email của bạn",
   "marketing.reset_password_title": "Đặt mật khẩu mới",
   "auth.enter_remaining_digits": "Nhập thêm {{remaining}} chữ số",
-  "auth.otp_complete": "OTP hoàn thành - sẵn sàng xác thực"
+  "auth.otp_complete": "OTP hoàn thành - sẵn sàng xác thực",
+  "error.invalid_username": "Tên người dùng phải có 3-20 ký tự, chỉ chữ, số và dấu gạch dưới",
+  "error.invalid_date_format": "Định dạng ngày không hợp lệ. Vui lòng sử dụng định dạng YYYY-MM-DD",
+  "error.bio_too_long": "Tiểu sử phải ít hơn 500 ký tự"
 }

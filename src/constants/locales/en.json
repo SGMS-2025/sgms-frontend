@@ -116,5 +116,8 @@
   "marketing.verify_otp_title": "Verify your email",
   "marketing.reset_password_title": "Set new password",
   "auth.enter_remaining_digits": "Enter {{remaining}} more digits",
-  "auth.otp_complete": "OTP complete - ready to verify"
+  "auth.otp_complete": "OTP complete - ready to verify",
+  "error.invalid_username": "Username must be 3-20 characters, alphanumeric and underscores only",
+  "error.invalid_date_format": "Invalid date format. Please use YYYY-MM-DD format",
+  "error.bio_too_long": "Bio must be less than 500 characters"
 }
