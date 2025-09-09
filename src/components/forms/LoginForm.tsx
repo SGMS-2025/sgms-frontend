@@ -157,9 +157,13 @@ export function LoginForm() {
               {t('auth.remember_me')}
             </label>
           </div>
-          <a href="#" className="text-sm text-orange-500 hover:text-orange-400">
+          <button
+            type="button"
+            onClick={() => navigate('/forgot-password')}
+            className="text-sm text-orange-500 hover:text-orange-400"
+          >
             {t('auth.forgot_pass')}
-          </a>
+          </button>
         </div>
 
         {/* Login Button */}

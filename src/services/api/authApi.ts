@@ -9,7 +9,11 @@ import type {
   VerifyOTPRequest,
   VerifyOTPResponse,
   ResendOTPRequest,
-  ResendOTPResponse
+  ResendOTPResponse,
+  ForgotPasswordRequest,
+  ForgotPasswordResponse,
+  ResetPasswordRequest,
+  ResetPasswordResponse
 } from '@/types/api/Auth';
 
 export const authApi = {
@@ -46,5 +50,29 @@ export const authApi = {
   // Logout
   logout: async (): Promise<void> => {
     await api.post('/users/logout');
+  },
+
+  // Forgot Password
+  forgotPassword: async (data: ForgotPasswordRequest): Promise<ApiResponse<ForgotPasswordResponse>> => {
+    const response = await api.post('/users/forgot-password', data);
+    return response.data;
+  },
+
+  // Reset Password
+  resetPassword: async (data: ResetPasswordRequest): Promise<ApiResponse<ResetPasswordResponse>> => {
+    const response = await api.post('/users/reset-password', data);
+    return response.data;
+  },
+
+  // Resend Forgot Password OTP
+  resendForgotPasswordOTP: async (data: ForgotPasswordRequest): Promise<ApiResponse<ForgotPasswordResponse>> => {
+    const response = await api.post('/users/resend-reset-otp', data);
+    return response.data;
+  },
+
+  // Verify Forgot Password OTP
+  verifyForgotPasswordOTP: async (data: VerifyOTPRequest): Promise<ApiResponse<VerifyOTPResponse>> => {
+    const response = await api.post('/users/verify-forgot-password-otp', data);
+    return response.data;
   }
 };

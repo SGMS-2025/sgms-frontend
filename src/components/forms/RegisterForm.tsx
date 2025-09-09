@@ -1,19 +1,19 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Eye, EyeOff, User, Crown, Phone, Mail, Lock, UserCheck } from 'lucide-react';
+import { PasswordInput } from '@/components/ui/PasswordInput';
+import { User, Crown, Phone, Mail, UserCheck } from 'lucide-react';
 import { useState } from 'react';
 import { authApi } from '@/services/api/authApi';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { validateRegistrationForm } from '@/utils/authValidation';
 import type { RegisterRequest } from '@/types/api/Auth';
 
 export function RegisterForm() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'customer' | 'owner'>('customer');
   const [formData, setFormData] = useState({
     username: '',
@@ -34,57 +34,15 @@ export function RegisterForm() {
   };
 
   const validateForm = () => {
-    const { username, fullName, email, phoneNumber, password, confirmPassword } = formData;
+    const validation = validateRegistrationForm({
+      ...formData,
+      agreeTerms
+    });
 
-    if (!username || !fullName || !email || !phoneNumber || !password || !confirmPassword) {
-      toast.error(t('error.fill_all_fields'));
-      return false;
-    }
-
-    if (fullName.length > 100) {
-      toast.error(t('error.fullname_too_long'));
-      return false;
-    }
-
-    // Check fullname only contains letters and spaces
-    const fullnameRegex = /^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÂÊÔưăâêô\s]+$/;
-    if (!fullnameRegex.test(fullName)) {
-      toast.error(t('error.fullname_invalid_characters'));
-      return false;
-    }
-
-    if (password !== confirmPassword) {
-      toast.error(t('error.password_mismatch'));
-      return false;
-    }
-
-    // Check password strength according to backend requirements
-    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-
-    if (password.length < 8) {
-      toast.error(t('error.password_min_length'));
-      return false;
-    }
-
-    if (!strongPasswordRegex.test(password)) {
-      toast.error(t('error.password_requirements'));
-      return false;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast.error(t('error.invalid_email'));
-      return false;
-    }
-
-    const phoneRegex = /^[0-9]{10,11}$/;
-    if (!phoneRegex.test(phoneNumber)) {
-      toast.error(t('error.invalid_phone'));
-      return false;
-    }
-
-    if (!agreeTerms) {
-      toast.error(t('error.agree_terms'));
+    if (!validation.isValid) {
+      validation.errors.forEach((error) => {
+        toast.error(t(`error.${error}`));
+      });
       return false;
     }
 
@@ -238,49 +196,20 @@ export function RegisterForm() {
           </div>
 
           {/* Row 3: Password Fields */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-md text-gray-600 mb-2 font-semibold">{t('auth.password')}</label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={(e) => handleInputChange('password', e.target.value)}
-                  className="w-full bg-gray-50 backdrop-blur-sm text-black border-gray-300 rounded-lg px-4 py-4 pl-12 pr-12 text-base focus:border-orange-500 focus:ring-orange-500 placeholder-gray-300"
-                  placeholder={t('auth.placeholder_password')}
-                  required
-                />
-                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-md text-gray-600 mb-2 font-semibold">{t('auth.confirm_password')}</label>
-              <div className="relative">
-                <Input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={formData.confirmPassword}
-                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                  className="w-full bg-gray-50 backdrop-blur-sm text-black border-gray-300 rounded-lg px-4 py-4 pl-12 pr-12 text-base focus:border-orange-500 focus:ring-orange-500 placeholder-gray-300"
-                  placeholder={t('auth.placeholder_confirm_password')}
-                  required
-                />
-                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-600"
-                >
-                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
+          <div>
+            <PasswordInput
+              value={formData.password}
+              onChange={(value) => handleInputChange('password', value)}
+              label={t('auth.password')}
+              placeholder={t('auth.placeholder_password')}
+              showConfirmPassword={true}
+              confirmPasswordValue={formData.confirmPassword}
+              onConfirmPasswordChange={(value) => handleInputChange('confirmPassword', value)}
+              confirmPasswordLabel={t('auth.confirm_password')}
+              confirmPasswordPlaceholder={t('auth.placeholder_confirm_password')}
+              showRequirements={false}
+              showValidationErrors={false}
+            />
           </div>
         </div>
 

@@ -5,6 +5,9 @@ import ExampleLayout from '@/layouts/example/ExampleLayout';
 import LoginPage from '@/pages/auth/LoginPage';
 import RegisterPage from '@/pages/auth/RegisterPage';
 import VerifyOTPPage from '@/pages/auth/VerifyOTPPage';
+import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
+import VerifyForgotPasswordOTPPage from '@/pages/auth/VerifyForgotPasswordOTPPage';
+import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import HomePage from '@/pages/home-test';
 import LandingPage from '@/pages/landing/LandingPage';
 import { UserProfile } from '@/pages/profile/ProfilePage';
@@ -32,6 +35,20 @@ const AppRoutes: React.FC = () => {
 
       {/* Verify OTP Route - redirect to home if already authenticated */}
       <Route path="/verify-otp" element={isAuthenticated ? <Navigate to="/home" replace /> : <VerifyOTPPage />} />
+
+      {/* Forgot Password Routes */}
+      <Route
+        path="/forgot-password"
+        element={isAuthenticated ? <Navigate to="/home" replace /> : <ForgotPasswordPage />}
+      />
+      <Route
+        path="/verify-forgot-password-otp"
+        element={isAuthenticated ? <Navigate to="/home" replace /> : <VerifyForgotPasswordOTPPage />}
+      />
+      <Route
+        path="/reset-password"
+        element={isAuthenticated ? <Navigate to="/home" replace /> : <ResetPasswordPage />}
+      />
 
       {/* Home Route - redirect to login if not authenticated */}
       <Route path="/home" element={isAuthenticated ? <HomePage /> : <Navigate to="/login" replace />} />
