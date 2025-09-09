@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { validatePasswordStrength, validateConfirmPassword } from '@/utils/validation';
+import { validatePasswordStrength, validateConfirmPassword } from '@/utils/authValidation';
 
 interface UsePasswordInputOptions {
   showConfirmPassword?: boolean;

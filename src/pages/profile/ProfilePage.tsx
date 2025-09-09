@@ -291,12 +291,7 @@ export function UserProfile() {
     const validation = validateFormData(formData);
 
     if (!validation.isValid) {
-      // Convert string array to Record<string, string>
-      const errorsRecord: Record<string, string> = {};
-      validation.errors.forEach((error, index) => {
-        errorsRecord[`error_${index}`] = error;
-      });
-      setValidationErrors(errorsRecord);
+      setValidationErrors(validation.errors);
       toast.error('Vui lòng kiểm tra lại thông tin đã nhập');
       return;
     }

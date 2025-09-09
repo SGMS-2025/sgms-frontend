@@ -8,7 +8,7 @@ import { authApi } from '@/services/api/authApi';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { validateRegistrationForm } from '@/utils/validation';
+import { validateRegistrationForm } from '@/utils/authValidation';
 import type { RegisterRequest } from '@/types/api/Auth';
 
 export function RegisterForm() {

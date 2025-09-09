@@ -1,17 +1,18 @@
 import { Button } from '@/components/ui/button';
-import { PasswordInput } from '@/components/ui/PasswordInput';
-import { ArrowLeft } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Eye, EyeOff, Lock, ArrowLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { authApi } from '@/services/api/authApi';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { validatePasswordResetForm } from '@/utils/validation';
 
 export function ResetPasswordForm() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     newPassword: '',
     confirmPassword: ''
@@ -39,12 +40,28 @@ export function ResetPasswordForm() {
   };
 
   const validateForm = () => {
-    const validation = validatePasswordResetForm(formData);
+    const { newPassword, confirmPassword } = formData;
 
-    if (!validation.isValid) {
-      validation.errors.forEach((error) => {
-        toast.error(t(`error.${error}`));
-      });
+    if (!newPassword || !confirmPassword) {
+      toast.error(t('error.fill_all_fields'));
+      return false;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error(t('error.password_mismatch'));
+      return false;
+    }
+
+    // Check password strength according to backend requirements
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+    if (newPassword.length < 8) {
+      toast.error(t('error.password_min_length'));
+      return false;
+    }
+
+    if (!strongPasswordRegex.test(newPassword)) {
+      toast.error(t('error.password_requirements'));
       return false;
     }
 
@@ -92,20 +109,66 @@ export function ResetPasswordForm() {
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Password Fields */}
-        <div className="animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
-          <PasswordInput
-            value={formData.newPassword}
-            onChange={(value) => handleInputChange('newPassword', value)}
-            label={t('auth.new_password')}
-            placeholder={t('auth.placeholder_new_password')}
-            showConfirmPassword={true}
-            confirmPasswordValue={formData.confirmPassword}
-            onConfirmPasswordChange={(value) => handleInputChange('confirmPassword', value)}
-            confirmPasswordLabel={t('auth.confirm_new_password')}
-            confirmPasswordPlaceholder={t('auth.placeholder_confirm_new_password')}
-            showRequirements={false}
-            showValidationErrors={false}
-          />
+        <div className="space-y-4 animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
+          {/* New Password */}
+          <div>
+            <label className="block text-md text-gray-600 mb-2 font-semibold">{t('auth.new_password')}</label>
+            <div className="relative">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                value={formData.newPassword}
+                onChange={(e) => handleInputChange('newPassword', e.target.value)}
+                className="w-full bg-gray-50 backdrop-blur-sm text-black border-gray-300 rounded-lg px-4 py-4 pl-12 pr-12 text-base focus:border-orange-500 focus:ring-orange-500 placeholder-gray-300"
+                placeholder={t('auth.placeholder_new_password')}
+                required
+              />
+              <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Confirm Password */}
+          <div>
+            <label className="block text-md text-gray-600 mb-2 font-semibold">{t('auth.confirm_new_password')}</label>
+            <div className="relative">
+              <Input
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={formData.confirmPassword}
+                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                className="w-full bg-gray-50 backdrop-blur-sm text-black border-gray-300 rounded-lg px-4 py-4 pl-12 pr-12 text-base focus:border-orange-500 focus:ring-orange-500 placeholder-gray-300"
+                placeholder={t('auth.placeholder_confirm_new_password')}
+                required
+              />
+              <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-600"
+              >
+                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Password Requirements */}
+        <div
+          className="bg-blue-50 border border-blue-200 rounded-lg p-3 animate-fadeInUp"
+          style={{ animationDelay: '0.6s' }}
+        >
+          <p className="text-sm text-blue-800 font-semibold mb-2">{t('auth.password_requirements_title')}</p>
+          <ul className="text-xs text-blue-700 space-y-1">
+            <li>• {t('auth.password_requirement_1')}</li>
+            <li>• {t('auth.password_requirement_2')}</li>
+            <li>• {t('auth.password_requirement_3')}</li>
+            <li>• {t('auth.password_requirement_4')}</li>
+          </ul>
         </div>
 
         {/* Submit Button */}
