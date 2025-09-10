@@ -261,3 +261,29 @@
   line-height: 1.6;
   letter-spacing: 0.01em;
 }
+
+/* Owner Dashboard Styles */
+select {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: inherit;
+}
+
+select:focus {
+  outline: none;
+}
+
+/* Scrolling banner animation */
+@keyframes scroll {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-scroll {
+  animation: scroll 20s linear infinite;
+}

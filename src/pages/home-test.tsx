@@ -6,11 +6,29 @@ import { User, Mail, Phone, Calendar, Shield, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/layout/BaseHeader';
 import { Footer } from '@/components/layout/BaseFooter';
+import { useEffect } from 'react';
 
 export default function HomePage() {
   const { isAuthenticated, user, isLoading } = useAuthState();
   const { logout } = useAuthActions();
   const navigate = useNavigate();
+
+  // Handle redirects using useEffect - must be called before any early returns
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      console.log('HomePage: Not authenticated, redirecting to login');
+      navigate('/login');
+    }
+  }, [isAuthenticated, user, navigate]);
+
+  // Redirect owner to owner dashboard using useEffect - must be called before any early returns
+  useEffect(() => {
+    if (user && user.role === 'OWNER') {
+      console.log('Redirecting owner to /owner dashboard');
+      console.log('User role:', user.role);
+      navigate('/owner');
+    }
+  }, [user, navigate]);
 
   // Display loading while fetching
   if (isLoading) {
@@ -24,10 +42,28 @@ export default function HomePage() {
     );
   }
 
-  // Redirect to login if not authenticated
+  // Show loading if not authenticated
   if (!isAuthenticated || !user) {
-    navigate('/login');
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang chuyển hướng...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading if user is owner (will redirect)
+  if (user && user.role === 'OWNER') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chuyển hướng đến Owner Dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   const handleLogout = async () => {

@@ -11,6 +11,8 @@ import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import HomePage from '@/pages/home-test';
 import LandingPage from '@/pages/landing/LandingPage';
 import { UserProfile } from '@/pages/profile/ProfilePage';
+import OwnerDashboard from '@/pages/owner/OwnerDashboard';
+import StaffPage from '@/pages/owner/StaffPage';
 import { useIsAuthenticated } from '@/hooks/useAuth';
 
 // You can add a protected route component here if needed
@@ -55,6 +57,12 @@ const AppRoutes: React.FC = () => {
 
       {/* Profile Route */}
       <Route path="/profile" element={isAuthenticated ? <UserProfile /> : <Navigate to="/login" replace />} />
+
+      {/* Owner Dashboard Route */}
+      <Route path="/owner" element={isAuthenticated ? <OwnerDashboard /> : <Navigate to="/login" replace />} />
+
+      {/* Staff Management Route */}
+      <Route path="/staff" element={isAuthenticated ? <StaffPage /> : <Navigate to="/login" replace />} />
 
       {/* Example Routes */}
       <Route path="/example/*" element={<ExampleLayout />}>

@@ -48,8 +48,14 @@ export function LoginForm() {
         localStorage.setItem('userEmailOrUsername', emailOrUsername);
       }
 
-      // Navigate to home page
-      navigate('/home');
+      // Navigate based on selected role
+      if (selectedRole === 'owner') {
+        console.log('Redirecting to /owner');
+        navigate('/owner');
+      } else {
+        console.log('Redirecting to /home');
+        navigate('/home');
+      }
     }
 
     setIsLoading(false);
