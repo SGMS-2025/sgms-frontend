@@ -13,7 +13,8 @@ import {
   LogIn,
   Target,
   CheckCircle,
-  XCircle
+  XCircle,
+  Shield
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { userApi } from '@/services/api/userApi';
@@ -37,6 +38,8 @@ import { PersonalInfoTab } from '@/components/profile/PersonalInfoTab';
 import { ServicePackageTab } from '@/components/profile/ServicePackageTab';
 import { TrainingProgressTab } from '@/components/profile/TrainingProgressTab';
 import { useAuthActions } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export function UserProfile() {
   const [isEditing, setIsEditing] = useState(false);
@@ -48,11 +51,17 @@ export function UserProfile() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const { state } = useAuth();
   const { updateUser } = useAuthActions();
+  const navigate = useNavigate();
+  const { t } = useTranslation();
   const isMobile = useIsMobile();
 
   // Helper functions to avoid nested ternary operators
   const getServiceTabText = (isMobile: boolean): string => {
     return isMobile ? 'Dịch vụ' : 'Gói dịch vụ';
+  };
+
+  const getSecurityTabText = (isMobile: boolean): string => {
+    return isMobile ? 'Bảo mật' : 'Bảo mật & Mật khẩu';
   };
 
   // Extract loading screen component
@@ -104,7 +113,7 @@ export function UserProfile() {
 
         {/* Enhanced Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full gap-0">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-50 border-b border-gray-200 h-auto p-1 rounded-none">
+          <TabsList className="grid w-full grid-cols-4 bg-gray-50 border-b border-gray-200 h-auto p-1 rounded-none">
             <TabsTrigger
               value="personal"
               className="data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-md px-4 py-3 rounded-lg m-1 font-medium transition-all duration-200"
@@ -125,6 +134,13 @@ export function UserProfile() {
             >
               <TrendingUp className="w-4 h-4 mr-2" />
               <span className={isMobile ? 'text-sm' : 'text-base'}>{isMobile ? 'Tiến độ' : 'Tiến độ tập luyện'}</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="security"
+              className="data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-md px-4 py-3 rounded-lg m-1 font-medium transition-all duration-200"
+            >
+              <Shield className="w-4 h-4 mr-2" />
+              <span className={isMobile ? 'text-sm' : 'text-base'}>{getSecurityTabText(isMobile)}</span>
             </TabsTrigger>
           </TabsList>
 
@@ -161,6 +177,27 @@ export function UserProfile() {
               workoutSchedule={workoutSchedule}
               fitnessMetrics={fitnessMetrics}
             />
+          </TabsContent>
+
+          {/* Security Tab */}
+          <TabsContent value="security" className="p-6">
+            <div className="space-y-6">
+              <div className="text-center">
+                <Shield className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">{t('auth.change_password_title')}</h3>
+                <p className="text-gray-600 mb-6">{t('auth.change_password_prompt')}</p>
+              </div>
+
+              <div className="max-w-md mx-auto">
+                <Button
+                  onClick={() => navigate('/change-password')}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 text-base rounded-lg"
+                >
+                  <Shield className="w-5 h-5 mr-2" />
+                  {t('auth.change_password')}
+                </Button>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

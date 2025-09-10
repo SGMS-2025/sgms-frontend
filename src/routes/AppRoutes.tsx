@@ -8,6 +8,7 @@ import VerifyOTPPage from '@/pages/auth/VerifyOTPPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 import VerifyForgotPasswordOTPPage from '@/pages/auth/VerifyForgotPasswordOTPPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
+import ChangePasswordPage from '@/pages/auth/ChangePasswordPage';
 import HomePage from '@/pages/home-test';
 import LandingPage from '@/pages/landing/LandingPage';
 import { UserProfile } from '@/pages/profile/ProfilePage';
@@ -57,6 +58,12 @@ const AppRoutes: React.FC = () => {
 
       {/* Profile Route */}
       <Route path="/profile" element={isAuthenticated ? <UserProfile /> : <Navigate to="/login" replace />} />
+
+      {/* Change Password Route - requires authentication */}
+      <Route
+        path="/change-password"
+        element={isAuthenticated ? <ChangePasswordPage /> : <Navigate to="/login" replace />}
+      />
 
       {/* Owner Dashboard Route */}
       <Route path="/owner" element={isAuthenticated ? <OwnerDashboard /> : <Navigate to="/login" replace />} />
