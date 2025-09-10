@@ -38,8 +38,7 @@ import { PersonalInfoTab } from '@/components/profile/PersonalInfoTab';
 import { ServicePackageTab } from '@/components/profile/ServicePackageTab';
 import { TrainingProgressTab } from '@/components/profile/TrainingProgressTab';
 import { useAuthActions } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { ChangePasswordForm } from '@/components/forms/ChangePasswordForm';
 
 export function UserProfile() {
   const [isEditing, setIsEditing] = useState(false);
@@ -51,8 +50,6 @@ export function UserProfile() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const { state } = useAuth();
   const { updateUser } = useAuthActions();
-  const navigate = useNavigate();
-  const { t } = useTranslation();
   const isMobile = useIsMobile();
 
   // Helper functions to avoid nested ternary operators
@@ -180,23 +177,9 @@ export function UserProfile() {
           </TabsContent>
 
           {/* Security Tab */}
-          <TabsContent value="security" className="p-6">
-            <div className="space-y-6">
-              <div className="text-center">
-                <Shield className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">{t('auth.change_password_title')}</h3>
-                <p className="text-gray-600 mb-6">{t('auth.change_password_prompt')}</p>
-              </div>
-
-              <div className="max-w-md mx-auto">
-                <Button
-                  onClick={() => navigate('/change-password')}
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 text-base rounded-lg"
-                >
-                  <Shield className="w-5 h-5 mr-2" />
-                  {t('auth.change_password')}
-                </Button>
-              </div>
+          <TabsContent value="security" className="p-6" style={{ backgroundColor: '#F1F3F4' }}>
+            <div className="max-w-md mx-auto">
+              <ChangePasswordForm />
             </div>
           </TabsContent>
         </Tabs>

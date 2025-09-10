@@ -1,15 +1,12 @@
 import { Button } from '@/components/ui/button';
 import { PasswordInput } from '@/components/ui/PasswordInput';
-import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { authApi } from '@/services/api/authApi';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { validatePasswordResetForm } from '@/utils/authValidation';
+import { validateChangePasswordForm } from '@/utils/authValidation';
 
 export function ChangePasswordForm() {
-  const navigate = useNavigate();
   const { t } = useTranslation();
   const [formData, setFormData] = useState({
     currentPassword: '',
@@ -26,23 +23,7 @@ export function ChangePasswordForm() {
   };
 
   const validateForm = () => {
-    const { currentPassword, newPassword, confirmNewPassword } = formData;
-
-    if (!currentPassword || !newPassword || !confirmNewPassword) {
-      toast.error(t('error.fill_all_fields'));
-      return false;
-    }
-
-    if (currentPassword === newPassword) {
-      toast.error(t('error.same_password'));
-      return false;
-    }
-
-    // Validate new password and confirm password
-    const validation = validatePasswordResetForm({
-      newPassword,
-      confirmPassword: confirmNewPassword
-    });
+    const validation = validateChangePasswordForm(formData);
 
     if (!validation.isValid) {
       validation.errors.forEach((error) => {
@@ -72,9 +53,11 @@ export function ChangePasswordForm() {
     if (response.success) {
       toast.success(t('success.password_changed_success'));
 
-      // Navigate back to profile
-      navigate('/profile', {
-        state: { message: t('success.password_changed_success') }
+      // Clear form after successful password change
+      setFormData({
+        currentPassword: '',
+        newPassword: '',
+        confirmNewPassword: ''
       });
     }
 
@@ -82,7 +65,7 @@ export function ChangePasswordForm() {
   };
 
   return (
-    <div className="w-full bg-white rounded-2xl shadow-lg p-8">
+    <div className="w-full">
       {/* Header */}
       <div className="text-center mb-6 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
         <h1 className="text-3xl font-bold text-orange-500 mb-2 leading-tight">{t('auth.change_password_title')}</h1>
@@ -127,20 +110,6 @@ export function ChangePasswordForm() {
           />
         </div>
 
-        {/* Password Requirements */}
-        <div
-          className="bg-blue-50 border border-blue-200 rounded-lg p-3 animate-fadeInUp"
-          style={{ animationDelay: '0.7s' }}
-        >
-          <p className="text-sm text-blue-800 font-semibold mb-2">{t('auth.password_requirements_title')}</p>
-          <ul className="text-xs text-blue-700 space-y-1">
-            <li>• {t('auth.password_requirement_1')}</li>
-            <li>• {t('auth.password_requirement_2')}</li>
-            <li>• {t('auth.password_requirement_3')}</li>
-            <li>• {t('auth.password_requirement_4')}</li>
-          </ul>
-        </div>
-
         {/* Submit Button */}
         <Button
           type="submit"
@@ -150,18 +119,6 @@ export function ChangePasswordForm() {
         >
           {isLoading ? t('auth.changing') : t('auth.change_password')}
         </Button>
-
-        {/* Back to Profile */}
-        <div className="text-center animate-fadeInUp" style={{ animationDelay: '1.0s' }}>
-          <button
-            type="button"
-            onClick={() => navigate('/profile')}
-            className="flex items-center justify-center text-gray-600 hover:text-orange-500 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {t('auth.back_to_profile')}
-          </button>
-        </div>
       </form>
     </div>
   );
