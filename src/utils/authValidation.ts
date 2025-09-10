@@ -157,3 +157,42 @@ export const validatePasswordResetForm = (formData: {
     errors
   };
 };
+
+// Combined form validation for change password
+export const validateChangePasswordForm = (formData: {
+  currentPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}): { isValid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+
+  // Check required fields
+  if (!formData.currentPassword || !formData.newPassword || !formData.confirmNewPassword) {
+    errors.push('fill_all_fields');
+  }
+
+  // Check if new password is different from current password
+  if (formData.currentPassword && formData.newPassword && formData.currentPassword === formData.newPassword) {
+    errors.push('same_password');
+  }
+
+  // Validate new password strength
+  if (formData.newPassword) {
+    const passwordValidation = validatePasswordStrength(formData.newPassword);
+    errors.push(...passwordValidation.errors);
+  }
+
+  // Validate password match
+  if (
+    formData.newPassword &&
+    formData.confirmNewPassword &&
+    !validateConfirmPassword(formData.newPassword, formData.confirmNewPassword)
+  ) {
+    errors.push('password_mismatch');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
