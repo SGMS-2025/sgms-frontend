@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { MapPin, Clock, Star, ArrowRight } from 'lucide-react';
+import { getColorClasses } from '@/utils/utils';
 import type { GymCardData } from '@/types/api/Branch';
 
 interface GymCardProps {
@@ -14,36 +15,6 @@ interface GymCardProps {
 
 export const GymCard: React.FC<GymCardProps> = ({ gym, index = 0, showAnimation = true, variant = 'list' }) => {
   const navigate = useNavigate();
-
-  const getColorClasses = (color: string) => {
-    switch (color) {
-      case 'orange':
-        return {
-          textColor: 'text-orange-500',
-          bgColor: 'bg-orange-100',
-          dotColor: 'bg-orange-500'
-        };
-      case 'green':
-        return {
-          textColor: 'text-green-500',
-          bgColor: 'bg-green-100',
-          dotColor: 'bg-green-500'
-        };
-      case 'purple':
-        return {
-          textColor: 'text-purple-500',
-          bgColor: 'bg-purple-100',
-          dotColor: 'bg-purple-500'
-        };
-      default:
-        return {
-          textColor: 'text-orange-500',
-          bgColor: 'bg-orange-100',
-          dotColor: 'bg-orange-500'
-        };
-    }
-  };
-
   const colorClasses = getColorClasses(gym.color);
 
   // Handle button click based on variant

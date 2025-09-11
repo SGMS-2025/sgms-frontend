@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Header } from '@/components/layout/BaseHeader';
 import { Footer } from '@/components/layout/BaseFooter';
 import { GymCard } from '@/components/cards/GymCard';
-import { GymCardSkeleton } from '@/components/ui/skeleton';
+import { GymCardSkeleton } from '@/components/ui/loading-skeleton';
 import { ErrorMessage } from '@/components/ui/error-message';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -277,13 +277,6 @@ const GymListPage: React.FC = () => {
                   {/* Pagination */}
                   {pagination && pagination.totalPages > 1 && (
                     <div className="flex flex-col items-center gap-4 mt-12">
-                      {/* Pagination Info */}
-                      <div className="text-sm text-gray-600">
-                        Trang {pagination.page} / {pagination.totalPages}
-                        <span className="mx-2">•</span>
-                        Tổng {pagination.total} phòng tập
-                      </div>
-
                       {/* Pagination Controls */}
                       <Pagination>
                         <PaginationContent>

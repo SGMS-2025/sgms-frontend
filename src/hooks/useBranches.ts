@@ -48,51 +48,30 @@ export const useBranches = (params?: BranchListParams): UseBranchesResult => {
   };
 
   const fetchBranches = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      // Add minimum loading time for better UX (prevent flash)
-      const startTime = Date.now();
+    // Add minimum loading time for better UX (prevent flash)
+    const startTime = Date.now();
 
-      const response = await branchApi.getBranches(params);
+    const response = await branchApi.getBranches(params);
 
-      // Ensure minimum 300ms loading time for smooth UX
-      const elapsedTime = Date.now() - startTime;
-      const minLoadingTime = 300;
+    // Ensure minimum 300ms loading time for smooth UX
+    const elapsedTime = Date.now() - startTime;
+    const minLoadingTime = 300;
 
-      if (elapsedTime < minLoadingTime) {
-        await new Promise((resolve) => setTimeout(resolve, minLoadingTime - elapsedTime));
-      }
-
-      if (response.success) {
-        setBranches(response.data.branches);
-        setPagination(response.data.pagination);
-      } else {
-        setError(response.message || 'Không thể tải danh sách phòng tập');
-      }
-    } catch (err) {
-      console.error('Error fetching branches:', err);
-
-      // Better error messages in Vietnamese
-      let errorMessage = 'Đã xảy ra lỗi khi tải dữ liệu';
-
-      if (err instanceof Error) {
-        if (err.message.includes('Network Error') || err.message.includes('fetch')) {
-          errorMessage = 'Lỗi kết nối mạng. Vui lòng kiểm tra internet và thử lại.';
-        } else if (err.message.includes('timeout')) {
-          errorMessage = 'Kết nối quá chậm. Vui lòng thử lại sau.';
-        } else if (err.message.includes('500')) {
-          errorMessage = 'Lỗi máy chủ. Vui lòng thử lại sau ít phút.';
-        } else {
-          errorMessage = err.message;
-        }
-      }
-
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
+    if (elapsedTime < minLoadingTime) {
+      await new Promise((resolve) => setTimeout(resolve, minLoadingTime - elapsedTime));
     }
+
+    if (response.success) {
+      setBranches(response.data.branches);
+      setPagination(response.data.pagination);
+    } else {
+      setError(response.message || 'Không thể tải danh sách phòng tập');
+    }
+
+    setLoading(false);
   }, [params]);
 
   useEffect(() => {
@@ -120,23 +99,18 @@ export const useTopGyms = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchTopGyms = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      const response = await branchApi.getTopGyms();
+    const response = await branchApi.getTopGyms();
 
-      if (response.success) {
-        setBranches(response.data.branches);
-      } else {
-        setError(response.message || 'Failed to fetch top gyms');
-      }
-    } catch (err) {
-      console.error('Error fetching top gyms:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred while fetching top gyms');
-    } finally {
-      setLoading(false);
+    if (response.success) {
+      setBranches(response.data.branches);
+    } else {
+      setError(response.message || 'Failed to fetch top gyms');
     }
+
+    setLoading(false);
   };
 
   useEffect(() => {

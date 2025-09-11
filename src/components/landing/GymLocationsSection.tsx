@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { GymCard } from '@/components/cards/GymCard';
-import { GymCardSkeleton } from '@/components/ui/skeleton';
+import { GymCardSkeleton } from '@/components/ui/loading-skeleton';
 import { ErrorMessage } from '@/components/ui/error-message';
 import { useTopGyms } from '@/hooks/useBranches';
 import type { LandingPageProps } from '@/types/pages/landing';
