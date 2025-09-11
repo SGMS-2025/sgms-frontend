@@ -176,6 +176,20 @@
   animation: fadeIn 0.8s ease-out forwards;
 }
 
+/* Shimmer animation for better loading skeleton */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
 /* Additional animations for auth pages */
 @keyframes slideInLeft {
   from {
