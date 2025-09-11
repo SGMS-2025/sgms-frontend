@@ -9,6 +9,9 @@ export interface Staff {
     email: string;
     fullName: string;
     phoneNumber?: string;
+    dateOfBirth?: string;
+    address?: string;
+    gender?: string;
     avatar?: {
       publicId?: string;
       url?: string;
@@ -20,6 +23,12 @@ export interface Staff {
     branchName: string;
     location: string;
     hotline?: string;
+    managerId?: {
+      _id: string;
+      fullName: string;
+      email: string;
+      phoneNumber?: string;
+    };
   };
   status?: StaffStatus;
   salary: number;

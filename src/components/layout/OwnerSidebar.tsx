@@ -35,9 +35,9 @@ export const OwnerSidebar: React.FC = () => {
     {
       icon: <Grid3X3 className="w-6 h-6" />,
       label: t('sidebar.dashboard'),
-      isActive: location.pathname === '/owner',
+      isActive: location.pathname === '/manage/owner',
       opacity: 1,
-      onClick: () => navigate('/owner')
+      onClick: () => navigate('/manage/owner')
     },
     {
       icon: <GitBranch className="w-6 h-6" />,
@@ -48,9 +48,9 @@ export const OwnerSidebar: React.FC = () => {
     {
       icon: <Users className="w-6 h-6" />,
       label: t('sidebar.users'),
-      isActive: location.pathname === '/staff',
+      isActive: location.pathname === '/manage/staff',
       opacity: 1,
-      onClick: () => navigate('/staff')
+      onClick: () => navigate('/manage/staff')
     },
     {
       icon: <Dumbbell className="w-6 h-6" />,
