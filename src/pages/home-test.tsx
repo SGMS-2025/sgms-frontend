@@ -24,9 +24,9 @@ export default function HomePage() {
   // Redirect owner to owner dashboard using useEffect - must be called before any early returns
   useEffect(() => {
     if (user && user.role === 'OWNER') {
-      console.log('Redirecting owner to /owner dashboard');
+      console.log('Redirecting owner to /manage/owner dashboard');
       console.log('User role:', user.role);
-      navigate('/owner');
+      navigate('/manage/owner');
     }
   }, [user, navigate]);
 

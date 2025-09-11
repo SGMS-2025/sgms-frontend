@@ -1,6 +1,6 @@
 import type { ApiResponse } from '@/types/api/Api';
 import { api } from './api';
-import type { StaffStats, StaffListParams, StaffListResponse } from '@/types/api/Staff';
+import type { Staff, StaffStats, StaffListParams, StaffListResponse } from '@/types/api/Staff';
 
 export const staffApi = {
   getStaffList: async (params: StaffListParams = {}): Promise<ApiResponse<StaffListResponse>> => {
@@ -10,6 +10,11 @@ export const staffApi = {
 
   getStaffStats: async (): Promise<ApiResponse<StaffStats>> => {
     const response = await api.get('/staff/stats');
+    return response.data;
+  },
+
+  getStaffById: async (staffId: string): Promise<ApiResponse<Staff>> => {
+    const response = await api.get(`/staff/${staffId}`);
     return response.data;
   }
 };

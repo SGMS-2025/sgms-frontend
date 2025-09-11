@@ -4,10 +4,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, EyeOff, User, Crown, Mail, Lock } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { authApi } from '@/services/api/authApi';
 import { useNavigate } from 'react-router-dom';
-import { useAuthActions } from '@/hooks/useAuth';
-import { toast } from 'sonner';
+import { useLogin } from '@/hooks/useLogin';
 import type { LoginRequest } from '@/types/api/Auth';
 
 export function LoginForm() {
@@ -17,48 +15,19 @@ export function LoginForm() {
   const [selectedRole, setSelectedRole] = useState<'customer' | 'owner'>('customer');
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  const { login } = useAuthActions();
+  const { handleLogin, isLoading } = useLogin();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!emailOrUsername || !password) {
-      toast.error(t('error.fill_all_fields'));
-      return;
-    }
-
-    setIsLoading(true);
 
     const loginData: LoginRequest = {
       emailOrUsername,
       password
     };
 
-    const response = await authApi.login(loginData);
-
-    // Check if response is successful
-    if (response.success) {
-      // Only save user to AuthContext
-      login(response.data.user);
-
-      if (rememberMe) {
-        localStorage.setItem('userEmailOrUsername', emailOrUsername);
-      }
-
-      // Navigate based on selected role
-      if (selectedRole === 'owner') {
-        console.log('Redirecting to /owner');
-        navigate('/owner');
-      } else {
-        console.log('Redirecting to /home');
-        navigate('/home');
-      }
-    }
-
-    setIsLoading(false);
+    await handleLogin(loginData, rememberMe, selectedRole);
   };
 
   return (
@@ -70,7 +39,7 @@ export function LoginForm() {
       </div>
 
       {/* Form */}
-      <form onSubmit={handleLogin} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Role Selection */}
         <div className="animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
           <p className="text-md text-gray-600 mb-3 font-semibold">{t('auth.login_role')}</p>
