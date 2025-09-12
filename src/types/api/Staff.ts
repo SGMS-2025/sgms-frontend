@@ -1,18 +1,6 @@
 export type StaffStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 export type StaffJobTitle = 'Manager' | 'Admin' | 'Owner' | 'Personal Trainer' | 'Technician';
-
-export interface StaffFormData {
-  fullName: string;
-  dateOfBirth: string;
-  gender: string;
-  phoneNumber: string;
-  address: string;
-  email: string;
-  jobTitle: StaffJobTitle;
-  salary: string;
-  branchName: string;
-  status: StaffStatus;
-}
+export type SortField = 'name' | 'jobTitle' | 'email' | 'phone' | 'salary';
 
 export interface Staff {
   _id: string;
@@ -133,4 +121,17 @@ export interface StaffManagementProps {
   onEditStaff?: (staff: StaffDisplay) => void;
   onDeleteStaff?: (staffId: string) => void;
   onViewStaff?: (staff: StaffDisplay) => void;
+}
+
+export interface StaffFormData {
+  fullName: string;
+  dateOfBirth: string;
+  gender: string;
+  phoneNumber: string;
+  address: string;
+  email: string;
+  jobTitle: StaffJobTitle;
+  salary: string;
+  branchName: string;
+  status: StaffStatus;
 }

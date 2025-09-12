@@ -20,9 +20,7 @@ import { SortableHeader } from '@/components/ui/SortableHeader';
 import { useStaffList } from '@/hooks/useStaff';
 import { useTableSort } from '@/hooks/useTableSort';
 import { sortArray, staffSortConfig } from '@/utils/sort';
-import type { StaffFilters, StaffManagementProps } from '@/types/api/Staff';
-
-type SortField = 'name' | 'jobTitle' | 'email' | 'phone' | 'salary';
+import type { StaffFilters, StaffManagementProps, SortField } from '@/types/api/Staff';
 
 export const StaffManagement: React.FC<StaffManagementProps> = ({
   onAddStaff,
