@@ -245,5 +245,17 @@
   "staff_modal.no_info": "Chưa có thông tin",
   "staff_modal.gender_male": "Nam",
   "staff_modal.gender_female": "Nữ",
-  "staff_modal.gender_other": "Khác"
+  "staff_modal.gender_other": "Khác",
+  "staff_modal.cancel": "Hủy",
+  "staff_modal.save": "Lưu",
+  "staff_modal.select_gender": "Chọn giới tính",
+  "staff_modal.select_role": "Chọn vai trò",
+  "staff_modal.select_status": "Chọn trạng thái",
+  "staff_modal.role_manager": "Quản lý",
+  "staff_modal.role_admin": "Admin",
+  "staff_modal.role_owner": "Chủ sở hữu",
+  "staff_modal.role_personal_trainer": "Huấn luyện viên cá nhân",
+  "staff_modal.role_technician": "Kỹ thuật viên",
+  "staff_modal.status": "Trạng thái",
+  "staff_modal.select_date": "Chọn ngày sinh"
 }

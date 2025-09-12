@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useStaffDetails } from '@/hooks/useStaff';
-import type { StaffDisplay, Staff } from '@/types/api/Staff';
+import EditStaffForm from '@/components/forms/EditStaffForm';
+import type { StaffDisplay, Staff, StaffFormData, StaffJobTitle } from '@/types/api/Staff';
 
 interface StaffProfileModalProps {
   isOpen: boolean;
@@ -16,6 +17,19 @@ interface StaffProfileModalProps {
 export default function StaffProfileModal({ isOpen, onClose, staff }: StaffProfileModalProps) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'personal' | 'branch'>('personal');
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [formData, setFormData] = useState<StaffFormData>({
+    fullName: '',
+    dateOfBirth: '',
+    gender: '',
+    phoneNumber: '',
+    address: '',
+    email: '',
+    jobTitle: 'Personal Trainer',
+    salary: '',
+    branchName: '',
+    status: 'ACTIVE'
+  });
 
   // Use the custom hook for fetching staff details
   const { staffDetails, loading, error, refetch } = useStaffDetails(isOpen && staff ? staff.id : null);
@@ -23,8 +37,69 @@ export default function StaffProfileModal({ isOpen, onClose, staff }: StaffProfi
   useEffect(() => {
     if (isOpen && staff) {
       refetch();
+      // Reset to personal tab when modal opens
+      setActiveTab('personal');
+      setIsEditMode(false);
     }
   }, [isOpen, staff, refetch]);
+
+  // Populate form data when staff details are loaded
+  useEffect(() => {
+    if (staffDetails && staff) {
+      setFormData({
+        fullName: staffDetails.userId?.fullName || staff.name || '',
+        dateOfBirth: staffDetails.userId?.dateOfBirth
+          ? new Date(staffDetails.userId.dateOfBirth).toISOString().split('T')[0]
+          : '',
+        gender: staffDetails.userId?.gender || '',
+        phoneNumber: staffDetails.userId?.phoneNumber || staff.phone || '',
+        address: staffDetails.userId?.address || '',
+        email: staffDetails.userId?.email || staff.email || '',
+        jobTitle: staffDetails.jobTitle || (staff.jobTitle as StaffJobTitle) || 'Personal Trainer',
+        salary: staffDetails.salary?.toString() || staff.salary || '',
+        branchName: staffDetails.branchId?.branchName || staff.branch || '',
+        status: staffDetails.status || staff.status || 'ACTIVE'
+      });
+    }
+  }, [staffDetails, staff]);
+
+  const handleInputChange = (field: keyof StaffFormData, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleEditClick = () => {
+    setIsEditMode(true);
+  };
+
+  const handleSave = () => {
+    // TODO: Implement API call to save changes
+    console.log('Saving staff data:', formData);
+    setIsEditMode(false);
+  };
+
+  const handleCancel = () => {
+    // Reset form data to original values
+    if (staffDetails && staff) {
+      setFormData({
+        fullName: staffDetails.userId?.fullName || staff.name || '',
+        dateOfBirth: staffDetails.userId?.dateOfBirth
+          ? new Date(staffDetails.userId.dateOfBirth).toISOString().split('T')[0]
+          : '',
+        gender: staffDetails.userId?.gender || '',
+        phoneNumber: staffDetails.userId?.phoneNumber || staff.phone || '',
+        address: staffDetails.userId?.address || '',
+        email: staffDetails.userId?.email || staff.email || '',
+        jobTitle: staffDetails.jobTitle || (staff.jobTitle as StaffJobTitle) || 'Personal Trainer',
+        salary: staffDetails.salary?.toString() || staff.salary || '',
+        branchName: staffDetails.branchId?.branchName || staff.branch || '',
+        status: staffDetails.status || staff.status || 'ACTIVE'
+      });
+    }
+    setIsEditMode(false);
+  };
 
   if (!isOpen || !staff) return null;
 
@@ -83,33 +158,35 @@ export default function StaffProfileModal({ isOpen, onClose, staff }: StaffProfi
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="border-b bg-gray-50">
-          <div className="flex px-6">
-            <button
-              onClick={() => setActiveTab('personal')}
-              className={`px-4 py-4 font-medium border-b-2 transition-colors ${
-                activeTab === 'personal'
-                  ? 'border-orange-500 text-orange-500'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <User className="w-4 h-4 inline mr-2" />
-              {t('staff_modal.personal_info')}
-            </button>
-            <button
-              onClick={() => setActiveTab('branch')}
-              className={`px-4 py-4 font-medium border-b-2 transition-colors ${
-                activeTab === 'branch'
-                  ? 'border-orange-500 text-orange-500'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Building2 className="w-4 h-4 inline mr-2" />
-              {t('staff_modal.branch_info')}
-            </button>
+        {/* Tabs - Only show when not in edit mode */}
+        {!isEditMode && (
+          <div className="border-b bg-gray-50">
+            <div className="flex px-6">
+              <button
+                onClick={() => setActiveTab('personal')}
+                className={`px-4 py-4 font-medium border-b-2 transition-colors ${
+                  activeTab === 'personal'
+                    ? 'border-orange-500 text-orange-500'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <User className="w-4 h-4 inline mr-2" />
+                {t('staff_modal.personal_info')}
+              </button>
+              <button
+                onClick={() => setActiveTab('branch')}
+                className={`px-4 py-4 font-medium border-b-2 transition-colors ${
+                  activeTab === 'branch'
+                    ? 'border-orange-500 text-orange-500'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Building2 className="w-4 h-4 inline mr-2" />
+                {t('staff_modal.branch_info')}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Content */}
         <div className="p-6 bg-gray-50">
@@ -129,10 +206,18 @@ export default function StaffProfileModal({ isOpen, onClose, staff }: StaffProfi
                 </Button>
               </div>
             </div>
+          ) : isEditMode ? (
+            <EditStaffForm
+              formData={formData}
+              onInputChange={handleInputChange}
+              onSave={handleSave}
+              onCancel={handleCancel}
+              t={t}
+            />
           ) : activeTab === 'branch' ? (
-            <BranchInfo staff={staff} staffDetails={staffDetails} t={t} />
+            <BranchInfo staff={staff} staffDetails={staffDetails} t={t} onEdit={handleEditClick} />
           ) : (
-            <PersonalInfo staff={staff} staffDetails={staffDetails} t={t} />
+            <PersonalInfo staff={staff} staffDetails={staffDetails} t={t} onEdit={handleEditClick} />
           )}
         </div>
       </div>
@@ -143,17 +228,19 @@ export default function StaffProfileModal({ isOpen, onClose, staff }: StaffProfi
 function BranchInfo({
   staff,
   staffDetails,
-  t
+  t,
+  onEdit
 }: {
   staff: StaffDisplay;
   staffDetails: Staff | null;
   t: (key: string) => string;
+  onEdit: () => void;
 }) {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-xl font-bold text-orange-500">{t('staff_modal.branch_info').toUpperCase()}</h3>
-        <Button variant="outline" className="flex items-center gap-2 bg-transparent">
+        <Button variant="outline" className="flex items-center gap-2 bg-transparent" onClick={onEdit}>
           <Edit className="w-4 h-4" />
           {t('staff_modal.edit_profile')}
         </Button>
@@ -213,18 +300,20 @@ function BranchInfo({
 function PersonalInfo({
   staff,
   staffDetails,
-  t
+  t,
+  onEdit
 }: {
   staff: StaffDisplay;
   staffDetails: Staff | null;
   t: (key: string) => string;
+  onEdit: () => void;
 }) {
   return (
     <div className="space-y-6">
       <div>
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold text-orange-500">{t('staff_modal.personal_info').toUpperCase()}</h3>
-          <Button variant="outline" className="flex items-center gap-2 bg-transparent">
+          <Button variant="outline" className="flex items-center gap-2 bg-transparent" onClick={onEdit}>
             <Edit className="w-4 h-4" />
             {t('staff_modal.edit_profile')}
           </Button>

@@ -1,17 +1,19 @@
 import type { Dispatch, SetStateAction } from 'react';
+export type Status = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+export type Role = 'CUSTOMER' | 'PT' | 'TECHNICIAN' | 'OWNER' | 'MANAGER' | 'ADMIN';
 
 export interface User {
   _id: string;
   username: string;
   email: string;
-  role: string;
+  role: Role;
   fullName?: string;
   phoneNumber?: string;
   address?: string;
   dateOfBirth?: string;
   gender?: 'MALE' | 'FEMALE' | 'OTHER';
   bio?: string;
-  status: string;
+  status: Status;
   avatar?: {
     publicId?: string;
     url?: string;

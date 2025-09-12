@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Search,
@@ -16,8 +16,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { SortableHeader } from '@/components/ui/SortableHeader';
 import { useStaffList } from '@/hooks/useStaff';
-import type { StaffFilters, StaffManagementProps } from '@/types/api/Staff'; // StaffDisplay used in StaffManagementProps
+import { useTableSort } from '@/hooks/useTableSort';
+import { sortArray, staffSortConfig } from '@/utils/sort';
+import type { StaffFilters, StaffManagementProps } from '@/types/api/Staff';
+
+type SortField = 'name' | 'jobTitle' | 'email' | 'phone' | 'salary';
 
 export const StaffManagement: React.FC<StaffManagementProps> = ({
   onAddStaff,
@@ -33,6 +38,9 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
 
   const [activeTab, setActiveTab] = useState<'staff' | 'customer'>('staff');
 
+  // Use the custom sort hook
+  const { sortState, handleSort, getSortIcon } = useTableSort<SortField>();
+
   // Use the custom hook to fetch data
   const { staffList, stats, loading, error, pagination, refetch, updateFilters, goToPage } = useStaffList({
     search: filters.searchTerm || undefined,
@@ -40,6 +48,14 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
   });
 
   const selectedCount = filters.selectedIds.length;
+
+  // Sort staff list using the utility function
+  const sortedStaffList = useMemo(() => {
+    return sortArray(staffList, sortState, (item, field) => {
+      const extractor = staffSortConfig[field as keyof typeof staffSortConfig];
+      return extractor ? extractor(item) : '';
+    });
+  }, [staffList, sortState]);
 
   const handleSearch = (value: string) => {
     setFilters((prev) => ({ ...prev, searchTerm: value }));
@@ -55,7 +71,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
   }, [filters.searchTerm, updateFilters]);
 
   const handleSelectAll = () => {
-    const allIds = staffList.map((staff) => staff.id);
+    const allIds = sortedStaffList.map((staff) => staff.id);
     const isAllSelected = allIds.every((id) => filters.selectedIds.includes(id));
 
     if (isAllSelected) {
@@ -92,13 +108,13 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
   };
 
   const handleBulkEdit = () => {
-    const selectedStaff = staffList.filter((staff) => filters.selectedIds.includes(staff.id));
+    const selectedStaff = sortedStaffList.filter((staff) => filters.selectedIds.includes(staff.id));
     console.log('Bulk edit selected staff:', selectedStaff);
     // TODO: Implement bulk edit functionality
   };
 
   const handleBulkDelete = () => {
-    const selectedStaff = staffList.filter((staff) => filters.selectedIds.includes(staff.id));
+    const selectedStaff = sortedStaffList.filter((staff) => filters.selectedIds.includes(staff.id));
     console.log('Bulk delete selected staff:', selectedStaff);
     // TODO: Implement bulk delete functionality
   };
@@ -218,7 +234,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
       <div className="flex space-x-2 mb-4">
         <button
           className={`px-4 py-2 rounded-full text-sm transition-all duration-200 ${
-            staffList.length > 0 && staffList.every((staff) => filters.selectedIds.includes(staff.id))
+            sortedStaffList.length > 0 && sortedStaffList.every((staff) => filters.selectedIds.includes(staff.id))
               ? 'bg-[#0d1523] text-white'
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
@@ -226,9 +242,10 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
         >
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 border border-white rounded flex items-center justify-center">
-              {staffList.length > 0 && staffList.every((staff) => filters.selectedIds.includes(staff.id)) && (
-                <span className="text-xs">✓</span>
-              )}
+              {sortedStaffList.length > 0 &&
+                sortedStaffList.every((staff) => filters.selectedIds.includes(staff.id)) && (
+                  <span className="text-xs">✓</span>
+                )}
             </div>
             <span>{t('dashboard.select_all')}</span>
           </div>
@@ -266,16 +283,46 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
           <thead className="bg-[#f05a29] text-white">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-medium">{t('dashboard.serial_number')}</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">{t('dashboard.full_name')}</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">{t('dashboard.role')}</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">{t('dashboard.email')}</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">{t('dashboard.phone_number')}</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">{t('dashboard.salary')}</th>
+              <SortableHeader
+                field="name"
+                label={t('dashboard.full_name')}
+                sortState={sortState}
+                onSort={handleSort}
+                getSortIcon={getSortIcon}
+              />
+              <SortableHeader
+                field="jobTitle"
+                label={t('dashboard.role')}
+                sortState={sortState}
+                onSort={handleSort}
+                getSortIcon={getSortIcon}
+              />
+              <SortableHeader
+                field="email"
+                label={t('dashboard.email')}
+                sortState={sortState}
+                onSort={handleSort}
+                getSortIcon={getSortIcon}
+              />
+              <SortableHeader
+                field="phone"
+                label={t('dashboard.phone_number')}
+                sortState={sortState}
+                onSort={handleSort}
+                getSortIcon={getSortIcon}
+              />
+              <SortableHeader
+                field="salary"
+                label={t('dashboard.salary')}
+                sortState={sortState}
+                onSort={handleSort}
+                getSortIcon={getSortIcon}
+              />
               <th className="px-4 py-3 text-left text-sm font-medium">{t('dashboard.action')}</th>
             </tr>
           </thead>
           <tbody>
-            {staffList.map((staff, index) => {
+            {sortedStaffList.map((staff, index) => {
               // Calculate correct STT based on pagination
               const startIndex = pagination ? (pagination.currentPage - 1) * pagination.itemsPerPage : 0;
               const stt = startIndex + index + 1;
