@@ -197,3 +197,31 @@ export const useUpdateStaff = () => {
     error
   };
 };
+
+// Hook for updating staff status
+export const useUpdateStaffStatus = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const updateStaffStatus = useCallback(async (staffId: string, status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED') => {
+    setLoading(true);
+    setError(null);
+
+    const response = await staffApi.updateStaffStatus(staffId, status);
+
+    if (response.success) {
+      setLoading(false);
+      return response.data;
+    } else {
+      setError(response.message || 'Failed to update staff status');
+      setLoading(false);
+      throw new Error(response.message || 'Failed to update staff status');
+    }
+  }, []);
+
+  return {
+    updateStaffStatus,
+    loading,
+    error
+  };
+};

@@ -1,6 +1,6 @@
 export type StaffStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 export type StaffJobTitle = 'Manager' | 'Admin' | 'Owner' | 'Personal Trainer' | 'Technician';
-export type SortField = 'name' | 'jobTitle' | 'email' | 'phone' | 'salary';
+export type SortField = 'name' | 'jobTitle' | 'email' | 'phone' | 'salary' | 'status';
 
 export interface Staff {
   _id: string;

@@ -27,5 +27,14 @@ export const staffApi = {
   updateStaff: async (staffId: string, updateData: StaffUpdateData): Promise<ApiResponse<Staff>> => {
     const response = await api.put(`/staff/${staffId}`, updateData);
     return response.data;
+  },
+
+  // Update staff status
+  updateStaffStatus: async (
+    staffId: string,
+    status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
+  ): Promise<ApiResponse<Staff>> => {
+    const response = await api.patch(`/staff/${staffId}/status`, { status });
+    return response.data;
   }
 };
