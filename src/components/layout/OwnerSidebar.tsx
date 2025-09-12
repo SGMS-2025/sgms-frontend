@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { BarChart3, Users, Dumbbell, Calendar, Percent, User, Grid3X3, MessageSquare, GitBranch } from 'lucide-react';
+import { BarChart3, Users, Dumbbell, Calendar, Percent, User, Grid3X3, MessageSquare } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface SidebarItemProps {
@@ -38,12 +38,6 @@ export const OwnerSidebar: React.FC = () => {
       isActive: location.pathname === '/manage/owner',
       opacity: 1,
       onClick: () => navigate('/manage/owner')
-    },
-    {
-      icon: <GitBranch className="w-6 h-6" />,
-      label: t('sidebar.branch'),
-      opacity: 0.7,
-      onClick: () => console.log('Chi nhánh clicked')
     },
     {
       icon: <Users className="w-6 h-6" />,

@@ -1,20 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import { branchApi } from '@/services/api/branchApi';
-import type { Branch, BranchListParams, GymCardData } from '@/types/api/Branch';
+import { convertBranchToDisplay } from '@/utils/branchUtils';
+import type {
+  Branch,
+  BranchListParams,
+  GymCardData,
+  BranchDisplay,
+  UseMyBranchesResult,
+  BackendPaginationResponse
+} from '@/types/api/Branch';
 
 interface UseBranchesResult {
   branches: Branch[];
   gymCards: GymCardData[];
   loading: boolean;
   error: string | null;
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  } | null;
+  pagination: BackendPaginationResponse | null;
   refetch: () => Promise<void>;
 }
 
@@ -51,20 +52,13 @@ export const useBranches = (params?: BranchListParams): UseBranchesResult => {
     setLoading(true);
     setError(null);
 
-    // Add minimum loading time for better UX (prevent flash)
-    const startTime = Date.now();
+    const response = await branchApi.getBranches(params).catch(() => ({
+      success: false,
+      message: 'Network error - Không thể tải danh sách phòng tập',
+      data: { branches: [], pagination: null }
+    }));
 
-    const response = await branchApi.getBranches(params);
-
-    // Ensure minimum 300ms loading time for smooth UX
-    const elapsedTime = Date.now() - startTime;
-    const minLoadingTime = 300;
-
-    if (elapsedTime < minLoadingTime) {
-      await new Promise((resolve) => setTimeout(resolve, minLoadingTime - elapsedTime));
-    }
-
-    if (response.success) {
+    if (response.success && response.data) {
       setBranches(response.data.branches);
       setPagination(response.data.pagination);
     } else {
@@ -91,6 +85,49 @@ export const useBranches = (params?: BranchListParams): UseBranchesResult => {
 };
 
 /**
+ * Hook for owner's branches (my branches)
+ */
+export const useMyBranches = (params?: BranchListParams): UseMyBranchesResult => {
+  const [branches, setBranches] = useState<BranchDisplay[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<UseMyBranchesResult['pagination']>(null);
+
+  const fetchMyBranches = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    const response = await branchApi.getMyBranches(params).catch(() => ({
+      success: false,
+      message: 'Network error - Không thể tải danh sách chi nhánh',
+      data: { data: { branches: [], pagination: null } }
+    }));
+
+    if (response.success && response.data?.data?.branches) {
+      const displayBranches = response.data.data.branches.map(convertBranchToDisplay);
+      setBranches(displayBranches);
+      setPagination(response.data.data.pagination);
+    } else {
+      setError(response.message || 'Không thể tải danh sách chi nhánh');
+    }
+
+    setLoading(false);
+  }, [params]);
+
+  useEffect(() => {
+    fetchMyBranches();
+  }, [fetchMyBranches]);
+
+  return {
+    branches,
+    loading,
+    error,
+    pagination,
+    refetch: fetchMyBranches
+  };
+};
+
+/**
  * Hook specifically for landing page top gyms
  */
 export const useTopGyms = () => {
@@ -102,9 +139,13 @@ export const useTopGyms = () => {
     setLoading(true);
     setError(null);
 
-    const response = await branchApi.getTopGyms();
+    const response = await branchApi.getTopGyms().catch(() => ({
+      success: false,
+      message: 'Network error - Failed to fetch top gyms',
+      data: { branches: [] }
+    }));
 
-    if (response.success) {
+    if (response.success && response.data) {
       setBranches(response.data.branches);
     } else {
       setError(response.message || 'Failed to fetch top gyms');

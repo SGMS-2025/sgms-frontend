@@ -1,5 +1,6 @@
+import type { ApiResponse } from '@/types/api/Api';
 import { api } from './api';
-import type { BranchListResponse, BranchListParams } from '@/types/api/Branch';
+import type { BranchListResponse, BranchListParams, Branch, CreateAndUpdateBranchRequest } from '@/types/api/Branch';
 
 export const branchApi = {
   /**
@@ -49,6 +50,36 @@ export const branchApi = {
         isActive: true
       }
     });
+    return response.data;
+  },
+
+  // Get my branches (owner only)
+  getMyBranches: async (params: BranchListParams = {}): Promise<ApiResponse<BranchListResponse>> => {
+    const response = await api.get('/branches/my-branches', { params });
+    return response.data;
+  },
+
+  // Get branch detail by ID
+  getBranchDetail: async (branchId: string): Promise<ApiResponse<Branch>> => {
+    const response = await api.get(`/branches/${branchId}`);
+    return response.data;
+  },
+
+  // Create new branch (owner only)
+  createBranch: async (data: CreateAndUpdateBranchRequest): Promise<ApiResponse<Branch>> => {
+    const response = await api.post('/branches', data);
+    return response.data;
+  },
+
+  // Update branch (owner only)
+  updateBranch: async (branchId: string, data: CreateAndUpdateBranchRequest): Promise<ApiResponse<Branch>> => {
+    const response = await api.put(`/branches/${branchId}`, data);
+    return response.data;
+  },
+
+  // Toggle branch status (owner only)
+  toggleBranchStatus: async (branchId: string): Promise<ApiResponse<Branch>> => {
+    const response = await api.patch(`/branches/${branchId}/status`);
     return response.data;
   }
 };
