@@ -11,20 +11,34 @@ import {
   Loader2,
   AlertCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  UserCheck,
+  UserX
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { SortableHeader } from '@/components/ui/SortableHeader';
-import { useStaffList } from '@/hooks/useStaff';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog';
+import { useStaffList, useUpdateStaffStatus } from '@/hooks/useStaff';
 import { useTableSort } from '@/hooks/useTableSort';
+import { useUser } from '@/hooks/useAuth';
 import { sortArray, staffSortConfig } from '@/utils/sort';
 import StaffProfileModal from '@/components/modals/StaffProfileModal';
 import type { StaffFilters, StaffManagementProps, SortField, StaffDisplay } from '@/types/api/Staff';
 
-export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff, onDeleteStaff }) => {
+export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) => {
   const { t } = useTranslation();
+  const currentUser = useUser();
   const [filters, setFilters] = useState<StaffFilters>({
     searchTerm: '',
     selectedIds: []
@@ -34,6 +48,8 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff, on
   const [selectedStaff, setSelectedStaff] = useState<StaffDisplay | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [staffToUpdate, setStaffToUpdate] = useState<StaffDisplay | null>(null);
 
   // Use the custom sort hook
   const { sortState, handleSort, getSortIcon } = useTableSort<SortField>();
@@ -44,15 +60,24 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff, on
     limit: 10
   });
 
+  // Use the hook for updating staff status
+  const { updateStaffStatus } = useUpdateStaffStatus();
+
   const selectedCount = filters.selectedIds.length;
 
-  // Sort staff list using the utility function
+  // Filter out current user's staff record and sort staff list using the utility function
   const sortedStaffList = useMemo(() => {
-    return sortArray(staffList, sortState, (item, field) => {
+    const filteredStaffList = currentUser
+      ? staffList.filter((staff) => {
+          return staff.email !== currentUser.email;
+        })
+      : staffList;
+
+    return sortArray(filteredStaffList, sortState, (item, field) => {
       const extractor = staffSortConfig[field as keyof typeof staffSortConfig];
       return extractor ? extractor(item) : '';
     });
-  }, [staffList, sortState]);
+  }, [staffList, sortState, currentUser]);
 
   const handleSearch = (value: string) => {
     setFilters((prev) => ({ ...prev, searchTerm: value }));
@@ -137,6 +162,21 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff, on
     await refetch();
   };
 
+  const handleToggleStaffStatus = (staff: StaffDisplay) => {
+    setStaffToUpdate(staff);
+    setStatusDialogOpen(true);
+  };
+
+  const confirmStatusUpdate = async () => {
+    if (!staffToUpdate) return;
+
+    const newStatus = staffToUpdate.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    await updateStaffStatus(staffToUpdate.id, newStatus);
+    await refetch();
+    setStatusDialogOpen(false);
+    setStaffToUpdate(null);
+  };
+
   // Show loading state
   if (loading) {
     return (
@@ -179,7 +219,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff, on
             <div className="text-sm">{t('dashboard.total')}</div>
             <div className="text-2xl font-bold flex items-center">
               <Users className="w-5 h-5 mr-1" />
-              {stats?.totalStaff || 0}
+              {currentUser ? Math.max(0, (stats?.totalStaff || 0) - 1) : stats?.totalStaff || 0}
             </div>
           </div>
 
@@ -336,6 +376,13 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff, on
                 onSort={handleSort}
                 getSortIcon={getSortIcon}
               />
+              <SortableHeader
+                field="status"
+                label={t('dashboard.status')}
+                sortState={sortState}
+                onSort={handleSort}
+                getSortIcon={getSortIcon}
+              />
               <th className="px-4 py-3 text-left text-sm font-medium">{t('dashboard.action')}</th>
             </tr>
           </thead>
@@ -366,6 +413,25 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff, on
                   <td className="px-4 py-3 text-sm text-blue-600">{staff.email}</td>
                   <td className="px-4 py-3 text-sm">{staff.phone}</td>
                   <td className="px-4 py-3 text-sm font-medium">{staff.salary}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        staff.status === 'ACTIVE'
+                          ? 'bg-green-100 text-green-800'
+                          : staff.status === 'INACTIVE'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                      }`}
+                    >
+                      {staff.status === 'ACTIVE'
+                        ? t('staff_modal.status_active')
+                        : staff.status === 'INACTIVE'
+                          ? t('staff_modal.status_inactive')
+                          : staff.status === 'SUSPENDED'
+                            ? t('staff_modal.status_suspended')
+                            : t('staff_modal.status_active')}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex space-x-2">
                       <button className="p-1 hover:bg-[#f1f3f4] rounded" onClick={() => handleViewStaff(staff)}>
@@ -374,8 +440,18 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff, on
                       <button className="p-1 hover:bg-[#f1f3f4] rounded" onClick={() => handleEditStaff(staff)}>
                         <Edit className="w-4 h-4 text-[#9fa5ad]" />
                       </button>
-                      <button className="p-1 hover:bg-[#f1f3f4] rounded" onClick={() => onDeleteStaff?.(staff.id)}>
-                        <Trash2 className="w-4 h-4 text-[#f05a29]" />
+                      <button
+                        className="p-1 hover:bg-[#f1f3f4] rounded"
+                        onClick={() => handleToggleStaffStatus(staff)}
+                        title={
+                          staff.status === 'ACTIVE' ? t('dashboard.inactive_staff') : t('dashboard.activate_staff')
+                        }
+                      >
+                        {staff.status === 'ACTIVE' ? (
+                          <UserX className="w-4 h-4 text-[#f05a29]" />
+                        ) : (
+                          <UserCheck className="w-4 h-4 text-green-600" />
+                        )}
                       </button>
                     </div>
                   </td>
@@ -391,9 +467,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff, on
         <div className="flex items-center justify-between mt-6">
           {/* Pagination Info */}
           <div className="text-sm text-gray-600">
-            {t('dashboard.showing')} {(pagination.currentPage - 1) * pagination.itemsPerPage + 1} -{' '}
-            {Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)}{' '}
-            {t('dashboard.of_total')} {pagination.totalItems} {t('dashboard.staff_members')}
+            {`${t('dashboard.showing')} ${(pagination.currentPage - 1) * pagination.itemsPerPage + 1} - ${Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} ${t('dashboard.of_total')} ${currentUser ? Math.max(0, pagination.totalItems - 1) : pagination.totalItems} ${t('dashboard.staff_members')}`}
           </div>
 
           {/* Main Pagination Container */}
@@ -443,6 +517,35 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff, on
         staff={selectedStaff}
         initialEditMode={isEditMode}
       />
+
+      {/* Status Update Confirmation Dialog */}
+      <AlertDialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {staffToUpdate?.status === 'ACTIVE'
+                ? t('dashboard.confirm_inactive_staff')
+                : t('dashboard.confirm_activate_staff')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {staffToUpdate?.status === 'ACTIVE'
+                ? t('dashboard.inactive_staff_description', { name: staffToUpdate?.name })
+                : t('dashboard.activate_staff_description', { name: staffToUpdate?.name })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setStatusDialogOpen(false)}>{t('dashboard.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmStatusUpdate}
+              className={
+                staffToUpdate?.status === 'ACTIVE' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+              }
+            >
+              {staffToUpdate?.status === 'ACTIVE' ? t('dashboard.inactive') : t('dashboard.activate')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

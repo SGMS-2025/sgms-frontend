@@ -84,5 +84,6 @@ export const staffSortConfig = {
   jobTitle: createValueExtractor('jobTitle', 'string'),
   email: createValueExtractor('email', 'string'),
   phone: createValueExtractor('phone', 'string'),
-  salary: createValueExtractor('salary', 'number')
+  salary: createValueExtractor('salary', 'number'),
+  status: createValueExtractor('status', 'string')
 };
