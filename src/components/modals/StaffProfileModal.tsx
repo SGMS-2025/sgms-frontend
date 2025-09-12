@@ -4,18 +4,21 @@ import { Edit, User, Building2, Phone, MapPin, Calendar, Shield, DollarSign, X, 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { useStaffDetails } from '@/hooks/useStaff';
+import { useStaffDetails, useUpdateStaff } from '@/hooks/useStaff';
+import { useUser } from '@/hooks/useAuth';
 import EditStaffForm from '@/components/forms/EditStaffForm';
-import type { StaffDisplay, Staff, StaffFormData, StaffJobTitle } from '@/types/api/Staff';
+import type { StaffDisplay, Staff, StaffFormData, StaffJobTitle, StaffUpdateData } from '@/types/api/Staff';
 
 interface StaffProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   staff: StaffDisplay | null;
+  initialEditMode?: boolean;
 }
 
-export default function StaffProfileModal({ isOpen, onClose, staff }: StaffProfileModalProps) {
+export default function StaffProfileModal({ isOpen, onClose, staff, initialEditMode = false }: StaffProfileModalProps) {
   const { t } = useTranslation();
+  const currentUser = useUser();
   const [activeTab, setActiveTab] = useState<'personal' | 'branch'>('personal');
   const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState<StaffFormData>({
@@ -27,21 +30,24 @@ export default function StaffProfileModal({ isOpen, onClose, staff }: StaffProfi
     email: '',
     jobTitle: 'Personal Trainer',
     salary: '',
-    branchName: '',
+    branchId: '',
     status: 'ACTIVE'
   });
 
   // Use the custom hook for fetching staff details
   const { staffDetails, loading, error, refetch } = useStaffDetails(isOpen && staff ? staff.id : null);
 
+  // Use the custom hook for updating staff
+  const { updateStaff, loading: updateLoading } = useUpdateStaff();
+
   useEffect(() => {
     if (isOpen && staff) {
       refetch();
       // Reset to personal tab when modal opens
       setActiveTab('personal');
-      setIsEditMode(false);
+      setIsEditMode(initialEditMode);
     }
-  }, [isOpen, staff, refetch]);
+  }, [isOpen, staff, refetch, initialEditMode]);
 
   // Populate form data when staff details are loaded
   useEffect(() => {
@@ -57,7 +63,7 @@ export default function StaffProfileModal({ isOpen, onClose, staff }: StaffProfi
         email: staffDetails.userId?.email || staff.email || '',
         jobTitle: staffDetails.jobTitle || (staff.jobTitle as StaffJobTitle) || 'Personal Trainer',
         salary: staffDetails.salary?.toString() || staff.salary || '',
-        branchName: staffDetails.branchId?.branchName || staff.branch || '',
+        branchId: staffDetails.branchId?._id || '',
         status: staffDetails.status || staff.status || 'ACTIVE'
       });
     }
@@ -74,9 +80,30 @@ export default function StaffProfileModal({ isOpen, onClose, staff }: StaffProfi
     setIsEditMode(true);
   };
 
-  const handleSave = () => {
-    // TODO: Implement API call to save changes
-    console.log('Saving staff data:', formData);
+  const handleSave = async () => {
+    if (!staff) return;
+
+    const updateData: StaffUpdateData = {};
+
+    // User fields
+    if (formData.fullName) updateData.fullName = formData.fullName;
+    if (formData.phoneNumber) updateData.phoneNumber = formData.phoneNumber;
+    if (formData.address) updateData.address = formData.address;
+    if (formData.email) updateData.email = formData.email;
+    if (formData.dateOfBirth) updateData.dateOfBirth = formData.dateOfBirth;
+    if (formData.gender) updateData.gender = formData.gender;
+
+    // Staff fields
+    if (formData.jobTitle) updateData.jobTitle = formData.jobTitle;
+    // Only include branchId if user is OWNER (managers cannot change branch)
+    if (formData.branchId && currentUser?.role === 'OWNER') {
+      updateData.branchId = formData.branchId;
+    }
+    if (formData.salary) updateData.salary = parseInt(formData.salary);
+    if (formData.status) updateData.status = formData.status;
+
+    await updateStaff(staff.id, updateData);
+    await refetch();
     setIsEditMode(false);
   };
 
@@ -94,7 +121,7 @@ export default function StaffProfileModal({ isOpen, onClose, staff }: StaffProfi
         email: staffDetails.userId?.email || staff.email || '',
         jobTitle: staffDetails.jobTitle || (staff.jobTitle as StaffJobTitle) || 'Personal Trainer',
         salary: staffDetails.salary?.toString() || staff.salary || '',
-        branchName: staffDetails.branchId?.branchName || staff.branch || '',
+        branchId: staffDetails.branchId?._id || '',
         status: staffDetails.status || staff.status || 'ACTIVE'
       });
     }
@@ -213,6 +240,8 @@ export default function StaffProfileModal({ isOpen, onClose, staff }: StaffProfi
               onSave={handleSave}
               onCancel={handleCancel}
               t={t}
+              loading={updateLoading}
+              currentBranchName={staffDetails?.branchId?.branchName || staff.branch}
             />
           ) : activeTab === 'branch' ? (
             <BranchInfo staff={staff} staffDetails={staffDetails} t={t} onEdit={handleEditClick} />

@@ -118,9 +118,7 @@ export interface UseStaffListReturn {
 // Component props types
 export interface StaffManagementProps {
   onAddStaff?: () => void;
-  onEditStaff?: (staff: StaffDisplay) => void;
   onDeleteStaff?: (staffId: string) => void;
-  onViewStaff?: (staff: StaffDisplay) => void;
 }
 
 export interface StaffFormData {
@@ -132,6 +130,22 @@ export interface StaffFormData {
   email: string;
   jobTitle: StaffJobTitle;
   salary: string;
-  branchName: string;
+  branchId: string;
   status: StaffStatus;
+}
+
+export interface StaffUpdateData {
+  // User fields
+  fullName?: string;
+  phoneNumber?: string;
+  address?: string;
+  email?: string;
+  dateOfBirth?: string;
+  gender?: string;
+
+  // Staff fields
+  jobTitle?: StaffJobTitle;
+  branchId?: string;
+  salary?: number;
+  status?: StaffStatus;
 }
