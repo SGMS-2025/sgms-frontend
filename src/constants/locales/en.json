@@ -245,5 +245,17 @@
   "staff_modal.no_info": "No information available",
   "staff_modal.gender_male": "Male",
   "staff_modal.gender_female": "Female",
-  "staff_modal.gender_other": "Other"
+  "staff_modal.gender_other": "Other",
+  "staff_modal.cancel": "Cancel",
+  "staff_modal.save": "Save",
+  "staff_modal.select_gender": "Select gender",
+  "staff_modal.select_role": "Select role",
+  "staff_modal.select_status": "Select status",
+  "staff_modal.role_manager": "Manager",
+  "staff_modal.role_admin": "Admin",
+  "staff_modal.role_owner": "Owner",
+  "staff_modal.role_personal_trainer": "Personal Trainer",
+  "staff_modal.role_technician": "Technician",
+  "staff_modal.status": "Status",
+  "staff_modal.select_date": "Select date of birth"
 }

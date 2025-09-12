@@ -1,8 +1,22 @@
 export type StaffStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+export type StaffJobTitle = 'Manager' | 'Admin' | 'Owner' | 'Personal Trainer' | 'Technician';
+
+export interface StaffFormData {
+  fullName: string;
+  dateOfBirth: string;
+  gender: string;
+  phoneNumber: string;
+  address: string;
+  email: string;
+  jobTitle: StaffJobTitle;
+  salary: string;
+  branchName: string;
+  status: StaffStatus;
+}
 
 export interface Staff {
   _id: string;
-  jobTitle: string;
+  jobTitle: StaffJobTitle;
   userId: {
     _id: string;
     username: string;
