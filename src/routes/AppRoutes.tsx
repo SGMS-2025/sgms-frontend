@@ -17,6 +17,8 @@ import GymListPage from '@/pages/gyms/GymListPage';
 import { UserProfile } from '@/pages/profile/ProfilePage';
 import OwnerDashboard from '@/pages/owner/OwnerDashboard';
 import StaffPage from '@/pages/owner/StaffPage';
+import BranchDetailPage from '@/pages/owner/BranchDetailPage';
+import AddBranchPage from '@/pages/owner/AddBranchPage';
 import { useAuthState } from '@/hooks/useAuth';
 
 // Protected Route Component - supports multiple roles
@@ -111,6 +113,10 @@ const AppRoutes: React.FC = () => {
           <Route path="owner" element={<OwnerDashboard />} />
           {/* Staff Management Route */}
           <Route path="staff" element={<StaffPage />} />
+          {/* Branch Detail Route */}
+          <Route path="branch/:branchId" element={<BranchDetailPage />} />
+          {/* Add Branch Route */}
+          <Route path="add-branch" element={<AddBranchPage />} />
         </Route>
       </Route>
 

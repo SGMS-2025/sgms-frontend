@@ -51,3 +51,11 @@ export interface ProfileHeaderProps {
   setUserData: Dispatch<SetStateAction<ProfileUserData>>;
   setShowDeleteDialog: (show: boolean) => void;
 }
+
+export interface PopulatedUser {
+  _id: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  role: string;
+}

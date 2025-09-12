@@ -16,5 +16,10 @@ export const staffApi = {
   getStaffById: async (staffId: string): Promise<ApiResponse<Staff>> => {
     const response = await api.get(`/staff/${staffId}`);
     return response.data;
+  },
+  // Get managers belonging to current owner
+  getManagers: async (): Promise<ApiResponse<Staff[]>> => {
+    const response = await api.get('/staff/managers');
+    return response.data;
   }
 };
