@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { staffApi } from '@/services/api/staffApi';
-import type { Staff, StaffStats, StaffDisplay, StaffListParams, UseStaffListReturn } from '@/types/api/Staff';
+import type {
+  Staff,
+  StaffStats,
+  StaffDisplay,
+  StaffListParams,
+  UseStaffListReturn,
+  StaffUpdateData
+} from '@/types/api/Staff';
 
 const transformStaffToDisplay = (staff: Staff): StaffDisplay => ({
   id: staff._id,
@@ -160,5 +167,33 @@ export const useStaffDetails = (staffId: string | null) => {
     loading,
     error,
     refetch
+  };
+};
+
+// Hook for updating staff information
+export const useUpdateStaff = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const updateStaff = useCallback(async (staffId: string, updateData: StaffUpdateData) => {
+    setLoading(true);
+    setError(null);
+
+    const response = await staffApi.updateStaff(staffId, updateData);
+
+    if (response.success) {
+      setLoading(false);
+      return response.data;
+    } else {
+      setError(response.message || 'Failed to update staff');
+      setLoading(false);
+      throw new Error(response.message || 'Failed to update staff');
+    }
+  }, []);
+
+  return {
+    updateStaff,
+    loading,
+    error
   };
 };

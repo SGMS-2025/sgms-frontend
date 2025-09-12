@@ -20,14 +20,10 @@ import { SortableHeader } from '@/components/ui/SortableHeader';
 import { useStaffList } from '@/hooks/useStaff';
 import { useTableSort } from '@/hooks/useTableSort';
 import { sortArray, staffSortConfig } from '@/utils/sort';
-import type { StaffFilters, StaffManagementProps, SortField } from '@/types/api/Staff';
+import StaffProfileModal from '@/components/modals/StaffProfileModal';
+import type { StaffFilters, StaffManagementProps, SortField, StaffDisplay } from '@/types/api/Staff';
 
-export const StaffManagement: React.FC<StaffManagementProps> = ({
-  onAddStaff,
-  onEditStaff,
-  onDeleteStaff,
-  onViewStaff
-}) => {
+export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff, onDeleteStaff }) => {
   const { t } = useTranslation();
   const [filters, setFilters] = useState<StaffFilters>({
     searchTerm: '',
@@ -35,6 +31,9 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
   });
 
   const [activeTab, setActiveTab] = useState<'staff' | 'customer'>('staff');
+  const [selectedStaff, setSelectedStaff] = useState<StaffDisplay | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Use the custom sort hook
   const { sortState, handleSort, getSortIcon } = useTableSort<SortField>();
@@ -115,6 +114,27 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
     const selectedStaff = sortedStaffList.filter((staff) => filters.selectedIds.includes(staff.id));
     console.log('Bulk delete selected staff:', selectedStaff);
     // TODO: Implement bulk delete functionality
+  };
+
+  const handleViewStaff = (staff: StaffDisplay) => {
+    setSelectedStaff(staff);
+    setIsEditMode(false);
+    setIsModalOpen(true);
+  };
+
+  const handleEditStaff = (staff: StaffDisplay) => {
+    setSelectedStaff(staff);
+    setIsEditMode(true);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = async () => {
+    setIsModalOpen(false);
+    setSelectedStaff(null);
+    setIsEditMode(false);
+
+    // Refresh staff list when modal closes
+    await refetch();
   };
 
   // Show loading state
@@ -348,10 +368,10 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
                   <td className="px-4 py-3 text-sm font-medium">{staff.salary}</td>
                   <td className="px-4 py-3">
                     <div className="flex space-x-2">
-                      <button className="p-1 hover:bg-[#f1f3f4] rounded" onClick={() => onViewStaff?.(staff)}>
+                      <button className="p-1 hover:bg-[#f1f3f4] rounded" onClick={() => handleViewStaff(staff)}>
                         <Eye className="w-4 h-4 text-[#9fa5ad]" />
                       </button>
-                      <button className="p-1 hover:bg-[#f1f3f4] rounded" onClick={() => onEditStaff?.(staff)}>
+                      <button className="p-1 hover:bg-[#f1f3f4] rounded" onClick={() => handleEditStaff(staff)}>
                         <Edit className="w-4 h-4 text-[#9fa5ad]" />
                       </button>
                       <button className="p-1 hover:bg-[#f1f3f4] rounded" onClick={() => onDeleteStaff?.(staff.id)}>
@@ -415,6 +435,14 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
           </div>
         </div>
       )}
+
+      {/* Staff Profile Modal */}
+      <StaffProfileModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        staff={selectedStaff}
+        initialEditMode={isEditMode}
+      />
     </div>
   );
 };

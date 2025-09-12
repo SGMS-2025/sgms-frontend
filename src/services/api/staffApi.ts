@@ -1,6 +1,6 @@
 import type { ApiResponse } from '@/types/api/Api';
 import { api } from './api';
-import type { Staff, StaffStats, StaffListParams, StaffListResponse } from '@/types/api/Staff';
+import type { Staff, StaffStats, StaffListParams, StaffListResponse, StaffUpdateData } from '@/types/api/Staff';
 
 export const staffApi = {
   getStaffList: async (params: StaffListParams = {}): Promise<ApiResponse<StaffListResponse>> => {
@@ -20,6 +20,12 @@ export const staffApi = {
   // Get managers belonging to current owner
   getManagers: async (): Promise<ApiResponse<Staff[]>> => {
     const response = await api.get('/staff/managers');
+    return response.data;
+  },
+
+  // Update staff information
+  updateStaff: async (staffId: string, updateData: StaffUpdateData): Promise<ApiResponse<Staff>> => {
+    const response = await api.put(`/staff/${staffId}`, updateData);
     return response.data;
   }
 };

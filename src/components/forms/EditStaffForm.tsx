@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Building2, Phone, MapPin, Calendar, Shield, DollarSign, Save, XCircle } from 'lucide-react';
+import { User, Building2, Phone, MapPin, Calendar, Shield, DollarSign, Save, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,8 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { cn } from '@/utils/utils';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { useBranch } from '@/contexts/BranchContext';
+import { useUser } from '@/hooks/useAuth';
 import type { StaffFormData, StaffStatus, StaffJobTitle } from '@/types/api/Staff';
 
 interface EditStaffFormProps {
@@ -17,10 +19,22 @@ interface EditStaffFormProps {
   onSave: () => void;
   onCancel: () => void;
   t: (key: string) => string;
+  loading?: boolean;
+  currentBranchName?: string;
 }
 
-export default function EditStaffForm({ formData, onInputChange, onSave, onCancel, t }: EditStaffFormProps) {
+export default function EditStaffForm({
+  formData,
+  onInputChange,
+  onSave,
+  onCancel,
+  t,
+  loading = false,
+  currentBranchName
+}: EditStaffFormProps) {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const { branches, loading: branchesLoading } = useBranch();
+  const currentUser = useUser();
 
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
@@ -31,6 +45,13 @@ export default function EditStaffForm({ formData, onInputChange, onSave, onCance
   };
 
   const selectedDate = formData.dateOfBirth ? new Date(formData.dateOfBirth) : undefined;
+  const canEditBranch = currentUser?.role === 'OWNER';
+
+  // Find the current branch name for display
+  const currentBranch = branches.find((branch) => branch._id === formData.branchId);
+
+  // Use currentBranchName prop if available, otherwise use found branch name
+  const displayBranchName = currentBranchName || currentBranch?.branchName;
 
   return (
     <div className="space-y-6">
@@ -41,13 +62,18 @@ export default function EditStaffForm({ formData, onInputChange, onSave, onCance
             variant="outline"
             className="flex items-center gap-2 bg-transparent text-red-600 border-red-600 hover:bg-red-50"
             onClick={onCancel}
+            disabled={loading}
           >
             <XCircle className="w-4 h-4" />
             {t('staff_modal.cancel')}
           </Button>
-          <Button className="flex items-center gap-2 bg-[#f05a29] hover:bg-[#df4615] text-white" onClick={onSave}>
-            <Save className="w-4 h-4" />
-            {t('staff_modal.save')}
+          <Button
+            className="flex items-center gap-2 bg-[#f05a29] hover:bg-[#df4615] text-white"
+            onClick={onSave}
+            disabled={loading}
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {loading ? t('staff_modal.saving') : t('staff_modal.save')}
           </Button>
         </div>
       </div>
@@ -144,7 +170,7 @@ export default function EditStaffForm({ formData, onInputChange, onSave, onCance
               id="address"
               value={formData.address}
               onChange={(e) => onInputChange('address', e.target.value)}
-              className="bg-white border-gray-200 focus:border-orange-500"
+              className="bg-white border-gray-200 focus:border-orange-500 w-[80%]"
             />
           </div>
         </div>
@@ -193,7 +219,6 @@ export default function EditStaffForm({ formData, onInputChange, onSave, onCance
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Manager">{t('staff_modal.role_manager')}</SelectItem>
-                <SelectItem value="Admin">{t('staff_modal.role_admin')}</SelectItem>
                 <SelectItem value="Owner">{t('staff_modal.role_owner')}</SelectItem>
                 <SelectItem value="Personal Trainer">{t('staff_modal.role_personal_trainer')}</SelectItem>
                 <SelectItem value="Technician">{t('staff_modal.role_technician')}</SelectItem>
@@ -202,19 +227,38 @@ export default function EditStaffForm({ formData, onInputChange, onSave, onCance
           </div>
         </div>
 
-        {/* Row 4: Branch name, Status */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Row 4: Branch, Status */}
+        <div className="flex gap-6">
           <div>
             <Label htmlFor="branchName" className="flex items-center gap-2 mb-2">
               <Building2 className="w-4 h-4" />
-              <span className="font-medium">{t('staff_modal.branch_name')}</span>
+              <span className="font-medium">{t('staff_modal.branch')}</span>
             </Label>
-            <Input
-              id="branchName"
-              value={formData.branchName}
-              onChange={(e) => onInputChange('branchName', e.target.value)}
-              className="bg-white border-gray-200 focus:border-orange-500"
-            />
+            {canEditBranch ? (
+              <Select
+                value={formData.branchId}
+                onValueChange={(value) => onInputChange('branchId', value)}
+                disabled={branchesLoading}
+              >
+                <SelectTrigger className="bg-white border-gray-200 focus:border-orange-500">
+                  <SelectValue
+                    placeholder={branchesLoading ? t('staff_modal.loading_branches') : t('staff_modal.select_branch')}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((branch) => (
+                    <SelectItem key={branch._id} value={branch._id}>
+                      {branch.branchName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="bg-gray-100 border border-gray-200 rounded-md px-3 py-2 text-gray-700">
+                {displayBranchName || t('staff_modal.no_branch_selected')}
+              </div>
+            )}
+            {!canEditBranch && <p className="text-xs text-gray-500 mt-1">{t('staff_modal.branch_edit_restriction')}</p>}
           </div>
 
           <div>
