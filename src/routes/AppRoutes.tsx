@@ -19,6 +19,7 @@ import OwnerDashboard from '@/pages/owner/OwnerDashboard';
 import StaffPage from '@/pages/owner/StaffPage';
 import BranchDetailPage from '@/pages/owner/BranchDetailPage';
 import AddBranchPage from '@/pages/owner/AddBranchPage';
+import AddNewStaff from '@/pages/owner/AddNewStaff';
 import { useAuthState } from '@/hooks/useAuth';
 
 // Protected Route Component - supports multiple roles
@@ -117,6 +118,8 @@ const AppRoutes: React.FC = () => {
           <Route path="branch/:branchId" element={<BranchDetailPage />} />
           {/* Add Branch Route */}
           <Route path="add-branch" element={<AddBranchPage />} />
+          {/* Add New Staff Route */}
+          <Route path="staff/add" element={<AddNewStaff />} />
         </Route>
       </Route>
 

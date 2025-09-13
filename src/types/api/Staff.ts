@@ -96,6 +96,46 @@ export interface StaffListResponse {
   pagination: BackendPaginationResponse;
 }
 
+// Create Staff Request
+export interface CreateStaffRequest {
+  username: string;
+  email: string;
+  password: string;
+  fullName: string;
+  phoneNumber?: string;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  dateOfBirth?: string;
+  address?: string;
+  jobTitle: string;
+  branchId: string;
+  salary?: number;
+  role: 'MANAGER' | 'TECHNICIAN' | 'PT' | 'CUSTOMER';
+  status?: StaffStatus;
+}
+
+export interface FormData {
+  userType: string;
+  fullName?: string;
+  jobTitle?: string;
+  birthDate?: string;
+  gender?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  username?: string;
+  password?: string;
+  confirmPassword?: string;
+  profileImage?: string | null;
+  branchId?: string;
+  salary?: string;
+}
+
+export interface AddStaffFormProps {
+  onSubmit?: (data: FormData) => void;
+  onCancel?: () => void;
+  isLoading?: boolean;
+}
+
 // Hook return types
 export interface UseStaffListReturn {
   staffList: StaffDisplay[];

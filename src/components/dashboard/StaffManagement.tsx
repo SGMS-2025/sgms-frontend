@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
   Plus,
@@ -39,6 +40,7 @@ import type { StaffFilters, StaffManagementProps, SortField, StaffDisplay } from
 export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) => {
   const { t } = useTranslation();
   const currentUser = useUser();
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<StaffFilters>({
     searchTerm: '',
     selectedIds: []
@@ -127,6 +129,15 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
 
   const handlePageChange = (newPage: number) => {
     goToPage(newPage);
+  };
+
+  const handleAddStaff = () => {
+    // Navigate to add staff page
+    navigate('/manage/staff/add');
+    // Also call the onAddStaff prop if provided
+    if (onAddStaff) {
+      onAddStaff();
+    }
   };
 
   const handleBulkEdit = () => {
@@ -282,7 +293,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
           <Search className="w-4 h-4 absolute left-3 top-3 text-[#9fa5ad]" />
         </div>
 
-        <Button className="bg-[#f05a29] hover:bg-[#df4615] text-white" onClick={onAddStaff}>
+        <Button className="bg-[#f05a29] hover:bg-[#df4615] text-white" onClick={handleAddStaff}>
           <Plus className="w-4 h-4 mr-2" />
           {t('dashboard.add_staff')}
         </Button>

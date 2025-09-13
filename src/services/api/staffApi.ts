@@ -1,6 +1,13 @@
 import type { ApiResponse } from '@/types/api/Api';
 import { api } from './api';
-import type { Staff, StaffStats, StaffListParams, StaffListResponse, StaffUpdateData } from '@/types/api/Staff';
+import type {
+  Staff,
+  StaffStats,
+  StaffListParams,
+  StaffListResponse,
+  StaffUpdateData,
+  CreateStaffRequest
+} from '@/types/api/Staff';
 
 export const staffApi = {
   getStaffList: async (params: StaffListParams = {}): Promise<ApiResponse<StaffListResponse>> => {
@@ -36,5 +43,33 @@ export const staffApi = {
   ): Promise<ApiResponse<Staff>> => {
     const response = await api.patch(`/staff/${staffId}/status`, { status });
     return response.data;
+  },
+
+  createStaff: async (staffData: CreateStaffRequest, avatar?: File): Promise<ApiResponse<Staff>> => {
+    if (avatar) {
+      // Create FormData for multipart/form-data request with avatar
+      const formData = new FormData();
+
+      // Add all staff data to form
+      Object.entries(staffData).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, value.toString());
+        }
+      });
+
+      // Add avatar file
+      formData.append('avatar', avatar);
+
+      const response = await api.post('/staff', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    } else {
+      // Regular JSON request without avatar
+      const response = await api.post('/staff', staffData);
+      return response.data;
+    }
   }
 };
