@@ -470,5 +470,10 @@
   "validation.salary_max": "Lương không được vượt quá 1,000,000,000 VND",
   "validation.branch_required": "Vui lòng chọn chi nhánh",
   "validation.staff_age_minimum": "Nhân viên phải ít nhất 16 tuổi",
-  "validation.staff_age_maximum": "Ngày sinh không hợp lệ"
+  "validation.staff_age_maximum": "Ngày sinh không hợp lệ",
+  "staff.access_denied": "Truy cập bị từ chối",
+  "staff.access_denied_message": "Chỉ có chủ sở hữu hoặc quản lý mới có thể thêm nhân viên.",
+  "staff.go_back": "Quay lại",
+  "toast.image_uploaded_successfully": "Ảnh đã được tải lên thành công",
+  "error.image_upload_failed": "Lỗi upload ảnh"
 }

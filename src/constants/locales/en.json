@@ -470,5 +470,10 @@
   "validation.salary_max": "Salary cannot exceed 1,000,000,000 VND",
   "validation.branch_required": "Please select a branch",
   "validation.staff_age_minimum": "Staff must be at least 16 years old",
-  "validation.staff_age_maximum": "Invalid date of birth"
+  "validation.staff_age_maximum": "Invalid date of birth",
+  "staff.access_denied": "Access Denied",
+  "staff.access_denied_message": "Only owners or managers can add staff members.",
+  "staff.go_back": "Go Back",
+  "toast.image_uploaded_successfully": "Image uploaded successfully",
+  "error.image_upload_failed": "Image upload failed"
 }

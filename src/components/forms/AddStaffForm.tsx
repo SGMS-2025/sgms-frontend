@@ -14,6 +14,7 @@ import { branchApi } from '@/services/api/branchApi';
 import type { AddStaffFormProps, CreateStaffRequest, FormData } from '@/types/api/Staff';
 import type { Branch } from '@/types/api/Branch';
 import { toast } from 'sonner';
+import { createImageUploadHandler, STAFF_IMAGE_OPTIONS } from '@/utils/imageUtils';
 import {
   validateEmail,
   validateUsername,
@@ -39,14 +40,14 @@ const LoadingView: React.FC<{ message: string }> = ({ message }) => (
 );
 
 // Access denied component
-const AccessDeniedView: React.FC<{ onCancel: () => void }> = ({ onCancel }) => (
+const AccessDeniedView: React.FC<{ onCancel: () => void; t: (key: string) => string }> = ({ onCancel, t }) => (
   <div className="min-h-screen bg-gray-100 flex items-center justify-center">
     <div className="text-center">
       <div className="bg-white p-8 rounded-lg shadow-md">
-        <h2 className="text-xl font-bold text-red-600 mb-4">Access Denied</h2>
-        <p className="text-gray-600 mb-4">Only owners can add staff members.</p>
+        <h2 className="text-xl font-bold text-red-600 mb-4">{t('staff.access_denied')}</h2>
+        <p className="text-gray-600 mb-4">{t('staff.access_denied_message')}</p>
         <Button onClick={onCancel} className="bg-[#f05a29] hover:bg-[#df4615] text-white">
-          Go Back
+          {t('staff.go_back')}
         </Button>
       </div>
     </div>
@@ -271,32 +272,28 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
       return;
     }
 
-    try {
-      setLoadingBranches(true);
-      const response = await branchApi.getBranches({ isActive: true });
-      if (response.success) {
-        const userBranches = response.data.branches.filter((branch) => {
-          if (typeof branch.ownerId === 'string') {
-            return branch.ownerId === user._id;
-          } else if (branch.ownerId && typeof branch.ownerId === 'object') {
-            return branch.ownerId._id === user._id;
-          }
-          return false;
-        });
-        setBranches(userBranches);
+    setLoadingBranches(true);
+    const response = await branchApi.getBranches({ isActive: true });
 
-        if (userBranches.length === 0) {
-          toast.warning(t('staff.no_branches_available'));
+    if (response.success) {
+      const userBranches = response.data.branches.filter((branch) => {
+        if (typeof branch.ownerId === 'string') {
+          return branch.ownerId === user._id;
+        } else if (branch.ownerId && typeof branch.ownerId === 'object') {
+          return branch.ownerId._id === user._id;
         }
-      } else {
-        toast.error(t('branch.failed_to_load'));
+        return false;
+      });
+      setBranches(userBranches);
+
+      if (userBranches.length === 0) {
+        toast.warning(t('staff.no_branches_available'));
       }
-    } catch (error) {
-      console.error('Error loading branches:', error);
+    } else {
       toast.error(t('branch.failed_to_load'));
-    } finally {
-      setLoadingBranches(false);
     }
+
+    setLoadingBranches(false);
   };
 
   // Load branches on component mount
@@ -377,21 +374,18 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Helper function to handle image upload
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setProfileImageFile(file);
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const imageUrl = e.target?.result as string;
-      setProfileImage(imageUrl);
-      setFormData((prev) => ({ ...prev, profileImage: imageUrl }));
-    };
-    reader.readAsDataURL(file);
-  };
+  // Helper function to handle image upload using utility
+  const handleImageUpload = createImageUploadHandler(
+    (result) => {
+      setProfileImageFile(result.file);
+      setProfileImage(result.imageUrl);
+      setFormData((prev) => ({ ...prev, profileImage: result.imageUrl }));
+    },
+    (error) => {
+      toast.error(`${t('error.image_upload_failed') || 'Lỗi upload ảnh'}: ${error}`);
+    },
+    STAFF_IMAGE_OPTIONS
+  );
 
   // Helper function to generate username from email
   const generateUsernameFromEmail = (email: string): string => {
@@ -558,7 +552,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
   }
 
   if (user.role !== 'OWNER') {
-    return <AccessDeniedView onCancel={handleCancel} />;
+    return <AccessDeniedView onCancel={handleCancel} t={t} />;
   }
 
   return (
@@ -611,7 +605,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
                     <Input
                       id="fullname"
                       placeholder={t('staff.enter_full_name')}
-                      className={`h-11 ${errors.fullName ? 'border-red-500' : ''}`}
+                      className={`${errors.fullName ? 'border-red-500' : ''}`}
                       value={formData.fullName || ''}
                       onChange={(e) => handleInputChange('fullName', e.target.value)}
                       disabled={isLoading}
@@ -631,7 +625,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
                       id="email"
                       type="email"
                       placeholder="example@email.com"
-                      className={`h-11 ${errors.email ? 'border-red-500' : ''}`}
+                      className={` ${errors.email ? 'border-red-500' : ''}`}
                       value={formData.email || ''}
                       onChange={(e) => handleInputChange('email', e.target.value)}
                       disabled={isLoading}
@@ -647,7 +641,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
                     <Input
                       id="phone"
                       placeholder="0123456789"
-                      className={`h-11 ${errors.phone ? 'border-red-500' : ''}`}
+                      className={` ${errors.phone ? 'border-red-500' : ''}`}
                       value={formData.phone || ''}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
                       disabled={isLoading}
@@ -665,7 +659,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
                     <Input
                       id="address"
                       placeholder={t('staff.enter_address')}
-                      className={`h-11 ${errors.address ? 'border-red-500' : ''}`}
+                      className={` ${errors.address ? 'border-red-500' : ''}`}
                       value={formData.address || ''}
                       onChange={(e) => handleInputChange('address', e.target.value)}
                       disabled={isLoading}
@@ -684,7 +678,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
                       <Input
                         id="birthdate"
                         type="date"
-                        className={`h-11 pr-10 ${errors.birthDate ? 'border-red-500' : ''}`}
+                        className={`pr-10 ${errors.birthDate ? 'border-red-500' : ''}`}
                         value={formData.birthDate || ''}
                         onChange={(e) => handleInputChange('birthDate', e.target.value)}
                         disabled={isLoading}
@@ -703,7 +697,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
                       onValueChange={(value) => handleInputChange('branchId', value)}
                       disabled={isLoading || loadingBranches}
                     >
-                      <SelectTrigger className={`h-11 ${errors.branchId ? 'border-red-500' : ''}`}>
+                      <SelectTrigger className={` ${errors.branchId ? 'border-red-500' : ''}`}>
                         <SelectValue placeholder={loadingBranches ? t('common.loading') : t('staff.select_branch')} />
                       </SelectTrigger>
                       <SelectContent>
@@ -728,7 +722,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
                       id="salary"
                       type="number"
                       placeholder="5000000"
-                      className={`h-11 ${errors.salary ? 'border-red-500' : ''}`}
+                      className={` ${errors.salary ? 'border-red-500' : ''}`}
                       value={formData.salary || ''}
                       onChange={(e) => handleInputChange('salary', e.target.value)}
                       disabled={isLoading}
@@ -741,7 +735,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
                       {t('staff.gender')}
                     </Label>
                     <Select onValueChange={(value) => handleInputChange('gender', value)} disabled={isLoading}>
-                      <SelectTrigger className="h-11">
+                      <SelectTrigger className="">
                         <SelectValue placeholder={t('staff.select_gender')} />
                       </SelectTrigger>
                       <SelectContent>
