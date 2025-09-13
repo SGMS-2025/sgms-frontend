@@ -6,7 +6,8 @@ import type {
   StaffDisplay,
   StaffListParams,
   UseStaffListReturn,
-  StaffUpdateData
+  StaffUpdateData,
+  CreateStaffRequest
 } from '@/types/api/Staff';
 
 const transformStaffToDisplay = (staff: Staff): StaffDisplay => ({
@@ -170,7 +171,6 @@ export const useStaffDetails = (staffId: string | null) => {
   };
 };
 
-// Hook for updating staff information
 export const useUpdateStaff = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -195,6 +195,37 @@ export const useUpdateStaff = () => {
     updateStaff,
     loading,
     error
+  };
+};
+
+// Hook for creating new staff
+export const useCreateStaff = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const createStaff = useCallback(async (staffData: CreateStaffRequest, avatar?: File) => {
+    setLoading(true);
+    setError(null);
+    const response = await staffApi.createStaff(staffData, avatar);
+    if (response.success) {
+      setLoading(false);
+      return response.data;
+    } else {
+      setError(response.message || 'Failed to create staff');
+      setLoading(false);
+      throw new Error(response.message || 'Failed to create staff');
+    }
+  }, []);
+
+  const resetError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  return {
+    createStaff,
+    loading,
+    error,
+    resetError
   };
 };
 
