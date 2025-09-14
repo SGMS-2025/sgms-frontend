@@ -4,11 +4,31 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { User, Mail, Phone, Calendar, Shield, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Header } from '@/components/layout/BaseHeader';
+import { Footer } from '@/components/layout/BaseFooter';
+import { useEffect } from 'react';
 
 export default function HomePage() {
   const { isAuthenticated, user, isLoading } = useAuthState();
   const { logout } = useAuthActions();
   const navigate = useNavigate();
+
+  // Handle redirects using useEffect - must be called before any early returns
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      console.log('HomePage: Not authenticated, redirecting to login');
+      navigate('/login');
+    }
+  }, [isAuthenticated, user, navigate]);
+
+  // Redirect owner to owner dashboard using useEffect - must be called before any early returns
+  useEffect(() => {
+    if (user && user.role === 'OWNER') {
+      console.log('Redirecting owner to /manage/owner dashboard');
+      console.log('User role:', user.role);
+      navigate('/manage/owner');
+    }
+  }, [user, navigate]);
 
   // Display loading while fetching
   if (isLoading) {
@@ -22,10 +42,28 @@ export default function HomePage() {
     );
   }
 
-  // Redirect to login if not authenticated
+  // Show loading if not authenticated
   if (!isAuthenticated || !user) {
-    navigate('/login');
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang chuyển hướng...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading if user is owner (will redirect)
+  if (user && user.role === 'OWNER') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chuyển hướng đến Owner Dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   const handleLogout = async () => {
@@ -36,7 +74,7 @@ export default function HomePage() {
         logoutButton.textContent = 'Đang đăng xuất...';
       }
 
-      await logout();
+      logout();
       localStorage.removeItem('user');
       sessionStorage.clear();
 
@@ -64,6 +102,19 @@ export default function HomePage() {
     }
   };
 
+  const getRoleDisplayName = (role: string) => {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return 'Quản trị viên';
+      case 'owner':
+        return 'Chủ sở hữu';
+      case 'customer':
+        return 'Khách hàng';
+      default:
+        return role;
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('vi-VN', {
       year: 'numeric',
@@ -75,126 +126,127 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Chào mừng trở lại!</h1>
-            <p className="text-gray-600 mt-2">Đây là thông tin tài khoản của bạn</p>
+    <>
+      {/* Header */}
+      <Header />
+
+      {/* Main Content */}
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4 max-w-4xl">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Chào mừng trở lại!</h1>
+              <p className="text-gray-600 mt-2">Đây là thông tin tài khoản của bạn</p>
+            </div>
+            <Button onClick={handleLogout} variant="outline" className="flex items-center gap-2">
+              <LogOut className="w-4 h-4" />
+              Đăng xuất
+            </Button>
           </div>
-          <Button onClick={handleLogout} variant="outline" className="flex items-center gap-2">
-            <LogOut className="w-4 h-4" />
-            Đăng xuất
-          </Button>
-        </div>
 
-        {/* User Information */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Basic Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5" />
-                Thông tin cá nhân
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-500">ID</label>
-                <p className="text-gray-900 font-mono text-sm">{user._id}</p>
-              </div>
+          {/* User Information */}
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Basic Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Thông tin cá nhân
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <div className="text-sm font-medium text-gray-500">ID</div>
+                  <p className="text-gray-900 font-mono text-sm">{user._id}</p>
+                </div>
 
-              <div>
-                <label className="text-sm font-medium text-gray-500">Tên đăng nhập</label>
-                <p className="text-gray-900">{user.username}</p>
-              </div>
+                <div>
+                  <div className="text-sm font-medium text-gray-500">Tên đăng nhập</div>
+                  <p className="text-gray-900">{user.username}</p>
+                </div>
 
-              <div>
-                <label className="text-sm font-medium text-gray-500">Họ và tên</label>
-                <p className="text-gray-900">{user.fullName || 'Chưa cập nhật'}</p>
-              </div>
+                <div>
+                  <div className="text-sm font-medium text-gray-500">Họ và tên</div>
+                  <p className="text-gray-900">{user.fullName || 'Chưa cập nhật'}</p>
+                </div>
 
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-gray-500" />
-                <span className="text-gray-900">{user.email}</span>
-              </div>
-
-              {user.phoneNumber && (
                 <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-gray-500" />
-                  <span className="text-gray-900">{user.phoneNumber}</span>
+                  <Mail className="w-4 h-4 text-gray-500" />
+                  <span className="text-gray-900">{user.email}</span>
                 </div>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* System Information */}
-          <Card>
+                {user.phoneNumber && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-gray-500" />
+                    <span className="text-gray-900">{user.phoneNumber}</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* System Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Thông tin hệ thống
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <div className="text-sm font-medium text-gray-500">Vai trò</div>
+                  <div className="mt-1">
+                    <Badge className={getRoleBadgeColor(user.role)}>{getRoleDisplayName(user.role)}</Badge>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-sm font-medium text-gray-500">Trạng thái</div>
+                  <div className="mt-1">
+                    <Badge
+                      className={user.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}
+                    >
+                      {user.status === 'ACTIVE' ? 'Hoạt động' : 'Không hoạt động'}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-gray-500" />
+                  <div>
+                    <p className="text-sm text-gray-500">Ngày tạo</p>
+                    <p className="text-gray-900 text-sm">{formatDate(user.createdAt)}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-gray-500" />
+                  <div>
+                    <p className="text-sm text-gray-500">Cập nhật lần cuối</p>
+                    <p className="text-gray-900 text-sm">{formatDate(user.updatedAt)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Debug info */}
+          <Card className="mt-6">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                Thông tin hệ thống
-              </CardTitle>
+              <CardTitle>Debug Information</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-500">Vai trò</label>
-                <div className="mt-1">
-                  <Badge className={getRoleBadgeColor(user.role)}>
-                    {user.role === 'admin'
-                      ? 'Quản trị viên'
-                      : user.role === 'owner'
-                        ? 'Chủ sở hữu'
-                        : user.role === 'customer'
-                          ? 'Khách hàng'
-                          : user.role}
-                  </Badge>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-500">Trạng thái</label>
-                <div className="mt-1">
-                  <Badge
-                    className={user.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}
-                  >
-                    {user.status === 'ACTIVE' ? 'Hoạt động' : 'Không hoạt động'}
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-gray-500" />
-                <div>
-                  <p className="text-sm text-gray-500">Ngày tạo</p>
-                  <p className="text-gray-900 text-sm">{formatDate(user.createdAt)}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-gray-500" />
-                <div>
-                  <p className="text-sm text-gray-500">Cập nhật lần cuối</p>
-                  <p className="text-gray-900 text-sm">{formatDate(user.updatedAt)}</p>
-                </div>
-              </div>
+            <CardContent>
+              <pre className="bg-gray-100 p-4 rounded-lg text-sm overflow-auto">
+                {JSON.stringify({ isAuthenticated, user }, null, 2)}
+              </pre>
             </CardContent>
           </Card>
         </div>
-
-        {/* Debug info */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Debug Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="bg-gray-100 p-4 rounded-lg text-sm overflow-auto">
-              {JSON.stringify({ isAuthenticated, user }, null, 2)}
-            </pre>
-          </CardContent>
-        </Card>
       </div>
-    </div>
+
+      {/* Footer */}
+      <Footer />
+    </>
   );
 }

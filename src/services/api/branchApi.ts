@@ -1,0 +1,85 @@
+import type { ApiResponse } from '@/types/api/Api';
+import { api } from './api';
+import type { BranchListResponse, BranchListParams, Branch, CreateAndUpdateBranchRequest } from '@/types/api/Branch';
+
+export const branchApi = {
+  /**
+   * Get list of branches/gyms
+   */
+  getBranches: async (params?: BranchListParams): Promise<BranchListResponse> => {
+    const searchParams = new URLSearchParams();
+
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          searchParams.append(key, value.toString());
+        }
+      });
+    }
+
+    const queryString = searchParams.toString();
+    const url = queryString ? `/branches?${queryString}` : '/branches';
+
+    const response = await api.get<BranchListResponse>(url);
+    return response.data;
+  },
+
+  /**
+   * Get top gyms for landing page (first 3 active gyms with highest rating)
+   */
+  getTopGyms: async (): Promise<BranchListResponse> => {
+    const response = await api.get<BranchListResponse>('/branches', {
+      params: {
+        limit: 3,
+        sortBy: 'rating',
+        sortOrder: 'desc',
+        isActive: true
+      }
+    });
+    return response.data;
+  },
+
+  /**
+   * Search gyms by name or location
+   */
+  searchGyms: async (searchTerm: string, limit?: number): Promise<BranchListResponse> => {
+    const response = await api.get<BranchListResponse>('/branches', {
+      params: {
+        search: searchTerm,
+        limit: limit || 10,
+        isActive: true
+      }
+    });
+    return response.data;
+  },
+
+  // Get my branches (owner only)
+  getMyBranches: async (params: BranchListParams = {}): Promise<ApiResponse<BranchListResponse>> => {
+    const response = await api.get('/branches/my-branches', { params });
+    return response.data;
+  },
+
+  // Get branch detail by ID
+  getBranchDetail: async (branchId: string): Promise<ApiResponse<Branch>> => {
+    const response = await api.get(`/branches/${branchId}`);
+    return response.data;
+  },
+
+  // Create new branch (owner only)
+  createBranch: async (data: CreateAndUpdateBranchRequest): Promise<ApiResponse<Branch>> => {
+    const response = await api.post('/branches', data);
+    return response.data;
+  },
+
+  // Update branch (owner only)
+  updateBranch: async (branchId: string, data: CreateAndUpdateBranchRequest): Promise<ApiResponse<Branch>> => {
+    const response = await api.put(`/branches/${branchId}`, data);
+    return response.data;
+  },
+
+  // Toggle branch status (owner only)
+  toggleBranchStatus: async (branchId: string): Promise<ApiResponse<Branch>> => {
+    const response = await api.patch(`/branches/${branchId}/status`);
+    return response.data;
+  }
+};

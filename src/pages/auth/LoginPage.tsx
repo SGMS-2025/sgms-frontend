@@ -1,17 +1,15 @@
 import { LoginForm } from '@/components/forms/LoginForm';
-import backgroundImage from '@/assets/images/background1.png';
+import { MarketingPanel } from '@/components/auth/MarketingPanel';
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen md:h-screen bg-gray-100">
-      {/* Login Form */}
-      <div
-        className="relative min-h-screen md:h-full bg-cover bg-center bg-no-repeat flex items-center justify-center pt-4 md:pt-0 pb-8 md:pb-0 px-4 md:px-0"
-        style={{
-          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('${backgroundImage}')`
-        }}
-      >
-        <div className="w-full max-w-sm md:max-w-lg mx-0 md:mx-2">
+    <div className="h-screen w-full bg-gray-100 overflow-hidden flex animate-fadeIn">
+      {/* Left Panel - Marketing */}
+      <MarketingPanel titleKey="marketing.welcome_back_title" />
+
+      {/* Right Panel - Login Form */}
+      <div className="w-full lg:w-1/2 bg-white flex items-center justify-center p-4 animate-slideInRight">
+        <div className="w-full max-w-md">
           <LoginForm />
         </div>
       </div>

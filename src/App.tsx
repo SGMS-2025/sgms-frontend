@@ -4,6 +4,7 @@ import AppRoutes from '@/routes/AppRoutes';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
+import { BranchProvider } from './contexts/BranchContext';
 import { Toast } from '@/components/ui/toast';
 
 function App() {
@@ -11,10 +12,12 @@ function App() {
     <ThemeProvider defaultTheme="light">
       <LanguageProvider>
         <AuthProvider>
-          <BrowserRouter>
-            <AppRoutes />
-            <Toast />
-          </BrowserRouter>
+          <BranchProvider>
+            <BrowserRouter>
+              <AppRoutes />
+              <Toast />
+            </BrowserRouter>
+          </BranchProvider>
         </AuthProvider>
       </LanguageProvider>
     </ThemeProvider>
