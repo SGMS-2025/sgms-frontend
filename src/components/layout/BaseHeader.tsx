@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Bell, HelpCircle, Menu, X } from 'lucide-react';
+import { Bell, HelpCircle, Menu, X, Home, Gift, Dumbbell, Users, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import logoImage from '@/assets/images/logo2.png';
 import { AuthenticatedNavbar } from './AuthenticatedNavbar';
 import { MobileAuthenticatedMenu } from './MobileAuthenticatedMenu';
 import { useIsAuthenticated } from '@/hooks/useAuth';
+import { DynamicNavigation } from '@/components/ui/dynamic-navigation';
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -24,29 +25,6 @@ export function Header() {
 
   const getLogoClasses = () => {
     return isScrolled ? 'scale-90' : 'scale-100';
-  };
-
-  const getNavContainerClasses = () => {
-    if (isScrolled) {
-      return 'bg-gray-50/80 backdrop-blur-sm border border-gray-200/50';
-    }
-    return 'bg-black/5 backdrop-blur-sm border border-white/20';
-  };
-
-  const getMenuItemClasses = (itemId: string) => {
-    const baseClasses = 'px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 relative';
-
-    if (activeSection === itemId) {
-      if (isScrolled) {
-        return `${baseClasses} bg-white text-gray-900 shadow-sm`;
-      }
-      return `${baseClasses} bg-white/90 text-gray-900 shadow-sm`;
-    }
-
-    if (isScrolled) {
-      return `${baseClasses} text-gray-600 hover:text-gray-900 hover:bg-white/50`;
-    }
-    return `${baseClasses} text-gray-700 hover:text-gray-900 hover:bg-white/20`;
   };
 
   const getSignUpButtonClasses = () => {
@@ -77,11 +55,11 @@ export function Header() {
   };
 
   const menuItems = [
-    { id: 'hero', label: 'Trang chủ', href: '#' },
-    { id: 'offers', label: 'Ưu đãi', href: '#offers' },
-    { id: 'gyms', label: 'Phòng tập', href: '#gyms' },
-    { id: 'trainers', label: 'HLV', href: '#trainers' },
-    { id: 'reviews', label: 'Đánh giá', href: '#reviews' }
+    { id: 'hero', label: 'Trang chủ', href: '#', icon: <Home className="w-4 h-4" /> },
+    { id: 'offers', label: 'Ưu đãi', href: '#offers', icon: <Gift className="w-4 h-4" /> },
+    { id: 'gyms', label: 'Phòng tập', href: '#gyms', icon: <Dumbbell className="w-4 h-4" /> },
+    { id: 'trainers', label: 'HLV', href: '#trainers', icon: <Users className="w-4 h-4" /> },
+    { id: 'reviews', label: 'Đánh giá', href: '#reviews', icon: <Star className="w-4 h-4" /> }
   ];
 
   useEffect(() => {
@@ -144,36 +122,44 @@ export function Header() {
       <header className={`sticky top-0 z-50 transition-all duration-300 ${getHeaderClasses()}`}>
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
           {/* Logo */}
-          <div className={`flex items-center gap-3 transition-all duration-300 ${getLogoClasses()}`}>
-            <div className="cursor-pointer">
+          <div
+            className={`flex items-center gap-3 transition-all duration-300 cursor-pointer hover:scale-105 ${getLogoClasses()}`}
+            onClick={() => {
+              navigate('/');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
+            <div className="transition-transform duration-300 hover:rotate-12">
               <img src={logoImage} alt="Gym Smart Logo" className="w-10 h-10 sm:w-12 sm:h-12 object-contain" />
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-2xl font-bold">
+              <h1 className="text-2xl font-bold transition-colors duration-300 hover:text-gray-600">
                 <span className="text-orange-500">GYM</span>
                 <span className="text-slate-800 ml-1">SMART</span>
               </h1>
             </div>
           </div>
 
-          {/* Desktop Navigation - Pill Style */}
-          <nav className="hidden md:flex items-center">
-            <div
-              className={`flex items-center space-x-1 p-1.5 rounded-full transition-all duration-300 ${getNavContainerClasses()}`}
-            >
-              {menuItems.map((item) => (
-                <button key={item.id} onClick={() => scrollToSection(item.id)} className={getMenuItemClasses(item.id)}>
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </nav>
+          {/* Desktop Navigation - Enhanced Dynamic Style */}
+          <div className="hidden md:flex items-center">
+            <DynamicNavigation
+              links={menuItems}
+              activeLink={activeSection}
+              onLinkClick={(id) => scrollToSection(id)}
+              variant="modern"
+              size="md"
+              isScrolled={isScrolled}
+              enableRipple={true}
+              showLabelsOnMobile={false}
+              className="mx-2"
+            />
+          </div>
 
           {/* Auth buttons */}
           <div className="flex items-center space-x-3">
             {/* Mobile menu button */}
             <button
-              className="md:hidden p-2 text-gray-600 hover:text-orange-500 transition-colors"
+              className="md:hidden p-2 text-gray-600 hover:text-gray-800 transition-colors"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}

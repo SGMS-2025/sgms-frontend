@@ -9,6 +9,7 @@ import type {
 } from '@/types/api/Branch';
 import { branchApi } from '@/services/api/branchApi';
 import { convertBranchToDisplay } from '@/utils/branchUtils';
+import { useAuth } from './AuthContext';
 
 const BranchContext = createContext<BranchContextType | undefined>(undefined);
 
@@ -17,6 +18,7 @@ interface BranchProviderProps {
 }
 
 export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
+  const { state: authState } = useAuth();
   const [currentBranch, setCurrentBranch] = useState<BranchDisplay | null>(null);
   const [branches, setBranches] = useState<BranchDisplay[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,11 +26,21 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
   const [isFetching, setIsFetching] = useState(false);
   const [isSwitchingBranch, setIsSwitchingBranch] = useState(false);
 
+  // Check if user can access my-branches API
+  const canAccessMyBranches = authState.user && ['OWNER', 'ADMIN', 'MANAGER'].includes(authState.user.role);
+
   // Fetch branches on mount - chỉ chạy một lần
   useEffect(() => {
     const fetchBranches = async () => {
       // Prevent multiple simultaneous calls
       if (isFetching) return;
+
+      // Only fetch my-branches if user has permission
+      if (!canAccessMyBranches) {
+        setLoading(false);
+        setIsFetching(false);
+        return;
+      }
 
       setIsFetching(true);
       setLoading(true);
@@ -66,11 +78,18 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
     };
 
     fetchBranches();
-  }, []); // Chỉ chạy khi component mount
+  }, [canAccessMyBranches]); // Re-run when user role changes
 
   const fetchBranches = useCallback(async () => {
     // Prevent multiple simultaneous calls
     if (isFetching) return;
+
+    // Only fetch my-branches if user has permission
+    if (!canAccessMyBranches) {
+      setLoading(false);
+      setIsFetching(false);
+      return;
+    }
 
     setIsFetching(true);
     setLoading(true);
@@ -102,7 +121,7 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
 
     setLoading(false);
     setIsFetching(false);
-  }, []);
+  }, [canAccessMyBranches]);
 
   const fetchBranchDetail = async (branchId: string): Promise<BranchDisplay | null> => {
     // Check if branch is already in branches list to avoid unnecessary API call
@@ -111,6 +130,7 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
       return existingBranch;
     }
 
+    // Use public route for all users (including customers)
     const response = await branchApi.getBranchDetail(branchId).catch(() => ({
       success: false,
       message: 'Network error - Failed to fetch branch detail',
@@ -126,6 +146,11 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
   };
 
   const createBranch = async (data: CreateAndUpdateBranchRequest): Promise<BranchDisplay | null> => {
+    // Only allow if user has permission
+    if (!canAccessMyBranches) {
+      return null;
+    }
+
     const response = await branchApi.createBranch(data).catch(() => ({
       success: false,
       message: 'Network error - Failed to create branch',
@@ -147,6 +172,11 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
     branchId: string,
     data: CreateAndUpdateBranchRequest
   ): Promise<BranchDisplay | null> => {
+    // Only allow if user has permission
+    if (!canAccessMyBranches) {
+      return null;
+    }
+
     const response = await branchApi.updateBranch(branchId, data).catch(() => ({
       success: false,
       message: 'Network error - Failed to update branch',
@@ -170,6 +200,11 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
   };
 
   const toggleBranchStatus = async (branchId: string) => {
+    // Only allow if user has permission
+    if (!canAccessMyBranches) {
+      return;
+    }
+
     const response = await branchApi.toggleBranchStatus(branchId).catch(() => ({
       success: false,
       message: 'Network error - Failed to update branch status',
@@ -200,7 +235,7 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
       return;
     }
 
-    // If not found, fetch from API
+    // If not found, fetch from API using public route
     const branchDetail = await fetchBranchDetail(branchId);
     if (branchDetail) {
       setCurrentBranch(branchDetail);

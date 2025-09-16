@@ -1,6 +1,12 @@
 import type { PopulatedUser } from './User';
+
 export type BranchStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 
+// ===== CORE BRANCH INTERFACES =====
+
+/**
+ * Main Branch interface - matches backend API response
+ */
 export interface Branch {
   _id: string;
   branchName: string;
@@ -20,7 +26,9 @@ export interface Branch {
   updatedAt: string;
 }
 
-// For frontend display compatibility
+/**
+ * Branch interface for frontend display - with structured opening hours
+ */
 export interface BranchDisplay {
   _id: string;
   branchName: string;
@@ -42,6 +50,21 @@ export interface BranchDisplay {
   status: BranchStatus;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Simplified Branch interface for basic UI components
+ * Use this for components that only need basic branch info
+ */
+export interface BranchBasic {
+  _id: string;
+  branchName: string;
+  location: string;
+  description?: string;
+  hotline: string;
+  facilities: string[];
+  openingHours: string;
+  phoneNumber?: string; // Alias for hotline for backward compatibility
 }
 
 export interface BackendPaginationResponse {
@@ -159,3 +182,17 @@ export interface BranchContextType {
   toggleBranchStatus: (branchId: string) => Promise<void>;
   switchBranch: (branchId: string) => Promise<void>;
 }
+
+// Re-export gym types for convenience
+export type {
+  BranchHero,
+  BranchReviews,
+  ServicePackage,
+  PromotionalOffer,
+  Trainer,
+  GymHeroSectionProps,
+  GymReviewsProps,
+  GymServicesProps,
+  GymTrainersProps,
+  GymGalleryProps
+} from '@/types/components/gym';

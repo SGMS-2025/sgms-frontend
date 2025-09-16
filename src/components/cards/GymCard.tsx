@@ -19,11 +19,8 @@ export const GymCard: React.FC<GymCardProps> = ({ gym, index = 0, showAnimation 
 
   // Handle button click based on variant
   const handleButtonClick = () => {
-    if (variant === 'landing') {
-      navigate('/login');
-    } else {
-      navigate(`/gym/${gym.id}`);
-    }
+    // Both variants navigate to gym detail page
+    navigate(`/gym/${gym.id}`);
   };
 
   // Get button text based on variant

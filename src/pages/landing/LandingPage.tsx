@@ -1,4 +1,5 @@
 import React from 'react';
+import { useScrollToTop } from '@/hooks/useScrollToTop';
 import { Header } from '@/components/layout/BaseHeader';
 import { Footer } from '@/components/layout/BaseFooter';
 import { ScrollingBanner } from '@/components/layout/ScrollingBanner';
@@ -10,6 +11,9 @@ import FeaturesSection from '@/components/landing/FeaturesSection';
 import TestimonialsSection from '@/components/landing/TestimonialsSection';
 
 const LandingPage: React.FC = () => {
+  // Scroll to top when component mounts
+  useScrollToTop();
+
   return (
     <div className="min-h-screen bg-white">
       {/* Use enhanced Header component */}

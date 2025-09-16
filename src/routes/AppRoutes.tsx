@@ -14,6 +14,7 @@ import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import HomePage from '@/pages/home-test';
 import LandingPage from '@/pages/landing/LandingPage';
 import GymListPage from '@/pages/gyms/GymListPage';
+import GymDetailPage from '@/pages/gyms/GymDetailPage';
 import { UserProfile } from '@/pages/profile/ProfilePage';
 import OwnerDashboard from '@/pages/owner/OwnerDashboard';
 import StaffPage from '@/pages/owner/StaffPage';
@@ -104,8 +105,9 @@ const AppRoutes: React.FC = () => {
       {/* Profile Route */}
       <Route path="/profile" element={isAuthenticated ? <UserProfile /> : <Navigate to="/login" replace />} />
 
-      {/* Gym List Route - Public route */}
+      {/* Gym Routes - Public routes */}
       <Route path="/gyms" element={<GymListPage />} />
+      <Route path="/gym/:id" element={<GymDetailPage />} />
 
       {/* Management Routes - only for OWNER and MANAGER */}
       <Route path="/manage" element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER']} />}>
