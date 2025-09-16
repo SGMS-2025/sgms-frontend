@@ -7,10 +7,41 @@ export interface ValidationResult {
   error?: string;
 }
 
-// Validate phone number (Vietnamese format)
+// Validate phone number (original - optional field)
 export const validatePhoneNumber = (phone: string): ValidationResult => {
   if (!phone.trim()) {
     return { isValid: true }; // Optional field
+  }
+
+  // Remove spaces and special characters
+  const cleanPhone = phone.replace(/[\s\-()]/g, '');
+
+  // Check if contains only numbers
+  if (!/^\d+$/.test(cleanPhone)) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.phone_only_digits')
+    };
+  }
+
+  // Check Vietnamese phone number format (10-11 digits, starts with 0)
+  if (!/^0[3-9]\d{8,9}$/.test(cleanPhone)) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.phone_invalid_format')
+    };
+  }
+
+  return { isValid: true };
+};
+
+// Validate phone number for edit form (required field)
+export const validatePhoneNumberEdit = (phone: string): ValidationResult => {
+  if (!phone.trim()) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.phone_required')
+    };
   }
 
   // Remove spaces and special characters
@@ -55,10 +86,38 @@ export const validateFullName = (name: string): ValidationResult => {
   return { isValid: true };
 };
 
-// Validate address
+// Validate address (original - optional field)
 export const validateAddress = (address: string): ValidationResult => {
   if (!address.trim()) {
     return { isValid: true }; // Optional field
+  }
+
+  // Check maximum length
+  if (address.trim().length > 255) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.address_max_length')
+    };
+  }
+
+  return { isValid: true };
+};
+
+// Validate address for edit form (required field)
+export const validateAddressEdit = (address: string): ValidationResult => {
+  if (!address.trim()) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.address_required')
+    };
+  }
+
+  // Check minimum length
+  if (address.trim().length < 5) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.address_min_length')
+    };
   }
 
   // Check maximum length
@@ -356,7 +415,7 @@ export const validateJobTitle = (jobTitle: string): ValidationResult => {
   return { isValid: true };
 };
 
-// Validate salary
+// Validate salary (original - optional field, 1M to 1B VND)
 export const validateSalary = (salaryStr: string): ValidationResult => {
   if (!salaryStr.trim()) {
     return { isValid: true }; // Optional field with default value
@@ -385,6 +444,44 @@ export const validateSalary = (salaryStr: string): ValidationResult => {
     return {
       isValid: false,
       error: i18n.t('validation.salary_max')
+    };
+  }
+
+  return { isValid: true };
+};
+
+// Validate salary for edit form (required field, 1M to 50M VND)
+export const validateSalaryEdit = (salaryStr: string): ValidationResult => {
+  if (!salaryStr.trim()) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.salary_required')
+    };
+  }
+
+  const salary = parseInt(salaryStr);
+
+  // Check if it's a valid number
+  if (isNaN(salary)) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.salary_invalid')
+    };
+  }
+
+  // Check minimum salary (1 million VND)
+  if (salary < 1000000) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.salary_min')
+    };
+  }
+
+  // Check maximum salary (50 million VND)
+  if (salary > 50000000) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.salary_max_50m')
     };
   }
 
@@ -437,13 +534,13 @@ export const validateDateOfBirthStaff = (dateString: string): ValidationResult =
     };
   }
 
-  // Check minimum age (must be at least 16 years old)
+  // Check minimum age (must be at least 18 years old)
   const minDate = new Date();
-  minDate.setFullYear(minDate.getFullYear() - 16);
+  minDate.setFullYear(minDate.getFullYear() - 18);
   if (date > minDate) {
     return {
       isValid: false,
-      error: i18n.t('validation.staff_age_minimum')
+      error: i18n.t('validation.staff_age_minimum_18')
     };
   }
 

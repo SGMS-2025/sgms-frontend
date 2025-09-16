@@ -12,6 +12,16 @@ import { vi } from 'date-fns/locale';
 import { useBranch } from '@/contexts/BranchContext';
 import { useUser } from '@/hooks/useAuth';
 import type { StaffFormData, StaffStatus, StaffJobTitle } from '@/types/api/Staff';
+import {
+  validateFullName,
+  validatePhoneNumberEdit,
+  validateAddressEdit,
+  validateEmail,
+  validateJobTitle,
+  validateSalaryEdit,
+  validateBranchId,
+  validateDateOfBirthStaff
+} from '@/utils/validation';
 
 interface EditStaffFormProps {
   formData: StaffFormData;
@@ -33,6 +43,7 @@ export default function EditStaffForm({
   currentBranchName
 }: EditStaffFormProps) {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const { branches, loading: branchesLoading } = useBranch();
   const currentUser = useUser();
 
@@ -41,6 +52,105 @@ export default function EditStaffForm({
       const formattedDate = format(date, 'yyyy-MM-dd');
       onInputChange('dateOfBirth', formattedDate);
       setDatePickerOpen(false);
+      validateField('dateOfBirth', formattedDate);
+    }
+  };
+
+  // Validation functions
+  const validateField = (fieldName: string, value: string) => {
+    let validation;
+
+    switch (fieldName) {
+      case 'fullName':
+        validation = validateFullName(value);
+        break;
+      case 'phoneNumber':
+        validation = validatePhoneNumberEdit(value);
+        break;
+      case 'address':
+        validation = validateAddressEdit(value);
+        break;
+      case 'email':
+        validation = validateEmail(value);
+        break;
+      case 'jobTitle':
+        validation = validateJobTitle(value);
+        break;
+      case 'salary':
+        validation = validateSalaryEdit(value);
+        break;
+      case 'branchId':
+        validation = validateBranchId(value);
+        break;
+      case 'dateOfBirth':
+        validation = validateDateOfBirthStaff(value);
+        break;
+      default:
+        return;
+    }
+
+    setErrors((prev) => ({
+      ...prev,
+      [fieldName]: validation.isValid ? '' : validation.error || ''
+    }));
+  };
+
+  const handleInputChange = (field: keyof StaffFormData, value: string) => {
+    onInputChange(field, value);
+    validateField(field, value);
+  };
+
+  const validateAllFields = () => {
+    const newErrors: Record<string, string> = {};
+
+    // Validate all fields
+    const fullNameValidation = validateFullName(formData.fullName || '');
+    if (!fullNameValidation.isValid) {
+      newErrors.fullName = fullNameValidation.error || '';
+    }
+
+    const phoneValidation = validatePhoneNumberEdit(formData.phoneNumber || '');
+    if (!phoneValidation.isValid) {
+      newErrors.phoneNumber = phoneValidation.error || '';
+    }
+
+    const addressValidation = validateAddressEdit(formData.address || '');
+    if (!addressValidation.isValid) {
+      newErrors.address = addressValidation.error || '';
+    }
+
+    const emailValidation = validateEmail(formData.email || '');
+    if (!emailValidation.isValid) {
+      newErrors.email = emailValidation.error || '';
+    }
+
+    const jobTitleValidation = validateJobTitle(formData.jobTitle || '');
+    if (!jobTitleValidation.isValid) {
+      newErrors.jobTitle = jobTitleValidation.error || '';
+    }
+
+    const salaryValidation = validateSalaryEdit(formData.salary || '');
+    if (!salaryValidation.isValid) {
+      newErrors.salary = salaryValidation.error || '';
+    }
+
+    const branchValidation = validateBranchId(formData.branchId || '');
+    if (!branchValidation.isValid) {
+      newErrors.branchId = branchValidation.error || '';
+    }
+
+    const dobValidation = validateDateOfBirthStaff(formData.dateOfBirth || '');
+    if (!dobValidation.isValid) {
+      newErrors.dateOfBirth = dobValidation.error || '';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSave = () => {
+    if (validateAllFields()) {
+      onSave();
     }
   };
 
@@ -70,7 +180,7 @@ export default function EditStaffForm({
           </Button>
           <Button
             className="flex items-center gap-2 bg-[#f05a29] hover:bg-[#df4615] text-white"
-            onClick={onSave}
+            onClick={handleSave}
             disabled={loading}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -90,9 +200,13 @@ export default function EditStaffForm({
             <Input
               id="fullName"
               value={formData.fullName}
-              onChange={(e) => onInputChange('fullName', e.target.value)}
-              className="bg-white border-gray-200 focus:border-orange-500"
+              onChange={(e) => handleInputChange('fullName', e.target.value)}
+              className={cn(
+                'bg-white border-gray-200 focus:border-orange-500',
+                errors.fullName && 'border-red-500 focus:border-red-500'
+              )}
             />
+            {errors.fullName && <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>}
           </div>
 
           <div>
@@ -106,7 +220,8 @@ export default function EditStaffForm({
                   variant="outline"
                   className={cn(
                     'w-full justify-start text-left font-normal bg-white border-gray-200 hover:bg-gray-50 focus:border-orange-500',
-                    !selectedDate && 'text-muted-foreground'
+                    !selectedDate && 'text-muted-foreground',
+                    errors.dateOfBirth && 'border-red-500 focus:border-red-500'
                   )}
                 >
                   <Calendar className="mr-2 h-4 w-4" />
@@ -124,9 +239,11 @@ export default function EditStaffForm({
                   fromYear={1950}
                   toYear={new Date().getFullYear()}
                   captionLayout="dropdown"
+                  disabled={(date) => date > new Date()}
                 />
               </PopoverContent>
             </Popover>
+            {errors.dateOfBirth && <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth}</p>}
           </div>
 
           <div>
@@ -148,7 +265,7 @@ export default function EditStaffForm({
         </div>
 
         {/* Row 2: Phone number, Address */}
-        <div className="flex gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div>
             <Label htmlFor="phoneNumber" className="flex items-center gap-2 mb-2">
               <Phone className="w-4 h-4" />
@@ -157,12 +274,16 @@ export default function EditStaffForm({
             <Input
               id="phoneNumber"
               value={formData.phoneNumber}
-              onChange={(e) => onInputChange('phoneNumber', e.target.value)}
-              className="bg-white border-gray-200 focus:border-orange-500 w-40"
+              onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+              className={cn(
+                'bg-white border-gray-200 focus:border-orange-500',
+                errors.phoneNumber && 'border-red-500 focus:border-red-500'
+              )}
             />
+            {errors.phoneNumber && <p className="text-red-500 text-sm mt-1 break-words">{errors.phoneNumber}</p>}
           </div>
 
-          <div className="flex-1">
+          <div className="col-span-2">
             <Label htmlFor="address" className="flex items-center gap-2 mb-2">
               <MapPin className="w-4 h-4" />
               <span className="font-medium">{t('staff_modal.address')}</span>
@@ -170,9 +291,13 @@ export default function EditStaffForm({
             <Input
               id="address"
               value={formData.address}
-              onChange={(e) => onInputChange('address', e.target.value)}
-              className="bg-white border-gray-200 focus:border-orange-500 w-[80%]"
+              onChange={(e) => handleInputChange('address', e.target.value)}
+              className={cn(
+                'bg-white border-gray-200 focus:border-orange-500',
+                errors.address && 'border-red-500 focus:border-red-500'
+              )}
             />
+            {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
           </div>
         </div>
 
@@ -187,9 +312,13 @@ export default function EditStaffForm({
               id="email"
               type="email"
               value={formData.email}
-              onChange={(e) => onInputChange('email', e.target.value)}
-              className="bg-white border-gray-200 focus:border-orange-500"
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              className={cn(
+                'bg-white border-gray-200 focus:border-orange-500',
+                errors.email && 'border-red-500 focus:border-red-500'
+              )}
             />
+            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
           </div>
 
           <div>
@@ -201,9 +330,13 @@ export default function EditStaffForm({
               id="salary"
               type="number"
               value={formData.salary}
-              onChange={(e) => onInputChange('salary', e.target.value)}
-              className="bg-white border-gray-200 focus:border-orange-500"
+              onChange={(e) => handleInputChange('salary', e.target.value)}
+              className={cn(
+                'bg-white border-gray-200 focus:border-orange-500',
+                errors.salary && 'border-red-500 focus:border-red-500'
+              )}
             />
+            {errors.salary && <p className="text-red-500 text-sm mt-1">{errors.salary}</p>}
           </div>
 
           <div>
@@ -213,9 +346,14 @@ export default function EditStaffForm({
             </Label>
             <Select
               value={formData.jobTitle}
-              onValueChange={(value) => onInputChange('jobTitle', value as StaffJobTitle)}
+              onValueChange={(value) => handleInputChange('jobTitle', value as StaffJobTitle)}
             >
-              <SelectTrigger className="bg-white border-gray-200 focus:border-orange-500">
+              <SelectTrigger
+                className={cn(
+                  'bg-white border-gray-200 focus:border-orange-500',
+                  errors.jobTitle && 'border-red-500 focus:border-red-500'
+                )}
+              >
                 <SelectValue placeholder={t('staff_modal.select_role')} />
               </SelectTrigger>
               <SelectContent>
@@ -224,6 +362,7 @@ export default function EditStaffForm({
                 <SelectItem value="Technician">{t('staff_modal.role_technician')}</SelectItem>
               </SelectContent>
             </Select>
+            {errors.jobTitle && <p className="text-red-500 text-sm mt-1">{errors.jobTitle}</p>}
           </div>
         </div>
 
@@ -237,10 +376,15 @@ export default function EditStaffForm({
             {canEditBranch ? (
               <Select
                 value={formData.branchId}
-                onValueChange={(value) => onInputChange('branchId', value)}
+                onValueChange={(value) => handleInputChange('branchId', value)}
                 disabled={branchesLoading}
               >
-                <SelectTrigger className="bg-white border-gray-200 focus:border-orange-500">
+                <SelectTrigger
+                  className={cn(
+                    'bg-white border-gray-200 focus:border-orange-500',
+                    errors.branchId && 'border-red-500 focus:border-red-500'
+                  )}
+                >
                   <SelectValue
                     placeholder={branchesLoading ? t('staff_modal.loading_branches') : t('staff_modal.select_branch')}
                   />
@@ -258,6 +402,7 @@ export default function EditStaffForm({
                 {displayBranchName || t('staff_modal.no_branch_selected')}
               </div>
             )}
+            {errors.branchId && <p className="text-red-500 text-sm mt-1">{errors.branchId}</p>}
             {!canEditBranch && <p className="text-xs text-gray-500 mt-1">{t('staff_modal.branch_edit_restriction')}</p>}
           </div>
 
