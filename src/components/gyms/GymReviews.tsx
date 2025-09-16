@@ -1,6 +1,6 @@
 import React from 'react';
 import { Star } from 'lucide-react';
-import type { GymReviewsProps } from '@/types/gym';
+import type { GymReviewsProps } from '@/types/components/gym';
 
 export const GymReviews: React.FC<GymReviewsProps> = ({ branch }) => {
   const getStarPercentage = (stars: number) => {

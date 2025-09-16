@@ -195,4 +195,4 @@ export type {
   GymServicesProps,
   GymTrainersProps,
   GymGalleryProps
-} from '@/types/gym';
+} from '@/types/components/gym';

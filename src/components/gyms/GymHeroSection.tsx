@@ -1,7 +1,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Star, MapPin } from 'lucide-react';
-import type { GymHeroSectionProps } from '@/types/gym';
+import type { GymHeroSectionProps } from '@/types/components/gym';
 
 export const GymHeroSection: React.FC<GymHeroSectionProps> = ({ branch }) => {
   return (

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Shield, Users, Eye, MapPin, Clock } from 'lucide-react';
-import type { GymServicesProps } from '@/types/gym';
+import type { GymServicesProps } from '@/types/components/gym';
 
 export const GymServices: React.FC<GymServicesProps> = ({ servicePackages, promotionalOffers }) => {
   return (

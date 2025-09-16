@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Star } from 'lucide-react';
-import type { GymTrainersProps } from '@/types/gym';
+import type { GymTrainersProps } from '@/types/components/gym';
 
 export const GymTrainers: React.FC<GymTrainersProps> = ({ trainers }) => {
   return (

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useScrollToTop } from '@/hooks/useScrollToTop';
 import { Header } from '@/components/layout/BaseHeader';
 import { Footer } from '@/components/layout/BaseFooter';
 import { GymCard } from '@/components/cards/GymCard';
@@ -22,6 +23,9 @@ import { Search, Filter, MapPin, Star, Grid, List, Loader2 } from 'lucide-react'
 import type { BranchListParams } from '@/types/api/Branch';
 
 const GymListPage: React.FC = () => {
+  // Scroll to top when component mounts
+  useScrollToTop();
+
   // State for filters and search
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRating, setSelectedRating] = useState<number | null>(null);

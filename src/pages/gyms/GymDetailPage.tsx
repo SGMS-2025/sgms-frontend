@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ErrorMessage } from '@/components/ui/error-message';
 import { useBranchDetail } from '@/hooks/useBranches';
+import { useScrollToTop } from '@/hooks/useScrollToTop';
 import { GymHeroSection } from '@/components/gyms/GymHeroSection';
 import { GymBasicInfo } from '@/components/gyms/GymBasicInfo';
 import { GymGallery } from '@/components/gyms/GymGallery';
@@ -113,6 +114,9 @@ const GymDetailPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('info');
 
   const { branch, loading, error, refetch } = useBranchDetail(id || '');
+
+  // Scroll to top when component mounts
+  useScrollToTop();
 
   const handleBackClick = () => {
     navigate(-1);

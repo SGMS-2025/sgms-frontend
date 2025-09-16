@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { GymGalleryProps } from '@/types/gym';
+import type { GymGalleryProps } from '@/types/components/gym';
 
 export const GymGallery: React.FC<GymGalleryProps> = ({ images }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(1);
