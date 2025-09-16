@@ -3,27 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Shield, Users, Eye, MapPin, Clock } from 'lucide-react';
-
-interface ServicePackage {
-  name: string;
-  price: string;
-  period: string;
-  features: string[];
-  isPopular: boolean;
-}
-
-interface PromotionalOffer {
-  title: string;
-  location: string;
-  time: string;
-  price: string;
-  image: string;
-}
-
-interface GymServicesProps {
-  servicePackages: ServicePackage[];
-  promotionalOffers: PromotionalOffer[];
-}
+import type { GymServicesProps } from '@/types/gym';
 
 export const GymServices: React.FC<GymServicesProps> = ({ servicePackages, promotionalOffers }) => {
   return (
@@ -33,7 +13,10 @@ export const GymServices: React.FC<GymServicesProps> = ({ servicePackages, promo
         <h2 className="text-2xl font-bold text-gym-orange mb-6">GÓI DỊCH VỤ</h2>
         <div className="grid md:grid-cols-3 gap-6">
           {servicePackages.map((pkg, index) => (
-            <Card key={index} className={`relative ${pkg.isPopular ? 'ring-2 ring-gym-orange' : ''}`}>
+            <Card
+              key={`service-package-${pkg.name}-${index}`}
+              className={`relative ${pkg.isPopular ? 'ring-2 ring-gym-orange' : ''}`}
+            >
               {pkg.isPopular && (
                 <Badge className="absolute -top-3 left-4 bg-gym-orange text-white">Phổ biến nhất</Badge>
               )}
@@ -54,7 +37,7 @@ export const GymServices: React.FC<GymServicesProps> = ({ servicePackages, promo
                   </div>
 
                   {pkg.features.map((feature, idx) => (
-                    <p key={idx} className="text-sm text-gym-gray leading-relaxed">
+                    <p key={`feature-${feature}-${idx}`} className="text-sm text-gym-gray leading-relaxed">
                       {feature}
                     </p>
                   ))}
@@ -91,7 +74,7 @@ export const GymServices: React.FC<GymServicesProps> = ({ servicePackages, promo
         <h2 className="text-2xl font-bold text-gym-orange mb-6">ƯU ĐÃI HẤP DẪN</h2>
         <div className="grid md:grid-cols-2 gap-6">
           {promotionalOffers.map((offer, index) => (
-            <Card key={index} className="overflow-hidden">
+            <Card key={`promo-offer-${offer.title}-${index}`} className="overflow-hidden">
               <CardContent className="p-0">
                 <div className="flex">
                   <div className="flex-1 p-6">

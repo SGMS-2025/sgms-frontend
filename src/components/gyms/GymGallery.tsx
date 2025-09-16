@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-
-interface GymGalleryProps {
-  images: string[];
-}
+import type { GymGalleryProps } from '@/types/gym';
 
 export const GymGallery: React.FC<GymGalleryProps> = ({ images }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(1);
@@ -69,7 +66,7 @@ export const GymGallery: React.FC<GymGalleryProps> = ({ images }) => {
           <div className="grid grid-cols-6 gap-2">
             {images.map((image, index) => (
               <button
-                key={index}
+                key={`gym-image-${image}-${index}`}
                 onClick={() => setCurrentImageIndex(index)}
                 className={`relative overflow-hidden rounded-lg ${
                   index === currentImageIndex ? 'ring-2 ring-gym-orange' : ''

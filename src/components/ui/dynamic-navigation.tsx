@@ -61,7 +61,7 @@ export const DynamicNavigation = ({
         bg: isScrolled
           ? 'bg-white/95 backdrop-blur-xl border-gray-200/50'
           : 'bg-white/90 backdrop-blur-xl border-white/20',
-        text: isScrolled ? 'text-gray-700' : 'text-gray-700',
+        text: isScrolled ? 'text-gray-800' : 'text-gray-600',
         highlight: isScrolled
           ? 'bg-white shadow-lg border border-gray-100'
           : 'bg-white/95 shadow-lg border border-white/30',
@@ -83,7 +83,7 @@ export const DynamicNavigation = ({
         bg: isScrolled
           ? 'bg-gray-50/95 backdrop-blur-xl border-gray-200/60'
           : 'bg-black/5 backdrop-blur-xl border-white/20',
-        text: isScrolled ? 'text-gray-700' : 'text-gray-700',
+        text: isScrolled ? 'text-gray-800' : 'text-gray-600',
         highlight: isScrolled
           ? 'bg-white shadow-md border border-gray-200/50'
           : 'bg-white/95 shadow-md border border-white/40',

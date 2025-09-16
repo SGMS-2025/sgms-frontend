@@ -1,15 +1,10 @@
 import React from 'react';
 import { MapPin, Navigation, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-interface Branch {
-  branchName: string;
-  location: string;
-  phoneNumber?: string;
-}
+import type { BranchBasic } from '@/types/api/Branch';
 
 interface GymLocationMapProps {
-  branch: Branch;
+  branch: BranchBasic;
 }
 
 export const GymLocationMap: React.FC<GymLocationMapProps> = ({ branch }) => {
@@ -53,12 +48,12 @@ export const GymLocationMap: React.FC<GymLocationMapProps> = ({ branch }) => {
             variant="outline"
             className="font-semibold"
             onClick={() => {
-              const phoneNumber = branch.phoneNumber || '0123456789';
+              const phoneNumber = branch.hotline || branch.phoneNumber || '0123456789';
               window.open(`tel:${phoneNumber}`, '_self');
             }}
           >
             <Phone className="w-4 h-4 mr-2" />
-            Gọi điện
+            Gọi điện: {branch.hotline || branch.phoneNumber || '0123456789'}
           </Button>
         </div>
       </div>

@@ -1,18 +1,10 @@
 import React from 'react';
 import { Eye, Clock, Wifi } from 'lucide-react';
 import { GymLocationMap } from './GymLocationMap';
-
-interface Branch {
-  description?: string;
-  openingHours: string;
-  facilities: string[];
-  branchName: string;
-  location: string;
-  phoneNumber?: string;
-}
+import type { BranchBasic } from '@/types/api/Branch';
 
 interface GymBasicInfoProps {
-  branch: Branch;
+  branch: BranchBasic;
 }
 
 export const GymBasicInfo: React.FC<GymBasicInfoProps> = ({ branch }) => {
@@ -51,7 +43,7 @@ export const GymBasicInfo: React.FC<GymBasicInfoProps> = ({ branch }) => {
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Tiện ích & Cơ sở vật chất</h3>
               <div className="space-y-2">
                 {branch.facilities.map((facility, index) => (
-                  <div key={index} className="flex items-center gap-3">
+                  <div key={`facility-${facility}-${index}`} className="flex items-center gap-3">
                     <div className="w-2 h-2 bg-gym-orange rounded-full"></div>
                     <span className="text-gray-700 font-medium">{facility}</span>
                   </div>

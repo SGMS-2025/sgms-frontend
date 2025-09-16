@@ -3,20 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Star } from 'lucide-react';
-
-interface Trainer {
-  id: number;
-  name: string;
-  title: string;
-  experience: string;
-  specialties: string;
-  rating: number;
-  image: string;
-}
-
-interface GymTrainersProps {
-  trainers: Trainer[];
-}
+import type { GymTrainersProps } from '@/types/gym';
 
 export const GymTrainers: React.FC<GymTrainersProps> = ({ trainers }) => {
   return (
@@ -41,7 +28,7 @@ export const GymTrainers: React.FC<GymTrainersProps> = ({ trainers }) => {
                     <div className="flex items-center gap-1">
                       {[...Array(5)].map((_, i) => (
                         <Star
-                          key={i}
+                          key={`trainer-${trainer.id}-star-${i}`}
                           className={`w-3 h-3 ${i < Math.floor(trainer.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
                         />
                       ))}

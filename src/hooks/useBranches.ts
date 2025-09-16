@@ -10,7 +10,10 @@ import type {
   BackendPaginationResponse
 } from '@/types/api/Branch';
 
-interface UseBranchesResult {
+/**
+ * Hook result interface for useBranches
+ */
+export interface UseBranchesResult {
   branches: Branch[];
   gymCards: GymCardData[];
   loading: boolean;

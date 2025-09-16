@@ -5,7 +5,6 @@ import { Footer } from '@/components/layout/BaseFooter';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ErrorMessage } from '@/components/ui/error-message';
-import { GymDetailSkeleton } from '@/components/ui/loading-skeleton';
 import { useBranchDetail } from '@/hooks/useBranches';
 import { GymHeroSection } from '@/components/gyms/GymHeroSection';
 import { GymBasicInfo } from '@/components/gyms/GymBasicInfo';
@@ -124,7 +123,12 @@ const GymDetailPage: React.FC = () => {
     return (
       <>
         <Header />
-        <GymDetailSkeleton />
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gym-orange mx-auto mb-4"></div>
+            <p className="text-gray-600">Đang tải thông tin phòng tập...</p>
+          </div>
+        </div>
         <Footer />
       </>
     );

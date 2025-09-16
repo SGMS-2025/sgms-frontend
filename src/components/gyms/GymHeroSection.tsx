@@ -1,19 +1,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Star, MapPin } from 'lucide-react';
-
-interface Branch {
-  coverImage?: string;
-  images?: string[];
-  branchName: string;
-  rating: number;
-  totalReviews: number;
-  location: string;
-}
-
-interface GymHeroSectionProps {
-  branch: Branch;
-}
+import type { GymHeroSectionProps } from '@/types/gym';
 
 export const GymHeroSection: React.FC<GymHeroSectionProps> = ({ branch }) => {
   return (
