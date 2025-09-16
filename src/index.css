@@ -1,6 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&family=Merriweather:wght@300;400;500;600;700;800;900&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&family=Merriweather:wght@300;400;500;600;700;800;900&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -50,6 +50,13 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Gym brand colors */
+  --gym-orange: #f05a29;
+  --gym-navy: #101d33;
+  --gym-gray: #9fa5ad;
+  --gym-dark: #0d1523;
+  --gym-light-gray: #f1f3f4;
 }
 
 @theme inline {
@@ -286,6 +293,34 @@ select {
 
 select:focus {
   outline: none;
+}
+
+/* Gym color utilities */
+@layer utilities {
+  .text-gym-orange {
+    color: var(--gym-orange);
+  }
+  .bg-gym-orange {
+    background-color: var(--gym-orange);
+  }
+  .text-gym-navy {
+    color: var(--gym-navy);
+  }
+  .bg-gym-navy {
+    background-color: var(--gym-navy);
+  }
+  .text-gym-gray {
+    color: var(--gym-gray);
+  }
+  .bg-gym-gray {
+    background-color: var(--gym-gray);
+  }
+  .bg-gym-light-gray {
+    background-color: var(--gym-light-gray);
+  }
+  .border-gym-orange {
+    border-color: var(--gym-orange);
+  }
 }
 
 /* Scrolling banner animation */
