@@ -187,35 +187,32 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
 
   const handleManagePermissions = async (staff: StaffDisplay) => {
     setPermissionLoadingId(staff.id);
-    try {
-      const response = await staffApi.getStaffById(staff.id);
-      if (response.success && response.data) {
-        const staffData = response.data;
-        if (!staffData.userId?._id) {
-          toast.error(t('permissions.fetch_staff_error'));
-          return;
-        }
-        setPermissionStaff({
-          _id: staffData._id,
-          userId: {
-            _id: staffData.userId?._id || '',
-            fullName: staffData.userId?.fullName || staffData.userId?.username || staff.name,
-            email: staffData.userId?.email || staff.email,
-            phoneNumber: staffData.userId?.phoneNumber
-          },
-          jobTitle: staffData.jobTitle,
-          status: staffData.status || 'ACTIVE'
-        });
-        setIsPermissionModalOpen(true);
-      } else {
+
+    const response = await staffApi.getStaffById(staff.id);
+    if (response.success && response.data) {
+      const staffData = response.data;
+      if (!staffData.userId?._id) {
         toast.error(t('permissions.fetch_staff_error'));
+        setPermissionLoadingId(null);
+        return;
       }
-    } catch (error) {
-      console.error('Failed to fetch staff for permissions', error);
+      setPermissionStaff({
+        _id: staffData._id,
+        userId: {
+          _id: staffData.userId?._id || '',
+          fullName: staffData.userId?.fullName || staffData.userId?.username || staff.name,
+          email: staffData.userId?.email || staff.email,
+          phoneNumber: staffData.userId?.phoneNumber
+        },
+        jobTitle: staffData.jobTitle,
+        status: staffData.status || 'ACTIVE'
+      });
+      setIsPermissionModalOpen(true);
+    } else {
       toast.error(t('permissions.fetch_staff_error'));
-    } finally {
-      setPermissionLoadingId(null);
     }
+
+    setPermissionLoadingId(null);
   };
 
   const handleCloseModal = async () => {
