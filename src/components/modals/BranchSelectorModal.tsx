@@ -47,10 +47,6 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
   };
 
   const panelRef = useRef<HTMLDialogElement>(null);
-  const handleDialogCancel = (event: React.SyntheticEvent<HTMLDialogElement, Event>) => {
-    event.preventDefault();
-    onClose();
-  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -82,7 +78,6 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
       aria-modal="true"
       className="w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-[1001] max-h-[80vh] overflow-y-auto p-0"
       style={style}
-      onCancel={handleDialogCancel}
     >
       <div className="p-5">
         <div className="flex items-center justify-center mb-4">
@@ -207,7 +202,6 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
       panel
     ) : (
       <div className="fixed inset-0 z-[1000]">
-        {/* Backdrop button for closing */}
         <button
           type="button"
           className="absolute inset-0 w-full h-full bg-black/20 border-0 cursor-default"
@@ -220,7 +214,6 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
             }
           }}
         />
-        {/* Modal content */}
         <div className="relative z-10 flex items-start justify-center p-4 pointer-events-none min-h-full">
           <div className="mt-16 pointer-events-auto">{panel}</div>
         </div>

@@ -83,22 +83,21 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
       const groupedPermissions = groupPermissionsByResource(mappedPermissions);
       setPermissionGroups(groupedPermissions);
     }
-  }, [availablePermissions, effectivePermissions]);
+  }, [availablePermissions, effectivePermissions, groupPermissionsByResource]);
 
   const handlePermissionToggle = (permissionId: string, enabled: boolean) => {
-    setPermissions((prev) =>
-      prev.map((permission) => (permission.id === permissionId ? { ...permission, enabled } : permission))
-    );
+    const updatePermission = (permission: Permission) =>
+      permission.id === permissionId ? { ...permission, enabled } : permission;
+
+    setPermissions((prev) => prev.map(updatePermission));
 
     // Update permission groups as well
-    setPermissionGroups((prev) =>
-      prev.map((group) => ({
-        ...group,
-        permissions: group.permissions.map((permission) =>
-          permission.id === permissionId ? { ...permission, enabled } : permission
-        )
-      }))
-    );
+    const updateGroup = (group: PermissionGroup) => ({
+      ...group,
+      permissions: group.permissions.map(updatePermission)
+    });
+
+    setPermissionGroups((prev) => prev.map(updateGroup));
 
     setHasChanges(true);
   };
@@ -340,7 +339,7 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
                           >
                             <div className="flex items-center space-x-3">
                               <div
-                                className={`p-1.5 rounded-md ${permission.enabled ? 'bg-green-100' : 'bg-green-100'}`}
+                                className={`p-1.5 rounded-md ${permission.enabled ? 'bg-green-100' : 'bg-gray-100'}`}
                               >
                                 <Shield className="h-3 w-3 text-green-600" />
                               </div>

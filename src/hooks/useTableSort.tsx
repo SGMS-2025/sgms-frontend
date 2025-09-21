@@ -17,16 +17,19 @@ export function useTableSort<T extends string = string>(initialSort?: SortState<
 
   const getSortIcon = useCallback(
     (field: T) => {
-      if (sortState.field !== field) {
-        return <ArrowUpDown className="w-4 h-4 text-white" />;
+      const isActive = sortState.field === field && !!sortState.order;
+      const activeColor = isActive ? 'text-orange-500' : 'text-orange-300';
+
+      if (sortState.field !== field || !sortState.order) {
+        return <ArrowUpDown className={`h-4 w-4 ${activeColor}`} />;
       }
       if (sortState.order === 'asc') {
-        return <ArrowUp className="w-4 h-4 text-white" />;
+        return <ArrowUp className={`h-4 w-4 ${activeColor}`} />;
       }
       if (sortState.order === 'desc') {
-        return <ArrowDown className="w-4 h-4 text-white" />;
+        return <ArrowDown className={`h-4 w-4 ${activeColor}`} />;
       }
-      return <ArrowUpDown className="w-4 h-4 text-white" />;
+      return <ArrowUpDown className={`h-4 w-4 ${activeColor}`} />;
     },
     [sortState]
   );

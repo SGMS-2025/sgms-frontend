@@ -14,6 +14,7 @@ interface SortableHeaderProps<T extends string = string> {
 export function SortableHeader<T extends string = string>({
   field,
   label,
+  sortState,
   onSort,
   getSortIcon,
   className = '',
@@ -25,12 +26,20 @@ export function SortableHeader<T extends string = string>({
     }
   };
 
-  const baseClasses = 'px-4 py-3 text-left text-sm font-medium';
-  const sortableClasses = sortable ? 'cursor-pointer hover:bg-[#df4615] transition-colors select-none' : '';
-  const combinedClasses = `${baseClasses} ${sortableClasses} ${className}`.trim();
+  const isActive = sortState.field === field && !!sortState.order;
+  const baseClasses = 'px-4 py-3 text-left text-sm font-semibold first:rounded-l-2xl last:rounded-r-2xl';
+  const colorClasses = isActive ? 'bg-orange-100 text-orange-600' : 'text-orange-500';
+  const sortableClasses = sortable
+    ? 'cursor-pointer transition-colors hover:bg-orange-50 active:bg-orange-100 select-none'
+    : '';
+  const combinedClasses = `${baseClasses} ${colorClasses} ${sortableClasses} ${className}`.trim();
 
   return (
-    <th className={combinedClasses} onClick={handleClick}>
+    <th
+      className={combinedClasses}
+      onClick={handleClick}
+      aria-sort={isActive ? (sortState.order === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
       <div className="flex items-center space-x-2">
         <span>{label}</span>
         {sortable && getSortIcon(field)}

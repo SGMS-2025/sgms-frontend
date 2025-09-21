@@ -44,15 +44,6 @@ interface SidebarItemProps {
   badge?: number;
 }
 
-interface NavigationItem {
-  id: string;
-  icon: React.ReactNode;
-  label: string;
-  isActive?: boolean;
-  badge?: number;
-  onClick: () => void;
-}
-
 const SidebarItem: React.FC<SidebarItemProps> = ({
   icon,
   label,
@@ -139,7 +130,8 @@ const QuickActions: React.FC<{
   branches: BranchDisplay[];
   onBranchSelect: (branch: BranchDisplay) => void;
   onAddBranch: () => void;
-}> = ({ isCollapsed, currentBranch, branches, onBranchSelect, onAddBranch }) => {
+  onViewBranch: (branch: BranchDisplay) => void | Promise<void>;
+}> = ({ isCollapsed, currentBranch, branches, onBranchSelect, onAddBranch, onViewBranch }) => {
   if (isCollapsed) {
     return (
       <div className="px-2 py-3 flex justify-center">
@@ -148,6 +140,7 @@ const QuickActions: React.FC<{
           branches={branches}
           onBranchSelect={onBranchSelect}
           onAddBranch={onAddBranch}
+          onViewBranch={onViewBranch}
           collapsed
         />
       </div>
@@ -163,6 +156,7 @@ const QuickActions: React.FC<{
             branches={branches}
             onBranchSelect={onBranchSelect}
             onAddBranch={onAddBranch}
+            onViewBranch={onViewBranch}
           />
         </div>
         {/* Refresh icon is moved inside BranchSelectorButton component as a second popover trigger */}
@@ -180,7 +174,7 @@ const UserProfile: React.FC<{
   isCollapsed: boolean;
   user: ApiUser | null;
   isLoading: boolean;
-  onLogout: () => void | Promise<void>;
+  onLogout: () => void;
 }> = ({ isCollapsed, user, isLoading, onLogout }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -188,15 +182,16 @@ const UserProfile: React.FC<{
   const displayName = user?.fullName || user?.username || t('sidebar.account') || 'User';
   const roleKey = user?.role ? `roles.${user.role.toLowerCase()}` : '';
   const translatedRole = roleKey ? t(roleKey) : '';
+
   let roleLabel = t('sidebar.owner') || 'Owner';
-
   if (user?.role) {
-    roleLabel = formatRole(user.role);
-
     if (translatedRole && translatedRole !== roleKey) {
       roleLabel = translatedRole;
+    } else {
+      roleLabel = formatRole(user.role);
     }
   }
+
   const avatarUrl = user?.avatar?.url;
 
   if (isLoading && !user) {
@@ -219,19 +214,6 @@ const UserProfile: React.FC<{
     return null;
   }
 
-  const handleLogout = () => {
-    try {
-      const result = onLogout();
-      if (result instanceof Promise) {
-        result.catch((error) => {
-          console.error('Failed to logout:', error);
-        });
-      }
-    } catch (error) {
-      console.error('Failed to logout:', error);
-    }
-  };
-
   const menuItems = (
     <>
       <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
@@ -252,7 +234,9 @@ const UserProfile: React.FC<{
       <DropdownMenuSeparator />
 
       <DropdownMenuItem
-        onClick={handleLogout}
+        onClick={() => {
+          onLogout();
+        }}
         className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
       >
         <LogOut className="w-4 h-4 mr-3 stroke-[1.75]" />
@@ -320,7 +304,7 @@ export const OwnerSidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isCollapsed } = useSidebar();
-  const { currentBranch, branches, setCurrentBranch } = useBranch();
+  const { currentBranch, branches, setCurrentBranch, switchBranch } = useBranch();
   const { user: authUser, isAuthenticated } = useAuthState();
   const { updateUser, logout } = useAuthActions();
   const [profile, setProfile] = React.useState<ApiUser | null>(authUser ?? null);
@@ -368,58 +352,49 @@ export const OwnerSidebar: React.FC = () => {
     setCurrentBranch(branch);
   };
 
+  const handleViewBranchDetail = async (branch: BranchDisplay) => {
+    await switchBranch(branch._id);
+    navigate(`/manage/branch/${branch._id}`);
+  };
+
   const handleAddBranch = () => {
     navigate('/manage/add-branch');
   };
 
-  const mainNavItems: NavigationItem[] = [
+  const mainNavItems = [
     {
-      id: 'dashboard',
       icon: <LayoutDashboard className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.dashboard'),
       isActive: location.pathname === '/manage/owner',
-      onClick: () => {
-        navigate('/manage/owner');
-      }
+      onClick: () => navigate('/manage/owner')
     },
     {
-      id: 'users',
       icon: <Users className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.users'),
       isActive: location.pathname === '/manage/staff',
-      onClick: () => {
-        navigate('/manage/staff');
-      }
+      onClick: () => navigate('/manage/staff')
     },
     {
-      id: 'equipment',
       icon: <Dumbbell className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.equipment'),
       onClick: () => console.log('Equipment clicked')
     },
     {
-      id: 'services-promotions',
       icon: <Tag className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.services_promotions'),
-      isActive: location.pathname === '/manage/discounts',
-      onClick: () => {
-        navigate('/manage/discounts');
-      }
+      onClick: () => console.log('Services & Promotions clicked')
     },
     {
-      id: 'finance',
       icon: <BarChart3 className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.finance'),
       onClick: () => console.log('Finance clicked')
     },
     {
-      id: 'work-schedule',
       icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.work_schedule'),
       onClick: () => console.log('Work Schedule clicked')
     },
     {
-      id: 'feedback',
       icon: <MessageSquare className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.feedback'),
       badge: 3, // Mock notification badge
@@ -427,15 +402,13 @@ export const OwnerSidebar: React.FC = () => {
     }
   ];
 
-  const secondaryNavItems: NavigationItem[] = [
+  const secondaryNavItems = [
     {
-      id: 'settings',
       icon: <Settings className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.settings'),
       onClick: () => console.log('Settings clicked')
     },
     {
-      id: 'help',
       icon: <HelpCircle className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.help'),
       onClick: () => console.log('Help clicked')
@@ -461,7 +434,7 @@ export const OwnerSidebar: React.FC = () => {
         <nav className="space-y-1" role="navigation" aria-label="Main">
           {mainNavItems.map((item) => (
             <SidebarItem
-              key={item.id}
+              key={item.label}
               icon={item.icon}
               label={item.label}
               isActive={item.isActive}
@@ -482,7 +455,7 @@ export const OwnerSidebar: React.FC = () => {
           <nav className="space-y-1" role="navigation" aria-label="Support">
             {secondaryNavItems.map((item) => (
               <SidebarItem
-                key={item.id}
+                key={item.label}
                 icon={item.icon}
                 label={item.label}
                 onClick={item.onClick}
@@ -501,6 +474,7 @@ export const OwnerSidebar: React.FC = () => {
           branches={branches}
           onBranchSelect={handleBranchSelect}
           onAddBranch={handleAddBranch}
+          onViewBranch={handleViewBranchDetail}
         />
       </div>
 
