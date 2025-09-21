@@ -10,13 +10,15 @@ interface BranchSelectorButtonProps {
   branches: BranchDisplay[];
   onBranchSelect: (branch: BranchDisplay) => void;
   onAddBranch: () => void;
+  collapsed?: boolean;
 }
 
 export const BranchSelectorButton: React.FC<BranchSelectorButtonProps> = ({
   currentBranch,
   branches,
   onBranchSelect,
-  onAddBranch
+  onAddBranch,
+  collapsed = false
 }) => {
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -39,13 +41,18 @@ export const BranchSelectorButton: React.FC<BranchSelectorButtonProps> = ({
     <div className="relative" ref={dropdownRef}>
       <Button
         variant="outline"
-        className="bg-orange-500 hover:bg-orange-600 text-white border-orange-500 px-4 py-2 rounded-lg flex items-center space-x-2"
+        className={`bg-orange-500 hover:bg-orange-600 text-white border-orange-500 rounded-lg flex items-center ${
+          collapsed ? 'px-2 py-2' : 'px-4 py-2 space-x-2'
+        }`}
         onClick={() => setIsModalOpen(!isModalOpen)}
+        title={collapsed ? currentBranch?.branchName || t('branch_selector.select_branch') : undefined}
       >
-        <span className="font-medium">
-          {currentBranch?.branchName ||
-            (branches.length > 0 ? t('branch_selector.select_branch') : t('branch_selector.no_branches'))}
-        </span>
+        {!collapsed && (
+          <span className="font-medium">
+            {currentBranch?.branchName ||
+              (branches.length > 0 ? t('branch_selector.select_branch') : t('branch_selector.no_branches'))}
+          </span>
+        )}
         <Avatar className="h-6 w-6">
           <AvatarImage src={currentBranch?.coverImage} alt={currentBranch?.branchName} />
           <AvatarFallback className="bg-white text-orange-600 text-xs">
