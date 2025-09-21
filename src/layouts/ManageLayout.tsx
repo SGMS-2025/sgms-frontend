@@ -7,7 +7,7 @@ const ManageLayout: React.FC = () => {
     <div className="min-h-screen bg-[#f1f3f4] flex flex-col">
       <div className="flex flex-1">
         <OwnerSidebar />
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-6 h-screen overflow-y-auto">
           <Outlet />
         </div>
       </div>
