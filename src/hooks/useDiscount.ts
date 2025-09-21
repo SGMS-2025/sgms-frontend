@@ -55,8 +55,8 @@ export const useDiscountCampaignList = (
     }
   }, [params, statusFilter]);
 
-  const refetch = useCallback(async () => {
-    await fetchCampaigns();
+  const refetch = useCallback(() => {
+    fetchCampaigns();
   }, [fetchCampaigns]);
 
   const updateFilters = useCallback((newFilters: Partial<DiscountCampaignListParams>) => {

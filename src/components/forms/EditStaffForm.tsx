@@ -156,7 +156,7 @@ export default function EditStaffForm({
 
   const selectedDate = formData.dateOfBirth ? new Date(formData.dateOfBirth) : undefined;
   const canEditBranch = currentUser?.role === 'OWNER';
-  const canSelectManagerRole = currentUser?.role !== 'MANAGER';
+  // const canSelectManagerRole = currentUser?.role !== 'MANAGER';
 
   // Find the current branch name for display
   const currentBranch = branches.find((branch) => branch._id === formData.branchId);
@@ -357,7 +357,7 @@ export default function EditStaffForm({
                 <SelectValue placeholder={t('staff_modal.select_role')} />
               </SelectTrigger>
               <SelectContent>
-                {canSelectManagerRole && <SelectItem value="Manager">{t('staff_modal.role_manager')}</SelectItem>}
+                {/* {canSelectManagerRole && <SelectItem value="Manager">{t('staff_modal.role_manager')}</SelectItem>} */}
                 <SelectItem value="Personal Trainer">{t('staff_modal.role_personal_trainer')}</SelectItem>
                 <SelectItem value="Technician">{t('staff_modal.role_technician')}</SelectItem>
               </SelectContent>
