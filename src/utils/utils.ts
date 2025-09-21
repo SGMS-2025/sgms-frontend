@@ -49,3 +49,22 @@ export function getColorClasses(color: string): ColorClasses {
       };
   }
 }
+
+/**
+ * Format date to DD/MM/YYYY format
+ * @param dateString - Date string or Date object
+ * @returns Formatted date string in DD/MM/YYYY format
+ */
+export function formatDate(dateString: string | Date): string {
+  const date = new Date(dateString);
+
+  if (isNaN(date.getTime())) {
+    return 'Invalid Date';
+  }
+
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+
+  return `${day}/${month}/${year}`;
+}

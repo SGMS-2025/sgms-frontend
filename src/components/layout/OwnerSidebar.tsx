@@ -55,8 +55,9 @@ export const OwnerSidebar: React.FC = () => {
     {
       icon: <Percent className="w-6 h-6" />,
       label: t('sidebar.services_promotions'),
+      isActive: location.pathname === '/manage/discounts',
       opacity: 1,
-      onClick: () => console.log('Dịch vụ & Khuyến mãi clicked')
+      onClick: () => navigate('/manage/discounts')
     },
     {
       icon: <BarChart3 className="w-6 h-6" />,
