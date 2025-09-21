@@ -309,6 +309,7 @@ export const OwnerSidebar: React.FC = () => {
   const { updateUser, logout } = useAuthActions();
   const [profile, setProfile] = React.useState<ApiUser | null>(authUser ?? null);
   const [isProfileLoading, setIsProfileLoading] = React.useState(false);
+  const [hasInitiallyFetched, setHasInitiallyFetched] = React.useState(false);
 
   React.useEffect(() => {
     setProfile(authUser ?? null);
@@ -317,7 +318,7 @@ export const OwnerSidebar: React.FC = () => {
   React.useEffect(() => {
     let ignore = false;
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated || hasInitiallyFetched) {
       setIsProfileLoading(false);
       return () => {
         ignore = true;
@@ -330,7 +331,11 @@ export const OwnerSidebar: React.FC = () => {
         const response = await userApi.getProfile();
         if (!ignore && response.success && response.data) {
           setProfile(response.data);
-          updateUser(response.data);
+          // Only update user if profile data is different from current authUser
+          if (JSON.stringify(response.data) !== JSON.stringify(authUser)) {
+            updateUser(response.data);
+          }
+          setHasInitiallyFetched(true);
         }
       } catch (error) {
         console.error('Failed to fetch user profile:', error);
@@ -346,7 +351,7 @@ export const OwnerSidebar: React.FC = () => {
     return () => {
       ignore = true;
     };
-  }, [isAuthenticated, updateUser]);
+  }, [isAuthenticated, hasInitiallyFetched]);
 
   const handleBranchSelect = (branch: BranchDisplay) => {
     setCurrentBranch(branch);
@@ -382,7 +387,8 @@ export const OwnerSidebar: React.FC = () => {
     {
       icon: <Tag className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.services_promotions'),
-      onClick: () => console.log('Services & Promotions clicked')
+      isActive: location.pathname === '/manage/discounts',
+      onClick: () => navigate('/manage/discounts')
     },
     {
       icon: <BarChart3 className="w-5 h-5 stroke-[1.75]" />,
