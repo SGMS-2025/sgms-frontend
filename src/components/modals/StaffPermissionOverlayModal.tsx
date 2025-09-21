@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useEffectivePermissions, usePermissionOperations } from '@/hooks/usePermissions';
 import { permissionApi } from '@/services/api/permissionApi';
@@ -45,19 +44,14 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
     const loadPermissions = async () => {
       if (!staff?.userId?._id) return;
 
-      try {
-        setLoading(true);
+      setLoading(true);
 
-        const response = await permissionApi.getPermissions({}, { limit: 100 });
-        if (response.success) {
-          setAvailablePermissions(response.data.permissions);
-        }
-      } catch (error) {
-        console.error('Failed to load permissions:', error);
-        toast.error(t('permissions.fetch_error'));
-      } finally {
-        setLoading(false);
+      const response = await permissionApi.getPermissions({}, { limit: 100 });
+      if (response.success) {
+        setAvailablePermissions(response.data.permissions);
       }
+
+      setLoading(false);
     };
 
     if (isOpen && staff?.userId?._id) {
@@ -165,72 +159,62 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
     if (!staff || !hasChanges) return;
 
     setSaving(true);
-    try {
-      const userId = staff.userId?._id;
-      if (!userId) {
-        throw new Error('Staff user ID not found');
-      }
 
-      // Get the original effective permissions
-      const originalPermissions = new Set(effectivePermissions);
-
-      // Process each permission change
-      for (const permission of permissions) {
-        const sanitizedPermissionName = permission.permissionName.toLowerCase().trim().replace(/\s+/g, '');
-        const hasOriginalPermission = originalPermissions.has(sanitizedPermissionName);
-
-        if (permission.enabled && !hasOriginalPermission) {
-          // Assign new permission
-          await assignPermission({
-            userId,
-            permissionName: sanitizedPermissionName,
-            scope: 'global', // Use global scope for staff permissions
-            resourceId: undefined,
-            resourceType: undefined
-          });
-        } else if (!permission.enabled && hasOriginalPermission) {
-          // Revoke permission
-          await revokePermission({
-            userId,
-            permissionName: sanitizedPermissionName,
-            resourceId: undefined,
-            resourceType: undefined
-          });
-        }
-      }
-      setHasChanges(false);
-
-      try {
-        const userId = staff.userId?._id;
-        if (userId) {
-          const freshResponse = await permissionApi.getEffectivePermissions(userId);
-          if (freshResponse.success) {
-            setPermissions((prev) =>
-              prev.map((permission) => ({
-                ...permission,
-                enabled: freshResponse.data.permissions.includes(
-                  permission.permissionName.toLowerCase().trim().replace(/\s+/g, '')
-                )
-              }))
-            );
-          }
-        }
-      } catch (error) {
-        console.error('Failed to refresh effective permissions:', error);
-      }
-
-      refetchEffectivePermissions();
-
-      setTimeout(() => {
-        onSuccess?.();
-        onClose();
-      }, 1000);
-    } catch (error) {
-      console.error('Failed to update permissions:', error);
-      toast.error(t('permissions.update_permissions_error'));
-    } finally {
+    const userId = staff.userId?._id;
+    if (!userId) {
       setSaving(false);
+      return;
     }
+
+    // Get the original effective permissions
+    const originalPermissions = new Set(effectivePermissions);
+
+    // Process each permission change
+    for (const permission of permissions) {
+      const sanitizedPermissionName = permission.permissionName.toLowerCase().trim().replace(/\s+/g, '');
+      const hasOriginalPermission = originalPermissions.has(sanitizedPermissionName);
+
+      if (permission.enabled && !hasOriginalPermission) {
+        // Assign new permission
+        await assignPermission({
+          userId,
+          permissionName: sanitizedPermissionName,
+          scope: 'global', // Use global scope for staff permissions
+          resourceId: undefined,
+          resourceType: undefined
+        });
+      } else if (!permission.enabled && hasOriginalPermission) {
+        // Revoke permission
+        await revokePermission({
+          userId,
+          permissionName: sanitizedPermissionName,
+          resourceId: undefined,
+          resourceType: undefined
+        });
+      }
+    }
+    setHasChanges(false);
+
+    const freshResponse = await permissionApi.getEffectivePermissions(userId);
+    if (freshResponse.success) {
+      setPermissions((prev) =>
+        prev.map((permission) => ({
+          ...permission,
+          enabled: freshResponse.data.permissions.includes(
+            permission.permissionName.toLowerCase().trim().replace(/\s+/g, '')
+          )
+        }))
+      );
+    }
+
+    refetchEffectivePermissions();
+
+    setTimeout(() => {
+      onSuccess?.();
+      onClose();
+    }, 1000);
+
+    setSaving(false);
   };
 
   if (!isOpen || !staff) {
