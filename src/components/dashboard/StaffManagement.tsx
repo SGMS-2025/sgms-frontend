@@ -11,10 +11,9 @@ import {
   FileText,
   Loader2,
   AlertCircle,
-  ChevronLeft,
-  ChevronRight,
   UserCheck,
   UserX,
+  Settings,
   Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,6 +30,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+  PaginationEllipsis
+} from '@/components/ui/pagination';
 import { useStaffList, useUpdateStaffStatus } from '@/hooks/useStaff';
 import { useTableSort } from '@/hooks/useTableSort';
 import { useUser } from '@/hooks/useAuth';
@@ -42,10 +50,10 @@ import type {
   StaffManagementProps,
   SortField,
   StaffDisplay,
-  StaffForPermissionModal,
-  StaffJobTitle,
-  StaffStatus
+  StaffForPermissionModal
 } from '@/types/api/Staff';
+import { staffApi } from '@/services/api/staffApi';
+import { toast } from 'sonner';
 
 export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) => {
   const { t } = useTranslation();
@@ -62,8 +70,9 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
   const [isEditMode, setIsEditMode] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [staffToUpdate, setStaffToUpdate] = useState<StaffDisplay | null>(null);
-  const [permissionModalOpen, setPermissionModalOpen] = useState(false);
-  const [selectedStaffForPermission, setSelectedStaffForPermission] = useState<StaffForPermissionModal | null>(null);
+  const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
+  const [permissionStaff, setPermissionStaff] = useState<StaffForPermissionModal | null>(null);
+  const [permissionLoadingId, setPermissionLoadingId] = useState<string | null>(null);
 
   // Use the custom sort hook
   const { sortState, handleSort, getSortIcon } = useTableSort<SortField>();
@@ -176,12 +185,52 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
     setIsModalOpen(true);
   };
 
+  const handleManagePermissions = async (staff: StaffDisplay) => {
+    setPermissionLoadingId(staff.id);
+
+    const response = await staffApi.getStaffById(staff.id);
+    if (response.success && response.data) {
+      const staffData = response.data;
+      if (!staffData.userId?._id) {
+        toast.error(t('permissions.fetch_staff_error'));
+        setPermissionLoadingId(null);
+        return;
+      }
+      setPermissionStaff({
+        _id: staffData._id,
+        userId: {
+          _id: staffData.userId?._id || '',
+          fullName: staffData.userId?.fullName || staffData.userId?.username || staff.name,
+          email: staffData.userId?.email || staff.email,
+          phoneNumber: staffData.userId?.phoneNumber
+        },
+        jobTitle: staffData.jobTitle,
+        status: staffData.status || 'ACTIVE'
+      });
+      setIsPermissionModalOpen(true);
+    } else {
+      toast.error(t('permissions.fetch_staff_error'));
+    }
+
+    setPermissionLoadingId(null);
+  };
+
   const handleCloseModal = async () => {
     setIsModalOpen(false);
     setSelectedStaff(null);
     setIsEditMode(false);
 
     // Refresh staff list when modal closes
+    await refetch();
+  };
+
+  const handlePermissionModalDismiss = () => {
+    setIsPermissionModalOpen(false);
+    setPermissionStaff(null);
+    setPermissionLoadingId(null);
+  };
+
+  const handlePermissionSuccess = async () => {
     await refetch();
   };
 
@@ -200,46 +249,25 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
     setStaffToUpdate(null);
   };
 
-  const handlePermissionStaff = (staff: StaffDisplay) => {
-    // Helper function to map string jobTitle to StaffJobTitle
-    const mapJobTitle = (jobTitle: string): StaffJobTitle => {
-      switch (jobTitle) {
-        case 'Manager':
-        case 'Quản lý':
-          return 'Manager';
-        case 'Personal Trainer':
-        case 'PT':
-          return 'Personal Trainer';
-        case 'Technician':
-        case 'Kỹ thuật viên':
-          return 'Technician';
-        default:
-          return 'Manager'; // Default fallback
+  const paginationPages = React.useMemo(() => {
+    if (!pagination) return [];
+    const pages = new Set<number>();
+    const total = pagination.totalPages;
+    const current = pagination.currentPage;
+
+    pages.add(1);
+    pages.add(total);
+    pages.add(current);
+
+    const neighbors = [current - 1, current + 1, current - 2, current + 2];
+    neighbors.forEach((page) => {
+      if (page > 1 && page < total) {
+        pages.add(page);
       }
-    };
+    });
 
-    // Convert StaffDisplay to the interface expected by StaffPermissionOverlayModal
-    const staffForModal: StaffForPermissionModal = {
-      _id: staff.id,
-      userId: {
-        _id: staff.userId,
-        fullName: staff.name,
-        email: staff.email,
-        phoneNumber: staff.phone
-      },
-      jobTitle: mapJobTitle(staff.jobTitle),
-      status: (staff.status || 'ACTIVE') as StaffStatus
-    };
-
-    setSelectedStaffForPermission(staffForModal);
-    setPermissionModalOpen(true);
-  };
-
-  const handleClosePermissionModal = () => {
-    // The modal will handle its own animation closing
-    setPermissionModalOpen(false);
-    setSelectedStaffForPermission(null);
-  };
+    return Array.from(pages).sort((a, b) => a - b);
+  }, [pagination]);
 
   // Show loading state
   if (loading) {
@@ -273,138 +301,205 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
   }
 
   return (
-    <div className="bg-white rounded-lg p-6 border-2 border-gray-200 shadow-sm h-full">
+    <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-6 lg:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-[#f05a29]">{t('dashboard.staff_management')}</h1>
+      <div className="flex flex-col gap-6 mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-orange-500">
+              <Settings className="h-3.5 w-3.5" />
+              {t('dashboard.staff_management')}
+            </span>
+            <h2 className="mt-3 text-2xl font-semibold text-gray-900">
+              {t('dashboard.staff_overview_title') || 'Training & staff'}
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              {t('dashboard.staff_overview_subtitle') ||
+                'Monitor staffing distribution and performance across your facilities.'}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            className="rounded-full border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:border-orange-300 hover:text-orange-500"
+          >
+            {t('dashboard.detailed_report') || 'Detailed report'}
+          </Button>
+        </div>
 
-        <div className="flex space-x-4">
-          <div className="bg-[#f05a29] text-white px-6 py-3 rounded-lg text-center">
-            <div className="text-sm">{t('dashboard.total')}</div>
-            <div className="text-2xl font-bold flex items-center">
-              <Users className="w-5 h-5 mr-1" />
-              {currentUser ? Math.max(0, (stats?.totalStaff || 0) - 1) : stats?.totalStaff || 0}
+        <div className="grid w-full gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-2xl border border-orange-100 bg-[#FFF6EE] p-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-orange-500">{t('dashboard.total')}</div>
+            <div className="mt-2 flex items-end justify-between">
+              <div className="text-3xl font-bold text-gray-900">
+                {currentUser ? Math.max(0, (stats?.totalStaff || 0) - 1) : stats?.totalStaff || 0}
+              </div>
+              <div className="rounded-full bg-white/70 p-2 text-orange-500">
+                <Users className="h-5 w-5" />
+              </div>
             </div>
+            <p className="mt-2 text-xs text-gray-500">
+              {t('dashboard.total_staff_helper') || 'Active staff members overall'}
+            </p>
           </div>
 
-          <div className="bg-white border border-[#d9d9d9] px-6 py-3 rounded-lg text-center">
-            <div className="text-xs text-[#9fa5ad]">{t('dashboard.equipment_management')}</div>
-            <div className="text-2xl font-bold text-[#f05a29] flex items-center">
-              <Users className="w-5 h-5 mr-1" />
-              {stats?.staffByJobTitle?.find((item) => item._id === 'Quản lý thiết bị')?.count || 0}
+          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+              {t('dashboard.equipment_management')}
             </div>
+            <div className="mt-2 flex items-end justify-between text-gray-900">
+              <span className="text-3xl font-semibold">
+                {stats?.staffByJobTitle?.find((item) => item._id === 'Quản lý thiết bị')?.count || 0}
+              </span>
+              <div className="rounded-full bg-white p-2 text-gray-500">
+                <FileText className="h-5 w-5" />
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-gray-500">
+              {t('dashboard.equipment_management_helper') || 'Equipment supervisors on duty'}
+            </p>
           </div>
 
-          <div className="bg-white border border-[#d9d9d9] px-6 py-3 rounded-lg text-center">
-            <div className="text-xs text-[#9fa5ad]">{t('dashboard.branch_management')}</div>
-            <div className="text-2xl font-bold text-[#f05a29] flex items-center">
-              <Users className="w-5 h-5 mr-1" />
-              {stats?.staffByJobTitle?.find((item) => item._id === 'Quản lý chi nhánh')?.count || 0}
+          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+              {t('dashboard.branch_management')}
             </div>
+            <div className="mt-2 flex items-end justify-between text-gray-900">
+              <span className="text-3xl font-semibold">
+                {stats?.staffByJobTitle?.find((item) => item._id === 'Quản lý chi nhánh')?.count || 0}
+              </span>
+              <div className="rounded-full bg-white p-2 text-gray-500">
+                <Users className="h-5 w-5" />
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-gray-500">
+              {t('dashboard.branch_management_helper') || 'Branch managers assigned'}
+            </p>
           </div>
 
-          <div className="bg-white border border-[#d9d9d9] px-6 py-3 rounded-lg text-center">
-            <div className="text-xs text-[#9fa5ad]">{t('dashboard.pt')}</div>
-            <div className="text-2xl font-bold text-[#f05a29] flex items-center">
-              <Users className="w-5 h-5 mr-1" />
-              {stats?.staffByJobTitle?.find((item) => item._id === 'PT')?.count || 0}
+          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">{t('dashboard.pt')}</div>
+            <div className="mt-2 flex items-end justify-between text-gray-900">
+              <span className="text-3xl font-semibold">
+                {stats?.staffByJobTitle?.find((item) => item._id === 'PT')?.count || 0}
+              </span>
+              <div className="rounded-full bg-white p-2 text-gray-500">
+                <Users className="h-5 w-5" />
+              </div>
             </div>
+            <p className="mt-2 text-xs text-gray-500">{t('dashboard.pt_helper') || 'Personal trainers available'}</p>
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex space-x-4 mb-6">
-        <button
-          className={`px-6 py-2 rounded-lg flex items-center ${
-            activeTab === 'staff' ? 'bg-[#f05a29] text-white' : 'bg-[#d9d9d9] text-[#9fa5ad]'
-          }`}
-          onClick={() => setActiveTab('staff')}
-        >
-          <FileText className="w-4 h-4 mr-2" />
-          {t('dashboard.staff_list')}
-        </button>
-        <button
-          className={`px-6 py-2 rounded-lg ${
-            activeTab === 'customer' ? 'bg-[#f05a29] text-white' : 'bg-[#d9d9d9] text-[#9fa5ad]'
-          }`}
-          onClick={() => setActiveTab('customer')}
-        >
-          {t('dashboard.customer_list')}
-        </button>
-      </div>
+      {/* Tabs + actions + search */}
+      <div className="mb-8 flex flex-col gap-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap gap-2">
+            <button
+              className={`inline-flex items-center rounded-full px-6 py-2 text-sm font-medium transition-all ${
+                activeTab === 'staff'
+                  ? 'bg-orange-500 text-white shadow-sm'
+                  : 'border border-gray-200 bg-white text-gray-500 hover:border-orange-300 hover:text-orange-500'
+              }`}
+              onClick={() => setActiveTab('staff')}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              {t('dashboard.staff_list')}
+            </button>
+            <button
+              className={`inline-flex items-center rounded-full px-6 py-2 text-sm font-medium transition-all ${
+                activeTab === 'customer'
+                  ? 'bg-orange-500 text-white shadow-sm'
+                  : 'border border-gray-200 bg-white text-gray-500 hover:border-orange-300 hover:text-orange-500'
+              }`}
+              onClick={() => setActiveTab('customer')}
+            >
+              {t('dashboard.customer_list')}
+            </button>
+          </div>
 
-      {/* Search and Add */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="relative">
-          <Input
-            placeholder={t('dashboard.enter_staff_name')}
-            className="w-80 pl-10"
-            value={filters.searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
-          <Search className="w-4 h-4 absolute left-3 top-3 text-[#9fa5ad]" />
+          <div className="flex items-center gap-2">
+            {selectedCount > 0 && (
+              <span className="inline-flex items-center rounded-full bg-orange-50 px-3 py-1 text-sm font-medium text-orange-600">
+                {t('dashboard.selected')} {selectedCount}
+              </span>
+            )}
+            <Button
+              className="h-11 rounded-full bg-orange-500 px-6 text-sm font-semibold text-white shadow-sm hover:bg-orange-600"
+              onClick={handleAddStaff}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              {t('dashboard.add_staff')}
+            </Button>
+          </div>
         </div>
 
-        <Button className="bg-[#f05a29] hover:bg-[#df4615] text-white" onClick={handleAddStaff}>
-          <Plus className="w-4 h-4 mr-2" />
-          {t('dashboard.add_staff')}
-        </Button>
-      </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Input
+              placeholder={t('dashboard.enter_staff_name')}
+              className="h-11 rounded-full border border-transparent bg-gray-50 pl-12 text-sm shadow-inner focus:border-orange-200 focus:bg-white focus:ring-orange-200"
+              value={filters.searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          </div>
 
-      {/* Filter Buttons */}
-      <div className="flex space-x-2 mb-4">
-        <button
-          className={`px-4 py-2 rounded-full text-sm transition-all duration-200 ${
-            sortedStaffList.length > 0 && sortedStaffList.every((staff) => filters.selectedIds.includes(staff.id))
-              ? 'bg-[#0d1523] text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-          onClick={handleSelectAll}
-        >
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 border border-white rounded flex items-center justify-center">
+          <button
+            className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${
+              sortedStaffList.length > 0 && sortedStaffList.every((staff) => filters.selectedIds.includes(staff.id))
+                ? 'border border-orange-200 bg-orange-100 text-orange-600 shadow-sm'
+                : 'border border-gray-200 bg-white text-gray-500 hover:border-orange-200 hover:text-orange-500'
+            }`}
+            onClick={handleSelectAll}
+          >
+            <span
+              className={`flex h-4 w-4 items-center justify-center rounded-full border ${
+                sortedStaffList.length > 0 && sortedStaffList.every((staff) => filters.selectedIds.includes(staff.id))
+                  ? 'border-orange-400 bg-orange-500 text-white'
+                  : 'border-gray-300 text-transparent'
+              }`}
+            >
               {sortedStaffList.length > 0 &&
                 sortedStaffList.every((staff) => filters.selectedIds.includes(staff.id)) && (
-                  <span className="text-xs">✓</span>
+                  <span className="text-[10px]">✓</span>
                 )}
-            </div>
+            </span>
             <span>{t('dashboard.select_all')}</span>
-          </div>
-        </button>
-
-        {selectedCount > 0 && (
-          <button className="bg-orange-500 text-white px-4 py-2 rounded-full text-sm border border-orange-300">
-            {t('dashboard.selected')} {selectedCount}
           </button>
-        )}
+        </div>
 
         {selectedCount > 0 && (
-          <div className="flex space-x-2 ml-4">
-            <button
-              className="w-8 h-8 bg-[#0d1523] text-white rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors"
-              onClick={handleBulkEdit}
-              title={t('dashboard.bulk_edit')}
-            >
-              <Edit className="w-4 h-4" />
-            </button>
-            <button
-              className="w-8 h-8 bg-[#f05a29] text-white rounded-full flex items-center justify-center hover:bg-orange-600 transition-colors"
-              onClick={handleBulkDelete}
-              title={t('dashboard.bulk_delete')}
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+          <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
+            <span className="font-medium text-gray-600">{t('dashboard.bulk_actions') || 'Bulk actions'}:</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-all hover:border-orange-200 hover:text-orange-500"
+                onClick={handleBulkEdit}
+              >
+                <Edit className="h-4 w-4" />
+                {t('dashboard.bulk_edit')}
+              </button>
+              <button
+                className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-600 transition-all hover:bg-orange-100"
+                onClick={handleBulkDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+                {t('dashboard.bulk_delete')}
+              </button>
+            </div>
           </div>
         )}
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-        <table className="w-full">
-          <thead className="bg-[#f05a29] text-white">
+      <div className="overflow-hidden rounded-2xl border border-orange-100 shadow-sm">
+        <table className="w-full text-left">
+          <thead className="bg-[#FFF7EF]">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium">{t('dashboard.serial_number')}</th>
+              <th className="px-4 py-3 text-sm font-semibold text-orange-600 first:rounded-l-2xl">
+                {t('dashboard.serial_number')}
+              </th>
               <SortableHeader
                 field="name"
                 label={t('dashboard.full_name')}
@@ -447,10 +542,12 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
                 onSort={handleSort}
                 getSortIcon={getSortIcon}
               />
-              <th className="px-4 py-3 text-left text-sm font-medium">{t('dashboard.action')}</th>
+              <th className="px-4 py-3 text-sm font-semibold text-orange-600 last:rounded-r-2xl">
+                {t('dashboard.action')}
+              </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-orange-50 bg-white text-gray-700">
             {sortedStaffList.map((staff, index) => {
               // Calculate correct STT based on pagination
               const startIndex = pagination ? (pagination.currentPage - 1) * pagination.itemsPerPage : 0;
@@ -459,32 +556,38 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
               return (
                 <tr
                   key={staff.id}
-                  className={`border-b border-[#f1f3f4] ${filters.selectedIds.includes(staff.id) ? 'bg-[#f1f3f4]' : ''}`}
+                  className={`${filters.selectedIds.includes(staff.id) ? 'bg-orange-50/80' : index % 2 === 0 ? 'bg-white' : 'bg-[#FFF9F2]'}`}
                 >
-                  <td className="px-4 py-3 text-sm">
-                    <div className="flex items-center space-x-2">
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    <div className="flex items-center space-x-3">
                       <Checkbox
                         checked={filters.selectedIds.includes(staff.id)}
                         onCheckedChange={() => handleSelectStaff(staff.id)}
                       />
-                      <span className={filters.selectedIds.includes(staff.id) ? 'text-[#f05a29] font-medium' : ''}>
+                      <span
+                        className={
+                          filters.selectedIds.includes(staff.id)
+                            ? 'font-semibold text-orange-500'
+                            : 'font-medium text-gray-700'
+                        }
+                      >
                         {stt}
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm font-medium">{staff.name}</td>
-                  <td className="px-4 py-3 text-sm text-[#9fa5ad]">{staff.jobTitle}</td>
+                  <td className="px-4 py-3 text-sm font-semibold text-gray-900">{staff.name}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{staff.jobTitle}</td>
                   <td className="px-4 py-3 text-sm text-blue-600">{staff.email}</td>
-                  <td className="px-4 py-3 text-sm">{staff.phone}</td>
-                  <td className="px-4 py-3 text-sm font-medium">{staff.salary}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{staff.phone}</td>
+                  <td className="px-4 py-3 text-sm font-semibold text-gray-900">{staff.salary}</td>
                   <td className="px-4 py-3 text-sm">
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      className={`inline-flex min-w-[88px] justify-center rounded-full px-3 py-1 text-xs font-semibold ${
                         staff.status === 'ACTIVE'
-                          ? 'bg-green-100 text-green-800'
+                          ? 'bg-green-50 text-green-600'
                           : staff.status === 'INACTIVE'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-yellow-100 text-yellow-800'
+                            ? 'bg-red-50 text-red-500'
+                            : 'bg-yellow-50 text-yellow-600'
                       }`}
                     >
                       {staff.status === 'ACTIVE'
@@ -497,31 +600,43 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex space-x-2">
-                      <button className="p-1 hover:bg-[#f1f3f4] rounded" onClick={() => handleViewStaff(staff)}>
-                        <Eye className="w-4 h-4 text-[#9fa5ad]" />
-                      </button>
-                      <button className="p-1 hover:bg-[#f1f3f4] rounded" onClick={() => handleEditStaff(staff)}>
-                        <Edit className="w-4 h-4 text-[#9fa5ad]" />
-                      </button>
+                    <div className="flex items-center gap-2">
                       <button
-                        className="p-1 hover:bg-[#f1f3f4] rounded"
-                        onClick={() => handlePermissionStaff(staff)}
-                        title="Quản lý quyền hạn"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-orange-200 hover:text-orange-500"
+                        onClick={() => handleViewStaff(staff)}
                       >
-                        <Shield className="w-4 h-4 text-[#f05a29]" />
+                        <Eye className="h-4 w-4" />
                       </button>
                       <button
-                        className="p-1 hover:bg-[#f1f3f4] rounded"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-orange-200 hover:text-orange-500"
+                        onClick={() => handleEditStaff(staff)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-orange-200 hover:text-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => handleManagePermissions(staff)}
+                        title={t('dashboard.manage_permissions')}
+                        aria-label={`${t('dashboard.manage_permissions')} - ${staff.name}`}
+                        disabled={permissionLoadingId === staff.id}
+                      >
+                        {permissionLoadingId === staff.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Shield className="h-4 w-4" />
+                        )}
+                      </button>
+                      <button
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-orange-100 bg-orange-50 text-orange-500 transition-colors hover:bg-orange-100"
                         onClick={() => handleToggleStaffStatus(staff)}
                         title={
                           staff.status === 'ACTIVE' ? t('dashboard.inactive_staff') : t('dashboard.activate_staff')
                         }
                       >
                         {staff.status === 'ACTIVE' ? (
-                          <UserX className="w-4 h-4 text-[#f05a29]" />
+                          <UserX className="h-4 w-4" />
                         ) : (
-                          <UserCheck className="w-4 h-4 text-green-600" />
+                          <UserCheck className="h-4 w-4 text-green-600" />
                         )}
                       </button>
                     </div>
@@ -535,49 +650,66 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
 
       {/* Pagination Info and Controls */}
       {pagination && (
-        <div className="flex items-center justify-between mt-6">
-          {/* Pagination Info */}
-          <div className="text-sm text-gray-600">
+        <div className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="text-sm text-gray-500">
             {`${t('dashboard.showing')} ${(pagination.currentPage - 1) * pagination.itemsPerPage + 1} - ${Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} ${t('dashboard.of_total')} ${currentUser ? Math.max(0, pagination.totalItems - 1) : pagination.totalItems} ${t('dashboard.staff_members')}`}
           </div>
+          <Pagination className="justify-end md:justify-center">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (pagination.hasPrevPage) {
+                      handlePageChange(pagination.currentPage - 1);
+                    }
+                  }}
+                  className={!pagination.hasPrevPage ? 'pointer-events-none opacity-40' : ''}
+                />
+              </PaginationItem>
 
-          {/* Main Pagination Container */}
-          <div className="flex items-center bg-gray-100 rounded-full px-2 py-1 shadow-sm">
-            {/* Previous Button */}
-            <button
-              onClick={() => handlePageChange(pagination.currentPage - 1)}
-              disabled={!pagination.hasPrevPage}
-              className={`p-2 rounded-full transition-all duration-200 ${
-                pagination.hasPrevPage
-                  ? 'text-gray-600 hover:bg-gray-200 hover:text-gray-800'
-                  : 'text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
+              {paginationPages.map((page, index) => {
+                const previousPage = paginationPages[index - 1];
+                const showEllipsis = previousPage && page - previousPage > 1;
+                return (
+                  <React.Fragment key={page}>
+                    {showEllipsis && (
+                      <PaginationItem>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    )}
+                    <PaginationItem>
+                      <PaginationLink
+                        href="#"
+                        isActive={page === pagination.currentPage}
+                        className={page === pagination.currentPage ? 'border-orange-200 text-orange-600' : ''}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          handlePageChange(page);
+                        }}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  </React.Fragment>
+                );
+              })}
 
-            {/* Page Info - Single Container */}
-            <div className="flex items-center px-4 py-2 mx-2">
-              <span className="text-sm text-gray-500 font-medium mr-2">{t('dashboard.page')}</span>
-              <div className="bg-[#0d1523] text-white px-2 py-1 rounded text-sm font-bold min-w-[24px] text-center">
-                {pagination.currentPage}
-              </div>
-              <span className="text-sm text-gray-500 font-medium ml-2">/ {pagination.totalPages}</span>
-            </div>
-
-            {/* Next Button */}
-            <button
-              onClick={() => handlePageChange(pagination.currentPage + 1)}
-              disabled={!pagination.hasNextPage}
-              className={`p-2 rounded-full transition-all duration-200 ${
-                pagination.hasNextPage
-                  ? 'text-gray-600 hover:bg-gray-200 hover:text-gray-800'
-                  : 'text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (pagination.hasNextPage) {
+                      handlePageChange(pagination.currentPage + 1);
+                    }
+                  }}
+                  className={!pagination.hasNextPage ? 'pointer-events-none opacity-40' : ''}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
 
@@ -587,6 +719,13 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
         onClose={handleCloseModal}
         staff={selectedStaff}
         initialEditMode={isEditMode}
+      />
+
+      <StaffPermissionOverlayModal
+        isOpen={isPermissionModalOpen}
+        onClose={handlePermissionModalDismiss}
+        staff={permissionStaff}
+        onSuccess={handlePermissionSuccess}
       />
 
       {/* Status Update Confirmation Dialog */}
@@ -617,17 +756,6 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Staff Permission Modal */}
-      <StaffPermissionOverlayModal
-        isOpen={permissionModalOpen}
-        onClose={handleClosePermissionModal}
-        staff={selectedStaffForPermission}
-        onSuccess={() => {
-          refetch();
-          handleClosePermissionModal();
-        }}
-      />
     </div>
   );
 };

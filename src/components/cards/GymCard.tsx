@@ -56,9 +56,9 @@ export const GymCard: React.FC<GymCardProps> = ({ gym, index = 0, showAnimation 
       </div>
 
       {/* Content Section - Bottom Half */}
-      <CardContent className="p-3 sm:p-4 flex-1 flex flex-col relative z-10">
+      <CardContent className="px-3 sm:px-4 pt-0.5 sm:pt-1 pb-2 sm:pb-2.5 flex-1 flex flex-col relative z-10">
         {/* Logo and Gym Name - Side by side */}
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-2.5 mb-1">
           {/* Logo - Ô nhỏ: images[0] */}
           <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-md border-2 border-orange-200">
             <img
@@ -78,12 +78,12 @@ export const GymCard: React.FC<GymCardProps> = ({ gym, index = 0, showAnimation 
         </div>
 
         {/* Description - Single sentence */}
-        <CardDescription className="text-slate-600 text-sm leading-relaxed mb-4">{gym.description}</CardDescription>
+        <CardDescription className="text-slate-600 text-sm leading-relaxed mb-1.5">{gym.description}</CardDescription>
 
         {/* Features List - With Checkmark Icons */}
-        <div className="space-y-2 mb-6">
+        <div className="space-y-1 mb-2">
           {gym.features.map((feature, idx) => (
-            <div key={idx} className="flex items-center gap-3 text-sm">
+            <div key={idx} className="flex items-center gap-2 text-sm">
               <div
                 className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${colorClasses.bgColor}`}
               >
@@ -95,7 +95,7 @@ export const GymCard: React.FC<GymCardProps> = ({ gym, index = 0, showAnimation 
         </div>
 
         {/* Location & Hours */}
-        <div className="space-y-2 mb-4">
+        <div className="space-y-1 mb-1.5">
           <div className="flex items-start gap-2 text-sm">
             <MapPin className={`w-4 h-4 flex-shrink-0 mt-0.5 ${colorClasses.textColor}`} />
             <span className="text-slate-600">{gym.address}</span>
@@ -108,10 +108,10 @@ export const GymCard: React.FC<GymCardProps> = ({ gym, index = 0, showAnimation 
       </CardContent>
 
       {/* CTA Button - Outline Style like Relume */}
-      <CardFooter className="p-3 sm:p-4 pt-0">
+      <CardFooter className="px-3 sm:px-4 pb-2 sm:pb-2.5 pt-0.5 sm:pt-1">
         <Button
           variant="outline"
-          className="w-full font-medium py-3 rounded-lg border-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 group-hover:scale-105 transition-all duration-300 shadow-sm group-hover:shadow-lg"
+          className="w-full font-medium py-1.5 rounded-lg border-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 group-hover:scale-105 transition-all duration-300 shadow-sm group-hover:shadow-lg"
           onClick={handleButtonClick}
         >
           <span className="flex items-center justify-center gap-2">
