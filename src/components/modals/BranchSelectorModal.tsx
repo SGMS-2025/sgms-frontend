@@ -85,7 +85,9 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
                   <div className="flex items-center space-x-3">
                     <Building className="h-4 w-4 text-black flex-shrink-0" />
                     <span className="text-sm text-gray-700">
-                      {currentBranch.managerId?.fullName || t('branch_selector.no_manager')}
+                      {Array.isArray(currentBranch.managerId)
+                        ? currentBranch.managerId[0]?.fullName || t('branch_selector.no_manager')
+                        : currentBranch.managerId?.fullName || t('branch_selector.no_manager')}
                     </span>
                   </div>
                 </div>

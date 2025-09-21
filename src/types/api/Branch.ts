@@ -19,7 +19,7 @@ export interface Branch {
   totalReviews: number;
   facilities: string[];
   openingHours: string;
-  managerId?: PopulatedUser;
+  managerId?: PopulatedUser | PopulatedUser[];
   ownerId?: PopulatedUser;
   isActive: boolean;
   createdAt: string;
@@ -44,7 +44,7 @@ export interface BranchDisplay {
     open: string;
     close: string;
   };
-  managerId?: PopulatedUser;
+  managerId?: PopulatedUser | PopulatedUser[]; // Support both single and multiple managers
   ownerId?: PopulatedUser;
   isActive: boolean;
   status: BranchStatus;
@@ -110,7 +110,7 @@ export interface CreateAndUpdateBranchRequest {
   coverImage?: string;
   facilities?: string[];
   openingHours?: string;
-  managerId?: string | null;
+  managerId?: string[] | null; // Consistent with form data - array of manager IDs or null
 }
 
 export interface BranchFormData {
@@ -119,7 +119,7 @@ export interface BranchFormData {
   city: string;
   hotline?: string;
   email?: string;
-  managerId?: string;
+  managerId?: string[]; // Changed to array for multiple managers
   description?: string;
   facilities?: string[];
   openingHours: {
@@ -135,7 +135,7 @@ export interface BranchEditValues {
   hotline: string;
   location: string;
   facilities: string[];
-  managerId: string;
+  managerId: string[]; // Changed to array to support multiple managers
   openingHours: {
     open: string;
     close: string;

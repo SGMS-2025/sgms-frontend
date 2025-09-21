@@ -21,8 +21,14 @@ export const convertBranchToDisplay = (branch: Branch): BranchDisplay => {
     ...branch,
     status: branch.isActive ? 'ACTIVE' : 'INACTIVE',
     openingHours: parsedOpeningHours,
-    // Ensure managerId and ownerId are properly handled
-    managerId: branch.managerId || undefined,
+    // Handle managerId - backend returns array, frontend now supports array
+    managerId: Array.isArray(branch.managerId)
+      ? branch.managerId.length > 0
+        ? branch.managerId // Keep all managers as array
+        : undefined
+      : branch.managerId
+        ? [branch.managerId] // Convert single object to array
+        : undefined,
     ownerId: branch.ownerId || undefined
   };
 };

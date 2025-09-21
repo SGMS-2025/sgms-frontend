@@ -14,7 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
   UserCheck,
-  UserX
+  UserX,
+  Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,7 +36,16 @@ import { useTableSort } from '@/hooks/useTableSort';
 import { useUser } from '@/hooks/useAuth';
 import { sortArray, staffSortConfig } from '@/utils/sort';
 import StaffProfileModal from '@/components/modals/StaffProfileModal';
-import type { StaffFilters, StaffManagementProps, SortField, StaffDisplay } from '@/types/api/Staff';
+import StaffPermissionOverlayModal from '@/components/modals/StaffPermissionOverlayModal';
+import type {
+  StaffFilters,
+  StaffManagementProps,
+  SortField,
+  StaffDisplay,
+  StaffForPermissionModal,
+  StaffJobTitle,
+  StaffStatus
+} from '@/types/api/Staff';
 
 export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) => {
   const { t } = useTranslation();
@@ -52,6 +62,8 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
   const [isEditMode, setIsEditMode] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [staffToUpdate, setStaffToUpdate] = useState<StaffDisplay | null>(null);
+  const [permissionModalOpen, setPermissionModalOpen] = useState(false);
+  const [selectedStaffForPermission, setSelectedStaffForPermission] = useState<StaffForPermissionModal | null>(null);
 
   // Use the custom sort hook
   const { sortState, handleSort, getSortIcon } = useTableSort<SortField>();
@@ -188,6 +200,47 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
     setStaffToUpdate(null);
   };
 
+  const handlePermissionStaff = (staff: StaffDisplay) => {
+    // Helper function to map string jobTitle to StaffJobTitle
+    const mapJobTitle = (jobTitle: string): StaffJobTitle => {
+      switch (jobTitle) {
+        case 'Manager':
+        case 'Quản lý':
+          return 'Manager';
+        case 'Personal Trainer':
+        case 'PT':
+          return 'Personal Trainer';
+        case 'Technician':
+        case 'Kỹ thuật viên':
+          return 'Technician';
+        default:
+          return 'Manager'; // Default fallback
+      }
+    };
+
+    // Convert StaffDisplay to the interface expected by StaffPermissionOverlayModal
+    const staffForModal: StaffForPermissionModal = {
+      _id: staff.id,
+      userId: {
+        _id: staff.userId,
+        fullName: staff.name,
+        email: staff.email,
+        phoneNumber: staff.phone
+      },
+      jobTitle: mapJobTitle(staff.jobTitle),
+      status: (staff.status || 'ACTIVE') as StaffStatus
+    };
+
+    setSelectedStaffForPermission(staffForModal);
+    setPermissionModalOpen(true);
+  };
+
+  const handleClosePermissionModal = () => {
+    // The modal will handle its own animation closing
+    setPermissionModalOpen(false);
+    setSelectedStaffForPermission(null);
+  };
+
   // Show loading state
   if (loading) {
     return (
@@ -220,7 +273,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
   }
 
   return (
-    <div className="bg-white rounded-lg p-6 border-2 border-gray-200 shadow-sm">
+    <div className="bg-white rounded-lg p-6 border-2 border-gray-200 shadow-sm h-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-[#f05a29]">{t('dashboard.staff_management')}</h1>
@@ -453,6 +506,13 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
                       </button>
                       <button
                         className="p-1 hover:bg-[#f1f3f4] rounded"
+                        onClick={() => handlePermissionStaff(staff)}
+                        title="Quản lý quyền hạn"
+                      >
+                        <Shield className="w-4 h-4 text-[#f05a29]" />
+                      </button>
+                      <button
+                        className="p-1 hover:bg-[#f1f3f4] rounded"
                         onClick={() => handleToggleStaffStatus(staff)}
                         title={
                           staff.status === 'ACTIVE' ? t('dashboard.inactive_staff') : t('dashboard.activate_staff')
@@ -557,6 +617,17 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Staff Permission Modal */}
+      <StaffPermissionOverlayModal
+        isOpen={permissionModalOpen}
+        onClose={handleClosePermissionModal}
+        staff={selectedStaffForPermission}
+        onSuccess={() => {
+          refetch();
+          handleClosePermissionModal();
+        }}
+      />
     </div>
   );
 };

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Edit3,
   Camera,
@@ -27,6 +27,7 @@ import {
 import { useBranch } from '@/contexts/BranchContext';
 import { BranchSelectorModal } from '@/components/modals/BranchSelectorModal';
 import { staffApi } from '@/services/api/staffApi';
+import { mapManagersToStaffIds } from '@/utils/managerUtils';
 import type { BranchDisplay, BranchEditValues, CreateAndUpdateBranchRequest } from '@/types/api/Branch';
 import type { Staff } from '@/types/api/Staff';
 import { toast } from 'sonner';
@@ -57,7 +58,7 @@ const BranchDetailPage: React.FC = () => {
     hotline: '',
     location: '',
     facilities: [],
-    managerId: 'none',
+    managerId: [],
     openingHours: {
       open: '06:00',
       close: '21:00'
@@ -152,23 +153,25 @@ const BranchDetailPage: React.FC = () => {
   // Initialize edit values when branch data loads
   useEffect(() => {
     if (branch) {
+      // Find the staff IDs that correspond to the current managers
+      const currentManagerStaffIds = mapManagersToStaffIds(branch.managerId, managers);
+
       setEditValues({
         branchName: branch.branchName,
         description: branch.description || '',
         hotline: branch.hotline || '',
         location: branch.location,
         facilities: branch.facilities || [],
-        managerId: branch.managerId?._id || 'none',
+        managerId: currentManagerStaffIds,
         openingHours: parseOpeningHours(branch.openingHours)
       });
     }
-  }, [branch]);
+  }, [branch, managers]);
 
   const handleStartEdit = () => {
     if (branch) {
-      const currentManagerStaffId = branch.managerId
-        ? managers.find((m) => m.userId._id === branch.managerId?._id)?._id
-        : 'none';
+      // Find the staff IDs that correspond to the current managers
+      const currentManagerStaffIds = mapManagersToStaffIds(branch.managerId, managers);
 
       setEditValues({
         branchName: branch.branchName,
@@ -176,7 +179,7 @@ const BranchDetailPage: React.FC = () => {
         hotline: branch.hotline || '',
         location: branch.location,
         facilities: branch.facilities || [],
-        managerId: currentManagerStaffId || 'none',
+        managerId: currentManagerStaffIds,
         openingHours: parseOpeningHours(branch.openingHours)
       });
     }
@@ -187,13 +190,16 @@ const BranchDetailPage: React.FC = () => {
     setIsEditMode(false);
     // Reset to original values
     if (branch) {
+      // Find the staff IDs that correspond to the current managers
+      const currentManagerStaffIds = mapManagersToStaffIds(branch.managerId, managers);
+
       setEditValues({
         branchName: branch.branchName,
         description: branch.description || '',
         hotline: branch.hotline || '',
         location: branch.location,
         facilities: branch.facilities || [],
-        managerId: branch.managerId?._id || 'none',
+        managerId: currentManagerStaffIds,
         openingHours: parseOpeningHours(branch.openingHours)
       });
     }
@@ -212,7 +218,7 @@ const BranchDetailPage: React.FC = () => {
       hotline: editValues.hotline,
       location: editValues.location,
       facilities: editValues.facilities,
-      managerId: editValues.managerId && editValues.managerId !== 'none' ? editValues.managerId : null,
+      managerId: editValues.managerId.length > 0 ? editValues.managerId : null,
       openingHours: `${editValues.openingHours.open}-${editValues.openingHours.close}`
     };
 
@@ -272,6 +278,13 @@ const BranchDetailPage: React.FC = () => {
     setEditValues((prev) => ({
       ...prev,
       facilities: checked ? [...prev.facilities, facility] : prev.facilities.filter((f) => f !== facility)
+    }));
+  };
+
+  const handleManagerChange = (managerId: string, checked: boolean) => {
+    setEditValues((prev) => ({
+      ...prev,
+      managerId: checked ? [...prev.managerId, managerId] : prev.managerId.filter((id) => id !== managerId)
     }));
   };
 
@@ -671,32 +684,45 @@ const BranchDetailPage: React.FC = () => {
                     <label className="text-sm font-medium text-gray-500 ">{t('branch_detail.manager')}</label>
                   </div>
                   {isEditMode ? (
-                    <Select
-                      value={editValues.managerId}
-                      onValueChange={(value) => handleInputChange('managerId', value)}
-                    >
-                      <SelectTrigger className="text-lg text-gray-800 w-full min-w-[300px]">
-                        <SelectValue placeholder={t('branch_detail.manager_placeholder')} />
-                      </SelectTrigger>
-                      <SelectContent className="w-full min-w-[300px]">
-                        <SelectItem value="none">{t('branch_detail.no_manager_option')}</SelectItem>
-                        {loadingManagers ? (
-                          <SelectItem value="loading" disabled>
-                            {t('branch_detail.loading')}
-                          </SelectItem>
-                        ) : (
-                          managers.map((manager) => (
-                            <SelectItem key={manager._id} value={manager._id} className="w-full">
+                    <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                      {loadingManagers ? (
+                        <p className="text-sm text-gray-500">{t('branch_detail.loading')}</p>
+                      ) : managers.length === 0 ? (
+                        <p className="text-sm text-gray-500">{t('branch_detail.no_managers_available')}</p>
+                      ) : (
+                        managers.map((manager) => (
+                          <div key={manager._id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`manager-${manager._id}`}
+                              checked={editValues.managerId.includes(manager._id)}
+                              onCheckedChange={(checked) => handleManagerChange(manager._id, checked as boolean)}
+                            />
+                            <label
+                              htmlFor={`manager-${manager._id}`}
+                              className="text-sm text-gray-800 cursor-pointer flex-1"
+                            >
                               {manager.userId.fullName} - {manager.userId.email}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                            </label>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   ) : (
-                    <p className="text-lg text-gray-800">
-                      {branch.managerId?.fullName || t('branch_detail.no_manager_option')}
-                    </p>
+                    <div className="space-y-1">
+                      {Array.isArray(branch.managerId) && branch.managerId.length > 0 ? (
+                        branch.managerId.map((manager, index) => (
+                          <p key={index} className="text-lg text-gray-800">
+                            {manager.fullName} - {manager.email}
+                          </p>
+                        ))
+                      ) : branch.managerId && !Array.isArray(branch.managerId) ? (
+                        <p className="text-lg text-gray-800">
+                          {branch.managerId.fullName} - {branch.managerId.email}
+                        </p>
+                      ) : (
+                        <p className="text-lg text-gray-800">{t('branch_detail.no_manager_option')}</p>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -705,7 +731,9 @@ const BranchDetailPage: React.FC = () => {
                     <Building className="h-4 w-4 text-gray-500" />
                     <label className="text-sm font-medium text-gray-500">{t('branch_detail.owner')}</label>
                   </div>
-                  <p className="text-lg text-gray-800">{branch.ownerId?.fullName || t('branch_detail.no_owner')}</p>
+                  <p className="text-lg text-gray-800">
+                    {branch.ownerId?.fullName || branch.ownerId?.email || t('branch_detail.no_owner')}
+                  </p>
                 </div>
 
                 <div>
