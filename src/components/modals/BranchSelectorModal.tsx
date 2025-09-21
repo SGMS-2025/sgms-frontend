@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,8 @@ interface BranchSelectorModalProps {
   branches: BranchDisplay[];
   onBranchSelect: (branch: BranchDisplay) => void;
   onAddBranch: () => void;
+  anchorEl?: Element | null;
+  anchorRect?: DOMRect | null;
 }
 
 export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
@@ -21,7 +24,9 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
   currentBranch,
   branches,
   onBranchSelect,
-  onAddBranch
+  onAddBranch,
+  anchorEl,
+  anchorRect
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -41,10 +46,44 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
     onClose();
   };
 
+  const panelRef = useRef<HTMLDialogElement>(null);
+  const handleDialogCancel = (event: React.SyntheticEvent<HTMLDialogElement, Event>) => {
+    event.preventDefault();
+    onClose();
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (panelRef.current?.contains(target)) return;
+      if (anchorEl?.contains(target)) return;
+      onClose();
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [isOpen, onClose, anchorEl]);
+
+  const anchored = Boolean(anchorRect);
+
+  const style: React.CSSProperties | undefined = useMemo(() => {
+    if (!anchored) return undefined;
+    const top = Math.min(Math.max(8, anchorRect?.top ?? 0), window.innerHeight - 24 - 400);
+    const left = Math.max(8, anchorRect ? anchorRect.right + 8 : 0);
+    return { position: 'fixed', top, left };
+  }, [anchored, anchorRect]);
+
   if (!isOpen) return null;
 
-  return (
-    <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+  const panel = (
+    <dialog
+      ref={panelRef}
+      open
+      aria-modal="true"
+      className="w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-[1001] max-h-[80vh] overflow-y-auto p-0"
+      style={style}
+      onCancel={handleDialogCancel}
+    >
       <div className="p-5">
         <div className="flex items-center justify-center mb-4">
           <h3 className="text-lg font-semibold text-gray-800">{t('branch_selector.current_branch')}</h3>
@@ -85,9 +124,7 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
                   <div className="flex items-center space-x-3">
                     <Building className="h-4 w-4 text-black flex-shrink-0" />
                     <span className="text-sm text-gray-700">
-                      {Array.isArray(currentBranch.managerId)
-                        ? currentBranch.managerId[0]?.fullName || t('branch_selector.no_manager')
-                        : currentBranch.managerId?.fullName || t('branch_selector.no_manager')}
+                      {currentBranch.managerId?.fullName || t('branch_selector.no_manager')}
                     </span>
                   </div>
                 </div>
@@ -110,9 +147,10 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
                 branches
                   .filter((branch) => branch._id !== currentBranch?._id)
                   .map((branch) => (
-                    <div
+                    <button
+                      type="button"
                       key={branch._id}
-                      className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                      className="w-full flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
                       onClick={() => handleBranchSelect(branch)}
                     >
                       <Avatar className="h-10 w-10">
@@ -128,7 +166,7 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
                           <p className="text-xs text-gray-500 truncate">{branch.location}</p>
                         </div>
                       </div>
-                    </div>
+                    </button>
                   ))
               ) : (
                 <div className="text-center py-4 text-gray-500">
@@ -139,8 +177,9 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
           </div>
 
           {/* Add New Branch Button */}
-          <div
-            className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+          <button
+            type="button"
+            className="w-full flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
             onClick={handleAddBranch}
           >
             <div className="h-10 w-10 bg-orange-500 rounded-full flex items-center justify-center">
@@ -149,9 +188,36 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
             <div className="flex-1">
               <p className="font-bold text-gray-800 text-sm">{t('branch_selector.add_branch')}</p>
             </div>
-          </div>
+          </button>
         </div>
       </div>
-    </div>
+    </dialog>
+  );
+
+  return createPortal(
+    anchored ? (
+      panel
+    ) : (
+      <div className="fixed inset-0 z-[1000]">
+        {/* Backdrop button for closing */}
+        <button
+          type="button"
+          className="absolute inset-0 w-full h-full bg-black/20 border-0 cursor-default"
+          aria-label={t('branch_selector.close_modal')}
+          onClick={onClose}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              onClose();
+            }
+          }}
+        />
+        {/* Modal content */}
+        <div className="relative z-10 flex items-start justify-center p-4 pointer-events-none min-h-full">
+          <div className="mt-16 pointer-events-auto">{panel}</div>
+        </div>
+      </div>
+    ),
+    document.body
   );
 };
