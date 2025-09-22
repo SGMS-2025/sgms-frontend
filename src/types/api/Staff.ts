@@ -1,5 +1,5 @@
 export type StaffStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
-export type StaffJobTitle = 'Manager' | 'Admin' | 'Owner' | 'Personal Trainer' | 'Technician';
+export type StaffJobTitle = 'Manager' | 'Personal Trainer' | 'Technician';
 export type SortField = 'name' | 'jobTitle' | 'email' | 'phone' | 'salary' | 'status';
 
 export interface Staff {
@@ -60,6 +60,7 @@ export interface StaffFilters {
 
 export interface StaffDisplay {
   id: string;
+  userId: string; // Add userId field
   name: string;
   jobTitle: string;
   email: string;
@@ -188,4 +189,17 @@ export interface StaffUpdateData {
   branchId?: string;
   salary?: number;
   status?: StaffStatus;
+}
+
+// Interface for StaffPermissionOverlayModal
+export interface StaffForPermissionModal {
+  _id: string;
+  userId: {
+    _id: string;
+    fullName: string;
+    email: string;
+    phoneNumber?: string;
+  };
+  jobTitle: StaffJobTitle;
+  status: StaffStatus;
 }

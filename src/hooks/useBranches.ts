@@ -10,7 +10,10 @@ import type {
   BackendPaginationResponse
 } from '@/types/api/Branch';
 
-interface UseBranchesResult {
+/**
+ * Hook result interface for useBranches
+ */
+export interface UseBranchesResult {
   branches: Branch[];
   gymCards: GymCardData[];
   loading: boolean;
@@ -181,5 +184,69 @@ export const useTopGyms = () => {
     loading,
     error,
     refetch: fetchTopGyms
+  };
+};
+
+/**
+ * Hook for fetching single branch detail
+ */
+export const useBranchDetail = (branchId: string) => {
+  const [branch, setBranch] = useState<Branch | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchBranchDetail = useCallback(async () => {
+    if (!branchId) {
+      setError('Branch ID is required');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const response = await branchApi.getBranchDetail(branchId).catch(() => ({
+      success: false,
+      message: 'Network error - Không thể tải thông tin phòng tập',
+      data: null
+    }));
+
+    if (response.success && response.data) {
+      setBranch(response.data);
+    } else {
+      setError(response.message || 'Không thể tải thông tin phòng tập');
+    }
+
+    setLoading(false);
+  }, [branchId]);
+
+  useEffect(() => {
+    fetchBranchDetail();
+  }, [fetchBranchDetail]);
+
+  // Convert to GymCardData for UI display compatibility
+  const gymCardData: GymCardData | null = branch
+    ? {
+        id: branch._id,
+        name: branch.branchName,
+        description: branch.description ?? 'Phòng tập chuyên nghiệp với dịch vụ tốt nhất',
+        image: branch.coverImage ?? 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800',
+        logo: branch.images[0] ?? 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=100',
+        features: branch.facilities,
+        address: branch.location,
+        hours: branch.openingHours,
+        rating: branch.rating,
+        totalReviews: branch.totalReviews,
+        color: 'orange' as const,
+        tag: 'Gym'
+      }
+    : null;
+
+  return {
+    branch,
+    gymCardData,
+    loading,
+    error,
+    refetch: fetchBranchDetail
   };
 };

@@ -59,8 +59,14 @@ export const branchApi = {
     return response.data;
   },
 
-  // Get branch detail by ID
+  // Get branch detail by ID (public)
   getBranchDetail: async (branchId: string): Promise<ApiResponse<Branch>> => {
+    const response = await api.get(`/branches/public/${branchId}`);
+    return response.data;
+  },
+
+  // Get branch detail by ID (protected - for owners)
+  getBranchDetailProtected: async (branchId: string): Promise<ApiResponse<Branch>> => {
     const response = await api.get(`/branches/${branchId}`);
     return response.data;
   },

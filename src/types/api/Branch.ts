@@ -1,6 +1,12 @@
 import type { PopulatedUser } from './User';
+
 export type BranchStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 
+// ===== CORE BRANCH INTERFACES =====
+
+/**
+ * Main Branch interface - matches backend API response
+ */
 export interface Branch {
   _id: string;
   branchName: string;
@@ -13,14 +19,16 @@ export interface Branch {
   totalReviews: number;
   facilities: string[];
   openingHours: string;
-  managerId?: PopulatedUser;
+  managerId?: PopulatedUser | PopulatedUser[];
   ownerId?: PopulatedUser;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-// For frontend display compatibility
+/**
+ * Branch interface for frontend display - with structured opening hours
+ */
 export interface BranchDisplay {
   _id: string;
   branchName: string;
@@ -36,12 +44,27 @@ export interface BranchDisplay {
     open: string;
     close: string;
   };
-  managerId?: PopulatedUser;
+  managerId?: PopulatedUser | PopulatedUser[]; // Support both single and multiple managers
   ownerId?: PopulatedUser;
   isActive: boolean;
   status: BranchStatus;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Simplified Branch interface for basic UI components
+ * Use this for components that only need basic branch info
+ */
+export interface BranchBasic {
+  _id: string;
+  branchName: string;
+  location: string;
+  description?: string;
+  hotline: string;
+  facilities: string[];
+  openingHours: string;
+  phoneNumber?: string; // Alias for hotline for backward compatibility
 }
 
 export interface BackendPaginationResponse {
@@ -87,7 +110,7 @@ export interface CreateAndUpdateBranchRequest {
   coverImage?: string;
   facilities?: string[];
   openingHours?: string;
-  managerId?: string | null;
+  managerId?: string[] | null; // Consistent with form data - array of manager IDs or null
 }
 
 export interface BranchFormData {
@@ -96,7 +119,7 @@ export interface BranchFormData {
   city: string;
   hotline?: string;
   email?: string;
-  managerId?: string;
+  managerId?: string[]; // Changed to array for multiple managers
   description?: string;
   facilities?: string[];
   openingHours: {
@@ -112,7 +135,7 @@ export interface BranchEditValues {
   hotline: string;
   location: string;
   facilities: string[];
-  managerId: string;
+  managerId: string[]; // Changed to array to support multiple managers
   openingHours: {
     open: string;
     close: string;
@@ -159,3 +182,17 @@ export interface BranchContextType {
   toggleBranchStatus: (branchId: string) => Promise<void>;
   switchBranch: (branchId: string) => Promise<void>;
 }
+
+// Re-export gym types for convenience
+export type {
+  BranchHero,
+  BranchReviews,
+  ServicePackage,
+  PromotionalOffer,
+  Trainer,
+  GymHeroSectionProps,
+  GymReviewsProps,
+  GymServicesProps,
+  GymTrainersProps,
+  GymGalleryProps
+} from '@/types/components/gym';

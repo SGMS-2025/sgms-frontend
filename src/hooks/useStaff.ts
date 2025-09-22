@@ -12,6 +12,7 @@ import type {
 
 const transformStaffToDisplay = (staff: Staff): StaffDisplay => ({
   id: staff._id,
+  userId: staff.userId._id, // Add userId field
   name: staff.userId.fullName || staff.userId.username,
   jobTitle: staff.jobTitle,
   email: staff.userId.email,

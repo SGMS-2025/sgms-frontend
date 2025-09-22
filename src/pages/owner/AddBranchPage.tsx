@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Camera, Plus } from 'lucide-react';
 import { useBranch } from '@/contexts/BranchContext';
@@ -38,11 +38,13 @@ const AddBranchPage: React.FC = () => {
         open: '06:00',
         close: '21:00'
       },
-      facilities: ['Gym', 'Cardio', 'Weight Training']
+      facilities: ['Gym', 'Cardio', 'Weight Training'],
+      managerId: [] // Initialize as empty array for multiple managers
     }
   });
 
   const selectedFacilities = watch('facilities') || [];
+  const selectedManagers = watch('managerId') || [];
 
   const handleFacilityChange = (facility: string, checked: boolean) => {
     if (checked) {
@@ -51,6 +53,17 @@ const AddBranchPage: React.FC = () => {
       setValue(
         'facilities',
         selectedFacilities.filter((f) => f !== facility)
+      );
+    }
+  };
+
+  const handleManagerChange = (managerId: string, checked: boolean) => {
+    if (checked) {
+      setValue('managerId', [...selectedManagers, managerId]);
+    } else {
+      setValue(
+        'managerId',
+        selectedManagers.filter((id) => id !== managerId)
       );
     }
   };
@@ -106,7 +119,7 @@ const AddBranchPage: React.FC = () => {
       coverImage: imagePreview || undefined,
       facilities: data.facilities || ['Gym', 'Cardio', 'Weight Training'],
       openingHours: `${data.openingHours.open} - ${data.openingHours.close}`,
-      managerId: data.managerId
+      managerId: data.managerId && data.managerId.length > 0 ? data.managerId : null
     };
 
     const newBranch = await createBranch(createData);
@@ -213,25 +226,30 @@ const AddBranchPage: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="managerId" className="text-sm font-medium text-gray-700">
-                        {t('add_branch.manager')}
-                      </Label>
-                      <Select onValueChange={(value) => setValue('managerId', value)}>
-                        <SelectTrigger className="rounded-lg border-gray-300">
-                          <SelectValue
-                            placeholder={
-                              loadingManagers ? t('add_branch.manager_loading') : t('add_branch.manager_placeholder')
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {managers.map((manager) => (
-                            <SelectItem key={manager._id} value={manager.userId._id}>
-                              {manager.userId.fullName} - {manager.jobTitle}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label className="text-sm font-medium text-gray-700">{t('add_branch.manager')}</Label>
+                      <div className="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-3">
+                        {loadingManagers ? (
+                          <p className="text-sm text-gray-500">{t('add_branch.manager_loading')}</p>
+                        ) : managers.length === 0 ? (
+                          <p className="text-sm text-gray-500">{t('add_branch.no_managers_available')}</p>
+                        ) : (
+                          managers.map((manager) => (
+                            <div key={manager._id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`manager-${manager._id}`}
+                                checked={selectedManagers.includes(manager._id)}
+                                onCheckedChange={(checked) => handleManagerChange(manager._id, checked as boolean)}
+                              />
+                              <label
+                                htmlFor={`manager-${manager._id}`}
+                                className="text-sm text-gray-700 cursor-pointer flex-1"
+                              >
+                                {manager.userId.fullName} - {manager.jobTitle}
+                              </label>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
 
                     <div className="space-y-2">
