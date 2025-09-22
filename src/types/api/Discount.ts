@@ -71,3 +71,25 @@ export interface UseDiscountCampaignListReturn {
   statusFilter: string;
   setStatusFilter: (status: string) => void;
 }
+
+// Form data type for discount campaign forms
+export interface DiscountCampaignFormData {
+  campaignName: string;
+  description?: string;
+  discountPercentage: number;
+  branchId: string[];
+  startDate: Date;
+  endDate: Date;
+  status?: string;
+}
+
+// API request data type for discount campaign operations
+export interface DiscountCampaignApiData {
+  campaignName: string;
+  description?: string;
+  discountPercentage: number;
+  branchId: string[];
+  startDate: string;
+  endDate: string;
+  status?: string;
+}

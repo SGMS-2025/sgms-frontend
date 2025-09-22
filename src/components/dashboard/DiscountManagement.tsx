@@ -5,15 +5,51 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Plus, Calendar, Percent, Users, MapPin, User, Search } from 'lucide-react';
-import { useDiscountCampaignList } from '@/hooks/useDiscount';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog';
+import { Plus, Calendar, Percent, Users, MapPin, Search, Edit, Trash2, Eye, MoreVertical } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import {
+  useDiscountCampaignList,
+  useCreateDiscountCampaign,
+  useUpdateDiscountCampaign,
+  useDeleteDiscountCampaign
+} from '@/hooks/useDiscount';
 import { formatDate } from '@/utils/utils';
 import { getStatusBadgeConfig } from '@/utils/discountUtils';
+import DiscountCampaignForm from '@/components/forms/DiscountCampaignForm';
+import DiscountCampaignModal from '@/components/modals/DiscountCampaignModal';
+import type { DiscountCampaign } from '@/types/api/Discount';
+import type { DiscountCampaignFormData, DiscountCampaignApiData } from '@/types/api/Discount';
 
 const DiscountManagement: React.FC = () => {
   const { t } = useTranslation();
   const { campaigns, pagination, loading, error, refetch, statusFilter, setStatusFilter } = useDiscountCampaignList();
+  const { createCampaign, loading: createLoading } = useCreateDiscountCampaign();
+  const { updateCampaign, loading: updateLoading } = useUpdateDiscountCampaign();
+  const { deleteCampaign, loading: deleteLoading } = useDeleteDiscountCampaign();
+
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [showCreateForm, setShowCreateForm] = React.useState(false);
+  const [showEditForm, setShowEditForm] = React.useState(false);
+  const [showViewModal, setShowViewModal] = React.useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+  const [selectedCampaign, setSelectedCampaign] = React.useState<DiscountCampaign | null>(null);
+  const [campaignToDelete, setCampaignToDelete] = React.useState<DiscountCampaign | null>(null);
 
   // Handle search with debouncing
   const handleSearchChange = React.useCallback((value: string) => {
@@ -27,6 +63,63 @@ const DiscountManagement: React.FC = () => {
     },
     [setStatusFilter]
   );
+
+  // Handle campaign actions
+  const handleCreateCampaign = React.useCallback(
+    async (data: DiscountCampaignFormData) => {
+      const campaignData: DiscountCampaignApiData = {
+        ...data,
+        startDate: data.startDate.toISOString(),
+        endDate: data.endDate.toISOString()
+      };
+      await createCampaign(campaignData);
+      setShowCreateForm(false);
+      refetch();
+    },
+    [createCampaign, refetch]
+  );
+
+  const handleUpdateCampaign = React.useCallback(
+    async (data: DiscountCampaignFormData) => {
+      if (!selectedCampaign) return;
+      const campaignData: DiscountCampaignApiData = {
+        ...data,
+        startDate: data.startDate.toISOString(),
+        endDate: data.endDate.toISOString()
+      };
+      await updateCampaign(selectedCampaign._id, campaignData);
+      setShowEditForm(false);
+      setSelectedCampaign(null);
+      refetch();
+    },
+    [updateCampaign, selectedCampaign, refetch]
+  );
+
+  const handleDeleteCampaign = React.useCallback(async () => {
+    if (!campaignToDelete) return;
+
+    await deleteCampaign(campaignToDelete._id);
+    setShowDeleteDialog(false);
+    setCampaignToDelete(null);
+    refetch();
+  }, [deleteCampaign, campaignToDelete, refetch]);
+
+  const handleViewCampaign = React.useCallback((campaign: DiscountCampaign) => {
+    setSelectedCampaign(campaign);
+    setShowViewModal(true);
+  }, []);
+
+  const handleEditCampaign = React.useCallback((campaign: DiscountCampaign) => {
+    setSelectedCampaign(campaign);
+    setShowViewModal(false);
+    setShowEditForm(true);
+  }, []);
+
+  const handleDeleteClick = React.useCallback((campaign: DiscountCampaign) => {
+    setCampaignToDelete(campaign); // Lưu campaign cần xóa
+    setShowViewModal(false); // Đóng modal trước
+    setShowDeleteDialog(true); // Mở dialog xác nhận
+  }, []);
 
   // Calculate stats for display
   const campaignStats = React.useMemo(() => {
@@ -86,7 +179,7 @@ const DiscountManagement: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">{t('discount.title')}</h1>
           <p className="text-gray-600 mt-1">{t('discount.subtitle')}</p>
         </div>
-        <Button className="bg-orange-500 hover:bg-orange-600">
+        <Button className="bg-orange-500 hover:bg-orange-600" onClick={() => setShowCreateForm(true)}>
           <Plus className="w-4 h-4 mr-2" />
           {t('discount.add_campaign')}
         </Button>
@@ -193,10 +286,33 @@ const DiscountManagement: React.FC = () => {
             <CardHeader className="pb-3">
               <div className="flex justify-between items-start">
                 <CardTitle className="text-lg font-semibold text-gray-900">{campaign.campaignName}</CardTitle>
-                {(() => {
-                  const badgeConfig = getStatusBadgeConfig(campaign, t);
-                  return <Badge variant={badgeConfig.variant}>{badgeConfig.text}</Badge>;
-                })()}
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const badgeConfig = getStatusBadgeConfig(campaign, t);
+                    return <Badge variant={badgeConfig.variant}>{badgeConfig.text}</Badge>;
+                  })()}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleViewCampaign(campaign)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        {t('common.view')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEditCampaign(campaign)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        {t('common.edit')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDeleteClick(campaign)} className="text-red-600">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {t('common.delete')}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -236,14 +352,6 @@ const DiscountManagement: React.FC = () => {
                   </div>
                 </div>
               )}
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">{t('discount.created_by')}:</span>
-                <div className="flex items-center">
-                  <User className="w-3 h-3 mr-1" />
-                  <span className="text-sm font-medium">{campaign.createBy.fullName}</span>
-                </div>
-              </div>
             </CardContent>
           </Card>
         ))}
@@ -261,13 +369,92 @@ const DiscountManagement: React.FC = () => {
                 ? t('discount.no_campaigns_filtered')
                 : t('discount.no_campaigns_message')}
             </p>
-            <Button className="bg-orange-500 hover:bg-orange-600">
+            <Button className="bg-orange-500 hover:bg-orange-600" onClick={() => setShowCreateForm(true)}>
               <Plus className="w-4 h-4 mr-2" />
               {t('discount.add_campaign')}
             </Button>
           </CardContent>
         </Card>
       )}
+
+      {/* Create Campaign Form Modal */}
+      <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t('discount.create_campaign')}</DialogTitle>
+            <DialogDescription>{t('discount.create_campaign_description')}</DialogDescription>
+          </DialogHeader>
+          <DiscountCampaignForm
+            onSubmit={handleCreateCampaign}
+            onCancel={() => setShowCreateForm(false)}
+            loading={createLoading}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Campaign Form Modal */}
+      <Dialog open={showEditForm} onOpenChange={setShowEditForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t('discount.edit_campaign')}</DialogTitle>
+            <DialogDescription>{t('discount.edit_campaign_description')}</DialogDescription>
+          </DialogHeader>
+          <DiscountCampaignForm
+            campaign={selectedCampaign || undefined}
+            onSubmit={handleUpdateCampaign}
+            onCancel={() => {
+              setShowEditForm(false);
+              setSelectedCampaign(null);
+            }}
+            loading={updateLoading}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* View Campaign Modal */}
+      <DiscountCampaignModal
+        campaign={selectedCampaign}
+        isOpen={showViewModal}
+        onClose={() => {
+          setShowViewModal(false);
+          setSelectedCampaign(null);
+        }}
+        onEdit={handleEditCampaign}
+        onDelete={handleDeleteClick}
+        mode="view"
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('discount.delete_campaign')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('discount.delete_campaign_confirmation').replace(
+                '{campaignName}',
+                campaignToDelete?.campaignName || ''
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCampaign}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  {t('discount.deleting')}
+                </>
+              ) : (
+                t('common.delete')
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
