@@ -7,6 +7,7 @@ import type {
   DiscountCampaignStats,
   DiscountCampaignStatus
 } from '@/types/api/Discount';
+import type { DiscountCampaignApiData } from '@/types/api/Discount';
 
 export const useDiscountCampaignList = (
   initialParams: DiscountCampaignListParams = {}
@@ -30,29 +31,25 @@ export const useDiscountCampaignList = (
       ...(statusFilter && statusFilter !== 'all' && { status: statusFilter as DiscountCampaignStatus })
     };
 
-    try {
-      const response = await discountCampaignApi.getCampaignList(requestParams);
+    const response = await discountCampaignApi.getCampaignList(requestParams);
 
-      if (response.success) {
-        setCampaigns(response.data.campaigns || []);
+    if (response.success) {
+      setCampaigns(response.data.campaigns || []);
 
-        // Transform pagination data to match frontend interface
-        const paginationData = response.data.pagination;
-        const transformedPagination = {
-          currentPage: paginationData.currentPage,
-          totalPages: paginationData.totalPages,
-          totalItems: paginationData.totalItems,
-          itemsPerPage: paginationData.itemsPerPage
-        };
-        setPagination(transformedPagination);
-      } else {
-        setError(response.message || 'Failed to fetch discount campaigns');
-      }
-    } catch {
-      setError('Failed to fetch discount campaigns');
-    } finally {
-      setLoading(false);
+      // Transform pagination data to match frontend interface
+      const paginationData = response.data.pagination;
+      const transformedPagination = {
+        currentPage: paginationData.currentPage,
+        totalPages: paginationData.totalPages,
+        totalItems: paginationData.totalItems,
+        itemsPerPage: paginationData.itemsPerPage
+      };
+      setPagination(transformedPagination);
+    } else {
+      setError(response.message || 'Failed to fetch discount campaigns');
     }
+
+    setLoading(false);
   }, [params, statusFilter]);
 
   const refetch = useCallback(() => {
@@ -95,27 +92,23 @@ export const useDiscountCampaignStats = () => {
     setLoading(true);
     setError(null);
 
-    try {
-      // Assuming there's a stats endpoint, if not, we can calculate from campaigns
-      const response = await discountCampaignApi.getCampaignList({ limit: 1000 });
+    // Assuming there's a stats endpoint, if not, we can calculate from campaigns
+    const response = await discountCampaignApi.getCampaignList({ limit: 1000 });
 
-      if (response.success) {
-        const campaigns = response.data.campaigns;
-        const calculatedStats = {
-          totalCampaigns: campaigns.length,
-          activeCampaigns: campaigns.filter((c) => c.status === 'ACTIVE').length,
-          expiredCampaigns: campaigns.filter((c) => c.status === 'EXPIRED').length,
-          pendingCampaigns: campaigns.filter((c) => c.status === 'PENDING').length
-        };
-        setStats(calculatedStats);
-      } else {
-        setError(response.message || 'Failed to fetch discount campaign stats');
-      }
-    } catch {
-      setError('Failed to fetch discount campaign stats');
-    } finally {
-      setLoading(false);
+    if (response.success) {
+      const campaigns = response.data.campaigns;
+      const calculatedStats = {
+        totalCampaigns: campaigns.length,
+        activeCampaigns: campaigns.filter((c) => c.status === 'ACTIVE').length,
+        expiredCampaigns: campaigns.filter((c) => c.status === 'EXPIRED').length,
+        pendingCampaigns: campaigns.filter((c) => c.status === 'PENDING').length
+      };
+      setStats(calculatedStats);
+    } else {
+      setError(response.message || 'Failed to fetch discount campaign stats');
     }
+
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -142,19 +135,15 @@ export const useDiscountCampaignDetails = (campaignId: string | null) => {
     setLoading(true);
     setError(null);
 
-    try {
-      const response = await discountCampaignApi.getCampaignById(campaignId);
+    const response = await discountCampaignApi.getCampaignById(campaignId);
 
-      if (response.success) {
-        setCampaignDetails(response.data);
-      } else {
-        setError(response.message || 'Failed to fetch campaign details');
-      }
-    } catch {
-      setError('Failed to fetch campaign details');
-    } finally {
-      setLoading(false);
+    if (response.success) {
+      setCampaignDetails(response.data);
+    } else {
+      setError(response.message || 'Failed to fetch campaign details');
     }
+
+    setLoading(false);
   }, [campaignId]);
 
   const refetch = useCallback(async () => {
@@ -174,25 +163,19 @@ export const useCreateDiscountCampaign = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createCampaign = useCallback(async (campaignData: Partial<DiscountCampaign>) => {
+  const createCampaign = useCallback(async (campaignData: DiscountCampaignApiData) => {
     setLoading(true);
     setError(null);
 
-    try {
-      const response = await discountCampaignApi.createCampaign(campaignData);
+    const response = await discountCampaignApi.createCampaign(campaignData);
 
-      if (response.success) {
-        setLoading(false);
-        return response.data;
-      } else {
-        setError(response.message || 'Failed to create campaign');
-        setLoading(false);
-        throw new Error(response.message || 'Failed to create campaign');
-      }
-    } catch (err) {
-      setError('Failed to create campaign');
+    if (response.success) {
       setLoading(false);
-      throw err;
+      return response.data;
+    } else {
+      setError(response.message || 'Failed to create campaign');
+      setLoading(false);
+      throw new Error(response.message || 'Failed to create campaign');
     }
   }, []);
 
@@ -213,25 +196,19 @@ export const useUpdateDiscountCampaign = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const updateCampaign = useCallback(async (campaignId: string, updateData: Partial<DiscountCampaign>) => {
+  const updateCampaign = useCallback(async (campaignId: string, updateData: DiscountCampaignApiData) => {
     setLoading(true);
     setError(null);
 
-    try {
-      const response = await discountCampaignApi.updateCampaign(campaignId, updateData);
+    const response = await discountCampaignApi.updateCampaign(campaignId, updateData);
 
-      if (response.success) {
-        setLoading(false);
-        return response.data;
-      } else {
-        setError(response.message || 'Failed to update campaign');
-        setLoading(false);
-        throw new Error(response.message || 'Failed to update campaign');
-      }
-    } catch (err) {
-      setError('Failed to update campaign');
+    if (response.success) {
       setLoading(false);
-      throw err;
+      return response.data;
+    } else {
+      setError(response.message || 'Failed to update campaign');
+      setLoading(false);
+      throw new Error(response.message || 'Failed to update campaign');
     }
   }, []);
 
@@ -251,21 +228,15 @@ export const useDeleteDiscountCampaign = () => {
     setLoading(true);
     setError(null);
 
-    try {
-      const response = await discountCampaignApi.deleteCampaign(campaignId);
+    const response = await discountCampaignApi.deleteCampaign(campaignId);
 
-      if (response.success) {
-        setLoading(false);
-        return response.data;
-      } else {
-        setError(response.message || 'Failed to delete campaign');
-        setLoading(false);
-        throw new Error(response.message || 'Failed to delete campaign');
-      }
-    } catch (err) {
-      setError('Failed to delete campaign');
+    if (response.success) {
       setLoading(false);
-      throw err;
+      return response.data;
+    } else {
+      setError(response.message || 'Failed to delete campaign');
+      setLoading(false);
+      throw new Error(response.message || 'Failed to delete campaign');
     }
   }, []);
 

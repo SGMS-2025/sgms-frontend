@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type {
   BranchDisplay,
@@ -23,26 +23,27 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
   const [branches, setBranches] = useState<BranchDisplay[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isFetching, setIsFetching] = useState(false);
   const [isSwitchingBranch, setIsSwitchingBranch] = useState(false);
+  const isFetchingRef = useRef(false);
 
   // Check if user can access my-branches API
-  const canAccessMyBranches = authState.user && ['OWNER', 'ADMIN', 'MANAGER'].includes(authState.user.role);
+  // OWNER, ADMIN can always access
+  // STAFF can access if they have the right permissions (handled by backend)
+  const canAccessMyBranches = authState.user && ['OWNER', 'ADMIN', 'STAFF'].includes(authState.user.role);
 
   // Fetch branches on mount - chỉ chạy một lần
   useEffect(() => {
     const fetchBranches = async () => {
       // Prevent multiple simultaneous calls
-      if (isFetching) return;
+      if (isFetchingRef.current) return;
 
       // Only fetch my-branches if user has permission
       if (!canAccessMyBranches) {
         setLoading(false);
-        setIsFetching(false);
         return;
       }
 
-      setIsFetching(true);
+      isFetchingRef.current = true;
       setLoading(true);
       setError(null);
 
@@ -74,24 +75,23 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
       }
 
       setLoading(false);
-      setIsFetching(false);
+      isFetchingRef.current = false;
     };
 
     fetchBranches();
-  }, [canAccessMyBranches]); // Re-run when user role changes
+  }, [canAccessMyBranches, authState.user?._id, authState.user?.role]); // Re-run when user role changes
 
   const fetchBranches = useCallback(async () => {
     // Prevent multiple simultaneous calls
-    if (isFetching) return;
+    if (isFetchingRef.current) return;
 
     // Only fetch my-branches if user has permission
     if (!canAccessMyBranches) {
       setLoading(false);
-      setIsFetching(false);
       return;
     }
 
-    setIsFetching(true);
+    isFetchingRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -120,7 +120,7 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
     }
 
     setLoading(false);
-    setIsFetching(false);
+    isFetchingRef.current = false;
   }, [canAccessMyBranches]);
 
   const fetchBranchDetail = async (branchId: string): Promise<BranchDisplay | null> => {
