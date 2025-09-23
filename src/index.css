@@ -336,3 +336,23 @@ select:focus {
 .animate-scroll {
   animation: scroll 20s linear infinite;
 }
+
+/* Hide scrollbar for all browsers */
+.hide-scrollbar {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE and Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Opera */
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.hide-scrollbar::-webkit-scrollbar-track {
+  display: none !important;
+}
+
+.hide-scrollbar::-webkit-scrollbar-thumb {
+  display: none !important;
+}
