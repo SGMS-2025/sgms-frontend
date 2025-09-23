@@ -8,6 +8,7 @@ import { useStaffDetails, useUpdateStaff } from '@/hooks/useStaff';
 import { useUser } from '@/hooks/useAuth';
 import EditStaffForm from '@/components/forms/EditStaffForm';
 import type { StaffDisplay, Staff, StaffFormData, StaffJobTitle, StaffUpdateData } from '@/types/api/Staff';
+import type { PopulatedUser } from '@/types/api/User';
 
 interface StaffProfileModalProps {
   isOpen: boolean;
@@ -317,7 +318,21 @@ function BranchInfo({
               <span className="font-medium">{t('staff_modal.branch_manager')}</span>
             </div>
             <div className="bg-white p-3 rounded-lg">
-              <p className="text-gray-700">{staffDetails?.branchId?.managerId?.fullName || t('staff_modal.no_info')}</p>
+              <p className="text-gray-700">
+                {(() => {
+                  const managerId = staffDetails?.branchId?.managerId as PopulatedUser | PopulatedUser[] | undefined;
+                  if (!managerId) return t('staff_modal.no_info');
+
+                  if (Array.isArray(managerId)) {
+                    const activeManager = managerId.find((manager) => manager?.status === 'ACTIVE');
+                    return activeManager?.fullName || t('staff_modal.no_info');
+                  }
+
+                  return managerId?.status === 'ACTIVE'
+                    ? managerId?.fullName || t('staff_modal.no_info')
+                    : t('staff_modal.no_info');
+                })()}
+              </p>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type {
@@ -124,13 +125,7 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
   }, [canAccessMyBranches]);
 
   const fetchBranchDetail = async (branchId: string): Promise<BranchDisplay | null> => {
-    // Check if branch is already in branches list to avoid unnecessary API call
-    const existingBranch = branches.find((b) => b._id === branchId);
-    if (existingBranch) {
-      return existingBranch;
-    }
-
-    // Use public route for all users (including customers)
+    // Always fetch fresh data from API to ensure we have the latest manager information
     const response = await branchApi.getBranchDetail(branchId).catch(() => ({
       success: false,
       message: 'Network error - Failed to fetch branch detail',
@@ -227,15 +222,7 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
 
     setIsSwitchingBranch(true);
 
-    // Find branch in existing list first
-    const existingBranch = branches.find((b) => b._id === branchId);
-    if (existingBranch) {
-      setCurrentBranch(existingBranch);
-      setIsSwitchingBranch(false);
-      return;
-    }
-
-    // If not found, fetch from API using public route
+    // Always fetch fresh data from API to ensure we have the latest manager information
     const branchDetail = await fetchBranchDetail(branchId);
     if (branchDetail) {
       setCurrentBranch(branchDetail);
