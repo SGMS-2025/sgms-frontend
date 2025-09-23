@@ -370,6 +370,8 @@
   "toast.avatar_updated": "Avatar has been updated",
   "toast.discount_campaign_updated": "Discount campaign updated successfully!",
   "toast.discount_campaign_deleted": "Discount campaign deleted successfully!",
+  "toast.branch_status_updated_success": "Branch status updated successfully!",
+  "toast.branch_status_updated_failed": "Failed to update branch status",
   "branch_detail.new_image_selected": "New image selected",
   "add_branch.title": "Add branch",
   "add_branch.branch_name": "Branch name",

@@ -11,6 +11,8 @@ import type {
 import { branchApi } from '@/services/api/branchApi';
 import { convertBranchToDisplay } from '@/utils/branchUtils';
 import { useAuth } from './AuthContext';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 
 const BranchContext = createContext<BranchContextType | undefined>(undefined);
 
@@ -20,6 +22,7 @@ interface BranchProviderProps {
 
 export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
   const { state: authState } = useAuth();
+  const { t } = useTranslation();
   const [currentBranch, setCurrentBranch] = useState<BranchDisplay | null>(null);
   const [branches, setBranches] = useState<BranchDisplay[]>([]);
   const [loading, setLoading] = useState(false);
@@ -126,7 +129,8 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
 
   const fetchBranchDetail = async (branchId: string): Promise<BranchDisplay | null> => {
     // Always fetch fresh data from API to ensure we have the latest manager information
-    const response = await branchApi.getBranchDetail(branchId).catch(() => ({
+    // Use protected endpoint to get branch details regardless of active status
+    const response = await branchApi.getBranchDetailProtected(branchId).catch(() => ({
       success: false,
       message: 'Network error - Failed to fetch branch detail',
       data: null
@@ -194,10 +198,10 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
     }
   };
 
-  const toggleBranchStatus = async (branchId: string) => {
+  const toggleBranchStatus = async (branchId: string): Promise<BranchDisplay | null> => {
     // Only allow if user has permission
     if (!canAccessMyBranches) {
-      return;
+      return null;
     }
 
     const response = await branchApi.toggleBranchStatus(branchId).catch(() => ({
@@ -208,13 +212,25 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
 
     if (response.success && response.data) {
       const updatedBranch = convertBranchToDisplay(response.data);
+
+      // Update branches list
       setBranches((prev) => prev.map((branch) => (branch._id === branchId ? updatedBranch : branch)));
 
       // Update current branch if it's the one being updated
       if (currentBranch?._id === branchId) {
         setCurrentBranch(updatedBranch);
       }
+
+      // Show success toast
+      toast.success(t('toast.branch_status_updated_success'));
+
+      return updatedBranch; // Return updated branch for immediate use
     }
+
+    // Show error toast
+    toast.error(t('toast.branch_status_updated_failed'));
+
+    return null;
   };
 
   const switchBranch = async (branchId: string) => {

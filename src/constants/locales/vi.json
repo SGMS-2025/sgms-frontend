@@ -370,6 +370,8 @@
   "toast.avatar_updated": "Avatar đã được cập nhật",
   "toast.discount_campaign_updated": "Cập nhật chiến dịch giảm giá thành công!",
   "toast.discount_campaign_deleted": "Xóa chiến dịch giảm giá thành công!",
+  "toast.branch_status_updated_success": "Cập nhật trạng thái chi nhánh thành công!",
+  "toast.branch_status_updated_failed": "Cập nhật trạng thái chi nhánh thất bại",
   "branch_detail.new_image_selected": "Ảnh mới đã chọn",
   "add_branch.title": "Thêm chi nhánh",
   "add_branch.branch_name": "Tên chi nhánh",
