@@ -5,8 +5,8 @@ import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
+import ManagerSelector from '@/components/ui/ManagerSelector';
 import { Camera, Plus } from 'lucide-react';
 import { useBranch } from '@/contexts/BranchContext';
 import { staffApi } from '@/services/api/staffApi';
@@ -53,17 +53,6 @@ const AddBranchPage: React.FC = () => {
       setValue(
         'facilities',
         selectedFacilities.filter((f) => f !== facility)
-      );
-    }
-  };
-
-  const handleManagerChange = (managerId: string, checked: boolean) => {
-    if (checked) {
-      setValue('managerId', [...selectedManagers, managerId]);
-    } else {
-      setValue(
-        'managerId',
-        selectedManagers.filter((id) => id !== managerId)
       );
     }
   };
@@ -227,29 +216,21 @@ const AddBranchPage: React.FC = () => {
 
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-gray-700">{t('add_branch.manager')}</Label>
-                      <div className="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-3">
-                        {loadingManagers ? (
-                          <p className="text-sm text-gray-500">{t('add_branch.manager_loading')}</p>
-                        ) : managers.length === 0 ? (
-                          <p className="text-sm text-gray-500">{t('add_branch.no_managers_available')}</p>
-                        ) : (
-                          managers.map((manager) => (
-                            <div key={manager._id} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`manager-${manager._id}`}
-                                checked={selectedManagers.includes(manager._id)}
-                                onCheckedChange={(checked) => handleManagerChange(manager._id, checked as boolean)}
-                              />
-                              <label
-                                htmlFor={`manager-${manager._id}`}
-                                className="text-sm text-gray-700 cursor-pointer flex-1"
-                              >
-                                {manager.userId.fullName} - {manager.jobTitle}
-                              </label>
-                            </div>
-                          ))
-                        )}
-                      </div>
+                      {loadingManagers ? (
+                        <p className="text-sm text-gray-500">{t('add_branch.manager_loading')}</p>
+                      ) : (
+                        <ManagerSelector
+                          managers={managers.map((manager) => ({
+                            _id: manager._id,
+                            fullName: manager.userId.fullName,
+                            email: manager.userId.email,
+                            status: manager.userId.status
+                          }))}
+                          selectedManagerIds={selectedManagers}
+                          onManagerChange={(managerIds) => setValue('managerId', managerIds)}
+                          placeholder={t('add_branch.manager_placeholder')}
+                        />
+                      )}
                     </div>
 
                     <div className="space-y-2">

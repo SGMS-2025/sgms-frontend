@@ -122,11 +122,16 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
                       {(() => {
                         if (!currentBranch.managerId) return t('branch_selector.no_manager');
                         if (Array.isArray(currentBranch.managerId)) {
-                          return currentBranch.managerId.length > 0
-                            ? currentBranch.managerId[0].fullName
+                          const activeManagers = currentBranch.managerId.filter(
+                            (manager) => manager.status === 'ACTIVE'
+                          );
+                          return activeManagers.length > 0
+                            ? activeManagers[0].fullName
                             : t('branch_selector.no_manager');
                         }
-                        return currentBranch.managerId.fullName;
+                        return currentBranch.managerId.status === 'ACTIVE'
+                          ? currentBranch.managerId.fullName
+                          : t('branch_selector.no_manager');
                       })()}
                     </span>
                   </div>

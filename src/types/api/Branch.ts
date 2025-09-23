@@ -179,7 +179,7 @@ export interface BranchContextType {
   fetchBranchDetail: (branchId: string) => Promise<BranchDisplay | null>;
   createBranch: (data: CreateAndUpdateBranchRequest) => Promise<BranchDisplay | null>;
   updateBranchApi: (branchId: string, data: CreateAndUpdateBranchRequest) => Promise<BranchDisplay | null>;
-  toggleBranchStatus: (branchId: string) => Promise<void>;
+  toggleBranchStatus: (branchId: string) => Promise<BranchDisplay | null>;
   switchBranch: (branchId: string) => Promise<void>;
 }
 

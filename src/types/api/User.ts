@@ -58,4 +58,5 @@ export interface PopulatedUser {
   email: string;
   phoneNumber: string;
   role: string;
+  status: Status;
 }
