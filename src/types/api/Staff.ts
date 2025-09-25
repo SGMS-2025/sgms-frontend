@@ -108,9 +108,9 @@ export interface CreateStaffRequest {
   dateOfBirth?: string;
   address?: string;
   jobTitle: string;
-  branchId: string;
+  branchId: string[];
   salary?: number;
-  role: 'MANAGER' | 'TECHNICIAN' | 'PT' | 'CUSTOMER';
+  role: 'STAFF';
   status?: StaffStatus;
 }
 
@@ -127,7 +127,7 @@ export interface FormData {
   password?: string;
   confirmPassword?: string;
   profileImage?: string | null;
-  branchId?: string;
+  branchId?: string[]; // Always an array now
   salary?: string;
 }
 
@@ -171,7 +171,7 @@ export interface StaffFormData {
   email: string;
   jobTitle: StaffJobTitle;
   salary: string;
-  branchId: string;
+  branchId: string[];
   status: StaffStatus;
 }
 
@@ -186,7 +186,7 @@ export interface StaffUpdateData {
 
   // Staff fields
   jobTitle?: StaffJobTitle;
-  branchId?: string;
+  branchId?: string[]; // Always an array now
   salary?: number;
   status?: StaffStatus;
 }

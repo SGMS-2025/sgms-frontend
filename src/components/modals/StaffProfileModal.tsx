@@ -31,7 +31,7 @@ export default function StaffProfileModal({ isOpen, onClose, staff, initialEditM
     email: '',
     jobTitle: 'Personal Trainer',
     salary: '',
-    branchId: '',
+    branchId: [],
     status: 'ACTIVE'
   });
 
@@ -64,13 +64,17 @@ export default function StaffProfileModal({ isOpen, onClose, staff, initialEditM
         email: staffDetails.userId?.email || staff.email || '',
         jobTitle: staffDetails.jobTitle || (staff.jobTitle as StaffJobTitle) || 'Personal Trainer',
         salary: staffDetails.salary?.toString() || staff.salary || '',
-        branchId: staffDetails.branchId?._id || '',
+        branchId: Array.isArray(staffDetails.branchId)
+          ? staffDetails.branchId.map((branch) => branch._id).filter(Boolean)
+          : staffDetails.branchId?._id
+            ? [staffDetails.branchId._id]
+            : [],
         status: staffDetails.status || staff.status || 'ACTIVE'
       });
     }
   }, [staffDetails, staff]);
 
-  const handleInputChange = (field: keyof StaffFormData, value: string) => {
+  const handleInputChange = (field: keyof StaffFormData, value: string | string[]) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value
@@ -97,8 +101,8 @@ export default function StaffProfileModal({ isOpen, onClose, staff, initialEditM
     // Staff fields
     if (formData.jobTitle) updateData.jobTitle = formData.jobTitle;
     // Only include branchId if user is OWNER (managers cannot change branch)
-    if (formData.branchId && currentUser?.role === 'OWNER') {
-      updateData.branchId = formData.branchId;
+    if (formData.branchId.length > 0 && currentUser?.role === 'OWNER') {
+      updateData.branchId = formData.branchId; // Pass the entire array
     }
     if (formData.salary) updateData.salary = parseInt(formData.salary);
     if (formData.status) updateData.status = formData.status;
@@ -122,7 +126,11 @@ export default function StaffProfileModal({ isOpen, onClose, staff, initialEditM
         email: staffDetails.userId?.email || staff.email || '',
         jobTitle: staffDetails.jobTitle || (staff.jobTitle as StaffJobTitle) || 'Personal Trainer',
         salary: staffDetails.salary?.toString() || staff.salary || '',
-        branchId: staffDetails.branchId?._id || '',
+        branchId: Array.isArray(staffDetails.branchId)
+          ? staffDetails.branchId.map((branch) => branch._id).filter(Boolean)
+          : staffDetails.branchId?._id
+            ? [staffDetails.branchId._id]
+            : [],
         status: staffDetails.status || staff.status || 'ACTIVE'
       });
     }
