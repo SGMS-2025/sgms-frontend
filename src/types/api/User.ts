@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 export type Status = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
-export type Role = 'CUSTOMER' | 'STAFF' | 'OWNER' | 'SYSTEM_SUPPORT' | 'ADMIN';
+export type Role = 'STAFF' | 'OWNER' | 'ADMIN';
 
 export interface User {
   _id: string;

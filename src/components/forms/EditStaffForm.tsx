@@ -25,7 +25,7 @@ import {
 
 interface EditStaffFormProps {
   formData: StaffFormData;
-  onInputChange: (field: keyof StaffFormData, value: string) => void;
+  onInputChange: (field: keyof StaffFormData, value: string | string[]) => void;
   onSave: () => void;
   onCancel: () => void;
   t: (key: string) => string;
@@ -96,7 +96,12 @@ export default function EditStaffForm({
   };
 
   const handleInputChange = (field: keyof StaffFormData, value: string) => {
-    onInputChange(field, value);
+    if (field === 'branchId') {
+      // For branchId, we need to pass an array to onInputChange
+      onInputChange(field, [value]);
+    } else {
+      onInputChange(field, value);
+    }
     validateField(field, value);
   };
 
@@ -134,7 +139,9 @@ export default function EditStaffForm({
       newErrors.salary = salaryValidation.error || '';
     }
 
-    const branchValidation = validateBranchId(formData.branchId || '');
+    // Handle branchId as string array
+    const branchIdValue = formData.branchId[0] || '';
+    const branchValidation = validateBranchId(branchIdValue);
     if (!branchValidation.isValid) {
       newErrors.branchId = branchValidation.error || '';
     }
@@ -159,7 +166,8 @@ export default function EditStaffForm({
   // const canSelectManagerRole = currentUser?.role !== 'MANAGER';
 
   // Find the current branch name for display
-  const currentBranch = branches.find((branch) => branch._id === formData.branchId);
+  const branchIdForComparison = formData.branchId[0];
+  const currentBranch = branches.find((branch) => branch._id === branchIdForComparison);
 
   // Use currentBranchName prop if available, otherwise use found branch name
   const displayBranchName = currentBranchName || currentBranch?.branchName;
@@ -375,7 +383,7 @@ export default function EditStaffForm({
             </Label>
             {canEditBranch ? (
               <Select
-                value={formData.branchId}
+                value={formData.branchId[0] || ''}
                 onValueChange={(value) => handleInputChange('branchId', value)}
                 disabled={branchesLoading}
               >
