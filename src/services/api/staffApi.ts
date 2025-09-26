@@ -42,12 +42,9 @@ export const staffApi = {
     return response.data;
   },
 
-  // Update staff status
-  updateStaffStatus: async (
-    staffId: string,
-    status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
-  ): Promise<ApiResponse<Staff>> => {
-    const response = await api.patch(`/staff/${staffId}/status`, { status });
+  // Update staff status (automatically sets to DELETED)
+  updateStaffStatus: async (staffId: string): Promise<ApiResponse<Staff>> => {
+    const response = await api.patch(`/staff/${staffId}/status`);
     return response.data;
   },
 

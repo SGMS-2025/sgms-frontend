@@ -8,6 +8,11 @@ import { Label } from '@/components/ui/label';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { cn } from '@/utils/utils';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import { Calendar, Upload, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
 import { useCreateStaff } from '@/hooks/useStaff';
 import { useUser } from '@/hooks/useAuth';
@@ -240,6 +245,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [isUsernameManuallyEdited, setIsUsernameManuallyEdited] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<FormData>>({
     userType: 'manager',
     jobTitle: 'Manager',
@@ -365,6 +371,21 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
 
     // Ensure username is not empty and has reasonable length
     return cleanedUsername.substring(0, 20); // Limit to 20 characters
+  };
+
+  // Handle date selection
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      const formattedDate = format(date, 'yyyy-MM-dd');
+      handleInputChange('birthDate', formattedDate);
+
+      // Only close the date picker if the date is valid
+      // If there's an error, keep it open so user can see the validation message
+      const validation = validateDateOfBirthStaff(formattedDate);
+      if (validation.isValid) {
+        setDatePickerOpen(false);
+      }
+    }
   };
 
   const handleInputChange = (field: keyof FormData, value: string | string[]) => {
@@ -645,17 +666,38 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
                     <Label htmlFor="birthdate" className="text-sm font-medium text-gray-700">
                       {t('staff.birth_date')}
                     </Label>
-                    <div className="relative">
-                      <Input
-                        id="birthdate"
-                        type="date"
-                        className={`pr-10 ${errors.birthDate ? 'border-red-500' : ''}`}
-                        value={formData.birthDate || ''}
-                        onChange={(e) => handleInputChange('birthDate', e.target.value)}
-                        disabled={isLoading}
-                      />
-                      <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    </div>
+                    <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            'w-full justify-start text-left font-normal bg-white border-gray-200 hover:bg-gray-50 focus:border-orange-500',
+                            !formData.birthDate && 'text-muted-foreground',
+                            errors.birthDate && 'border-red-500 focus:border-red-500'
+                          )}
+                          disabled={isLoading}
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {formData.birthDate
+                            ? format(new Date(formData.birthDate + 'T00:00:00'), 'dd/MM/yyyy', { locale: vi })
+                            : t('staff.select_birth_date')}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 bg-white border-gray-200 shadow-lg" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={formData.birthDate ? new Date(formData.birthDate + 'T00:00:00') : undefined}
+                          onSelect={handleDateSelect}
+                          initialFocus
+                          locale={vi}
+                          className="bg-white border-0"
+                          fromYear={1950}
+                          toYear={new Date().getFullYear()}
+                          captionLayout="dropdown"
+                          disabled={(date) => date > new Date()}
+                        />
+                      </PopoverContent>
+                    </Popover>
                     {errors.birthDate && <p className="text-sm text-red-500 mt-1">{errors.birthDate}</p>}
                   </div>
 
