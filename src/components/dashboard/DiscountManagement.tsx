@@ -146,10 +146,11 @@ const DiscountManagement: React.FC = () => {
         endDate: data.endDate.toISOString()
       };
       await createCampaign(campaignData);
+      toast.success(t('discount.create_success'));
       setShowCreateForm(false);
       refetch();
     },
-    [createCampaign, refetch]
+    [createCampaign, refetch, t]
   );
 
   const handleUpdateCampaign = React.useCallback(

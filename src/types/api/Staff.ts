@@ -20,7 +20,7 @@ export interface Staff {
     };
     status: StaffStatus;
   };
-  branchId: {
+  branchId: Array<{
     _id: string;
     branchName: string;
     location: string;
@@ -31,7 +31,7 @@ export interface Staff {
       email: string;
       phoneNumber?: string;
     };
-  };
+  }>;
   status?: StaffStatus;
   salary: number;
   createdAt: string;
@@ -66,7 +66,13 @@ export interface StaffDisplay {
   email: string;
   phone: string;
   salary: string;
-  branch: string;
+  branch: string; // Primary branch name for display
+  branches: Array<{
+    _id: string;
+    branchName: string;
+    location: string;
+    hotline?: string;
+  }>; // All branches this staff belongs to
   status?: StaffStatus;
   selected?: boolean;
 }

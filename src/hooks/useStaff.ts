@@ -18,7 +18,8 @@ const transformStaffToDisplay = (staff: Staff): StaffDisplay => ({
   email: staff.userId.email,
   phone: staff.userId.phoneNumber || '',
   salary: staff.salary.toLocaleString('vi-VN'),
-  branch: staff.branchId.branchName,
+  branch: staff.branchId.length > 0 ? staff.branchId[0].branchName : '', // Primary branch for display
+  branches: staff.branchId, // All branches
   status: staff.status,
   selected: staff.selected || false
 });
@@ -230,16 +231,16 @@ export const useCreateStaff = () => {
   };
 };
 
-// Hook for updating staff status
+// Hook for updating staff status (automatically sets to DELETED)
 export const useUpdateStaffStatus = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const updateStaffStatus = useCallback(async (staffId: string, status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED') => {
+  const updateStaffStatus = useCallback(async (staffId: string) => {
     setLoading(true);
     setError(null);
 
-    const response = await staffApi.updateStaffStatus(staffId, status);
+    const response = await staffApi.updateStaffStatus(staffId);
 
     if (response.success) {
       setLoading(false);
