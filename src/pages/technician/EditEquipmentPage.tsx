@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { equipmentApi } from '../../services/api/equipmentApi';
-import { branchApi } from '../../services/api/branchApi';
+// Import hooks thay vì API trực tiếp
+import { useEquipmentDetails, useUpdateEquipment } from '../../hooks/useEquipment';
+import { useBranches } from '../../hooks/useBranches';
 import { validateEquipmentForm } from '../../utils/equipmentValidation';
-import type { Equipment, UpdateEquipmentRequest, CreateEquipmentRequest } from '../../types/api/Equipment';
-import type { Branch } from '../../types/api/Branch';
+import type { UpdateEquipmentRequest, CreateEquipmentRequest } from '../../types/api/Equipment';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { NotFoundMessage } from '../../components/common/NotFoundMessage';
 import { EquipmentForm } from '../../components/equipment/EquipmentForm';
@@ -26,69 +26,34 @@ export const EditEquipmentPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(false);
-  const [equipment, setEquipment] = useState<Equipment | null>(null);
+
+  // Sử dụng hooks thay vì state và API calls
+  const {
+    equipment,
+    loading: equipmentLoading,
+    error: equipmentError,
+    refetch: refetchEquipment
+  } = useEquipmentDetails(id || null);
+
+  const { branches, loading: branchesLoading } = useBranches();
+
+  // Update equipment mutation
+  const {
+    updateEquipment,
+    loading: updateLoading,
+    error: updateError,
+    resetError: resetUpdateError
+  } = useUpdateEquipment();
+
+  // Local state cho form
   const [formData, setFormData] = useState<UpdateEquipmentRequest>({});
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [branchesLoading, setBranchesLoading] = useState(false);
 
-  // Load branches
-  const loadBranches = useCallback(async () => {
-    setBranchesLoading(true);
-    const response = await branchApi.getBranchesWithAuth({ limit: 100 });
-    if (response.success && response.data) {
-      const branchesData = response.data.branches || [];
-      setBranches(branchesData);
-    } else {
-      // Fallback to public API if authenticated API fails
-      const fallbackResponse = await branchApi.getBranches({ limit: 100 });
-      if (fallbackResponse.success && fallbackResponse.data) {
-        const branchesData = fallbackResponse.data.branches || [];
-        setBranches(branchesData);
-      }
-    }
-    setBranchesLoading(false);
-  }, []);
-
-  const loadEquipment = useCallback(async () => {
-    setLoading(true);
-    const response = await equipmentApi.getEquipmentById(id!);
-    if (response.success && response.data) {
-      const data = response.data;
-      setEquipment(data);
-
-      const branchIdString = extractBranchId(data.branchId);
+  // Initialize form data when equipment is loaded
+  useEffect(() => {
+    if (equipment) {
+      const branchIdString = extractBranchId(equipment.branchId);
 
       setFormData({
-        equipmentCode: data.equipmentCode,
-        equipmentName: data.equipmentName,
-        category: data.category,
-        branchId: branchIdString,
-        manufacturer: data.manufacturer,
-        price: data.price,
-        dateOfPurchase: data.dateOfPurchase ? new Date(data.dateOfPurchase).toISOString().split('T')[0] : '',
-        warrantyExpirationDate: data.warrantyExpirationDate,
-        status: data.status,
-        location: data.location,
-        images: data.images
-      });
-    }
-    setLoading(false);
-  }, [id, branches.length]);
-
-  useEffect(() => {
-    if (id) {
-      loadBranches();
-      loadEquipment();
-    }
-  }, [id, loadEquipment, loadBranches]);
-
-  // Update formData when branches are loaded and equipment data is available
-  useEffect(() => {
-    if (equipment && branches.length > 0 && !formData.branchId) {
-      const branchIdString = extractBranchId(equipment.branchId);
-      setFormData((prev) => ({
-        ...prev,
         equipmentCode: equipment.equipmentCode,
         equipmentName: equipment.equipmentName,
         category: equipment.category,
@@ -100,9 +65,9 @@ export const EditEquipmentPage: React.FC = () => {
         status: equipment.status,
         location: equipment.location,
         images: equipment.images
-      }));
+      });
     }
-  }, [equipment, branches, formData.branchId]);
+  }, [equipment]);
 
   const handleFormDataChange = (data: CreateEquipmentRequest | UpdateEquipmentRequest) => {
     setFormData(data as UpdateEquipmentRequest);
@@ -127,40 +92,73 @@ export const EditEquipmentPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    if (!validateForm() || !id) {
       return;
     }
 
-    setLoading(true);
-    const response = await equipmentApi.updateEquipment(id!, formData);
+    // Update equipment using hook
+    const updatedEquipment = await updateEquipment(id, formData);
 
-    if (response.success && response.data) {
+    if (updatedEquipment) {
       toast.success(t('equipment.update_success'));
       navigate('/manage/technician/equipment');
-    } else {
-      toast.error(t('error.equipment_update_failed'));
     }
-
-    setLoading(false);
   };
+
+  // Loading state
+  const loading = equipmentLoading || branchesLoading || updateLoading;
+
+  // Error state
+  const error = equipmentError || updateError;
 
   if (loading && !equipment) {
     return <LoadingSpinner />;
   }
 
+  if (equipmentError && !equipment) {
+    return <NotFoundMessage message={t('equipment.not_found')} />;
+  }
+
   if (!equipment) {
-    return <NotFoundMessage />;
+    return <NotFoundMessage message={t('equipment.not_found')} />;
   }
 
   return (
-    <EquipmentForm
-      mode="edit"
-      formData={formData}
-      onFormDataChange={handleFormDataChange}
-      onSubmit={handleSubmit}
-      loading={loading}
-      branches={branches}
-      branchesLoading={branchesLoading}
-    />
+    <>
+      <EquipmentForm
+        mode="edit"
+        formData={formData}
+        onFormDataChange={handleFormDataChange}
+        onSubmit={handleSubmit}
+        loading={loading}
+        branches={branches}
+        branchesLoading={branchesLoading}
+      />
+
+      {/* Error Display */}
+      {error && (
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+          <div className="flex">
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">{t('common.error')}</h3>
+              <div className="mt-2 text-sm text-red-700">{error}</div>
+              <div className="mt-4">
+                <button
+                  onClick={() => {
+                    resetUpdateError();
+                    if (equipmentError) {
+                      refetchEquipment();
+                    }
+                  }}
+                  className="bg-red-100 px-2 py-1 text-sm font-medium text-red-800 rounded-md hover:bg-red-200"
+                >
+                  {t('common.dismiss')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };

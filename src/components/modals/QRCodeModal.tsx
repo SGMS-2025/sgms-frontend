@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Download, RefreshCw, Copy, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { equipmentApi } from '../../services/api/equipmentApi';
+import { useEquipmentQR } from '../../hooks/useEquipmentQR';
 import type { Equipment } from '../../types/api/Equipment';
 import { downloadQRCodeFile, copyToClipboard } from '../../utils/qrCodeUtils';
 
@@ -22,7 +22,6 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
   showSuccessToast = true
 }) => {
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(false);
   const [qrImageUrl, setQrImageUrl] = useState<string>('');
   const [qrData, setQrData] = useState<string>('');
   const [copied, setCopied] = useState(false);
@@ -30,61 +29,40 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
   const [qrGenerating, setQrGenerating] = useState(false);
   const hasGeneratedRef = useRef(false);
 
-  // Helper function to translate error codes to localized messages
-  const translateError = (errorMessage: string): string => {
-    // Extract error code from error message
-    const errorCode = errorMessage.split(':')[0];
+  // Sử dụng hooks thay vì API calls
+  const { generateQRCode, downloadQRCode, loading, error, resetError } = useEquipmentQR();
 
-    // Map error codes to translation keys
-    const errorCodeMap: Record<string, string> = {
-      QR_CODE_GENERATION_FAILED: 'equipment.qr_code_error',
-      QR_CODE_DOWNLOAD_FAILED: 'equipment.qr_code_download_error',
-      QR_CODE_NOT_FOUND: 'equipment.qr_code_error',
-      EQUIPMENT_NOT_FOUND: 'equipment.qr_code_error'
-    };
-
-    const translationKey = errorCodeMap[errorCode];
-    if (translationKey) {
-      return t(translationKey);
-    }
-
-    // If no mapping found, return the original message
-    return errorMessage;
-  };
-
-  const generateQRCode = useCallback(async () => {
+  const handleGenerateQRCode = useCallback(async () => {
     if (!equipment || loading || qrGenerating || hasGeneratedRef.current) return; // Tránh gọi nhiều lần đồng thời
 
-    setLoading(true);
     setQrGenerating(true);
     hasGeneratedRef.current = true; // Đánh dấu đã generate
 
-    const response = await equipmentApi.generateQRCode(equipment._id);
+    const response = await generateQRCode(equipment._id);
 
-    if (response.success && response.data) {
-      setQrImageUrl(response.data.qrCode?.url || '');
-      setQrData(response.data.qrCode?.data || '');
+    if (response) {
+      setQrImageUrl(response.qrCode?.url || '');
+      setQrData(response.qrCode?.data || '');
       setQrLoaded(true);
 
-      if (onQRGenerated) {
-        onQRGenerated(response.data);
-      }
+      // Don't call onQRGenerated here to avoid modal closing
+      // if (onQRGenerated) {
+      //   console.log('QRCodeModal - calling onQRGenerated callback');
+      //   onQRGenerated(response);
+      // }
 
       if (showSuccessToast) {
         toast.success(t('equipment.qr_code_generated'));
       }
     } else {
-      toast.error(translateError(response.message || '') || t('equipment.qr_code_error'));
+      toast.error(t('equipment.qr_code_error'));
     }
 
-    setLoading(false);
     setQrGenerating(false);
-  }, [equipment?._id, onQRGenerated, t, showSuccessToast]);
+  }, [equipment?._id, onQRGenerated, t, showSuccessToast, generateQRCode, loading]);
 
   const loadQRCode = useCallback(async () => {
     if (!equipment || loading || qrLoaded || qrGenerating || hasGeneratedRef.current) return; // Tránh gọi nhiều lần đồng thời
-
-    setLoading(true);
 
     // Nếu equipment đã có QR code, sử dụng URL hiện có
     if (equipment.qrCode?.url) {
@@ -96,12 +74,11 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
         setQrData('');
       }
       setQrLoaded(true);
-      setLoading(false);
     } else {
       // Nếu chưa có QR code, generate mới
-      await generateQRCode();
+      await handleGenerateQRCode();
     }
-  }, [equipment, loading, qrLoaded, qrGenerating]);
+  }, [equipment, loading, qrLoaded, qrGenerating, handleGenerateQRCode]);
 
   useEffect(() => {
     if (isOpen && equipment && !qrLoaded && !hasGeneratedRef.current) {
@@ -128,14 +105,9 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
   const handleDownload = async () => {
     if (!equipment) return;
 
-    const blob = await equipmentApi.downloadQRCode(equipment._id);
-
-    if (blob) {
-      downloadQRCodeFile(blob, equipment.equipmentCode, equipment.equipmentName);
-      toast.success(t('equipment.qr_code_downloaded'));
-    } else {
-      toast.error(t('equipment.qr_code_download_error'));
-    }
+    const blob = await downloadQRCode(equipment._id);
+    downloadQRCodeFile(blob, equipment.equipmentCode, equipment.equipmentName);
+    toast.success(t('equipment.qr_code_downloaded'));
   };
 
   const handleCopyData = async () => {
@@ -168,6 +140,16 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
 
         {/* Content */}
         <div className="p-6">
+          {/* Error Display */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <div className="text-sm text-red-700">{error}</div>
+              <button onClick={resetError} className="mt-2 text-xs text-red-600 hover:text-red-800">
+                {t('common.dismiss')}
+              </button>
+            </div>
+          )}
+
           {/* Equipment Info */}
           <div className="mb-6 p-4 bg-gray-50 rounded-lg">
             <h3 className="font-medium text-gray-900 mb-2">{t('equipment.qr_code_info')}</h3>
@@ -216,7 +198,7 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
               <div className="text-center py-8">
                 <p className="text-gray-600 mb-4">{t('equipment.qr_code_error')}</p>
                 <button
-                  onClick={generateQRCode}
+                  onClick={handleGenerateQRCode}
                   disabled={loading}
                   className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center mx-auto"
                 >

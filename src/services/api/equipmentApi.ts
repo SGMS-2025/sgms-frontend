@@ -163,7 +163,13 @@ class EquipmentApi {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
-      withCredentials: true
+      withCredentials: true,
+      timeout: 60000, // 60 seconds timeout for large files
+      onUploadProgress: (progressEvent) => {
+        // Optional: Add progress tracking if needed
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+        console.log(`Upload Progress: ${percentCompleted}%`);
+      }
     });
 
     return response.data;

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Download, Upload, FileSpreadsheet, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { equipmentApi } from '../../services/api/equipmentApi';
+import { useEquipmentExcel } from '../../hooks/useEquipmentExcel';
 import type { Branch } from '../../types/api/Branch';
 import type { ExcelImportResult } from '../../types/api/Equipment';
 
@@ -19,6 +19,16 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
   const { t } = useTranslation();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  // Sử dụng hooks thay vì API calls
+  const { downloadTemplate, importFromExcel, loading, error, resetError } = useEquipmentExcel();
+
+  // Reset error when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      resetError();
+    }
+  }, [isOpen, resetError]);
+
   // Helper function to handle interpolation manually
   const interpolate = (key: string, values: Record<string, string | number>): string => {
     let message = t(key);
@@ -28,81 +38,94 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
     return message;
   };
 
-  // Helper function to translate error codes to localized messages
-  const translateError = (errorMessage: string): string => {
-    // Extract error code from error message
-    const errorCode = errorMessage.split(':')[0];
-
-    // Map error codes to translation keys
-    const errorCodeMap: Record<string, string> = {
-      EQUIPMENT_NAME_REQUIRED: 'equipment.excel_import_error_equipment_name_required',
-      EQUIPMENT_CATEGORY_REQUIRED: 'equipment.excel_import_error_equipment_category_required',
-      EQUIPMENT_CATEGORY_INVALID: 'equipment.excel_import_error_equipment_category_invalid',
-      EQUIPMENT_MANUFACTURER_REQUIRED: 'equipment.excel_import_error_equipment_manufacturer_required',
-      EQUIPMENT_PRICE_REQUIRED: 'equipment.excel_import_error_equipment_price_required',
-      EQUIPMENT_PRICE_INVALID: 'equipment.excel_import_error_equipment_price_invalid',
-      EQUIPMENT_PRICE_POSITIVE: 'equipment.excel_import_error_equipment_price_positive',
-      EQUIPMENT_PURCHASE_DATE_REQUIRED: 'equipment.excel_import_error_equipment_purchase_date_required',
-      EQUIPMENT_PURCHASE_DATE_FORMAT: 'equipment.excel_import_error_equipment_purchase_date_format',
-      EQUIPMENT_PURCHASE_DATE_INVALID: 'equipment.excel_import_error_equipment_purchase_date_invalid',
-      EQUIPMENT_WARRANTY_DATE_REQUIRED: 'equipment.excel_import_error_equipment_warranty_date_required',
-      EQUIPMENT_WARRANTY_DATE_FORMAT: 'equipment.excel_import_error_equipment_warranty_date_format',
-      EQUIPMENT_WARRANTY_DATE_INVALID: 'equipment.excel_import_error_equipment_warranty_date_invalid',
-      EQUIPMENT_STATUS_REQUIRED: 'equipment.excel_import_error_equipment_status_required',
-      EQUIPMENT_STATUS_INVALID: 'equipment.excel_import_error_equipment_status_invalid',
-      EXCEL_VALIDATION_ERRORS: 'equipment.excel_import_validation_errors',
-      QR_CODE_DATA_REQUIRED: 'equipment.qr_code_data_required',
-      NO_FILE_UPLOADED: 'equipment.no_file_uploaded',
-      EXCEL_FILE_REQUIRED: 'equipment.excel_file_required',
-      BRANCH_ID_REQUIRED: 'equipment.branch_id_required',
-      EXCEL_NO_DATA: 'equipment.excel_no_data',
-      TEMPLATE_DOWNLOAD_ERROR: 'equipment.excel_template_download_error'
-    };
-
-    const translationKey = errorCodeMap[errorCode];
-    if (translationKey) {
-      const translatedMessage = t(translationKey);
-      // If there's additional info after the colon, append it
-      const additionalInfo = errorMessage.includes(':')
-        ? errorMessage.substring(errorMessage.indexOf(':') + 1).trim()
-        : '';
-
-      if (additionalInfo) {
-        // Handle special format for category/status invalid errors
-        if (errorCode === 'EQUIPMENT_CATEGORY_INVALID' || errorCode === 'EQUIPMENT_STATUS_INVALID') {
-          if (additionalInfo.includes('|')) {
-            const [invalidValue, validValues] = additionalInfo.split('|');
-            return `${translatedMessage} ${invalidValue}. ${t('common.valid_values')}: ${validValues}`;
-          }
-        }
-
-        // Handle special format for price invalid errors
-        if (errorCode === 'EQUIPMENT_PRICE_INVALID') {
-          if (additionalInfo.includes('|')) {
-            const [invalidValue, example1, example2] = additionalInfo.split('|');
-            return `${translatedMessage} ${invalidValue}. ${t('equipment.price_must_be_positive')} (${t('common.example')}: ${example1} ${t('common.or')} ${example2})`;
-          }
-        }
-
-        // Handle special format for date format errors
-        if (errorCode === 'EQUIPMENT_PURCHASE_DATE_FORMAT' || errorCode === 'EQUIPMENT_WARRANTY_DATE_FORMAT') {
-          if (additionalInfo.includes('|')) {
-            const [invalidValue, format, example] = additionalInfo.split('|');
-            return `${translatedMessage} ${invalidValue}. ${t('common.correct_format')}: ${format} (${t('common.example')}: ${example})`;
-          }
-        }
-
-        return `${translatedMessage} ${additionalInfo}`;
+  // Helper function to format error messages from backend
+  const formatErrorMessage = (errorMessage: string): string => {
+    // Handle simple error codes without details (like EQUIPMENT_PURCHASE_DATE_REQUIRED)
+    if (!errorMessage.includes(':')) {
+      switch (errorMessage.trim()) {
+        case 'EQUIPMENT_NAME_REQUIRED':
+          return t('equipment.excel_import_error_equipment_name_required');
+        case 'EQUIPMENT_MANUFACTURER_REQUIRED':
+          return t('equipment.excel_import_error_equipment_manufacturer_required');
+        case 'EQUIPMENT_PRICE_REQUIRED':
+          return t('equipment.excel_import_error_equipment_price_required');
+        case 'EQUIPMENT_PURCHASE_DATE_REQUIRED':
+          return t('equipment.excel_import_error_equipment_purchase_date_required');
+        case 'EQUIPMENT_WARRANTY_DATE_REQUIRED':
+          return t('equipment.excel_import_error_equipment_warranty_date_required');
+        case 'EQUIPMENT_STATUS_REQUIRED':
+          return t('equipment.excel_import_error_equipment_status_required');
+        case 'EQUIPMENT_CATEGORY_REQUIRED':
+          return t('equipment.excel_import_error_equipment_category_required');
+        default:
+          return errorMessage;
       }
-      return translatedMessage;
     }
 
-    // Fallback to original message if no translation found
+    const [errorCode, details] = errorMessage.split(':');
+    const cleanDetails = details.trim();
+
+    switch (errorCode) {
+      case 'EQUIPMENT_CATEGORY_INVALID':
+        if (cleanDetails.includes('|')) {
+          const [invalidValue, validValues] = cleanDetails.split('|');
+          return t('equipment.excel_import_error_equipment_category_invalid', {
+            invalidValue: invalidValue.trim(),
+            validValues: validValues.trim()
+          });
+        }
+        break;
+
+      case 'EQUIPMENT_PRICE_INVALID':
+        if (cleanDetails.includes('|')) {
+          const [invalidValue, ...examples] = cleanDetails.split('|');
+          return t('equipment.excel_import_error_equipment_price_invalid', {
+            invalidValue: invalidValue.trim(),
+            examples: examples.join(', ')
+          });
+        }
+        break;
+
+      case 'EQUIPMENT_STATUS_INVALID':
+        if (cleanDetails.includes('|')) {
+          const [invalidValue, validValues] = cleanDetails.split('|');
+          return t('equipment.excel_import_error_equipment_status_invalid', {
+            invalidValue: invalidValue.trim(),
+            validValues: validValues.trim()
+          });
+        }
+        break;
+
+      case 'EQUIPMENT_PURCHASE_DATE_FORMAT':
+        if (cleanDetails.includes('|')) {
+          const [invalidValue, correctFormat, example] = cleanDetails.split('|');
+          return t('equipment.excel_import_error_equipment_purchase_date_format', {
+            invalidValue: invalidValue.trim(),
+            correctFormat: correctFormat.trim(),
+            example: example.trim()
+          });
+        }
+        break;
+
+      case 'EQUIPMENT_WARRANTY_DATE_FORMAT':
+        if (cleanDetails.includes('|')) {
+          const [invalidValue, correctFormat, example] = cleanDetails.split('|');
+          return t('equipment.excel_import_error_equipment_warranty_date_format', {
+            invalidValue: invalidValue.trim(),
+            correctFormat: correctFormat.trim(),
+            example: example.trim()
+          });
+        }
+        break;
+
+      default:
+        return errorMessage;
+    }
+
     return errorMessage;
   };
 
   const [selectedBranchId, setSelectedBranchId] = useState<string>('');
-  const [loading, setLoading] = useState(false);
   const [importResult, setImportResult] = useState<ExcelImportResult | null>(null);
   const [step, setStep] = useState<'upload' | 'result'>('upload');
 
@@ -132,10 +155,10 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
   };
 
   const handleDownloadTemplate = async () => {
-    const response = await equipmentApi.downloadEquipmentTemplate();
+    const blob = await downloadTemplate();
 
-    if (response) {
-      const url = window.URL.createObjectURL(response);
+    if (blob) {
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = 'equipment_import_template.xlsx';
@@ -145,8 +168,6 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
       window.URL.revokeObjectURL(url);
 
       toast.success(t('equipment.excel_template_downloaded'));
-    } else {
-      toast.error(t('equipment.excel_template_download_error'));
     }
   };
 
@@ -156,104 +177,50 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
       return;
     }
 
-    setLoading(true);
+    // Validate file is still valid
+    if (!selectedFile.size) {
+      toast.error('File is empty or corrupted. Please select a valid file.');
+      return;
+    }
 
-    try {
-      const response = await equipmentApi.importEquipmentFromExcel(selectedFile, selectedBranchId);
+    // Reset any previous errors
+    resetError();
 
-      if (response.success && response.data) {
-        setImportResult(response.data);
-        setStep('result');
+    const result = await importFromExcel(selectedFile, selectedBranchId);
 
-        if (response.data.successCount > 0) {
-          toast.success(interpolate('equipment.excel_import_success', { count: response.data.successCount }));
-          if (onImportSuccess) {
-            onImportSuccess();
-          }
-        }
+    if (result) {
+      setImportResult(result);
+      setStep('result');
 
-        if (response.data.errorCount > 0) {
-          toast.error(interpolate('equipment.excel_import_error', { count: response.data.errorCount }));
-        }
-      } else {
-        // Handle validation errors - check if response has error structure from backend
-        const errorResponse = response as unknown as {
-          error?: {
-            meta?: {
-              successCount?: number;
-              errorCount?: number;
-              totalCount?: number;
-              errors?: Array<{
-                row: number;
-                equipmentName?: string;
-                error?: string;
-                errors?: string[];
-              }>;
-            };
-          };
-        };
-        if (errorResponse.error && errorResponse.error.meta) {
-          // Create ExcelImportResult from error response
-          const errorResult: ExcelImportResult = {
-            successCount: errorResponse.error.meta.successCount || 0,
-            errorCount: errorResponse.error.meta.errorCount || 0,
-            totalCount: errorResponse.error.meta.totalCount || 0,
-            errors: errorResponse.error.meta.errors || [],
-            importedEquipment: []
-          };
-          setImportResult(errorResult);
-          setStep('result');
-
-          if (errorResult.errorCount > 0) {
-            toast.error(interpolate('equipment.excel_import_error', { count: errorResult.errorCount }));
-          }
-        } else {
-          toast.error(translateError(response.message || '') || t('equipment.excel_import_failed'));
+      if (result.successCount > 0) {
+        toast.success(interpolate('equipment.excel_import_success', { count: result.successCount }));
+        if (onImportSuccess) {
+          onImportSuccess();
         }
       }
-    } catch (error) {
-      // Check if error has response data with validation errors
-      const errorResponse = (
-        error as unknown as {
-          response?: {
-            data?: {
-              error?: {
-                meta?: {
-                  successCount?: number;
-                  errorCount?: number;
-                  totalCount?: number;
-                  errors?: Array<{
-                    row: number;
-                    equipmentName?: string;
-                    error?: string;
-                    errors?: string[];
-                  }>;
-                };
-              };
-            };
-          };
-        }
-      )?.response?.data;
-      if (errorResponse && errorResponse.error && errorResponse.error.meta) {
-        // Create ExcelImportResult from error response
-        const errorResult: ExcelImportResult = {
-          successCount: errorResponse.error.meta.successCount || 0,
-          errorCount: errorResponse.error.meta.errorCount || 0,
-          totalCount: errorResponse.error.meta.totalCount || 0,
-          errors: errorResponse.error.meta.errors || [],
-          importedEquipment: []
-        };
-        setImportResult(errorResult);
-        setStep('result');
 
-        if (errorResult.errorCount > 0) {
-          toast.error(interpolate('equipment.excel_import_error', { count: errorResult.errorCount }));
-        }
-      } else {
-        toast.error(t('equipment.excel_import_failed'));
+      if (result.errorCount > 0) {
+        // Show failure toast and let modal display detailed errors
+        toast.error(interpolate('equipment.excel_import_error', { count: result.errorCount }));
       }
-    } finally {
-      setLoading(false);
+    } else {
+      // Network error - create error result and go to result step
+      const errorResult: ExcelImportResult = {
+        successCount: 0,
+        errorCount: 1,
+        errors: [
+          {
+            row: 0,
+            equipmentName: 'Network Error',
+            errors: [error || 'Failed to import equipment from Excel']
+          }
+        ],
+        totalCount: 0,
+        importedEquipment: []
+      };
+      setImportResult(errorResult);
+      setStep('result');
+      toast.error(t('equipment.excel_import_network_error'));
     }
   };
 
@@ -262,6 +229,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
     setSelectedBranchId('');
     setImportResult(null);
     setStep('upload');
+    resetError();
     onClose();
   };
 
@@ -270,6 +238,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
     setSelectedBranchId('');
     setImportResult(null);
     setStep('upload');
+    resetError();
   };
 
   if (!isOpen) return null;
@@ -422,17 +391,17 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({ isOpen, onCl
                                 {error.errors && error.errors.length > 0 ? (
                                   <ul className="mt-1 ml-4 list-disc">
                                     {error.errors.map((err, errIndex) => (
-                                      <li key={errIndex}>{translateError(err)}</li>
+                                      <li key={errIndex}>{formatErrorMessage(err)}</li>
                                     ))}
                                   </ul>
                                 ) : (
-                                  <div className="mt-1">{error.error ? translateError(error.error) : ''}</div>
+                                  <div className="mt-1">{error.error || ''}</div>
                                 )}
                               </div>
                             ))}
                             {importResult.errors.length > 10 && (
                               <div className="text-xs text-red-600 italic">
-                                ... và {importResult.errors.length - 10} lỗi khác
+                                {t('equipment.excel_import_more_errors', { count: importResult.errors.length - 10 })}
                               </div>
                             )}
                           </div>

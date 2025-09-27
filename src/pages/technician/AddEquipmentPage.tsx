@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { equipmentApi } from '../../services/api/equipmentApi';
-import { staffApi } from '../../services/api/staffApi';
-import { branchApi } from '../../services/api/branchApi';
+// Import hooks thay vì API trực tiếp
+import { useCreateEquipment } from '../../hooks/useEquipment';
+import { useBranches } from '../../hooks/useBranches';
+import { useCurrentUserStaff } from '../../hooks/useCurrentUserStaff';
 import { validateEquipmentForm } from '../../utils/equipmentValidation';
 import type { CreateEquipmentRequest, UpdateEquipmentRequest, Equipment } from '../../types/api/Equipment';
-import type { Staff } from '../../types/api/Staff';
-import type { Branch } from '../../types/api/Branch';
 import { QRCodeModal } from '../../components/modals/QRCodeModal';
 import { ExcelImportModal } from '../../components/modals/ExcelImportModal';
 import { EquipmentForm } from '../../components/equipment/EquipmentForm';
@@ -16,12 +15,20 @@ import { EquipmentForm } from '../../components/equipment/EquipmentForm';
 export const AddEquipmentPage: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(false);
-  const [staffInfo, setStaffInfo] = useState<Staff | null>(null);
-  const [staffLoading, setStaffLoading] = useState(true);
-  const [staffError, setStaffError] = useState<string | null>(null);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [branchesLoading, setBranchesLoading] = useState(false);
+
+  // Sử dụng hooks thay vì state và API calls
+  const { currentStaff, loading: userLoading } = useCurrentUserStaff();
+  const { branches, loading: branchesLoading } = useBranches();
+
+  // Create equipment mutation
+  const {
+    createEquipment,
+    loading: createLoading,
+    error: createError,
+    resetError: resetCreateError
+  } = useCreateEquipment();
+
+  // Local state cho UI
   const [showQRModal, setShowQRModal] = useState(false);
   const [createdEquipment, setCreatedEquipment] = useState<Equipment | null>(null);
   const [showExcelImportModal, setShowExcelImportModal] = useState(false);
@@ -38,41 +45,32 @@ export const AddEquipmentPage: React.FC = () => {
     images: []
   });
 
-  // Load branches with role-based filtering
-  const loadBranches = async () => {
-    setBranchesLoading(true);
-    const response = await branchApi.getBranchesWithAuth({ limit: 100 });
-    if (response.success && response.data) {
-      setBranches(response.data.branches || []);
-    } else {
-      // Fallback to public API if authenticated API fails
-      const fallbackResponse = await branchApi.getBranches({ limit: 100 });
-      if (fallbackResponse.success && fallbackResponse.data) {
-        setBranches(fallbackResponse.data.branches || []);
-      }
+  // Filter branches based on user role
+  const filteredBranches = React.useMemo(() => {
+    if (!currentStaff) return branches;
+
+    if (currentStaff.isOwner || currentStaff.isAdmin) {
+      return branches; // Show all branches
     }
-    setBranchesLoading(false);
-  };
 
-  // Load staff info on mount
+    // For STAFF, only show branches they have access to
+    if (currentStaff.branchId) {
+      const userBranchIds = currentStaff.branchId.map((branch) => branch._id);
+      return branches.filter((branch) => userBranchIds.includes(branch._id));
+    }
+
+    return branches;
+  }, [currentStaff, branches]);
+
+  // Auto-select first branch for STAFF if they only have access to one branch
   useEffect(() => {
-    const loadStaffInfo = async () => {
-      setStaffLoading(true);
-      setStaffError(null);
-      const response = await staffApi.getMyStaffInfo();
-      if (response.success && response.data) {
-        setStaffInfo(response.data);
-
-        // Luôn load danh sách branches cho tất cả user
-        await loadBranches();
-      } else {
-        setStaffError('Không thể tải thông tin nhân viên');
-      }
-      setStaffLoading(false);
-    };
-
-    loadStaffInfo();
-  }, []);
+    if (currentStaff && !currentStaff.isOwner && !currentStaff.isAdmin && filteredBranches.length === 1) {
+      setFormData((prev) => ({
+        ...prev,
+        branchId: filteredBranches[0]._id
+      }));
+    }
+  }, [currentStaff, filteredBranches]);
 
   const handleFormDataChange = (data: CreateEquipmentRequest | UpdateEquipmentRequest) => {
     setFormData(data as CreateEquipmentRequest);
@@ -101,37 +99,33 @@ export const AddEquipmentPage: React.FC = () => {
       return;
     }
 
-    setLoading(true);
-    const response = await equipmentApi.createEquipment(formData);
+    // Create equipment using hook
+    const newEquipment = await createEquipment(formData);
 
-    if (response.success && response.data) {
-      setCreatedEquipment(response.data);
+    if (newEquipment) {
+      setCreatedEquipment(newEquipment);
       setShowQRModal(true);
       toast.success(t('success.equipment_created'));
-    } else {
-      toast.error(t('error.equipment_creation_failed'));
-    }
 
-    setLoading(false);
+      // Reset form
+      setFormData({
+        equipmentName: '',
+        category: 'STRENGTH',
+        branchId: '',
+        manufacturer: '',
+        price: '',
+        dateOfPurchase: '',
+        warrantyExpirationDate: '',
+        status: 'ACTIVE',
+        location: '',
+        images: []
+      });
+    }
   };
 
   const handleQRModalClose = () => {
     setShowQRModal(false);
     setCreatedEquipment(null);
-    // Reset form sau khi đóng modal
-    setFormData({
-      equipmentCode: '',
-      equipmentName: '',
-      category: 'STRENGTH',
-      branchId: '',
-      manufacturer: '',
-      price: '',
-      dateOfPurchase: '',
-      warrantyExpirationDate: '',
-      status: 'ACTIVE',
-      location: '',
-      images: []
-    });
     // Navigate về trang danh sách thiết bị
     navigate('/manage/technician/equipment');
   };
@@ -139,6 +133,18 @@ export const AddEquipmentPage: React.FC = () => {
   const handleQRGenerated = (equipment: Equipment) => {
     setCreatedEquipment(equipment);
   };
+
+  // Handle Excel import success
+  const handleExcelImportSuccess = () => {
+    setShowExcelImportModal(false);
+    navigate('/manage/technician/equipment');
+  };
+
+  // Loading state
+  const loading = userLoading || branchesLoading || createLoading;
+
+  // Error state
+  const error = createError;
 
   return (
     <>
@@ -148,10 +154,9 @@ export const AddEquipmentPage: React.FC = () => {
         onFormDataChange={handleFormDataChange}
         onSubmit={handleSubmit}
         loading={loading}
-        staffInfo={staffInfo}
-        staffLoading={staffLoading}
-        staffError={staffError}
-        branches={branches}
+        staffInfo={currentStaff}
+        staffLoading={userLoading}
+        branches={filteredBranches}
         branchesLoading={branchesLoading}
         onShowExcelImport={() => setShowExcelImportModal(true)}
       />
@@ -171,12 +176,30 @@ export const AddEquipmentPage: React.FC = () => {
       {showExcelImportModal && (
         <ExcelImportModal
           isOpen={showExcelImportModal}
-          branches={branches}
+          branches={filteredBranches}
           onClose={() => setShowExcelImportModal(false)}
-          onImportSuccess={() => {
-            setShowExcelImportModal(true);
-          }}
+          onImportSuccess={handleExcelImportSuccess}
         />
+      )}
+
+      {/* Error Display */}
+      {error && (
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+          <div className="flex">
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">{t('common.error')}</h3>
+              <div className="mt-2 text-sm text-red-700">{error}</div>
+              <div className="mt-4">
+                <button
+                  onClick={resetCreateError}
+                  className="bg-red-100 px-2 py-1 text-sm font-medium text-red-800 rounded-md hover:bg-red-200"
+                >
+                  {t('common.dismiss')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

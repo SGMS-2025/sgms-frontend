@@ -16,7 +16,6 @@ interface EquipmentFormProps {
   loading?: boolean;
   staffInfo?: Staff | null;
   staffLoading?: boolean;
-  staffError?: string | null;
   branches?: Branch[];
   branchesLoading?: boolean;
   onShowExcelImport?: () => void;
@@ -30,7 +29,6 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
   loading = false,
   staffInfo,
   staffLoading = false,
-  staffError,
   branches = [],
   branchesLoading = false,
   onShowExcelImport
@@ -136,20 +134,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
                       <p className="text-xs text-orange-600">{t('equipment.select_branch_below')}</p>
                     </div>
                   </div>
-                ) : (
-                  <div className="rounded-2xl border border-red-100 bg-red-50 p-4">
-                    <p className="text-sm text-red-800 mb-3">
-                      <span className="font-medium">{t('common.error')}:</span>{' '}
-                      {staffError || t('equipment.staff_error')}
-                    </p>
-                    <button
-                      onClick={() => window.location.reload()}
-                      className="rounded-full bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700"
-                    >
-                      {t('equipment.reload_page')}
-                    </button>
-                  </div>
-                )}
+                ) : null}
               </>
             )}
 

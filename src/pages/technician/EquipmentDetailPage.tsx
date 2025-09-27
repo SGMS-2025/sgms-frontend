@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Plus, Wrench, Dumbbell } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { QRCodeButton } from '../../components/QRCodeButton';
 // TechnicianSidebar is now handled by TechnicianLayout
-import { equipmentApi } from '../../services/api/equipmentApi';
-import type { Equipment } from '../../types/api/Equipment';
+import { useEquipmentDetails, useAddMaintenanceLog } from '../../hooks/useEquipment';
 import { getEquipmentStatusDisplay, EQUIPMENT_CATEGORY_DISPLAY } from '../../types/api/Equipment';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { NotFoundMessage } from '../../components/common/NotFoundMessage';
@@ -15,40 +14,41 @@ export const EquipmentDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [equipment, setEquipment] = useState<Equipment | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  // Sử dụng hooks thay vì state và API calls
+  const {
+    equipment,
+    loading: equipmentLoading,
+    error: equipmentError,
+    refetch: refetchEquipment
+  } = useEquipmentDetails(id || null);
+
+  // Add maintenance log mutation
+  const {
+    addMaintenanceLog,
+    loading: maintenanceLoading,
+    error: maintenanceError,
+    resetError: resetMaintenanceError
+  } = useAddMaintenanceLog();
+
+  // Local state cho modal
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
   const [maintenanceDescription, setMaintenanceDescription] = useState('');
 
-  useEffect(() => {
-    if (id) {
-      loadEquipment();
-    }
-  }, [id]);
-
-  const loadEquipment = async () => {
-    setLoading(true);
-    const response = await equipmentApi.getEquipmentById(id!);
-    if (response.success && response.data) {
-      setEquipment(response.data);
-    }
-    setLoading(false);
-  };
+  // Không cần useEffect để load equipment, hook tự động load
 
   const handleAddMaintenanceLog = async () => {
     if (!equipment || !maintenanceDescription.trim()) return;
 
-    const response = await equipmentApi.addMaintenanceLog(equipment._id, {
+    const result = await addMaintenanceLog(equipment._id, {
       description: maintenanceDescription
     });
 
-    if (response.success) {
+    if (result) {
       setMaintenanceDescription('');
       setShowMaintenanceModal(false);
-      loadEquipment();
+      refetchEquipment(); // Refresh equipment data
       toast.success(t('equipment.maintenance_log_added'));
-    } else {
-      toast.error(t('equipment.maintenance_log_failed'));
     }
   };
 
@@ -56,12 +56,22 @@ export const EquipmentDetailPage: React.FC = () => {
     return getEquipmentStatusDisplay(status, t);
   };
 
-  if (loading) {
+  // Loading state
+  const loading = equipmentLoading || maintenanceLoading;
+
+  // Error state
+  const error = equipmentError || maintenanceError;
+
+  if (loading && !equipment) {
     return <LoadingSpinner />;
   }
 
+  if (equipmentError && !equipment) {
+    return <NotFoundMessage message={t('equipment.not_found')} />;
+  }
+
   if (!equipment) {
-    return <NotFoundMessage />;
+    return <NotFoundMessage message={t('equipment.not_found')} />;
   }
 
   const statusDisplay = getStatusDisplay(equipment.status);
@@ -104,8 +114,8 @@ export const EquipmentDetailPage: React.FC = () => {
                   size="md"
                   variant="primary"
                   showText={true}
-                  onQRGenerated={(updatedEquipment) => {
-                    setEquipment(updatedEquipment);
+                  onQRGenerated={() => {
+                    refetchEquipment(); // Refresh equipment data
                     toast.success('QR code đã được cập nhật');
                   }}
                 />
@@ -289,6 +299,17 @@ export const EquipmentDetailPage: React.FC = () => {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-2xl p-6 w-full max-w-md border border-orange-100 shadow-sm">
                 <h3 className="text-lg font-semibold mb-4">{t('equipment.add_maintenance_log')}</h3>
+
+                {/* Error Display */}
+                {maintenanceError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <div className="text-sm text-red-700">{maintenanceError}</div>
+                    <button onClick={resetMaintenanceError} className="mt-2 text-xs text-red-600 hover:text-red-800">
+                      {t('common.dismiss')}
+                    </button>
+                  </div>
+                )}
+
                 <textarea
                   value={maintenanceDescription}
                   onChange={(e) => setMaintenanceDescription(e.target.value)}
@@ -298,17 +319,48 @@ export const EquipmentDetailPage: React.FC = () => {
                 />
                 <div className="flex justify-end space-x-2">
                   <button
-                    onClick={() => setShowMaintenanceModal(false)}
+                    onClick={() => {
+                      setShowMaintenanceModal(false);
+                      setMaintenanceDescription('');
+                      resetMaintenanceError();
+                    }}
                     className="h-11 rounded-full border border-gray-300 px-6 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                    disabled={maintenanceLoading}
                   >
                     {t('common.cancel')}
                   </button>
                   <button
                     onClick={handleAddMaintenanceLog}
-                    className="h-11 rounded-full bg-orange-500 px-6 text-sm font-semibold text-white shadow-sm hover:bg-orange-600"
+                    className="h-11 rounded-full bg-orange-500 px-6 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 disabled:opacity-50"
+                    disabled={maintenanceLoading || !maintenanceDescription.trim()}
                   >
-                    {t('common.add')}
+                    {maintenanceLoading ? t('common.loading') : t('common.add')}
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Error Display */}
+          {error && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+              <div className="flex">
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">{t('common.error')}</h3>
+                  <div className="mt-2 text-sm text-red-700">{error}</div>
+                  <div className="mt-4">
+                    <button
+                      onClick={() => {
+                        resetMaintenanceError();
+                        if (equipmentError) {
+                          refetchEquipment();
+                        }
+                      }}
+                      className="bg-red-100 px-2 py-1 text-sm font-medium text-red-800 rounded-md hover:bg-red-200"
+                    >
+                      {t('common.dismiss')}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
