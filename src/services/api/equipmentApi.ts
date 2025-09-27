@@ -1,4 +1,5 @@
 import { api } from './api';
+import axios from 'axios';
 import type { ApiResponse } from '@/types/api/Api';
 import type {
   Equipment,
@@ -157,10 +158,12 @@ class EquipmentApi {
     formData.append('excelFile', file);
     formData.append('branchId', branchId);
 
-    const response = await api.post('/equipments/import/excel', formData, {
+    // Use direct axios call to bypass response interceptor for detailed error handling
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/equipments/import/excel`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      withCredentials: true
     });
 
     return response.data;

@@ -151,12 +151,6 @@ api.interceptors.response.use(
       }
     }
 
-    // For all errors, handle them centrally but preserve original error structure
-    if (error.response?.status === 400) {
-      // For 400 errors, return the error as-is so component can handle validation errors
-      return Promise.reject(error);
-    }
-
     // For all other errors, handle them centrally
     const handledError = handleApiError(error);
     // Don't throw error, just return it so component can handle gracefully

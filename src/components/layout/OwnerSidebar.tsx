@@ -216,17 +216,32 @@ const UserProfile: React.FC<{
 
   const menuItems = (
     <>
-      <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
+      <DropdownMenuItem
+        onClick={() => {
+          navigate('/profile');
+        }}
+        className="cursor-pointer"
+      >
         <UserCircle className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.profile')}
       </DropdownMenuItem>
 
-      <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
+      <DropdownMenuItem
+        onClick={() => {
+          navigate('/settings');
+        }}
+        className="cursor-pointer"
+      >
         <Settings className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.account_settings')}
       </DropdownMenuItem>
 
-      <DropdownMenuItem onClick={() => navigate('/security')} className="cursor-pointer">
+      <DropdownMenuItem
+        onClick={() => {
+          navigate('/security');
+        }}
+        className="cursor-pointer"
+      >
         <Shield className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.security')}
       </DropdownMenuItem>
@@ -371,24 +386,33 @@ export const OwnerSidebar: React.FC = () => {
       icon: <LayoutDashboard className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.dashboard'),
       isActive: location.pathname === '/manage/owner',
-      onClick: () => navigate('/manage/owner')
+      onClick: () => {
+        navigate('/manage/owner');
+      }
     },
     {
       icon: <Users className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.users'),
       isActive: location.pathname === '/manage/staff',
-      onClick: () => navigate('/manage/staff')
+      onClick: () => {
+        navigate('/manage/staff');
+      }
     },
     {
       icon: <Dumbbell className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.equipment'),
-      onClick: () => console.log('Equipment clicked')
+      isActive: location.pathname.startsWith('/manage/equipment'),
+      onClick: () => {
+        navigate('/manage/equipment');
+      }
     },
     {
       icon: <Tag className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.services_promotions'),
       isActive: location.pathname === '/manage/discounts',
-      onClick: () => navigate('/manage/discounts')
+      onClick: () => {
+        navigate('/manage/discounts');
+      }
     },
     {
       icon: <BarChart3 className="w-5 h-5 stroke-[1.75]" />,

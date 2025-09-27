@@ -216,17 +216,32 @@ const UserProfile: React.FC<{
 
   const menuItems = (
     <>
-      <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
+      <DropdownMenuItem
+        onClick={() => {
+          navigate('/profile');
+        }}
+        className="cursor-pointer"
+      >
         <UserCircle className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.profile')}
       </DropdownMenuItem>
 
-      <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
+      <DropdownMenuItem
+        onClick={() => {
+          navigate('/settings');
+        }}
+        className="cursor-pointer"
+      >
         <Settings className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.account_settings')}
       </DropdownMenuItem>
 
-      <DropdownMenuItem onClick={() => navigate('/security')} className="cursor-pointer">
+      <DropdownMenuItem
+        onClick={() => {
+          navigate('/security');
+        }}
+        className="cursor-pointer"
+      >
         <Shield className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.security')}
       </DropdownMenuItem>
@@ -378,13 +393,17 @@ export const TechnicianSidebar: React.FC = () => {
       icon: <LayoutDashboard className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.dashboard'),
       isActive: location.pathname === '/manage/technician',
-      onClick: () => navigate('/manage/technician')
+      onClick: () => {
+        navigate('/manage/technician');
+      }
     },
     {
       icon: <Dumbbell className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.equipment'),
       isActive: location.pathname.startsWith('/manage/technician/equipment'),
-      onClick: () => navigate('/manage/technician/equipment')
+      onClick: () => {
+        navigate('/manage/technician/equipment');
+      }
     }
   ];
 
@@ -395,13 +414,17 @@ export const TechnicianSidebar: React.FC = () => {
         icon: <Wrench className="w-5 h-5 stroke-[1.75]" />,
         label: t('sidebar.maintenance'),
         isActive: location.pathname.startsWith('/manage/technician/maintenance'),
-        onClick: () => navigate('/manage/technician/maintenance')
+        onClick: () => {
+          navigate('/manage/technician/maintenance');
+        }
       },
       {
         icon: <BarChart3 className="w-5 h-5 stroke-[1.75]" />,
         label: t('sidebar.reports'),
         isActive: location.pathname.startsWith('/manage/technician/reports'),
-        onClick: () => navigate('/manage/technician/reports')
+        onClick: () => {
+          navigate('/manage/technician/reports');
+        }
       }
     );
   }
@@ -412,7 +435,9 @@ export const TechnicianSidebar: React.FC = () => {
       icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.schedule'),
       isActive: location.pathname.startsWith('/manage/technician/schedule'),
-      onClick: () => navigate('/manage/technician/schedule')
+      onClick: () => {
+        navigate('/manage/technician/schedule');
+      }
     });
   }
 
@@ -423,13 +448,17 @@ export const TechnicianSidebar: React.FC = () => {
         icon: <Building className="w-5 h-5 stroke-[1.75]" />,
         label: 'Chi nhánh',
         isActive: false,
-        onClick: () => navigate('/manage/owner')
+        onClick: () => {
+          navigate('/manage/owner');
+        }
       },
       {
         icon: <Users className="w-5 h-5 stroke-[1.75]" />,
         label: 'Nhân viên',
         isActive: false,
-        onClick: () => navigate('/manage/staff')
+        onClick: () => {
+          navigate('/manage/staff');
+        }
       }
     );
   }
