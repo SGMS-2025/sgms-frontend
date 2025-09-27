@@ -2,13 +2,13 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   BarChart3,
-  Users,
   Dumbbell,
-  CalendarRange as Calendar,
-  Tag,
+  Calendar,
   User,
+  Wrench,
+  Building,
+  Users,
   LayoutDashboard,
-  MessageSquare,
   Settings,
   HelpCircle,
   ChevronUp,
@@ -31,9 +31,9 @@ import { useBranch } from '@/contexts/BranchContext';
 import type { BranchDisplay } from '@/types/api/Branch';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuthActions, useAuthState } from '@/hooks/useAuth';
+import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
-// no extra popovers here; BranchSelectorButton handles its own popover
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -166,7 +166,7 @@ const QuickActions: React.FC<{
 };
 
 const formatRole = (role?: string) => {
-  if (!role) return 'Owner';
+  if (!role) return 'Technician';
   return `${role.charAt(0)}${role.slice(1).toLowerCase()}`;
 };
 
@@ -183,7 +183,7 @@ const UserProfile: React.FC<{
   const roleKey = user?.role ? `roles.${user.role.toLowerCase()}` : '';
   const translatedRole = roleKey ? t(roleKey) : '';
 
-  let roleLabel = t('sidebar.owner') || 'Owner';
+  let roleLabel = t('sidebar.technician') || 'Technician';
   if (user?.role) {
     if (translatedRole && translatedRole !== roleKey) {
       roleLabel = translatedRole;
@@ -314,7 +314,7 @@ const UserProfile: React.FC<{
   );
 };
 
-export const OwnerSidebar: React.FC = () => {
+export const TechnicianSidebar: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -322,6 +322,7 @@ export const OwnerSidebar: React.FC = () => {
   const { currentBranch, branches, setCurrentBranch, switchBranch } = useBranch();
   const { user: authUser, isAuthenticated } = useAuthState();
   const { updateUser, logout } = useAuthActions();
+  const { currentStaff } = useCurrentUserStaff();
   const [profile, setProfile] = React.useState<ApiUser | null>(authUser ?? null);
   const [isProfileLoading, setIsProfileLoading] = React.useState(false);
   const [hasInitiallyFetched, setHasInitiallyFetched] = React.useState(false);
@@ -366,7 +367,7 @@ export const OwnerSidebar: React.FC = () => {
     return () => {
       ignore = true;
     };
-  }, [isAuthenticated, hasInitiallyFetched]);
+  }, [isAuthenticated, hasInitiallyFetched, authUser, updateUser]);
 
   const handleBranchSelect = (branch: BranchDisplay) => {
     setCurrentBranch(branch);
@@ -381,56 +382,86 @@ export const OwnerSidebar: React.FC = () => {
     navigate('/manage/add-branch');
   };
 
-  const mainNavItems = [
+  const mainNavItems: Array<{
+    icon: React.ReactNode;
+    label: string;
+    isActive: boolean;
+    onClick: () => void;
+    badge?: number;
+  }> = [
     {
       icon: <LayoutDashboard className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.dashboard'),
-      isActive: location.pathname === '/manage/owner',
+      isActive: location.pathname === '/manage/technician',
       onClick: () => {
-        navigate('/manage/owner');
-      }
-    },
-    {
-      icon: <Users className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.users'),
-      isActive: location.pathname === '/manage/staff',
-      onClick: () => {
-        navigate('/manage/staff');
+        navigate('/manage/technician');
       }
     },
     {
       icon: <Dumbbell className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.equipment'),
-      isActive: location.pathname.startsWith('/manage/equipment'),
+      isActive: location.pathname.startsWith('/manage/technician/equipment'),
       onClick: () => {
-        navigate('/manage/equipment');
+        navigate('/manage/technician/equipment');
       }
-    },
-    {
-      icon: <Tag className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.services_promotions'),
-      isActive: location.pathname === '/manage/discounts',
-      onClick: () => {
-        navigate('/manage/discounts');
-      }
-    },
-    {
-      icon: <BarChart3 className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.finance'),
-      onClick: () => console.log('Finance clicked')
-    },
-    {
-      icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.work_schedule'),
-      onClick: () => console.log('Work Schedule clicked')
-    },
-    {
-      icon: <MessageSquare className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.feedback'),
-      badge: 3, // Mock notification badge
-      onClick: () => console.log('Feedback clicked')
     }
   ];
+
+  // Add role-specific items
+  if (currentStaff?.jobTitle === 'Technician' || currentStaff?.jobTitle === 'Personal Trainer') {
+    mainNavItems.push(
+      {
+        icon: <Wrench className="w-5 h-5 stroke-[1.75]" />,
+        label: t('sidebar.maintenance'),
+        isActive: location.pathname.startsWith('/manage/technician/maintenance'),
+        onClick: () => {
+          navigate('/manage/technician/maintenance');
+        }
+      },
+      {
+        icon: <BarChart3 className="w-5 h-5 stroke-[1.75]" />,
+        label: t('sidebar.reports'),
+        isActive: location.pathname.startsWith('/manage/technician/reports'),
+        onClick: () => {
+          navigate('/manage/technician/reports');
+        }
+      }
+    );
+  }
+
+  // For Personal Trainer - show schedule
+  if (currentStaff?.jobTitle === 'Personal Trainer') {
+    mainNavItems.push({
+      icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
+      label: t('sidebar.schedule'),
+      isActive: location.pathname.startsWith('/manage/technician/schedule'),
+      onClick: () => {
+        navigate('/manage/technician/schedule');
+      }
+    });
+  }
+
+  // For OWNER, Manager - show management links
+  if (authUser?.role === 'OWNER' || currentStaff?.jobTitle === 'Manager') {
+    mainNavItems.push(
+      {
+        icon: <Building className="w-5 h-5 stroke-[1.75]" />,
+        label: 'Chi nhánh',
+        isActive: false,
+        onClick: () => {
+          navigate('/manage/owner');
+        }
+      },
+      {
+        icon: <Users className="w-5 h-5 stroke-[1.75]" />,
+        label: 'Nhân viên',
+        isActive: false,
+        onClick: () => {
+          navigate('/manage/staff');
+        }
+      }
+    );
+  }
 
   const secondaryNavItems = [
     {
