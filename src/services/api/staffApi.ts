@@ -36,6 +36,12 @@ export const staffApi = {
     return response.data;
   },
 
+  // Get current user's staff information
+  getMyStaffInfo: async (): Promise<ApiResponse<Staff>> => {
+    const response = await api.get('/staff/my-info');
+    return response.data;
+  },
+
   // Update staff information
   updateStaff: async (staffId: string, updateData: StaffUpdateData): Promise<ApiResponse<Staff>> => {
     const response = await api.put(`/staff/${staffId}`, updateData);

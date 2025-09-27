@@ -22,6 +22,8 @@ import BranchDetailPage from '@/pages/owner/BranchDetailPage';
 import AddBranchPage from '@/pages/owner/AddBranchPage';
 import AddNewStaff from '@/pages/owner/AddNewStaff';
 import DiscountPage from '@/pages/owner/DiscountPage';
+import { TechnicianRoutes } from './TechnicianRoutes';
+import { TechnicianLayout } from '@/layouts/TechnicianLayout';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 
@@ -158,6 +160,22 @@ const AppRoutes: React.FC = () => {
           <Route path="staff/add" element={<AddNewStaff />} />
           {/* Discount Management Route */}
           <Route path="discounts" element={<DiscountPage />} />
+        </Route>
+      </Route>
+
+      {/* Equipment Management Routes - for all roles except CUSTOMER */}
+      <Route
+        path="/manage/technician"
+        element={
+          <ProtectedRoute
+            allowedRoles={['STAFF', 'OWNER', 'ADMIN']}
+            allowedJobTitles={['Technician', 'Personal Trainer']}
+            fallbackPath="/home"
+          />
+        }
+      >
+        <Route path="" element={<TechnicianLayout />}>
+          <Route path="*" element={<TechnicianRoutes />} />
         </Route>
       </Route>
 

@@ -2,6 +2,21 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+/* Custom styles for select elements to ensure borders are visible */
+select {
+  border: 1px solid #d1d5db !important;
+  background-color: white !important;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+select:focus {
+  border-color: #f97316 !important;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2) !important;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 :root {

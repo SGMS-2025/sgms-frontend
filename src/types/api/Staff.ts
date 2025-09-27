@@ -38,6 +38,9 @@ export interface Staff {
   updatedAt: string;
   // Frontend only fields
   selected?: boolean;
+  // Special fields for OWNER/ADMIN
+  isOwner?: boolean;
+  isAdmin?: boolean;
 }
 
 export interface StaffStats {
