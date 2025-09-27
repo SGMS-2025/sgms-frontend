@@ -39,6 +39,8 @@ export const buildOverrideFormValues = (plan: MembershipPlan, branchId?: string)
     currency: (override?.currency ?? plan.currency ?? 'VND').toUpperCase(),
     durationInMonths: String(override?.durationInMonths ?? plan.durationInMonths ?? '1'),
     benefits: (override?.benefits ?? plan.benefits ?? []).join('\n'),
+    targetBranchIds: [],
+    revertBranchIds: [],
     isActive: override?.isActive ?? plan.isActive ?? true
   };
 };

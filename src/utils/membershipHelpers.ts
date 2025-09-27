@@ -65,7 +65,9 @@ export const getAssignedBranches = (
   plan: MembershipPlan,
   branchMap: Record<string, MembershipPlanBranchInfo>
 ): MembershipPlanBranchInfo[] => {
-  return plan.branchId.map((branchId) => branchMap[branchId]).filter(Boolean);
+  return plan.branchId
+    .map((branch) => branchMap[branch._id] ?? branch)
+    .filter((item): item is MembershipPlanBranchInfo => Boolean(item));
 };
 
 export const getCustomBranches = (plan: MembershipPlan): string[] => {

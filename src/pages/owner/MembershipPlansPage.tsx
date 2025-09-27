@@ -114,6 +114,8 @@ const initialOverrideForm: MembershipOverrideFormValues = {
   currency: 'VND',
   durationInMonths: '1',
   benefits: '',
+  targetBranchIds: [],
+  revertBranchIds: [],
   isActive: true
 };
 
@@ -180,9 +182,79 @@ const getBranchName = (
   };
 };
 
+const matchesStatusFilter = (plan: MembershipPlan, filter: StatusFilter) => {
+  if (filter === 'active') {
+    return plan.isActive;
+  }
+
+  if (filter === 'inactive') {
+    return !plan.isActive;
+  }
+
+  return true;
+};
+
+const matchesViewMode = (plan: MembershipPlan, mode: ViewMode) => {
+  if (mode === 'base') {
+    return plan.isTemplate;
+  }
+
+  if (mode === 'custom') {
+    return (plan.overrides?.length ?? 0) > 0;
+  }
+
+  return true;
+};
+
+const matchesBranchSelection = (plan: MembershipPlan, branchId?: string) => {
+  if (!branchId) {
+    return true;
+  }
+
+  return plan.branchId?.some((branch) => branch._id === branchId) ?? false;
+};
+
+const stringContainsKeyword = (value: string | undefined | null, keyword: string) => {
+  if (!value) {
+    return false;
+  }
+
+  return value.toLowerCase().includes(keyword);
+};
+
+const benefitsToText = (benefits: string[] | undefined) => (benefits?.length ? benefits.join(' ') : '');
+
+const planMatchesKeyword = (plan: MembershipPlan, keyword: string) => {
+  if (!keyword) {
+    return true;
+  }
+
+  if (
+    stringContainsKeyword(plan.name, keyword) ||
+    stringContainsKeyword(plan.description, keyword) ||
+    stringContainsKeyword(benefitsToText(plan.benefits), keyword)
+  ) {
+    return true;
+  }
+
+  if (plan.branchId?.some((branch) => stringContainsKeyword(branch.branchName, keyword))) {
+    return true;
+  }
+
+  const overrideMatches =
+    plan.overrides?.some((override) => {
+      const searchableValues = [override.name, override.description, benefitsToText(override.benefits)];
+
+      return searchableValues.some((value) => stringContainsKeyword(value, keyword));
+    }) ?? false;
+
+  return overrideMatches;
+};
+
 const MembershipPlansPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { branches, currentBranch } = useBranch();
+  const currentBranchId = currentBranch?._id ?? undefined;
 
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('all');
@@ -210,17 +282,17 @@ const MembershipPlansPage: React.FC = () => {
     }
 
     // Always use current branch if available, otherwise use all accessible branches
-    if (currentBranch?._id && accessibleBranchIds.includes(currentBranch._id)) {
-      return [currentBranch._id];
+    if (currentBranchId && accessibleBranchIds.includes(currentBranchId)) {
+      return [currentBranchId];
     }
 
     return accessibleBranchIds;
-  }, [accessibleBranchIds, currentBranch?._id]);
+  }, [accessibleBranchIds, currentBranchId]);
 
   const { plans, pagination, loading, error, setParams, refetch } = useMembershipPlans({
     initialParams: {
       search: '',
-      branchId: currentBranch?._id,
+      branchId: currentBranchId,
       page: 1,
       limit: 12,
       sortBy: 'updatedAt',
@@ -238,10 +310,10 @@ const MembershipPlansPage: React.FC = () => {
   }, [branchOptions]);
 
   useEffect(() => {
-    if (currentBranch?._id) {
-      setParams({ branchId: currentBranch._id, page: 1 });
+    if (currentBranchId) {
+      setParams({ branchId: currentBranchId, page: 1 });
     }
-  }, [currentBranch?._id, setParams]);
+  }, [currentBranchId, setParams]);
 
   const summaryStats = useMemo<SummaryStat[]>(() => {
     const totalTemplates = plans.length;
@@ -288,56 +360,25 @@ const MembershipPlansPage: React.FC = () => {
     ];
   }, [plans, t]);
 
+  const normalizedSearchTerm = useMemo(() => searchTerm.trim().toLowerCase(), [searchTerm]);
+
   const filteredPlans = useMemo(() => {
-    const byStatus = plans.filter((plan) => {
-      if (statusFilter === 'active') {
-        return plan.isActive;
+    return plans.filter((plan) => {
+      if (!matchesStatusFilter(plan, statusFilter)) {
+        return false;
       }
-      if (statusFilter === 'inactive') {
-        return !plan.isActive;
+
+      if (!matchesViewMode(plan, viewMode)) {
+        return false;
       }
-      return true;
+
+      if (!matchesBranchSelection(plan, currentBranchId)) {
+        return false;
+      }
+
+      return planMatchesKeyword(plan, normalizedSearchTerm);
     });
-
-    const byView = byStatus.filter((plan) => {
-      if (viewMode === 'base') {
-        return plan.isTemplate;
-      }
-      if (viewMode === 'custom') {
-        return (plan.overrides?.length ?? 0) > 0;
-      }
-      return true;
-    });
-
-    const byBranch = byView.filter((plan) => {
-      if (!currentBranch?._id) {
-        return true;
-      }
-      return plan.branchId?.some((branch) => branch._id === currentBranch._id);
-    });
-
-    if (!searchTerm.trim()) {
-      return byBranch;
-    }
-
-    const keyword = searchTerm.trim().toLowerCase();
-
-    return byBranch.filter((plan) => {
-      const baseMatches = [plan.name, plan.description ?? '', plan.benefits.join(' ')]
-        .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(keyword));
-
-      const branchMatches = plan.branchId?.some((branch) => branch.branchName?.toLowerCase().includes(keyword));
-
-      const overrideMatches = plan.overrides?.some((override) =>
-        [override.name, override.description ?? '', override.benefits.join(' ')]
-          .filter(Boolean)
-          .some((value) => value.toLowerCase().includes(keyword))
-      );
-
-      return baseMatches || branchMatches || overrideMatches;
-    });
-  }, [plans, statusFilter, viewMode, currentBranch?._id, searchTerm]);
+  }, [plans, statusFilter, viewMode, currentBranchId, normalizedSearchTerm]);
 
   const branchesWithAccess = useMemo(() => new Set(branchOptions.map((branch) => branch._id)), [branchOptions]);
 
@@ -376,14 +417,14 @@ const MembershipPlansPage: React.FC = () => {
     setEditScope('template');
     setTemplateForm({
       ...initialTemplateForm,
-      branchId: currentBranch?._id ? [currentBranch._id] : [],
+      branchId: currentBranchId ? [currentBranchId] : [],
       isActive: true
     });
     setOverrideForm(initialOverrideForm);
     setTargetBranchIds([]);
     setRevertBranchIds([]);
     setIsSheetOpen(true);
-  }, [currentBranch?._id]);
+  }, [currentBranchId]);
 
   const handleOpenEdit = useCallback(
     (plan: MembershipPlan) => {
@@ -392,7 +433,7 @@ const MembershipPlansPage: React.FC = () => {
       setTemplateForm(buildDefaultFormValues(plan));
       setEditScope('template');
 
-      const focusBranch = currentBranch?._id;
+      const focusBranch = currentBranchId;
       setOverrideForm(buildOverrideFormValues(plan, focusBranch));
 
       if (focusBranch) {
@@ -413,7 +454,7 @@ const MembershipPlansPage: React.FC = () => {
 
       setIsSheetOpen(true);
     },
-    [currentBranch?._id]
+    [currentBranchId]
   );
 
   const handleToggleStatus = useCallback(
@@ -542,52 +583,43 @@ const MembershipPlansPage: React.FC = () => {
     return true;
   }, [overrideForm, targetBranchIds.length, t]);
 
-  const handleSubmit = useCallback(async () => {
-    if (isSubmitting) {
+  const submitCreatePlan = useCallback(async () => {
+    if (!validateTemplateForm()) {
       return;
     }
 
-    if (isCreateMode) {
-      if (!validateTemplateForm()) {
-        return;
+    setIsSubmitting(true);
+
+    const payload = {
+      name: templateForm.name.trim(),
+      description: templateForm.description.trim() || undefined,
+      price: Number(templateForm.price),
+      currency: templateForm.currency.trim().toUpperCase(),
+      durationInMonths: Number(templateForm.durationInMonths),
+      benefits: parseBenefits(templateForm.benefits),
+      branchId: templateForm.branchId,
+      isActive: templateForm.isActive
+    };
+
+    try {
+      const response = await membershipApi.createMembershipPlan(payload);
+      if (response.success) {
+        toast.success(t('membershipManager.toast.createSuccess'));
+        await refetch();
+        resetSheetState();
+      } else {
+        toast.error(response.message ?? t('membershipManager.toast.createError'));
       }
-
-      setIsSubmitting(true);
-
-      const payload = {
-        name: templateForm.name.trim(),
-        description: templateForm.description.trim() || undefined,
-        price: Number(templateForm.price),
-        currency: templateForm.currency.trim().toUpperCase(),
-        durationInMonths: Number(templateForm.durationInMonths),
-        benefits: parseBenefits(templateForm.benefits),
-        branchId: templateForm.branchId,
-        isActive: templateForm.isActive
-      };
-
-      try {
-        const response = await membershipApi.createMembershipPlan(payload);
-        if (response.success) {
-          toast.success(t('membershipManager.toast.createSuccess'));
-          await refetch();
-          resetSheetState();
-        } else {
-          toast.error(response.message ?? t('membershipManager.toast.createError'));
-        }
-      } catch (err) {
-        const message = err instanceof Error ? err.message : t('membershipManager.toast.createError');
-        toast.error(message);
-      } finally {
-        setIsSubmitting(false);
-      }
-      return;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('membershipManager.toast.createError');
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
     }
+  }, [refetch, resetSheetState, t, templateForm, validateTemplateForm]);
 
-    if (!editingPlan) {
-      return;
-    }
-
-    if (editScope === 'template') {
+  const submitTemplateUpdate = useCallback(
+    async (plan: MembershipPlan) => {
       if (!validateTemplateForm()) {
         return;
       }
@@ -610,10 +642,10 @@ const MembershipPlansPage: React.FC = () => {
 
       const resourceBranches = templateForm.branchId.length
         ? templateForm.branchId
-        : editingPlan.branchId.map((branch) => branch._id);
+        : (plan.branchId?.map((branch) => branch._id) ?? []);
 
       try {
-        const response = await membershipApi.updateMembershipPlan(editingPlan._id, payload, resourceBranches);
+        const response = await membershipApi.updateMembershipPlan(plan._id, payload, resourceBranches);
         if (response.success) {
           toast.success(t('membershipManager.toast.updateSuccess'));
           await refetch();
@@ -627,79 +659,92 @@ const MembershipPlansPage: React.FC = () => {
       } finally {
         setIsSubmitting(false);
       }
+    },
+    [refetch, resetSheetState, t, templateForm, validateTemplateForm]
+  );
 
-      return;
-    }
-
-    if (!targetBranchIds.length && !revertBranchIds.length) {
-      toast.error(t('membershipManager.validation.branchMissing'));
-      return;
-    }
-
-    if (!validateOverrideForm()) {
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    const payload: UpdateMembershipPlanPayload = {
-      updateScope: 'branches'
-    };
-
-    if (targetBranchIds.length) {
-      payload.targetBranchIds = targetBranchIds;
-      payload.data = {
-        name: overrideForm.name.trim(),
-        description: overrideForm.description.trim() || undefined,
-        price: Number(overrideForm.price),
-        currency: overrideForm.currency.trim().toUpperCase(),
-        durationInMonths: Number(overrideForm.durationInMonths),
-        benefits: parseBenefits(overrideForm.benefits),
-        isActive: overrideForm.isActive
-      };
-    }
-
-    if (revertBranchIds.length) {
-      payload.revertBranchIds = revertBranchIds;
-    }
-
-    const resourceBranches = Array.from(new Set([...targetBranchIds, ...revertBranchIds]));
-
-    try {
-      const response = await membershipApi.updateMembershipPlan(
-        editingPlan._id,
-        payload,
-        resourceBranches.length ? resourceBranches : editingPlan.branchId.map((branch) => branch._id)
-      );
-
-      if (response.success) {
-        toast.success(t('membershipManager.toast.updateSuccess'));
-        await refetch();
-        resetSheetState();
-      } else {
-        toast.error(response.message ?? t('membershipManager.toast.updateError'));
+  const submitBranchUpdate = useCallback(
+    async (plan: MembershipPlan) => {
+      if (!targetBranchIds.length && !revertBranchIds.length) {
+        toast.error(t('membershipManager.validation.branchMissing'));
+        return;
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : t('membershipManager.toast.updateError');
-      toast.error(message);
-    } finally {
-      setIsSubmitting(false);
+
+      if (!validateOverrideForm()) {
+        return;
+      }
+
+      setIsSubmitting(true);
+
+      const payload: UpdateMembershipPlanPayload = {
+        updateScope: 'branches'
+      };
+
+      if (targetBranchIds.length) {
+        payload.targetBranchIds = targetBranchIds;
+        payload.data = {
+          name: overrideForm.name.trim(),
+          description: overrideForm.description.trim() || undefined,
+          price: Number(overrideForm.price),
+          currency: overrideForm.currency.trim().toUpperCase(),
+          durationInMonths: Number(overrideForm.durationInMonths),
+          benefits: parseBenefits(overrideForm.benefits),
+          isActive: overrideForm.isActive
+        };
+      }
+
+      if (revertBranchIds.length) {
+        payload.revertBranchIds = revertBranchIds;
+      }
+
+      const resourceBranches = Array.from(new Set([...targetBranchIds, ...revertBranchIds]));
+      const fallbackBranches = plan.branchId?.map((branch) => branch._id) ?? [];
+
+      try {
+        const response = await membershipApi.updateMembershipPlan(
+          plan._id,
+          payload,
+          resourceBranches.length ? resourceBranches : fallbackBranches
+        );
+
+        if (response.success) {
+          toast.success(t('membershipManager.toast.updateSuccess'));
+          await refetch();
+          resetSheetState();
+        } else {
+          toast.error(response.message ?? t('membershipManager.toast.updateError'));
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : t('membershipManager.toast.updateError');
+        toast.error(message);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [overrideForm, refetch, resetSheetState, revertBranchIds, targetBranchIds, t, validateOverrideForm]
+  );
+
+  const handleSubmit = useCallback(async () => {
+    if (isSubmitting) {
+      return;
     }
-  }, [
-    editingPlan,
-    editScope,
-    isCreateMode,
-    isSubmitting,
-    overrideForm,
-    refetch,
-    resetSheetState,
-    revertBranchIds,
-    targetBranchIds,
-    templateForm,
-    validateOverrideForm,
-    validateTemplateForm,
-    t
-  ]);
+
+    if (isCreateMode) {
+      await submitCreatePlan();
+      return;
+    }
+
+    if (!editingPlan) {
+      return;
+    }
+
+    if (editScope === 'template') {
+      await submitTemplateUpdate(editingPlan);
+      return;
+    }
+
+    await submitBranchUpdate(editingPlan);
+  }, [editScope, editingPlan, isCreateMode, isSubmitting, submitBranchUpdate, submitCreatePlan, submitTemplateUpdate]);
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
@@ -724,7 +769,7 @@ const MembershipPlansPage: React.FC = () => {
   const currentLocale = i18n.language || 'vi-VN';
 
   const renderPlanCard = (plan: MembershipPlan) => {
-    const resolved = resolvePlanData(plan, currentBranch?._id);
+    const resolved = resolvePlanData(plan, currentBranchId);
     const overrideCount = plan.overrides?.length ?? 0;
     const assignedBranches = plan.branchId ?? [];
     const formattedPrice = formatCurrency(resolved.price, resolved.currency);
@@ -760,7 +805,7 @@ const MembershipPlansPage: React.FC = () => {
                     onClick={() =>
                       setPreviewContext({
                         plan,
-                        branchId: currentBranch?._id
+                        branchId: currentBranchId
                       })
                     }
                     className="flex items-center gap-2"

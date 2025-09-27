@@ -23,12 +23,12 @@ export const MembershipSummary: React.FC<MembershipSummaryProps> = ({ stats }) =
       case 'primary':
         return 'bg-orange-50 border-orange-200 text-orange-600';
       case 'success':
-        return 'bg-orange-50 border-orange-200 text-orange-600';
+        return 'bg-emerald-50 border-emerald-200 text-emerald-600';
       case 'info':
-        return 'bg-orange-50 border-orange-200 text-orange-600';
+        return 'bg-blue-50 border-blue-200 text-blue-600';
       case 'muted':
       default:
-        return 'bg-orange-50 border-orange-200 text-orange-600';
+        return 'bg-slate-50 border-slate-200 text-slate-500';
     }
   };
 
