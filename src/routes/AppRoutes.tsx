@@ -22,8 +22,12 @@ import BranchDetailPage from '@/pages/owner/BranchDetailPage';
 import AddBranchPage from '@/pages/owner/AddBranchPage';
 import AddNewStaff from '@/pages/owner/AddNewStaff';
 import DiscountPage from '@/pages/owner/DiscountPage';
-import { TechnicianRoutes } from './TechnicianRoutes';
 import { TechnicianLayout } from '@/layouts/TechnicianLayout';
+import TechnicianDashboard from '@/pages/technician/TechnicianDashboard';
+import { EquipmentListPage } from '@/pages/technician/EquipmentListPage';
+import { AddEquipmentPage } from '@/pages/technician/AddEquipmentPage';
+import { EquipmentDetailPage } from '@/pages/technician/EquipmentDetailPage';
+import { EditEquipmentPage } from '@/pages/technician/EditEquipmentPage';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 
@@ -160,10 +164,16 @@ const AppRoutes: React.FC = () => {
           <Route path="staff/add" element={<AddNewStaff />} />
           {/* Discount Management Route */}
           <Route path="discounts" element={<DiscountPage />} />
+
+          {/* Shared Equipment Routes for Manager */}
+          <Route path="equipment" element={<EquipmentListPage />} />
+          <Route path="equipment/add" element={<AddEquipmentPage />} />
+          <Route path="equipment/:id" element={<EquipmentDetailPage />} />
+          <Route path="equipment/:id/edit" element={<EditEquipmentPage />} />
         </Route>
       </Route>
 
-      {/* Equipment Management Routes - for all roles except CUSTOMER */}
+      {/* Equipment Management Routes - for Technician and Personal Trainer */}
       <Route
         path="/manage/technician"
         element={
@@ -175,7 +185,15 @@ const AppRoutes: React.FC = () => {
         }
       >
         <Route path="" element={<TechnicianLayout />}>
-          <Route path="*" element={<TechnicianRoutes />} />
+          {/* Dashboard Route */}
+          <Route path="" element={<TechnicianDashboard />} />
+
+          {/* Shared Equipment Routes for Technician */}
+          <Route path="equipment" element={<EquipmentListPage />} />
+          <Route path="equipment/add" element={<AddEquipmentPage />} />
+          <Route path="equipment/:id" element={<EquipmentDetailPage />} />
+          <Route path="equipment/:id/edit" element={<EditEquipmentPage />} />
+          <Route path="*" element={<Navigate to="/manage/technician" replace />} />
         </Route>
       </Route>
 

@@ -28,6 +28,10 @@ export const QRCodeButton: React.FC<QRCodeButtonProps> = ({
 
   const handleModalClose = () => {
     setShowQRModal(false);
+    // Refetch equipment list when modal closes
+    if (onQRGenerated) {
+      onQRGenerated(equipment);
+    }
   };
 
   const handleQRGenerated = (updatedEquipment: Equipment) => {
