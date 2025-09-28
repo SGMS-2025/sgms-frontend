@@ -1,0 +1,387 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Trash2, Loader2, Building2, Eye, Save, Pencil, Check, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useBranch } from '@/contexts/BranchContext';
+import { useMatrix } from '@/hooks/useMatrix';
+import type { LegacyService } from '@/types/api/Package';
+import type { MatrixDisplayData } from '@/types/api/Matrix';
+import { AddServiceDialog } from '@/components/dialogpackage/AddServiceDialog';
+import { EditServiceDialog } from '@/components/dialogpackage/EditServiceDialog';
+import { AddFeatureDialog } from '@/components/dialogpackage/AddFeatureDialog';
+import { EditFeatureDialog } from '@/components/dialogpackage/EditFeatureDialog';
+import { AddInitialDataDialog } from '@/components/dialogpackage/AddInitialDataDialog';
+import { ConfirmDeleteServiceDialog } from '@/components/dialogpackage/ConfirmDeleteServiceDialog';
+import { ConfirmDeleteFeatureDialog } from '@/components/dialogpackage/ConfirmDeleteFeatureDialog';
+import { MatrixCell } from '@/components/dialogpackage/MatrixCell';
+import { ErrorDisplay } from '@/components/dialogpackage/ErrorDisplay';
+import { useUpdateService, useUpdateFeature } from '@/hooks/useServiceManagement';
+
+// Define feature type from MatrixDisplayData
+type MatrixFeature = MatrixDisplayData['features'][0];
+
+// --- Main component
+
+// --- Main component
+export default function PTServiceManagement() {
+  const { t } = useTranslation();
+  const { currentBranch } = useBranch();
+  const {
+    services,
+    features,
+    cells,
+    loading,
+    error,
+    addService,
+    removeService,
+    addFeature,
+    removeFeature,
+    updateCell,
+    reloadMatrix,
+    saveMatrix,
+    clearError,
+    testConnection
+  } = useMatrix('PT');
+
+  // Custom hooks for update operations
+  const { updateService, loading: updateServiceLoading } = useUpdateService();
+  const { updateFeature, loading: updateFeatureLoading } = useUpdateFeature();
+
+  // Services are already filtered by useMatrix('PT')
+  const ptServices = services;
+
+  const [preview, setPreview] = useState(false);
+  const [serviceToDelete, setServiceToDelete] = useState<LegacyService | null>(null);
+  const [featureToDelete, setFeatureToDelete] = useState<MatrixFeature | null>(null);
+  const [serviceToEdit, setServiceToEdit] = useState<LegacyService | null>(null);
+  const [featureToEdit, setFeatureToEdit] = useState<MatrixFeature | null>(null);
+
+  const handleDeleteService = (service: LegacyService) => {
+    setServiceToDelete(service);
+  };
+
+  const confirmDeleteService = async () => {
+    if (serviceToDelete) {
+      await removeService(serviceToDelete.id);
+      setServiceToDelete(null);
+    }
+  };
+
+  const handleDeleteFeature = (feature: MatrixFeature) => {
+    setFeatureToDelete(feature);
+  };
+
+  const confirmDeleteFeature = async () => {
+    if (featureToDelete) {
+      await removeFeature(featureToDelete.id);
+      setFeatureToDelete(null);
+    }
+  };
+
+  const handleEditService = (service: LegacyService) => {
+    setServiceToEdit(service);
+  };
+
+  const handleEditFeature = (feature: MatrixFeature) => {
+    setFeatureToEdit(feature);
+  };
+
+  const handleUpdateService = async (
+    id: string,
+    data: {
+      name: string;
+      price?: number;
+      durationInMonths?: number;
+      minParticipants?: number;
+      maxParticipants?: number;
+    }
+  ) => {
+    await updateService(id, { ...data, type: 'PT' });
+    await reloadMatrix();
+    setServiceToEdit(null);
+  };
+
+  const handleUpdateFeature = async (id: string, data: { name: string }) => {
+    await updateFeature(id, data, 'PT');
+    await reloadMatrix();
+    setFeatureToEdit(null);
+  };
+
+  const handleRetry = () => {
+    clearError();
+    reloadMatrix();
+  };
+
+  if (!currentBranch) {
+    return (
+      <div className="p-4 md:p-8 space-y-6">
+        <div className="text-center py-8">
+          <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-2 text-sm font-medium text-muted-foreground">{t('pt_service.no_branch_selected')}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{t('pt_service.no_branch_message')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading when switching branches
+  if (loading && ptServices.length === 0 && features.length === 0) {
+    return (
+      <div className="p-4 md:p-8 space-y-6">
+        <div className="text-center py-8">
+          <Loader2 className="mx-auto h-12 w-12 text-muted-foreground animate-spin" />
+          <h3 className="mt-2 text-sm font-medium text-muted-foreground">{t('pt_service.loading')}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t('pt_service.loading_message')} {currentBranch.branchName}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 md:p-8 space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">{t('pt_service.title')}</h1>
+          <p className="text-sm text-muted-foreground">
+            {t('pt_service.subtitle')} <span className="font-medium">{currentBranch.branchName}</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <AddFeatureDialog onSubmit={addFeature} loading={loading} serviceType="PT" />
+            <AddServiceDialog onSubmit={addService} loading={loading} serviceType="PT" />
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="space-y-4">
+          <ErrorDisplay error={error} onRetry={handleRetry} serviceType="PT" />
+          <div className="p-4 border border-blue-200 bg-blue-50 rounded-md">
+            <div className="flex items-center gap-2 text-blue-800 mb-2">
+              <AlertTriangle className="h-5 w-5" />
+              <span className="font-medium">{t('pt_service.offline_mode')}</span>
+            </div>
+            <p className="text-blue-700 text-sm mb-3">{t('pt_service.offline_message')}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                const isConnected = await testConnection();
+                if (isConnected) {
+                  clearError();
+                  reloadMatrix();
+                } else {
+                  alert(t('pt_service.api_connection_error'));
+                }
+              }}
+            >
+              {t('pt_service.test_connection')}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {loading && !error && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-muted-foreground">{t('pt_service.loading')}</span>
+        </div>
+      )}
+
+      <div className="bg-white rounded-xl p-6 mb-6 shadow-lg border border-gray-200">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center">
+            <Building2 className="w-4 h-4 text-orange-500 mr-2" />
+            <span className="text-sm text-orange-500 font-semibold">{t('pt_service.features_benefits')}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {!preview && (
+              <Button
+                size="sm"
+                onClick={saveMatrix}
+                disabled={loading}
+                className="px-4 py-2 text-sm text-white border border-orange-500 rounded-full bg-orange-500 hover:bg-orange-600 hover:border-orange-600 transition-colors flex items-center leading-none"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                {t('pt_service.save_changes')}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={() => setPreview((p) => !p)}
+              className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-full bg-white hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 transition-colors flex items-center leading-none"
+            >
+              {preview ? <Pencil className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+              {preview ? t('pt_service.edit') : t('pt_service.preview')}
+            </Button>
+          </div>
+        </div>
+
+        {ptServices.length === 0 && features.length === 0 && !loading ? (
+          <div className="flex flex-col items-center justify-center py-6 min-h-[200px]">
+            <div className="text-muted-foreground mb-4 text-center">
+              <Building2 className="mx-auto h-10 w-10 mb-2" />
+              <h3 className="text-lg font-medium mb-1">{t('pt_service.no_data_title')}</h3>
+              <p className="text-sm">{t('pt_service.no_data_subtitle')}</p>
+            </div>
+            <div className="flex justify-center">
+              <AddInitialDataDialog
+                onAddFeature={addFeature}
+                onAddService={addService}
+                loading={loading}
+                serviceType="PT"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white border border-orange-200 rounded-lg overflow-hidden">
+            {/* Header row */}
+            <div
+              className="grid gap-4 p-4 text-orange-500 text-sm font-semibold bg-orange-50"
+              style={{ gridTemplateColumns: `minmax(260px,1fr) repeat(${ptServices.length}, minmax(160px, 1fr))` }}
+            >
+              <div className="flex items-center justify-center">{t('pt_service.features_services')}</div>
+              {ptServices.map((s) => (
+                <div key={s.id} className="flex flex-col items-center gap-1">
+                  <div className="flex items-center gap-2 justify-center">
+                    <button
+                      className="truncate font-semibold cursor-pointer hover:text-orange-600 transition-colors bg-transparent border-none p-0 text-inherit"
+                      onClick={() => !preview && handleEditService(s)}
+                      title={!preview ? t('pt_service.click_to_edit') : ''}
+                      disabled={preview}
+                    >
+                      {s.name}
+                    </button>
+                    {!preview && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 flex-shrink-0 text-orange-500 hover:text-orange-700 hover:bg-orange-100"
+                        onClick={() => handleDeleteService(s)}
+                        disabled={loading}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Price and Duration */}
+                  <div className="flex flex-col items-center gap-1 text-xs text-orange-400">
+                    {s.price && s.price > 0 ? (
+                      <div className="font-medium text-green-600">{s.price.toLocaleString('vi-VN')}₫</div>
+                    ) : (
+                      <div className="text-orange-300 italic text-xs">{t('pt_service.no_price')}</div>
+                    )}
+                    {s.durationInMonths && s.durationInMonths > 0 ? (
+                      <div className="text-blue-600">
+                        {s.durationInMonths} {t('pt_service.months')}
+                      </div>
+                    ) : (
+                      <div className="text-orange-300 italic text-xs">{t('pt_service.no_duration')}</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Feature rows */}
+            {features.map((f, index) => (
+              <div
+                key={f.id}
+                className={`grid gap-4 p-4 text-sm border-t border-gray-200 ${
+                  index % 2 === 0 ? 'bg-gray-50' : 'bg-white'
+                }`}
+                style={{ gridTemplateColumns: `minmax(260px,1fr) repeat(${ptServices.length}, minmax(160px, 1fr))` }}
+              >
+                {/* Feature name column */}
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    className="text-sm font-medium leading-5 text-center text-gray-800 cursor-pointer hover:text-orange-600 transition-colors bg-transparent border-none p-0"
+                    onClick={() => !preview && handleEditFeature(f)}
+                    title={!preview ? t('pt_service.click_to_edit') : ''}
+                    disabled={preview}
+                  >
+                    {f.name}
+                  </button>
+                  {!preview && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 flex-shrink-0 text-orange-500 hover:text-orange-700 hover:bg-orange-100"
+                      onClick={() => handleDeleteFeature(f)}
+                      disabled={loading}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Service columns */}
+                {ptServices.map((s) => {
+                  const cellKey = `${s.id}__${f.id}`;
+                  const cell = cells[cellKey];
+                  return (
+                    <div key={cellKey} className="flex items-center justify-center">
+                      {preview ? (
+                        // render read-only preview
+                        <div className="flex items-center justify-center py-2">
+                          {cell?.isIncluded ? (
+                            <div className="flex items-center justify-center w-6 h-6 bg-green-600 rounded-full">
+                              <Check className="w-4 h-4 text-white" />
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-lg">—</span>
+                          )}
+                        </div>
+                      ) : (
+                        <MatrixCell
+                          feature={f}
+                          cell={cell}
+                          onChange={(patch: Partial<import('@/types/api/Matrix').MatrixCellData>) =>
+                            updateCell(s.id, f.id, patch)
+                          }
+                          disabled={loading}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Confirmation Dialogs */}
+      <ConfirmDeleteServiceDialog
+        service={serviceToDelete}
+        onConfirm={confirmDeleteService}
+        loading={loading}
+        serviceType="PT"
+      />
+      <ConfirmDeleteFeatureDialog
+        feature={featureToDelete}
+        onConfirm={confirmDeleteFeature}
+        loading={loading}
+        serviceType="PT"
+      />
+
+      {/* Edit Dialogs */}
+      <EditServiceDialog
+        service={serviceToEdit}
+        onSubmit={handleUpdateService}
+        loading={updateServiceLoading}
+        serviceType="PT"
+      />
+      <EditFeatureDialog
+        feature={featureToEdit}
+        onSubmit={handleUpdateFeature}
+        loading={updateFeatureLoading}
+        serviceType="PT"
+      />
+    </div>
+  );
+}

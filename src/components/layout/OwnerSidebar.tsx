@@ -17,7 +17,9 @@ import {
   UserCircle,
   ShieldCheck as Shield,
   PanelLeft,
-  Globe
+  Globe,
+  UserCheck,
+  UsersRound
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -394,8 +396,20 @@ export const OwnerSidebar: React.FC = () => {
       onClick: () => console.log('Equipment clicked')
     },
     {
+      icon: <UserCheck className="w-5 h-5 stroke-[1.75]" />,
+      label: t('sidebar.pt_services'),
+      isActive: location.pathname === '/manage/pt-services',
+      onClick: () => navigate('/manage/pt-services')
+    },
+    {
+      icon: <UsersRound className="w-5 h-5 stroke-[1.75]" />,
+      label: t('sidebar.class_services'),
+      isActive: location.pathname === '/manage/class-services',
+      onClick: () => navigate('/manage/class-services')
+    },
+    {
       icon: <Tag className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.services_promotions'),
+      label: t('sidebar.promotions'),
       isActive: location.pathname === '/manage/discounts',
       onClick: () => navigate('/manage/discounts')
     },

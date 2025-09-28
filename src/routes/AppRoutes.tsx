@@ -32,6 +32,8 @@ import MembershipPlansPage from '@/pages/owner/MembershipPlansPage';
 import AddWorkShiftPage from '@/pages/owner/AddWorkShiftPage';
 import EditWorkShiftPage from '@/pages/owner/EditWorkShiftPage';
 import WorkShiftCalendarPage from '@/pages/owner/WorkShiftCalendarPage';
+import PTServiceManagement from '@/components/dashboard/PTServiceManagement';
+import ClassServiceManagement from '@/components/dashboard/ClassServiceManagement';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 
@@ -166,7 +168,11 @@ const AppRoutes: React.FC = () => {
           <Route path="add-branch" element={<AddBranchPage />} />
           {/* Add New Staff Route */}
           <Route path="staff/add" element={<AddNewStaff />} />
-          {/* Discount Management Route */}
+          {/* Personal Training Management Route */}
+          <Route path="pt-services" element={<PTServiceManagement />} />
+          {/* Class Service Management Route */}
+          <Route path="class-services" element={<ClassServiceManagement />} />
+          {/* Services Management Route */}
           <Route path="discounts" element={<DiscountPage />} />
           {/* Membership Management Route */}
           <Route path="memberships" element={<MembershipPlansPage />} />

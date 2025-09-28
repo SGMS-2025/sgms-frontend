@@ -6,7 +6,8 @@ export const convertBranchToDisplay = (branch: Branch): BranchDisplay => {
 
   if (typeof branch.openingHours === 'string') {
     // Handle different formats: "06:00-21:00" or "06:00 - 21:00"
-    const timeMatch = branch.openingHours.match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
+    const timeRegex = /(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/;
+    const timeMatch = timeRegex.exec(branch.openingHours);
     if (timeMatch) {
       parsedOpeningHours = {
         open: timeMatch[1],
