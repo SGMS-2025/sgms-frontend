@@ -2,6 +2,7 @@ import axios, { AxiosError } from 'axios';
 import { toast } from 'sonner';
 import i18n from '@/configs/i18n';
 import type { ApiErrorResponse } from '@/types/api/Api';
+import { handleSpecificError } from '@/utils/permissionErrorHandler';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -13,8 +14,6 @@ export const api = axios.create({
   },
   withCredentials: true
 });
-
-// console.log('API URL:', API_URL);
 
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -42,11 +41,9 @@ const handleRefreshFailure = () => {
   }
 };
 
-// Centralized error handling function
-const handleApiError = (error: AxiosError) => {
+// Helper function to log API errors
+const logApiError = (error: AxiosError) => {
   const response = error.response;
-
-  // Log all errors for debugging
   console.group('🚨 API Error');
   console.log('Message:', error.message);
   console.log('Code:', error.code);
@@ -56,51 +53,69 @@ const handleApiError = (error: AxiosError) => {
   console.log('Method:', error.config?.method);
   console.log('Response Data:', response?.data);
   console.groupEnd();
+};
 
+// Helper function to handle client errors (4xx)
+const handleClientError = (status: number, errorMessage: string) => {
+  switch (status) {
+    case 403:
+      handleSpecificError(errorMessage);
+      break;
+    case 400:
+    case 409:
+      toast.error(i18n.t(`error.${errorMessage}`));
+      break;
+    case 404:
+      toast.error(i18n.t('error.NOT_FOUND'));
+      break;
+    default:
+      toast.error(i18n.t(`error.${errorMessage}`));
+  }
+};
+
+// Helper function to create standardized error response
+const createErrorResponse = (message: string, statusCode: number, code: string) => ({
+  success: false,
+  message,
+  statusCode,
+  code
+});
+
+// Centralized error handling function
+const handleApiError = (error: AxiosError) => {
+  const response = error.response;
+
+  // Log all errors for debugging
+  logApiError(error);
+
+  // Handle structured error responses from backend
   if (response?.data) {
     const errorData = response.data as ApiErrorResponse;
+    const errorMessage = errorData.error?.message;
 
-    // Handle structured error responses from backend
-    if (errorData.error && errorData.error.message) {
+    if (errorMessage) {
       const errorCode = errorData.error.code;
-      const errorMessage = errorData.error.message;
 
       // Show toast notification for user-facing errors
       if (response.status >= 400 && response.status < 500) {
-        toast.error(i18n.t(`error.${errorMessage}`));
+        handleClientError(response.status, errorMessage);
       } else {
         toast.error(i18n.t('error.system_error'));
       }
 
-      // Return a standardized error object
-      return {
-        success: false,
-        message: errorMessage,
-        statusCode: response.status,
-        code: errorCode || 'UNKNOWN_ERROR'
-      };
+      return createErrorResponse(errorMessage, response.status, errorCode || 'UNKNOWN_ERROR');
     }
   }
 
   // Handle network errors or unexpected responses
   if (error.code === 'NETWORK_ERROR' || !error.response) {
     toast.error(i18n.t('error.network_error'));
-    return {
-      success: false,
-      message: i18n.t('error.network_error'),
-      statusCode: 0,
-      code: 'NETWORK_ERROR'
-    };
+    return createErrorResponse(i18n.t('error.network_error'), 0, 'NETWORK_ERROR');
   }
 
   // Handle other unexpected errors
   toast.error(i18n.t('error.unknown_error'));
-  return {
-    success: false,
-    message: i18n.t('error.unknown_error'),
-    statusCode: response?.status || 500,
-    code: 'UNKNOWN_ERROR'
-  };
+  return createErrorResponse(i18n.t('error.unknown_error'), response?.status || 500, 'UNKNOWN_ERROR');
 };
 
 // Request interceptor
@@ -109,7 +124,7 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    return Promise.reject(error);
+    return Promise.reject(error instanceof Error ? error : new Error(String(error)));
   }
 );
 
@@ -130,7 +145,7 @@ api.interceptors.response.use(
             return api(originalRequest);
           })
           .catch((err) => {
-            return Promise.reject(err);
+            return Promise.reject(err instanceof Error ? err : new Error(String(err)));
           });
       }
 
@@ -147,7 +162,7 @@ api.interceptors.response.use(
         processQueue(refreshError, null);
         isRefreshing = false;
         handleRefreshFailure();
-        return Promise.reject(refreshError);
+        return Promise.reject(refreshError instanceof Error ? refreshError : new Error(String(refreshError)));
       }
     }
 
