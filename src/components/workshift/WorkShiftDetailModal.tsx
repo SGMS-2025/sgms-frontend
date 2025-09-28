@@ -20,13 +20,13 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
   const [showConfirmDisable, setShowConfirmDisable] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<{
-    start_time_local?: string;
-    end_time_local?: string;
+    startTimeLocal?: string;
+    endTimeLocal?: string;
     status: WorkShiftStatus;
     title?: string;
   }>({
-    start_time_local: '',
-    end_time_local: '',
+    startTimeLocal: '',
+    endTimeLocal: '',
     status: 'SCHEDULED'
   });
 
@@ -34,10 +34,10 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
   useEffect(() => {
     if (workShift) {
       setFormData({
-        start_time_local: workShift.start_time_local || '',
-        end_time_local: workShift.end_time_local || '',
+        startTimeLocal: workShift.startTimeLocal || '',
+        endTimeLocal: workShift.endTimeLocal || '',
         status: workShift.status,
-        title: `${workShift.staff_id?.userId?.fullName || workShift.staff_id?.firstName || t('common.unknown')} - ${t('workshift.work_shift')}`
+        title: `${workShift.staffId?.userId?.fullName || workShift.staffId?.firstName || t('common.unknown')} - ${t('workshift.work_shift')}`
       });
       setError(null);
     }
@@ -56,14 +56,14 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
       };
 
       // Only include time fields if they were actually changed
-      if (formData.start_time_local && formData.end_time_local) {
+      if (formData.startTimeLocal && formData.endTimeLocal) {
         // Create full datetime strings by combining with the original date
-        const originalStartDate = new Date(workShift.start_time);
-        const originalEndDate = new Date(workShift.end_time);
+        const originalStartDate = new Date(workShift.startTime);
+        const originalEndDate = new Date(workShift.endTime);
 
         // Parse the local time and create new datetime
-        const [startHour, startMin] = formData.start_time_local.split(':').map(Number);
-        const [endHour, endMin] = formData.end_time_local.split(':').map(Number);
+        const [startHour, startMin] = formData.startTimeLocal.split(':').map(Number);
+        const [endHour, endMin] = formData.endTimeLocal.split(':').map(Number);
 
         // Create new datetime with the same date but new time
         const newStartTime = new Date(originalStartDate);
@@ -73,8 +73,8 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
         newEndTime.setHours(endHour, endMin, 0, 0);
 
         // Convert to ISO string for backend
-        updateData.start_time = newStartTime.toISOString();
-        updateData.end_time = newEndTime.toISOString();
+        updateData.startTime = newStartTime.toISOString();
+        updateData.endTime = newEndTime.toISOString();
       }
 
       return updateData;
@@ -99,10 +99,10 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
     // Reset form data to original values
     if (workShift) {
       setFormData({
-        start_time_local: workShift.start_time_local || '',
-        end_time_local: workShift.end_time_local || '',
+        startTimeLocal: workShift.startTimeLocal || '',
+        endTimeLocal: workShift.endTimeLocal || '',
         status: workShift.status,
-        title: `${workShift.staff_id?.userId?.fullName || workShift.staff_id?.firstName || t('common.unknown')} - ${t('workshift.work_shift')}`
+        title: `${workShift.staffId?.userId?.fullName || workShift.staffId?.firstName || t('common.unknown')} - ${t('workshift.work_shift')}`
       });
     }
   };
@@ -176,7 +176,7 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
         >
           <DialogTitle className="sr-only">
             {workShift
-              ? `${workShift.staff_id?.userId?.fullName || workShift.staff_id?.firstName || t('common.unknown')} - ${t('workshift.work_shift')}`
+              ? `${workShift.staffId?.userId?.fullName || workShift.staffId?.firstName || t('common.unknown')} - ${t('workshift.work_shift')}`
               : t('workshift.details')}
           </DialogTitle>
           <DialogDescription className="sr-only">
@@ -189,7 +189,7 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
               placeholder={t('workshift.add_title')}
               value={
                 formData.title ||
-                `${workShift.staff_id?.userId?.fullName || workShift.staff_id?.firstName || t('common.unknown')} - ${t('workshift.work_shift')}`
+                `${workShift.staffId?.userId?.fullName || workShift.staffId?.firstName || t('common.unknown')} - ${t('workshift.work_shift')}`
               }
               onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
               disabled={!isEditing}
@@ -248,51 +248,51 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
                     {isEditing ? (
                       <div className="space-y-2">
                         <div className="text-sm font-medium text-gray-900">
-                          {getDayOfWeek(workShift.day_of_the_week)},{' '}
-                          {workShift.start_time_fmt
-                            ? workShift.start_time_fmt.split(' ')[1]
-                            : formatDate(workShift.start_time)}
+                          {getDayOfWeek(workShift.dayOfTheWeek)},{' '}
+                          {workShift.startTimeFmt
+                            ? workShift.startTimeFmt.split(' ')[1]
+                            : formatDate(workShift.startTime)}
                         </div>
                         <div className="flex gap-2">
                           <input
                             type="time"
-                            value={formData.start_time_local || workShift.start_time_local || ''}
-                            onChange={(e) => setFormData((prev) => ({ ...prev, start_time_local: e.target.value }))}
+                            value={formData.startTimeLocal || workShift.startTimeLocal || ''}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, startTimeLocal: e.target.value }))}
                             className="text-sm border border-gray-300 rounded px-2 py-1 focus:border-orange-500 focus:outline-none"
                           />
                           <span className="text-sm text-gray-600 self-center">-</span>
                           <input
                             type="time"
-                            value={formData.end_time_local || workShift.end_time_local || ''}
-                            onChange={(e) => setFormData((prev) => ({ ...prev, end_time_local: e.target.value }))}
+                            value={formData.endTimeLocal || workShift.endTimeLocal || ''}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, endTimeLocal: e.target.value }))}
                             className="text-sm border border-gray-300 rounded px-2 py-1 focus:border-orange-500 focus:outline-none"
                           />
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {t('workshift.timezone')}: {workShift.branch_tz || 'UTC'} • {t('workshift.no_repeat')}
+                          {t('workshift.timezone')}: {workShift.branchTz || 'UTC'} • {t('workshift.no_repeat')}
                         </div>
                       </div>
                     ) : (
                       <>
                         <div className="text-sm font-medium text-gray-900">
-                          {getDayOfWeek(workShift.day_of_the_week)},{' '}
-                          {workShift.start_time_fmt
-                            ? workShift.start_time_fmt.split(' ')[1]
-                            : formatDate(workShift.start_time)}
+                          {getDayOfWeek(workShift.dayOfTheWeek)},{' '}
+                          {workShift.startTimeFmt
+                            ? workShift.startTimeFmt.split(' ')[1]
+                            : formatDate(workShift.startTime)}
                         </div>
                         <div className="text-sm text-gray-600">
-                          {workShift.start_time_local && workShift.end_time_local ? (
+                          {workShift.startTimeLocal && workShift.endTimeLocal ? (
                             <>
-                              {formatTime(workShift.start_time_local)} - {formatTime(workShift.end_time_local)}
+                              {formatTime(workShift.startTimeLocal)} - {formatTime(workShift.endTimeLocal)}
                             </>
                           ) : (
                             <>
-                              {formatTime(workShift.start_time)} - {formatTime(workShift.end_time)}
+                              {formatTime(workShift.startTime)} - {formatTime(workShift.endTime)}
                             </>
                           )}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {t('workshift.timezone')}: {workShift.branch_tz || 'UTC'} • {t('workshift.no_repeat')}
+                          {t('workshift.timezone')}: {workShift.branchTz || 'UTC'} • {t('workshift.no_repeat')}
                         </div>
                       </>
                     )}
@@ -307,12 +307,12 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
                   <User className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
                   <div className="flex-1">
                     <div className="text-sm font-medium text-gray-900">
-                      {workShift.staff_id?.userId?.fullName ||
-                        (workShift.staff_id?.firstName && workShift.staff_id?.lastName
-                          ? `${workShift.staff_id.firstName} ${workShift.staff_id.lastName}`
+                      {workShift.staffId?.userId?.fullName ||
+                        (workShift.staffId?.firstName && workShift.staffId?.lastName
+                          ? `${workShift.staffId.firstName} ${workShift.staffId.lastName}`
                           : t('common.unknown_staff'))}
                     </div>
-                    <div className="text-sm text-gray-600">{workShift.staff_id?.jobTitle || t('common.staff')}</div>
+                    <div className="text-sm text-gray-600">{workShift.staffId?.jobTitle || t('common.staff')}</div>
                   </div>
                 </button>
               </div>
@@ -324,17 +324,17 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
                   <MapPin className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
                   <div className="flex-1">
                     <div className="text-sm font-medium text-gray-900">
-                      {typeof workShift.branch_id === 'string'
+                      {typeof workShift.branchId === 'string'
                         ? t('common.branch')
-                        : workShift.branch_id?.name || t('common.branch')}
+                        : workShift.branchId?.name || t('common.branch')}
                     </div>
                     <div className="text-sm text-gray-600">
-                      {typeof workShift.branch_id === 'string'
+                      {typeof workShift.branchId === 'string'
                         ? t('workshift.branch_address')
-                        : workShift.branch_id?.location || t('workshift.branch_address')}
+                        : workShift.branchId?.location || t('workshift.branch_address')}
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
-                      {t('workshift.timezone')}: {workShift.branch_tz || 'UTC'}
+                      {t('workshift.timezone')}: {workShift.branchTz || 'UTC'}
                     </div>
                   </div>
                 </div>
@@ -344,11 +344,11 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
                   <Calendar className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
                   <div className="flex-1">
                     <div className="text-sm font-medium text-gray-900">
-                      {workShift.staff_id?.userId?.fullName ||
-                        (workShift.staff_id?.firstName && workShift.staff_id?.lastName
-                          ? `${workShift.staff_id.firstName} ${workShift.staff_id.lastName}`
+                      {workShift.staffId?.userId?.fullName ||
+                        (workShift.staffId?.firstName && workShift.staffId?.lastName
+                          ? `${workShift.staffId.firstName} ${workShift.staffId.lastName}`
                           : t('common.unknown_staff'))}{' '}
-                      ({workShift.branch_tz || 'UTC'})
+                      ({workShift.branchTz || 'UTC'})
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
                       Busy • Default visibility • Notify 10 minutes before
@@ -432,21 +432,21 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
             <div className="space-y-4">
               <div className="bg-gray-50 p-3 rounded-md">
                 <div className="text-sm font-medium text-gray-900">
-                  {workShift?.staff_id?.userId?.fullName || t('common.unknown_staff')}
+                  {workShift?.staffId?.userId?.fullName || t('common.unknown_staff')}
                 </div>
                 <div className="text-sm text-gray-600">
-                  {workShift?.start_time_local && workShift?.end_time_local ? (
+                  {workShift?.startTimeLocal && workShift?.endTimeLocal ? (
                     <>
-                      {formatTime(workShift.start_time_local)} - {formatTime(workShift.end_time_local)}
+                      {formatTime(workShift.startTimeLocal)} - {formatTime(workShift.endTimeLocal)}
                     </>
                   ) : (
                     <>
-                      {formatTime(workShift?.start_time || '')} - {formatTime(workShift?.end_time || '')}
+                      {formatTime(workShift?.startTime || '')} - {formatTime(workShift?.endTime || '')}
                     </>
                   )}
                 </div>
                 <div className="text-xs text-gray-500">
-                  {workShift?.day_of_the_week && getDayOfWeek(workShift.day_of_the_week)}
+                  {workShift?.dayOfTheWeek && getDayOfWeek(workShift.dayOfTheWeek)}
                 </div>
               </div>
 
