@@ -20,9 +20,6 @@ import { useUpdateService, useUpdateFeature } from '@/hooks/useServiceManagement
 // Define feature type from MatrixDisplayData
 type MatrixFeature = MatrixDisplayData['features'][0];
 
-// --- Main component
-
-// --- Main component
 export default function PTServiceManagement() {
   const { t } = useTranslation();
   const { currentBranch } = useBranch();
