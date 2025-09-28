@@ -49,9 +49,13 @@ export const MembershipDetail: React.FC<MembershipDetailProps> = ({ isOpen, onCl
     <Dialog open={isOpen} onOpenChange={(open) => (open ? undefined : onClose)}>
       <DialogContent className="w-[95vw] max-w-2xl h-[95vh] max-h-[95vh] p-0 flex flex-col">
         <DialogHeader className="p-6 pb-4">
-          <DialogTitle className="text-xl sm:text-2xl font-bold text-orange-800">Membership plan details</DialogTitle>
+          <DialogTitle className="text-xl sm:text-2xl font-bold text-orange-800">
+            {t('membershipManager.detail.title')}
+          </DialogTitle>
           <DialogDescription className="text-sm sm:text-base text-slate-600">
-            {isOverride ? 'Viewing the custom version configuration.' : 'Viewing the base template configuration.'}
+            {isOverride
+              ? t('membershipManager.detail.overrideDescription')
+              : t('membershipManager.detail.templateDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -62,18 +66,18 @@ export const MembershipDetail: React.FC<MembershipDetailProps> = ({ isOpen, onCl
               variant={isOverride ? 'outline' : 'default'}
               className={isOverride ? 'border-orange-200 text-orange-600' : 'bg-orange-500 text-white'}
             >
-              {isOverride ? t('membershipManager.detail.customVersion') : t('membershipManager.detail.basePlan')}
+              {isOverride ? t('membershipManager.dialog.customVersion') : t('membershipManager.dialog.usingTemplate')}
             </Badge>
 
             <Badge
               variant={resolvedPlan.isActive ? 'default' : 'secondary'}
               className={resolvedPlan.isActive ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'}
             >
-              {resolvedPlan.isActive ? 'Visible' : 'Hidden'}
+              {resolvedPlan.isActive ? t('membershipManager.detail.visible') : t('membershipManager.detail.hidden')}
             </Badge>
 
             <Badge variant="outline" className="border-gray-200 text-gray-600 text-xs sm:text-sm">
-              <span className="hidden sm:inline">Updated </span>
+              <span className="hidden sm:inline">{t('membershipManager.detail.updated')} </span>
               {new Date(plan.updatedAt).toLocaleDateString('en-US', {
                 month: '2-digit',
                 day: '2-digit',
@@ -113,7 +117,7 @@ export const MembershipDetail: React.FC<MembershipDetailProps> = ({ isOpen, onCl
             <CardHeader className="pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
               <CardTitle className="text-base sm:text-lg text-orange-800 flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
-                Detailed benefits
+                {t('membershipManager.detail.benefitsTitle')}
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
@@ -137,7 +141,7 @@ export const MembershipDetail: React.FC<MembershipDetailProps> = ({ isOpen, onCl
             <CardHeader className="pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
               <CardTitle className="text-base sm:text-lg text-orange-800 flex items-center gap-2">
                 <Users className="h-4 w-4 sm:h-5 sm:w-5" />
-                Assigned branches
+                {t('membershipManager.detail.assignedBranches')}
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
@@ -161,7 +165,7 @@ export const MembershipDetail: React.FC<MembershipDetailProps> = ({ isOpen, onCl
                                   <span className="text-white text-xs">⚙️</span>
                                 </div>
                                 <span className="text-xs sm:text-sm text-orange-600 font-medium">
-                                  Uses a custom version
+                                  {t('membershipManager.detail.usesCustomVersion')}
                                 </span>
                               </>
                             ) : (
@@ -170,7 +174,7 @@ export const MembershipDetail: React.FC<MembershipDetailProps> = ({ isOpen, onCl
                                   <span className="text-white text-xs">↩️</span>
                                 </div>
                                 <span className="text-xs sm:text-sm text-orange-600 font-medium">
-                                  Using the base template
+                                  {t('membershipManager.detail.usingBaseTemplate')}
                                 </span>
                               </>
                             )}
@@ -181,7 +185,7 @@ export const MembershipDetail: React.FC<MembershipDetailProps> = ({ isOpen, onCl
                             variant="outline"
                             className="border-orange-300 text-orange-700 text-xs self-start sm:self-auto"
                           >
-                            Current View
+                            {t('membershipManager.detail.currentView')}
                           </Badge>
                         )}
                       </div>
@@ -202,7 +206,7 @@ export const MembershipDetail: React.FC<MembershipDetailProps> = ({ isOpen, onCl
               onClick={onClose}
               className="border-gray-300 text-gray-700 hover:bg-gray-50 w-full sm:w-auto order-2 sm:order-1"
             >
-              Cancel
+              {t('membershipManager.detail.cancel')}
             </Button>
             <Button className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto order-1 sm:order-2">
               {t('membershipManager.detail.editPlan')}

@@ -261,19 +261,19 @@ const GymDetailPage: React.FC = () => {
           <TabsList className="w-full mb-8">
             <TabsTrigger value="info" className="flex items-center gap-2">
               <MapPin className="w-4 h-4" />
-              Thông tin phòng tập
+              {t('gymDetail.tabs.info')}
             </TabsTrigger>
             <TabsTrigger value="services" className="flex items-center gap-2">
               <Dumbbell className="w-4 h-4" />
-              Gói dịch vụ
+              {t('gymDetail.tabs.services')}
             </TabsTrigger>
             <TabsTrigger value="trainers" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
-              Huấn luyện viên
+              {t('gymDetail.tabs.trainers')}
             </TabsTrigger>
             <TabsTrigger value="reviews" className="flex items-center gap-2">
               <Star className="w-4 h-4" />
-              Đánh giá
+              {t('gymDetail.tabs.reviews')}
             </TabsTrigger>
           </TabsList>
 

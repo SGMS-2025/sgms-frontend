@@ -43,33 +43,46 @@ export const useMembershipPlans = (options: UseMembershipPlansOptions = {}): Use
   const [plans, setPlans] = useState<MembershipPlanListResponse['plans']>([]);
   const [pagination, setPagination] = useState<MembershipPlanListResponse['pagination'] | null>(null);
 
-  const fetchPlans = useCallback(async () => {
-    if (!enabled) {
-      return;
-    }
-
-    if (resourceBranchIds.length === 0) {
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await membershipApi.getMembershipPlans(params, resourceBranchIds);
-      if (response.success) {
-        setPlans(response.data.plans);
-        setPagination(response.data.pagination);
-      } else {
-        setError(response.message ?? 'Unable to load membership plans');
+  const fetchPlans = useCallback(
+    async (retryCount = 0) => {
+      if (!enabled) {
+        return;
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unable to load membership plans';
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }, [enabled, params, resourceBranchIds]);
+
+      if (resourceBranchIds.length === 0) {
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await membershipApi.getMembershipPlans(params, resourceBranchIds);
+        if (response.success) {
+          setPlans(response.data.plans);
+          setPagination(response.data.pagination);
+        } else {
+          setError(response.message ?? 'Unable to load membership plans');
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unable to load membership plans';
+
+        // Handle rate limiting with exponential backoff
+        if (message.includes('rate limit') && retryCount < 3) {
+          const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+          setTimeout(() => {
+            fetchPlans(retryCount + 1);
+          }, delay);
+          return;
+        }
+
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [enabled, JSON.stringify(params), JSON.stringify(resourceBranchIds)]
+  );
 
   useEffect(() => {
     fetchPlans();

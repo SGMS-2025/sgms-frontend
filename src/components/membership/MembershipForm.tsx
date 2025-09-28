@@ -217,7 +217,7 @@ export const MembershipForm: React.FC<MembershipFormProps> = ({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 px-4 min-h-0">
+        <div className="flex-1 px-4 min-h-0 overflow-y-auto">
           <div className="space-y-6 pb-6">
             {!isCreateMode && (
               <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'template' | 'overrides')}>
