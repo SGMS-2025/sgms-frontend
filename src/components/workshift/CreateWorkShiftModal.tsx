@@ -23,24 +23,24 @@ import type { CreateWorkShiftRequest, CreateWorkShiftModalProps } from '@/types/
 // Validation schema
 const createWorkShiftSchema = z
   .object({
-    staff_id: z.string().min(1, 'Staff is required'),
-    branch_id: z.string().min(1, 'Branch is required'),
+    staffId: z.string().min(1, 'Staff is required'),
+    branchId: z.string().min(1, 'Branch is required'),
     date: z.string().min(1, 'Date is required'),
-    start_time: z.string().min(1, 'Start time is required'),
-    end_time: z.string().min(1, 'End time is required')
+    startTime: z.string().min(1, 'Start time is required'),
+    endTime: z.string().min(1, 'End time is required')
   })
   .refine(
     (data) => {
-      if (data.start_time && data.end_time) {
-        const startTime = new Date(`2000-01-01T${data.start_time}`);
-        const endTime = new Date(`2000-01-01T${data.end_time}`);
+      if (data.startTime && data.endTime) {
+        const startTime = new Date(`2000-01-01T${data.startTime}`);
+        const endTime = new Date(`2000-01-01T${data.endTime}`);
         return endTime > startTime;
       }
       return true;
     },
     {
       message: 'End time must be after start time',
-      path: ['end_time']
+      path: ['endTime']
     }
   );
 
@@ -64,15 +64,15 @@ const CreateWorkShiftModal: React.FC<CreateWorkShiftModalProps> = ({ isOpen, onC
   } = useForm<CreateWorkShiftFormData>({
     resolver: zodResolver(createWorkShiftSchema),
     defaultValues: {
-      staff_id: '',
-      branch_id: '',
+      staffId: '',
+      branchId: '',
       date: '',
-      start_time: '',
-      end_time: ''
+      startTime: '',
+      endTime: ''
     }
   });
 
-  const selectedBranchId = watch('branch_id');
+  const selectedBranchId = watch('branchId');
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -115,10 +115,10 @@ const CreateWorkShiftModal: React.FC<CreateWorkShiftModalProps> = ({ isOpen, onC
   const onSubmit = async (data: CreateWorkShiftFormData) => {
     // Convert form data to API format using helpers
     const createData: CreateWorkShiftRequest = {
-      staff_id: data.staff_id,
-      branch_id: data.branch_id,
-      start_time: localDateTimeToUtcISO(data.date, data.start_time),
-      end_time: localDateTimeToUtcISO(data.date, data.end_time)
+      staffId: data.staffId,
+      branchId: data.branchId,
+      startTime: localDateTimeToUtcISO(data.date, data.startTime),
+      endTime: localDateTimeToUtcISO(data.date, data.endTime)
     };
 
     const result = await createWorkShift(createData);
@@ -129,7 +129,7 @@ const CreateWorkShiftModal: React.FC<CreateWorkShiftModalProps> = ({ isOpen, onC
   };
 
   const handleStaffChange = (staffId: string) => {
-    setValue('staff_id', staffId);
+    setValue('staffId', staffId);
   };
 
   return (
@@ -153,11 +153,11 @@ const CreateWorkShiftModal: React.FC<CreateWorkShiftModalProps> = ({ isOpen, onC
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="branch_id" className="text-sm font-medium">
+                <Label htmlFor="branchId" className="text-sm font-medium">
                   Branch *
                 </Label>
-                <Select onValueChange={(value) => setValue('branch_id', value)}>
-                  <SelectTrigger className={cn(errors.branch_id && 'border-red-500')}>
+                <Select onValueChange={(value) => setValue('branchId', value)}>
+                  <SelectTrigger className={cn(errors.branchId && 'border-red-500')}>
                     <SelectValue placeholder={t('workshift.select_branch')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -171,20 +171,20 @@ const CreateWorkShiftModal: React.FC<CreateWorkShiftModalProps> = ({ isOpen, onC
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.branch_id && (
+                {errors.branchId && (
                   <p className="text-sm text-red-600 flex items-center gap-1">
                     <AlertCircle className="h-4 w-4" />
-                    {errors.branch_id.message}
+                    {errors.branchId.message}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="staff_id" className="text-sm font-medium">
+                <Label htmlFor="staffId" className="text-sm font-medium">
                   Staff *
                 </Label>
                 <Select onValueChange={handleStaffChange} disabled={!selectedBranchId || loadingStaff}>
-                  <SelectTrigger className={cn(errors.staff_id && 'border-red-500')}>
+                  <SelectTrigger className={cn(errors.staffId && 'border-red-500')}>
                     <SelectValue placeholder={loadingStaff ? t('common.loading') : t('workshift.select_staff')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -222,10 +222,10 @@ const CreateWorkShiftModal: React.FC<CreateWorkShiftModalProps> = ({ isOpen, onC
                     })()}
                   </SelectContent>
                 </Select>
-                {errors.staff_id && (
+                {errors.staffId && (
                   <p className="text-sm text-red-600 flex items-center gap-1">
                     <AlertCircle className="h-4 w-4" />
-                    {errors.staff_id.message}
+                    {errors.staffId.message}
                   </p>
                 )}
               </div>
@@ -287,37 +287,37 @@ const CreateWorkShiftModal: React.FC<CreateWorkShiftModalProps> = ({ isOpen, onC
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="start_time" className="text-sm font-medium">
-                    {t('workshift.start_time')} *
+                  <Label htmlFor="startTime" className="text-sm font-medium">
+                    {t('workshift.startTime')} *
                   </Label>
                   <Input
-                    id="start_time"
+                    id="startTime"
                     type="time"
-                    {...register('start_time')}
-                    className={cn(errors.start_time && 'border-red-500')}
+                    {...register('startTime')}
+                    className={cn(errors.startTime && 'border-red-500')}
                   />
-                  {errors.start_time && (
+                  {errors.startTime && (
                     <p className="text-sm text-red-600 flex items-center gap-1">
                       <AlertCircle className="h-4 w-4" />
-                      {errors.start_time.message}
+                      {errors.startTime.message}
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="end_time" className="text-sm font-medium">
-                    {t('workshift.end_time')} *
+                  <Label htmlFor="endTime" className="text-sm font-medium">
+                    {t('workshift.endTime')} *
                   </Label>
                   <Input
-                    id="end_time"
+                    id="endTime"
                     type="time"
-                    {...register('end_time')}
-                    className={cn(errors.end_time && 'border-red-500')}
+                    {...register('endTime')}
+                    className={cn(errors.endTime && 'border-red-500')}
                   />
-                  {errors.end_time && (
+                  {errors.endTime && (
                     <p className="text-sm text-red-600 flex items-center gap-1">
                       <AlertCircle className="h-4 w-4" />
-                      {errors.end_time.message}
+                      {errors.endTime.message}
                     </p>
                   )}
                 </div>
