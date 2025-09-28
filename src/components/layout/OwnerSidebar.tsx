@@ -360,7 +360,7 @@ export const OwnerSidebar: React.FC = () => {
     return () => {
       ignore = true;
     };
-  }, [isAuthenticated, hasInitiallyFetched]);
+  }, [isAuthenticated, hasInitiallyFetched, authUser, updateUser]);
 
   const handleBranchSelect = (branch: BranchDisplay) => {
     setCurrentBranch(branch);
@@ -413,7 +413,8 @@ export const OwnerSidebar: React.FC = () => {
     {
       icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.work_schedule'),
-      onClick: () => console.log('Work Schedule clicked')
+      isActive: location.pathname === '/manage/workshifts/calendar',
+      onClick: () => navigate('/manage/workshifts/calendar')
     },
     {
       icon: <MessageSquare className="w-5 h-5 stroke-[1.75]" />,
