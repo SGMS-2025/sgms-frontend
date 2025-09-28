@@ -1187,7 +1187,6 @@
   "workshift.schedule_description": "Configure work schedule and staff availability",
   "workshift.list_view": "List View",
   "workshift.calendar_view": "Calendar View",
-  
   "class_service.title": "Class package Comparison Matrix",
   "class_service.subtitle": "Manage class packages for branch:",
   "class_service.add_class": "Add Class",

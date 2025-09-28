@@ -24,6 +24,7 @@ export interface MatrixResponse {
     packages: {
       _id: string;
       name: string;
+      type?: 'PT' | 'CLASS' | 'GENERAL';
       status: 'ACTIVE' | 'INACTIVE';
       defaultDurationMonths: number;
     }[];

@@ -14,17 +14,25 @@ export const convertMatrixToLegacyFormat = (matrixData: MatrixResponse['data'] |
     };
   }
 
-  // Convert packages to legacy services
-  const services: LegacyService[] = (matrixData.packages || []).map((pkg) => {
-    return {
-      id: pkg._id,
-      name: pkg.name,
-      type: undefined, // Type is not available in packages array
-      price: undefined, // Price is not available in packages array
-      durationInMonths: pkg.defaultDurationMonths,
-      status: pkg.status === 'ACTIVE' ? 'active' : 'inactive'
-    };
+  // Convert packages to legacy services using items data
+  const servicesMap = new Map<string, LegacyService>();
+
+  (matrixData.items || []).forEach((item) => {
+    if (!servicesMap.has(item.packageId)) {
+      // Find the corresponding package info
+      const pkg = matrixData.packages?.find((p) => p._id === item.packageId);
+      servicesMap.set(item.packageId, {
+        id: item.packageId,
+        name: item.packageName,
+        type: pkg?.type as 'PT' | 'CLASS' | undefined,
+        price: item.priceVND || undefined,
+        durationInMonths: item.durationMonths,
+        status: pkg?.status === 'ACTIVE' ? 'active' : 'inactive'
+      });
+    }
   });
+
+  const services: LegacyService[] = Array.from(servicesMap.values());
 
   // Convert features to legacy format
   const features = (matrixData.features || []).map((feature, index) => ({
