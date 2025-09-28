@@ -16,7 +16,8 @@ import {
   LogOut,
   UserCircle,
   ShieldCheck as Shield,
-  PanelLeft
+  PanelLeft,
+  Globe
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -34,6 +35,7 @@ import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
+import { useLanguage } from '@/contexts/LanguageContext';
 // no extra popovers here; BranchSelectorButton handles its own popover
 
 interface SidebarItemProps {
@@ -177,6 +179,7 @@ const UserProfile: React.FC<{
 }> = ({ isCollapsed, user, isLoading, onLogout }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { language, setLanguage } = useLanguage();
 
   const displayName = user?.fullName || user?.username || t('sidebar.account') || 'User';
   const roleKey = user?.role ? `roles.${user.role.toLowerCase()}` : '';
@@ -228,6 +231,13 @@ const UserProfile: React.FC<{
       <DropdownMenuItem onClick={() => navigate('/security')} className="cursor-pointer">
         <Shield className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.security')}
+      </DropdownMenuItem>
+
+      <DropdownMenuSeparator />
+
+      <DropdownMenuItem onClick={() => setLanguage(language === 'en' ? 'vi' : 'en')} className="cursor-pointer">
+        <Globe className="w-4 h-4 mr-3 stroke-[1.75]" />
+        {t('sidebar.language')} ({language === 'en' ? 'VI' : 'EN'})
       </DropdownMenuItem>
 
       <DropdownMenuSeparator />
@@ -374,7 +384,7 @@ export const OwnerSidebar: React.FC = () => {
     },
     {
       icon: <Users className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.users'),
+      label: t('sidebar.staff'),
       isActive: location.pathname === '/manage/staff',
       onClick: () => navigate('/manage/staff')
     },
