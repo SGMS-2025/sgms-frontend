@@ -29,6 +29,9 @@ import { AddEquipmentPage } from '@/pages/technician/AddEquipmentPage';
 import { EquipmentDetailPage } from '@/pages/technician/EquipmentDetailPage';
 import { EditEquipmentPage } from '@/pages/technician/EditEquipmentPage';
 import MembershipPlansPage from '@/pages/owner/MembershipPlansPage';
+import AddWorkShiftPage from '@/pages/owner/AddWorkShiftPage';
+import EditWorkShiftPage from '@/pages/owner/EditWorkShiftPage';
+import WorkShiftCalendarPage from '@/pages/owner/WorkShiftCalendarPage';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 
@@ -172,6 +175,11 @@ const AppRoutes: React.FC = () => {
           <Route path="equipment/add" element={<AddEquipmentPage />} />
           <Route path="equipment/:id" element={<EquipmentDetailPage />} />
           <Route path="equipment/:id/edit" element={<EditEquipmentPage />} />
+
+          {/* Work Shift Management Routes */}
+          <Route path="workshifts/add" element={<AddWorkShiftPage />} />
+          <Route path="workshifts/:id/edit" element={<EditWorkShiftPage />} />
+          <Route path="workshifts/calendar" element={<WorkShiftCalendarPage />} />
         </Route>
       </Route>
 

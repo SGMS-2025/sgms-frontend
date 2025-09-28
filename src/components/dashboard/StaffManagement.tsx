@@ -224,7 +224,8 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
           phoneNumber: staffData.userId?.phoneNumber
         },
         jobTitle: staffData.jobTitle,
-        status: staffData.status || 'ACTIVE'
+        status: staffData.status || 'ACTIVE',
+        branchId: staffData.branchId || []
       });
       setIsPermissionModalOpen(true);
     } else {

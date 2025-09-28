@@ -211,4 +211,16 @@ export interface StaffForPermissionModal {
   };
   jobTitle: StaffJobTitle;
   status: StaffStatus;
+  branchId: Array<{
+    _id: string;
+    branchName: string;
+    location: string;
+    hotline?: string;
+    managerId?: {
+      _id: string;
+      fullName: string;
+      email: string;
+      phoneNumber?: string;
+    };
+  }>;
 }
