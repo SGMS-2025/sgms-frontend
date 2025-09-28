@@ -43,7 +43,8 @@ const GymListPage: React.FC = () => {
     page: 1,
     limit: 6,
     sortBy: 'rating',
-    sortOrder: 'desc'
+    sortOrder: 'desc',
+    isActive: true
   });
 
   // Update API params when debounced search term changes

@@ -2,7 +2,7 @@ import React, { useImperativeHandle, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CheckCircle, Plus, ChevronDown, Eye } from 'lucide-react';
+import { Plus, ChevronDown, MapPin, Eye } from 'lucide-react';
 import type { BranchDisplay } from '@/types/api/Branch';
 
 export interface BranchSelectorButtonHandle {
@@ -20,10 +20,21 @@ interface BranchSelectorButtonProps {
   collapsed?: boolean;
 }
 
+const statusClasses = (isActive: boolean) =>
+  isActive
+    ? 'bg-orange-100 text-orange-700 border border-orange-200'
+    : 'bg-gray-100 text-gray-600 border border-gray-200';
+
 export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle, BranchSelectorButtonProps>(
   ({ currentBranch, branches, onBranchSelect, onAddBranch, onViewBranch, collapsed = false }, ref) => {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
+
+    const activeLabel = t('branch.active', { defaultValue: 'Active' });
+    const inactiveLabel = t('branch.closed', { defaultValue: 'Inactive' });
+    const listLabel = t('branch_selector.all_branches', { defaultValue: 'Branches' });
+    const selectBranchLabel = t('branch_selector.select_branch') || 'Select branch';
+    const addBranchLabel = t('branch_selector.add_branch') || 'Add branch';
 
     useImperativeHandle(
       ref,
@@ -35,8 +46,8 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
       []
     );
 
-    const handleSelect = (b: BranchDisplay) => {
-      onBranchSelect(b);
+    const handleSelect = (branch: BranchDisplay) => {
+      onBranchSelect(branch);
       setOpen(false);
     };
 
@@ -45,96 +56,114 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
       setOpen(false);
     };
 
+    const renderStatusPill = (isActive: boolean) => (
+      <span
+        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${statusClasses(isActive)}`}
+      >
+        <span className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-orange-500' : 'bg-gray-400'}`} />
+        {isActive ? activeLabel : inactiveLabel}
+      </span>
+    );
+
     const popoverContent = (
       <PopoverContent
         side="right"
         align="end"
         alignOffset={collapsed ? -12 : 0}
         sideOffset={collapsed ? 8 : 12}
-        collisionPadding={12}
-        avoidCollisions={false}
-        className="w-[320px] p-0 bg-white border border-gray-200 shadow-xl rounded-xl max-h-[360px] overflow-auto translate-x-2 z-[100]"
+        className="w-80 p-0 border-gray-200 shadow-lg"
       >
-        <div className="h-12 px-3 flex items-center gap-2 border-b">
-          <h3 className="text-base font-semibold text-gray-900">
-            {t('branch_selector.select_branch') || 'Select branch'}
-          </h3>
-        </div>
-        <div className="py-1">
+        <div className="h-80 p-4 space-y-3">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">{listLabel}</p>
+            <button
+              type="button"
+              onClick={handleAdd}
+              className="rounded-md p-1.5 text-orange-600 transition-colors hover:bg-orange-50 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+              title={addBranchLabel}
+              aria-label={addBranchLabel}
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Branches List */}
           {branches && branches.length > 0 ? (
-            branches.map((b) => {
-              const isCurrent = b._id === currentBranch?._id;
-              return (
-                <div key={b._id} className="flex items-center w-full">
+            <div className="h-64 space-y-2 overflow-y-auto">
+              {branches.map((branch) => {
+                const isCurrent = branch._id === currentBranch?._id;
+                return (
                   <button
+                    key={branch._id}
                     type="button"
-                    onClick={() => handleSelect(b)}
-                    className="flex-1 px-3 py-3 flex items-center gap-3 hover:bg-gray-50"
+                    onClick={() => handleSelect(branch)}
+                    className={`group flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors border ${
+                      isCurrent
+                        ? 'bg-orange-50 text-orange-900 border-orange-200 shadow-sm'
+                        : 'bg-white hover:bg-gray-50 border-gray-200 hover:border-gray-300'
+                    }`}
                   >
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={b.coverImage} alt={b.branchName} />
-                      <AvatarFallback className="bg-orange-100 text-orange-600 text-sm font-semibold">
-                        {b.branchName.charAt(0)}
+                      <AvatarImage src={branch.coverImage} alt={branch.branchName} />
+                      <AvatarFallback className="bg-orange-100 text-orange-700 text-xs font-semibold">
+                        {branch.branchName.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="flex-1 text-left text-[15px] text-gray-900 font-medium truncate">
-                      {b.branchName}
-                    </span>
-                    {isCurrent && <CheckCircle className="h-5 w-5 text-blue-600" />}
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <p className="flex-1 truncate text-sm font-medium">{branch.branchName}</p>
+                        {renderStatusPill(branch.isActive)}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        <span className="truncate">{branch.location}</span>
+                      </div>
+                    </div>
+                    {onViewBranch && (
+                      <button
+                        type="button"
+                        onClick={async (event) => {
+                          event.stopPropagation();
+                          await onViewBranch(branch);
+                          setOpen(false);
+                        }}
+                        className="rounded-md p-1 text-gray-400 transition-colors hover:text-orange-600 hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+                        title={t('branch_selector.view_details') || 'View details'}
+                        aria-label={`${t('branch_selector.view_details') || 'View details'} ${branch.branchName}`}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                    )}
                   </button>
-                  {onViewBranch && (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onViewBranch(b);
-                        setOpen(false);
-                      }}
-                      className="mr-2 inline-flex items-center justify-center rounded-full p-2 text-gray-400 transition-colors hover:bg-orange-50 hover:text-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
-                      title={t('branch_selector.view_details') || 'View details'}
-                      aria-label={`${t('branch_selector.view_details') || 'View details'} ${b.branchName}`}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           ) : (
-            <div className="px-3 py-6 text-sm text-gray-500 text-center">
+            <div className="h-64 flex items-center justify-center text-center text-sm text-gray-500">
               {t('branch_selector.no_other_branches') || 'No branches'}
             </div>
           )}
-
-          <button onClick={handleAdd} className="w-full px-3 py-3 flex items-center gap-3 hover:bg-gray-50">
-            <span className="h-8 w-8 rounded-full bg-orange-500 text-white inline-flex items-center justify-center">
-              <Plus className="h-4 w-4" />
-            </span>
-            <span className="text-[15px] text-gray-900 font-medium">
-              {t('branch_selector.add_branch') || 'Add branch'}
-            </span>
-          </button>
         </div>
       </PopoverContent>
     );
 
     if (collapsed) {
       const initials = currentBranch?.branchName?.slice(0, 2)?.toUpperCase();
-      const label = t('branch_selector.select_branch') || 'Select branch';
 
       return (
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <button
               type="button"
-              aria-label={label}
-              title={label}
-              className="h-11 w-11 rounded-2xl border border-orange-500/80 bg-orange-500 text-white flex items-center justify-center transition-transform duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+              aria-label={selectBranchLabel}
+              title={selectBranchLabel}
+              className="flex h-12 w-12 items-center justify-center rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-[0_12px_28px_rgba(249,115,22,0.28)] transition-transform duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
             >
-              <Avatar className="h-9 w-9 pointer-events-none">
+              <Avatar className="pointer-events-none h-9 w-9">
                 <AvatarImage src={currentBranch?.coverImage} alt={currentBranch?.branchName} />
                 <AvatarFallback className="bg-transparent text-white text-sm font-semibold uppercase">
-                  {initials || (branches.length > 0 ? (t('branch_selector.select_branch') || '?').charAt(0) : '!')}
+                  {initials || (branches.length > 0 ? selectBranchLabel.charAt(0) : '!')}
                 </AvatarFallback>
               </Avatar>
             </button>
@@ -149,23 +178,31 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="flex min-w-[240px] items-center justify-between rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:border-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
-            title={t('branch_selector.select_branch') || 'Select branch'}
+            className="group relative flex items-center py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 text-gray-700 hover:bg-orange-50 hover:text-orange-500 w-full gap-3 px-3"
+            title={selectBranchLabel}
           >
-            <span className="flex items-center gap-3 overflow-hidden">
-              <Avatar className="h-8 w-8 ring-1 ring-orange-100">
+            <span className="flex-shrink-0 w-5 h-5 relative">
+              <Avatar className="w-5 h-5">
                 <AvatarImage src={currentBranch?.coverImage} alt={currentBranch?.branchName} />
-                <AvatarFallback className="bg-orange-100 text-orange-600 text-sm font-semibold uppercase">
+                <AvatarFallback className="bg-orange-100 text-orange-600 text-xs font-semibold uppercase">
                   {currentBranch?.branchName?.slice(0, 2).toUpperCase() ||
-                    (branches.length > 0 ? (t('branch_selector.select_branch') || '?').charAt(0) : '!')}
+                    (branches.length > 0 ? selectBranchLabel.charAt(0) : '!')}
                 </AvatarFallback>
               </Avatar>
-              <span className="truncate text-left text-sm font-semibold text-gray-800">
-                {currentBranch?.branchName ||
-                  (branches.length > 0 ? t('branch_selector.select_branch') : t('branch_selector.no_branches'))}
-              </span>
             </span>
-            <ChevronDown className="h-4 w-4 text-gray-400" />
+            <span className="flex min-w-0 flex-col flex-1 text-left">
+              <span className="truncate text-sm font-medium text-gray-900">
+                {currentBranch?.branchName ||
+                  (branches.length > 0 ? selectBranchLabel : t('branch_selector.no_branches'))}
+              </span>
+              {currentBranch && (
+                <span className="flex items-center gap-1 text-xs text-gray-500 min-w-0 mt-0.5">
+                  <MapPin className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate">{currentBranch.location}</span>
+                </span>
+              )}
+            </span>
+            <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
           </button>
         </PopoverTrigger>
         {popoverContent}
@@ -173,3 +210,4 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
     );
   }
 );
+BranchSelectorButton.displayName = 'BranchSelectorButton';

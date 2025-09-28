@@ -30,8 +30,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title }) => {
     const translationMap: Record<string, string> = {
       owner: t('dashboard.overview'),
       dashboard: t('dashboard.overview'),
-      staff: t('sidebar.users'),
-      users: t('sidebar.users'),
+      staff: t('sidebar.staff'),
       branch: t('sidebar.branch'),
       branches: t('sidebar.branch')
     };

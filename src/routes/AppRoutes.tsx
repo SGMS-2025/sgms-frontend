@@ -28,6 +28,7 @@ import { EquipmentListPage } from '@/pages/technician/EquipmentListPage';
 import { AddEquipmentPage } from '@/pages/technician/AddEquipmentPage';
 import { EquipmentDetailPage } from '@/pages/technician/EquipmentDetailPage';
 import { EditEquipmentPage } from '@/pages/technician/EditEquipmentPage';
+import MembershipPlansPage from '@/pages/owner/MembershipPlansPage';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 
@@ -164,7 +165,8 @@ const AppRoutes: React.FC = () => {
           <Route path="staff/add" element={<AddNewStaff />} />
           {/* Discount Management Route */}
           <Route path="discounts" element={<DiscountPage />} />
-
+          {/* Membership Management Route */}
+          <Route path="memberships" element={<MembershipPlansPage />} />
           {/* Shared Equipment Routes for Manager */}
           <Route path="equipment" element={<EquipmentListPage />} />
           <Route path="equipment/add" element={<AddEquipmentPage />} />
