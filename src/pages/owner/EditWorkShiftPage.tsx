@@ -19,8 +19,8 @@ const EditWorkShiftPage: React.FC = () => {
     if (!id) return;
 
     const result = await updateWorkShift(id, {
-      start_time: data.start_time,
-      end_time: data.end_time
+      startTime: data.startTime,
+      endTime: data.endTime
     });
 
     if (result) {
@@ -86,9 +86,9 @@ const EditWorkShiftPage: React.FC = () => {
                 <span className="font-medium">{t('workshift.staff')}</span>
               </div>
               <p className="text-gray-900 font-medium">
-                {workShift.staff_id.firstName} {workShift.staff_id.lastName}
+                {workShift.staffId.firstName} {workShift.staffId.lastName}
               </p>
-              <p className="text-sm text-gray-500">{workShift.staff_id.email}</p>
+              <p className="text-sm text-gray-500">{workShift.staffId.email}</p>
             </div>
 
             <div className="space-y-2">
@@ -96,8 +96,8 @@ const EditWorkShiftPage: React.FC = () => {
                 <MapPin className="h-4 w-4" />
                 <span className="font-medium">{t('workshift.branch')}</span>
               </div>
-              <p className="text-gray-900 font-medium">{workShift.branch_id.name}</p>
-              <p className="text-sm text-gray-500">{workShift.branch_id.location}</p>
+              <p className="text-gray-900 font-medium">{workShift.branchId.name}</p>
+              <p className="text-sm text-gray-500">{workShift.branchId.location}</p>
             </div>
 
             <div className="space-y-2">
@@ -106,9 +106,9 @@ const EditWorkShiftPage: React.FC = () => {
                 <span className="font-medium">{t('workshift.current_time')}</span>
               </div>
               <p className="text-gray-900 font-medium">
-                {workShift.start_time_local} - {workShift.end_time_local}
+                {workShift.startTimeLocal} - {workShift.endTimeLocal}
               </p>
-              <p className="text-sm text-gray-500">{workShift.start_time_fmt.split(' ')[1]}</p>
+              <p className="text-sm text-gray-500">{workShift.startTimeFmt.split(' ')[1]}</p>
             </div>
           </div>
         </CardContent>

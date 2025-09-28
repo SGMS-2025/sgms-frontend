@@ -222,6 +222,24 @@ export const usePermissionOperations = () => {
     [t]
   );
 
+  const bulkRevokePermissions = useCallback(
+    async (data: { userIds: string[]; permissionNames: string[]; resourceId?: string; resourceType?: string }) => {
+      setLoading(true);
+      const response = await permissionApi.bulkRevokePermissions(data);
+
+      if (response.success) {
+        toast.success(t('permissions.revoke_success'));
+        setLoading(false);
+        return response.data;
+      } else {
+        toast.error(response.message);
+        setLoading(false);
+        throw new Error(response.message);
+      }
+    },
+    [t]
+  );
+
   const assignStaffToBranches = useCallback(
     async (data: AssignStaffToBranchesRequest) => {
       setLoading(true);
@@ -248,7 +266,8 @@ export const usePermissionOperations = () => {
     assignManagerToBranches,
     assignStaffToBranches,
     revokePermission,
-    revokeManagerFromBranch
+    revokeManagerFromBranch,
+    bulkRevokePermissions
   };
 };
 
@@ -287,7 +306,21 @@ export const useEffectivePermissions = (userId?: string, query?: GetEffectivePer
     setLoading(true);
     setError(null);
 
-    const response = await permissionApi.getEffectivePermissions(userId, query);
+    // Add resourceId and resourceType for branch-scoped permissions
+    // Only include resourceId if it's a valid ObjectId, otherwise omit it
+    const queryWithResource = {
+      ...query
+    };
+
+    // Only add resourceId if it's provided and not 'default-branch'
+    if (query?.resourceId && query.resourceId !== 'default-branch') {
+      queryWithResource.resourceId = query.resourceId;
+      queryWithResource.resourceType = query?.resourceType || 'branch';
+    }
+
+    console.log('🔍 Frontend: Fetching effective permissions for userId:', userId, 'query:', queryWithResource);
+    const response = await permissionApi.getEffectivePermissions(userId, queryWithResource);
+    console.log('🔍 Frontend: API response:', response);
 
     if (response.success) {
       setPermissions(response.data.permissions);

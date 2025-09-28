@@ -105,8 +105,8 @@ export const WorkShiftFilters: React.FC<WorkShiftFiltersComponentProps> = ({
               <Input
                 placeholder={t('workshift.search_placeholder')}
                 className="pl-10"
-                value={filters.staff_id || ''}
-                onChange={(e) => handleFilterChange('staff_id', e.target.value)}
+                value={filters.staffId || ''}
+                onChange={(e) => handleFilterChange('staffId', e.target.value)}
               />
             </div>
           </div>
@@ -114,10 +114,7 @@ export const WorkShiftFilters: React.FC<WorkShiftFiltersComponentProps> = ({
           {/* Branch Filter */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">{t('workshift.branch')}</label>
-            <Select
-              onValueChange={(value) => handleFilterChange('branch_id', value)}
-              value={filters.branch_id || 'all'}
-            >
+            <Select onValueChange={(value) => handleFilterChange('branchId', value)} value={filters.branchId || 'all'}>
               <SelectTrigger>
                 <SelectValue placeholder={t('workshift.all_branches')} />
               </SelectTrigger>
@@ -154,8 +151,8 @@ export const WorkShiftFilters: React.FC<WorkShiftFiltersComponentProps> = ({
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">{t('workshift.day_of_week')}</label>
             <Select
-              onValueChange={(value) => handleFilterChange('day_of_the_week', value)}
-              value={filters.day_of_the_week || 'all'}
+              onValueChange={(value) => handleFilterChange('dayOfTheWeek', value)}
+              value={filters.dayOfTheWeek || 'all'}
             >
               <SelectTrigger>
                 <SelectValue placeholder={t('workshift.all_days')} />
@@ -178,16 +175,16 @@ export const WorkShiftFilters: React.FC<WorkShiftFiltersComponentProps> = ({
             <label className="text-sm font-medium text-gray-700">{t('workshift.start_date')}</label>
             <Input
               type="date"
-              value={filters.start_date || ''}
-              onChange={(e) => handleFilterChange('start_date', e.target.value)}
+              value={filters.startDate || ''}
+              onChange={(e) => handleFilterChange('startDate', e.target.value)}
             />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">{t('workshift.end_date')}</label>
             <Input
               type="date"
-              value={filters.end_date || ''}
-              onChange={(e) => handleFilterChange('end_date', e.target.value)}
+              value={filters.endDate || ''}
+              onChange={(e) => handleFilterChange('endDate', e.target.value)}
             />
           </div>
         </div>

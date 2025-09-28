@@ -393,7 +393,7 @@ export const OwnerSidebar: React.FC = () => {
     {
       icon: <Dumbbell className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.equipment'),
-      onClick: () => console.log('Equipment clicked')
+      onClick: () => navigate('/manage/equipment')
     },
     {
       icon: <UserCheck className="w-5 h-5 stroke-[1.75]" />,

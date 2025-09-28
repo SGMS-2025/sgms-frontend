@@ -67,22 +67,22 @@ const WorkShiftCard: React.FC<WorkShiftCardProps> = ({ workShift, onEdit, onDele
             <Avatar className="h-10 w-10">
               <AvatarImage
                 src={
-                  workShift.staff_id.email
-                    ? `https://ui-avatars.com/api/?name=${workShift.staff_id.firstName || ''}+${workShift.staff_id.lastName || ''}&background=orange&color=fff`
+                  workShift.staffId.email
+                    ? `https://ui-avatars.com/api/?name=${workShift.staffId.firstName || ''}+${workShift.staffId.lastName || ''}&background=orange&color=fff`
                     : undefined
                 }
-                alt={`${workShift.staff_id.firstName || ''} ${workShift.staff_id.lastName || ''}`}
+                alt={`${workShift.staffId.firstName || ''} ${workShift.staffId.lastName || ''}`}
               />
               <AvatarFallback className="bg-orange-500 text-white text-sm font-medium">
-                {(workShift.staff_id.firstName || '').charAt(0)}
-                {(workShift.staff_id.lastName || '').charAt(0)}
+                {(workShift.staffId.firstName || '').charAt(0)}
+                {(workShift.staffId.lastName || '').charAt(0)}
               </AvatarFallback>
             </Avatar>
             <div>
               <h3 className="font-semibold text-gray-900 text-sm">
-                {workShift.staff_id.firstName || ''} {workShift.staff_id.lastName || ''}
+                {workShift.staffId.firstName || ''} {workShift.staffId.lastName || ''}
               </h3>
-              <p className="text-xs text-gray-500">{workShift.staff_id.email || ''}</p>
+              <p className="text-xs text-gray-500">{workShift.staffId.email || ''}</p>
             </div>
           </div>
           <Badge variant="outline" className={cn('text-xs font-medium', getStatusColor(workShift.status))}>
@@ -96,26 +96,26 @@ const WorkShiftCard: React.FC<WorkShiftCardProps> = ({ workShift, onEdit, onDele
           {/* Branch Information */}
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <MapPin className="h-4 w-4 text-gray-400" />
-            <span className="font-medium">{workShift.branch_id.name}</span>
+            <span className="font-medium">{workShift.branchId.name}</span>
           </div>
 
           {/* Date and Time Information */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <CalendarIcon className="h-4 w-4 text-gray-400" />
-              <span>{workShift.start_time_fmt.split(' ')[1]}</span>
+              <span>{workShift.startTimeFmt.split(' ')[1]}</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Clock className="h-4 w-4 text-gray-400" />
               <span className="font-medium">
-                {workShift.start_time_local} - {workShift.end_time_local}
+                {workShift.startTimeLocal} - {workShift.endTimeLocal}
               </span>
             </div>
           </div>
 
           {/* Timezone Information */}
           <div className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-1">
-            {t('workshift.timezone')}: {workShift.branch_tz}
+            {t('workshift.timezone')}: {workShift.branchTz}
           </div>
 
           {/* Action Buttons */}

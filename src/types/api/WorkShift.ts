@@ -3,7 +3,7 @@ export type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDA
 
 export interface WorkShift {
   _id: string;
-  staff_id: {
+  staffId: {
     _id: string;
     jobTitle: string;
     salary: number;
@@ -19,21 +19,21 @@ export interface WorkShift {
     lastName?: string;
     email?: string;
   };
-  branch_id: {
+  branchId: {
     _id: string;
     name: string;
     location: string;
     timezone: string;
   };
-  day_of_the_week: DayOfWeek;
-  start_time: string;
-  end_time: string;
+  dayOfTheWeek: DayOfWeek;
+  startTime: string;
+  endTime: string;
   status: WorkShiftStatus;
-  start_time_local: string;
-  end_time_local: string;
-  start_time_fmt: string;
-  end_time_fmt: string;
-  branch_tz: string;
+  startTimeLocal: string;
+  endTimeLocal: string;
+  startTimeFmt: string;
+  endTimeFmt: string;
+  branchTz: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -51,12 +51,12 @@ export interface WorkShiftStats {
 }
 
 export interface WorkShiftFilters {
-  staff_id?: string;
-  branch_id?: string;
+  staffId?: string;
+  branchId?: string;
   status?: WorkShiftStatus;
-  start_date?: string;
-  end_date?: string;
-  day_of_the_week?: DayOfWeek;
+  startDate?: string;
+  endDate?: string;
+  dayOfTheWeek?: DayOfWeek;
   page?: number;
   limit?: number;
 }
@@ -64,14 +64,14 @@ export interface WorkShiftFilters {
 export interface WorkShiftListParams {
   page?: number;
   limit?: number;
-  sortBy?: 'createdAt' | 'updatedAt' | 'start_time' | 'end_time';
+  sortBy?: 'createdAt' | 'updatedAt' | 'startTime' | 'endTime';
   sortOrder?: 'asc' | 'desc';
-  staff_id?: string;
-  branch_id?: string;
+  staffId?: string;
+  branchId?: string;
   status?: WorkShiftStatus;
-  start_date?: string;
-  end_date?: string;
-  day_of_the_week?: DayOfWeek;
+  startDate?: string;
+  endDate?: string;
+  dayOfTheWeek?: DayOfWeek;
 }
 
 export interface WorkShiftListResponse {
@@ -86,24 +86,24 @@ export interface WorkShiftListResponse {
 
 // API Request/Response types
 export interface CreateWorkShiftRequest {
-  staff_id: string;
-  branch_id: string;
-  start_time: string;
-  end_time: string;
+  staffId: string;
+  branchId: string;
+  startTime: string;
+  endTime: string;
 }
 
 export interface UpdateWorkShiftRequest {
-  start_time?: string;
-  end_time?: string;
+  startTime?: string;
+  endTime?: string;
   status?: WorkShiftStatus;
 }
 
 export interface WorkShiftFormData {
-  staff_id: string;
-  branch_id: string;
+  staffId: string;
+  branchId: string;
   date: string;
-  start_time: string;
-  end_time: string;
+  startTime: string;
+  endTime: string;
 }
 
 // Hook return types

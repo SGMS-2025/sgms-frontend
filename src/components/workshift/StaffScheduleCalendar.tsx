@@ -81,8 +81,8 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
 
     const activeShifts = filteredWorkShifts.filter((shift) => {
       // Use local time fields from backend instead of UTC
-      const startTimeStr = shift.start_time_local || '00:00';
-      const endTimeStr = shift.end_time_local || '00:00';
+      const startTimeStr = shift.startTimeLocal || '07:00';
+      const endTimeStr = shift.endTimeLocal || '08:00';
 
       const [startHour, startMin] = startTimeStr.split(':').map(Number);
       const [endHour, endMin] = endTimeStr.split(':').map(Number);
@@ -100,8 +100,8 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
 
     // Sort by start time to ensure consistent layering
     activeShifts.sort((a, b) => {
-      const aStartTime = a.start_time_local || '00:00';
-      const bStartTime = b.start_time_local || '00:00';
+      const aStartTime = a.startTimeLocal || '07:00';
+      const bStartTime = b.startTimeLocal || '07:00';
       return aStartTime.localeCompare(bStartTime);
     });
     return activeShifts;
@@ -111,14 +111,12 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   const getWorkShiftsForSlot = (date: Date, hour: number) => {
     const filteredShifts = filteredWorkShifts.filter((shift) => {
       // Use backend-provided local time instead of converting UTC
-      const startTimeLocalStr = shift.start_time_local || '16:00';
+      const startTimeLocalStr = shift.startTimeLocal || '07:00';
       const [shiftStartHour] = startTimeLocalStr.split(':').map(Number);
 
-      // Get the date from start_time_fmt (format: "16:00 25/09/2025")
-      const startTimeFmt = shift.start_time_fmt || '16:00 25/09/2025';
-      const datePart = startTimeFmt.split(' ')[1]; // "25/09/2025"
-      const [day, month, year] = datePart.split('/').map(Number);
-      const shiftDate = new Date(year, month - 1, day);
+      // Get the date from startTime (UTC) and convert to local timezone
+      const startTimeUTC = new Date(shift.startTime);
+      const shiftDate = new Date(startTimeUTC.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
 
       // Check if shift starts on the same date and hour
       const isSameDate = shiftDate.toDateString() === date.toDateString();
@@ -168,7 +166,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   // Render shift card with correct positioning and height
   const renderShiftCard = (shift: WorkShift, _index: number, _shiftsForSlot: WorkShift[], currentHour: number) => {
     const baseStaffColor = getStaffColor(
-      typeof shift.staff_id === 'string' ? shift.staff_id : shift.staff_id?._id || 'unknown'
+      typeof shift.staffId === 'string' ? shift.staffId : shift.staffId?._id || 'unknown'
     );
 
     // Apply different styling for cancelled/disabled shifts
@@ -178,17 +176,17 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
         : baseStaffColor;
 
     const staffName =
-      shift.staff_id?.userId?.fullName ||
-      (shift.staff_id?.firstName && shift.staff_id?.lastName
-        ? `${shift.staff_id.firstName} ${shift.staff_id.lastName}`
+      shift.staffId?.userId?.fullName ||
+      (shift.staffId?.firstName && shift.staffId?.lastName
+        ? `${shift.staffId.firstName} ${shift.staffId.lastName}`
         : 'Unknown Staff');
 
     // Use backend-provided local time fields instead of converting UTC
-    // Backend already provides start_time_local and end_time_local in correct timezone
+    // Backend already provides startTime_local and endTime_local in correct timezone
 
-    // Parse the local time from backend (format: "16:00")
-    const startTimeStr = shift.start_time_local || '16:00';
-    const endTimeStr = shift.end_time_local || '17:00';
+    // Parse the local time from backend (format: "07:00")
+    const startTimeStr = shift.startTimeLocal || '07:00';
+    const endTimeStr = shift.endTimeLocal || '08:00';
 
     const [startHour, startMin] = startTimeStr.split(':').map(Number);
     const [endHour, endMin] = endTimeStr.split(':').map(Number);
@@ -206,11 +204,9 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     const topOffsetInPixels = (startMin / 60) * 60;
 
     // Get current date for this shift to calculate position (use local date)
-    // Get the date from start_time_fmt (format: "16:00 25/09/2025")
-    const startTimeFmt = shift.start_time_fmt || '16:00 25/09/2025';
-    const datePart = startTimeFmt.split(' ')[1]; // "25/09/2025"
-    const [day, month, year] = datePart.split('/').map(Number);
-    const shiftDate = new Date(year, month - 1, day);
+    // Get the date from startTime (UTC) and convert to local timezone
+    const startTimeUTC = new Date(shift.startTime);
+    const shiftDate = new Date(startTimeUTC.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
     const shiftDateOnly = new Date(shiftDate.getFullYear(), shiftDate.getMonth(), shiftDate.getDate());
 
     // Calculate position for overlapping shifts
@@ -346,7 +342,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     setLoadingWorkShifts(true);
     const response = await workShiftApi.getWorkShifts({
       limit: 100,
-      branch_id: currentBranch._id
+      branchId: currentBranch._id
     });
     if (response.success) {
       setWorkShifts(response.data.data);
@@ -364,7 +360,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   // Filter workshifts by selected staff (if any) and disabled status
   const filteredWorkShifts = workShifts.filter((shift) => {
     // Filter by selected staff
-    if (selectedStaffId && shift.staff_id._id !== selectedStaffId) {
+    if (selectedStaffId && shift.staffId._id !== selectedStaffId) {
       return false;
     }
     // Filter by disabled status
