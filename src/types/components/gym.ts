@@ -59,6 +59,7 @@ export interface Trainer {
 
 export interface GymHeroSectionProps {
   branch: BranchHero;
+  onJoinClick?: () => void;
 }
 
 export interface GymReviewsProps {

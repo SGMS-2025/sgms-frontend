@@ -6,6 +6,7 @@ import {
   Dumbbell,
   CalendarRange as Calendar,
   Tag,
+  IdCard,
   User,
   LayoutDashboard,
   MessageSquare,
@@ -15,7 +16,10 @@ import {
   LogOut,
   UserCircle,
   ShieldCheck as Shield,
-  PanelLeft
+  PanelLeft,
+  Globe,
+  UserCheck,
+  UsersRound
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -33,6 +37,7 @@ import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
+import { useLanguage } from '@/contexts/LanguageContext';
 // no extra popovers here; BranchSelectorButton handles its own popover
 
 interface SidebarItemProps {
@@ -55,9 +60,9 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   return (
     <button
       type="button"
-      className={`group relative flex w-full items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 ${
+      className={`group relative flex items-center py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 ${
         isActive ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-700 hover:bg-orange-50 hover:text-orange-500'
-      } ${isCollapsed ? 'justify-center px-2' : ''}`}
+      } ${isCollapsed ? 'justify-center px-1 w-12' : 'w-full gap-3 px-3'}`}
       onClick={onClick}
       aria-current={isActive ? 'page' : undefined}
       title={isCollapsed ? label : undefined}
@@ -83,20 +88,23 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
 };
 
 const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
+  const { t } = useTranslation();
   const { toggle, setCollapsed } = useSidebar();
 
   return (
-    <div className="flex items-center gap-3 px-3 py-4 border-b border-gray-200 dark:border-gray-800">
+    <div
+      className={`flex items-center py-4 border-b border-gray-200 dark:border-gray-800 ${isCollapsed ? 'justify-center px-1' : 'gap-3 px-3'}`}
+    >
       <button
         type="button"
         className="flex-shrink-0 w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center overflow-hidden cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
         onClick={() => {
           if (isCollapsed) setCollapsed(false);
         }}
-        title={isCollapsed ? 'Mở sidebar' : undefined}
-        aria-label={isCollapsed ? 'Mở sidebar' : undefined}
+        title={isCollapsed ? t('sidebar.open_sidebar') : undefined}
+        aria-label={isCollapsed ? t('sidebar.open_sidebar') : undefined}
       >
-        <img src="/src/assets/images/logo2.png" alt="GYM SMART Logo" className="w-6 h-6 object-contain" />
+        <img src="/src/assets/images/logo2.png" alt={t('sidebar.gym_smart_logo')} className="w-6 h-6 object-contain" />
       </button>
       {!isCollapsed && (
         <div className="flex-1 min-w-0">
@@ -113,11 +121,11 @@ const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
           onClick={toggle}
           className="ml-auto h-8 w-8 rounded-lg flex items-center justify-center transition-colors bg-gray-100 text-gray-700 hover:bg-orange-50 hover:text-orange-600 active:bg-orange-100 active:shadow-inner dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
           aria-pressed={!isCollapsed}
-          aria-label="Đóng sidebar"
-          title="Đóng sidebar"
+          aria-label={t('sidebar.close_sidebar')}
+          title={t('sidebar.close_sidebar')}
         >
           <PanelLeft className="h-4 w-4" />
-          <span className="sr-only">Đóng sidebar</span>
+          <span className="sr-only">{t('sidebar.close_sidebar')}</span>
         </button>
       )}
     </div>
@@ -134,7 +142,7 @@ const QuickActions: React.FC<{
 }> = ({ isCollapsed, currentBranch, branches, onBranchSelect, onAddBranch, onViewBranch }) => {
   if (isCollapsed) {
     return (
-      <div className="px-2 py-3 flex justify-center">
+      <div className="px-1 py-3 flex justify-center">
         <BranchSelectorButton
           currentBranch={currentBranch}
           branches={branches}
@@ -148,19 +156,14 @@ const QuickActions: React.FC<{
   }
 
   return (
-    <div className="px-3 py-2">
-      <div className="flex items-center gap-2">
-        <div className="flex-1">
-          <BranchSelectorButton
-            currentBranch={currentBranch}
-            branches={branches}
-            onBranchSelect={onBranchSelect}
-            onAddBranch={onAddBranch}
-            onViewBranch={onViewBranch}
-          />
-        </div>
-        {/* Refresh icon is moved inside BranchSelectorButton component as a second popover trigger */}
-      </div>
+    <div className="px-3">
+      <BranchSelectorButton
+        currentBranch={currentBranch}
+        branches={branches}
+        onBranchSelect={onBranchSelect}
+        onAddBranch={onAddBranch}
+        onViewBranch={onViewBranch}
+      />
     </div>
   );
 };
@@ -178,6 +181,7 @@ const UserProfile: React.FC<{
 }> = ({ isCollapsed, user, isLoading, onLogout }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { language, setLanguage } = useLanguage();
 
   const displayName = user?.fullName || user?.username || t('sidebar.account') || 'User';
   const roleKey = user?.role ? `roles.${user.role.toLowerCase()}` : '';
@@ -196,7 +200,7 @@ const UserProfile: React.FC<{
 
   if (isLoading && !user) {
     return (
-      <div className="px-3 py-2 border-t border-gray-200">
+      <div className={`py-2 border-t border-gray-200 ${isCollapsed ? 'px-1 flex justify-center' : 'px-3'}`}>
         <div className="flex items-center gap-3 p-2 rounded-lg bg-gray-100 animate-pulse">
           <div className="h-8 w-8 rounded-full bg-gray-200" />
           {!isCollapsed && (
@@ -233,6 +237,13 @@ const UserProfile: React.FC<{
 
       <DropdownMenuSeparator />
 
+      <DropdownMenuItem onClick={() => setLanguage(language === 'en' ? 'vi' : 'en')} className="cursor-pointer">
+        <Globe className="w-4 h-4 mr-3 stroke-[1.75]" />
+        {t('sidebar.language')} ({language === 'en' ? 'VI' : 'EN'})
+      </DropdownMenuItem>
+
+      <DropdownMenuSeparator />
+
       <DropdownMenuItem
         onClick={() => {
           onLogout();
@@ -247,7 +258,7 @@ const UserProfile: React.FC<{
 
   if (isCollapsed) {
     return (
-      <div className="px-3 py-2 border-t border-gray-200 flex justify-center">
+      <div className="px-1 py-2 border-t border-gray-200 flex justify-center">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -273,7 +284,7 @@ const UserProfile: React.FC<{
   }
 
   return (
-    <div className="px-3 py-2 border-t border-gray-200">
+    <div className={`py-2 border-t border-gray-200 ${isCollapsed ? 'px-1 flex justify-center' : 'px-3'}`}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors duration-200 w-full">
@@ -351,7 +362,7 @@ export const OwnerSidebar: React.FC = () => {
     return () => {
       ignore = true;
     };
-  }, [isAuthenticated, hasInitiallyFetched]);
+  }, [isAuthenticated, hasInitiallyFetched, authUser, updateUser]);
 
   const handleBranchSelect = (branch: BranchDisplay) => {
     setCurrentBranch(branch);
@@ -375,20 +386,38 @@ export const OwnerSidebar: React.FC = () => {
     },
     {
       icon: <Users className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.users'),
+      label: t('sidebar.staff'),
       isActive: location.pathname === '/manage/staff',
       onClick: () => navigate('/manage/staff')
     },
     {
       icon: <Dumbbell className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.equipment'),
-      onClick: () => console.log('Equipment clicked')
+      onClick: () => navigate('/manage/equipment')
+    },
+    {
+      icon: <UserCheck className="w-5 h-5 stroke-[1.75]" />,
+      label: t('sidebar.pt_services'),
+      isActive: location.pathname === '/manage/pt-services',
+      onClick: () => navigate('/manage/pt-services')
+    },
+    {
+      icon: <UsersRound className="w-5 h-5 stroke-[1.75]" />,
+      label: t('sidebar.class_services'),
+      isActive: location.pathname === '/manage/class-services',
+      onClick: () => navigate('/manage/class-services')
     },
     {
       icon: <Tag className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.services_promotions'),
+      label: t('sidebar.promotions'),
       isActive: location.pathname === '/manage/discounts',
       onClick: () => navigate('/manage/discounts')
+    },
+    {
+      icon: <IdCard className="w-5 h-5 stroke-[1.75]" />,
+      label: t('sidebar.membership_plans'),
+      isActive: location.pathname === '/manage/memberships',
+      onClick: () => navigate('/manage/memberships')
     },
     {
       icon: <BarChart3 className="w-5 h-5 stroke-[1.75]" />,
@@ -398,7 +427,8 @@ export const OwnerSidebar: React.FC = () => {
     {
       icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.work_schedule'),
-      onClick: () => console.log('Work Schedule clicked')
+      isActive: location.pathname === '/manage/workshifts/calendar',
+      onClick: () => navigate('/manage/workshifts/calendar')
     },
     {
       icon: <MessageSquare className="w-5 h-5 stroke-[1.75]" />,
@@ -424,20 +454,25 @@ export const OwnerSidebar: React.FC = () => {
   return (
     <div
       className={`bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0 transition-all duration-300 ${
-        isCollapsed ? 'w-16' : 'w-64'
+        isCollapsed ? 'w-16 overflow-hidden' : 'w-64'
       }`}
+      style={isCollapsed ? { maxWidth: '64px', minWidth: '64px' } : {}}
     >
       {/* Header */}
       <SidebarHeader isCollapsed={isCollapsed} />
 
       {/* Main Navigation */}
-      <div className="flex-1 px-3 py-2 overflow-y-auto">
+      <div className={`flex-1 py-2 overflow-y-auto ${isCollapsed ? 'px-1' : 'px-3'}`}>
         {!isCollapsed && (
           <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-3">
             {t('sidebar.main_menu')}
           </div>
         )}
-        <nav className="space-y-1" role="navigation" aria-label="Main">
+        <nav
+          className={`space-y-1 ${isCollapsed ? 'overflow-hidden' : ''}`}
+          role="navigation"
+          aria-label={t('sidebar.navigation.main')}
+        >
           {mainNavItems.map((item) => (
             <SidebarItem
               key={item.label}
@@ -458,7 +493,11 @@ export const OwnerSidebar: React.FC = () => {
               {t('sidebar.support')}
             </div>
           )}
-          <nav className="space-y-1" role="navigation" aria-label="Support">
+          <nav
+            className={`space-y-1 ${isCollapsed ? 'overflow-hidden' : ''}`}
+            role="navigation"
+            aria-label={t('sidebar.navigation.support')}
+          >
             {secondaryNavItems.map((item) => (
               <SidebarItem
                 key={item.label}
@@ -472,7 +511,7 @@ export const OwnerSidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* Branch switch + notifications (above profile) */}
+      {/* Branch switch */}
       <div className="border-t border-gray-200">
         <QuickActions
           isCollapsed={isCollapsed}

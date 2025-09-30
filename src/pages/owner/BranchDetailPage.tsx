@@ -7,11 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
+import ManagerSelector from '@/components/ui/ManagerSelector';
 import {
   Edit3,
   Camera,
-  ChevronDown,
   Tag,
   Phone,
   Dumbbell,
@@ -25,7 +24,6 @@ import {
   X
 } from 'lucide-react';
 import { useBranch } from '@/contexts/BranchContext';
-import { BranchSelectorModal } from '@/components/modals/BranchSelectorModal';
 import { staffApi } from '@/services/api/staffApi';
 import { mapManagersToStaffIds } from '@/utils/managerUtils';
 import type { BranchDisplay, BranchEditValues, CreateAndUpdateBranchRequest } from '@/types/api/Branch';
@@ -42,10 +40,8 @@ const BranchDetailPage: React.FC = () => {
     fetchBranchDetail,
     updateBranchApi,
     toggleBranchStatus,
-    switchBranch,
     loading: contextLoading
   } = useBranch();
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [branch, setBranch] = useState<BranchDisplay | null>(null);
   const [loading, setLoading] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState(false);
@@ -95,14 +91,7 @@ const BranchDetailPage: React.FC = () => {
     const loadBranch = async () => {
       if (branchId) {
         setLoading(true);
-        // Check if branch is already in branches list to avoid unnecessary API call
-        const existingBranch = branches.find((b) => b._id === branchId);
-        if (existingBranch) {
-          setBranch(existingBranch);
-          setLoading(false);
-          return;
-        }
-
+        // Always fetch fresh data from API to ensure we have the latest manager information
         const branchDetail = await fetchBranchDetail(branchId);
         if (branchDetail) {
           setBranch(branchDetail);
@@ -116,18 +105,7 @@ const BranchDetailPage: React.FC = () => {
     };
 
     loadBranch();
-  }, [branchId, branches, fetchBranchDetail, currentBranch]); // Add currentBranch back to dependencies
-
-  const handleBranchSelect = async (selectedBranch: BranchDisplay) => {
-    // Use switchBranch to safely switch branches
-    await switchBranch(selectedBranch._id);
-    // Navigate to the new branch
-    navigate(`/manage/branch/${selectedBranch._id}`);
-  };
-
-  const handleAddBranch = () => {
-    navigate('/manage/add-branch');
-  };
+  }, [branchId, fetchBranchDetail, currentBranch, branches]);
 
   // Fetch managers on component mount
   useEffect(() => {
@@ -281,13 +259,6 @@ const BranchDetailPage: React.FC = () => {
     }));
   };
 
-  const handleManagerChange = (managerId: string, checked: boolean) => {
-    setEditValues((prev) => ({
-      ...prev,
-      managerId: checked ? [...prev.managerId, managerId] : prev.managerId.filter((id) => id !== managerId)
-    }));
-  };
-
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -367,36 +338,6 @@ const BranchDetailPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f1f3f4]">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center space-x-4">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-orange-600">{branch.branchName}</h1>
-              <p className="text-base sm:text-lg font-bold text-gray-800">{t('branch_detail.manage_branch_info')}</p>
-            </div>
-          </div>
-          <div className="relative">
-            <Button
-              className="bg-[#0D1523] hover:bg-[#1a2332] text-white border-[#0D1523] hover:border-[#1a2332]"
-              onClick={() => setIsModalOpen(!isModalOpen)}
-            >
-              {t('branch_detail.change_branch')}
-              <ChevronDown className="h-4 w-4 ml-2" />
-            </Button>
-
-            <BranchSelectorModal
-              isOpen={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
-              currentBranch={currentBranch}
-              branches={branches}
-              onBranchSelect={handleBranchSelect}
-              onAddBranch={handleAddBranch}
-            />
-          </div>
-        </div>
-      </div>
-
       <div className="p-4 sm:p-6">
         <div className="bg-orange-500 rounded-lg p-4 sm:p-6 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
@@ -684,41 +625,41 @@ const BranchDetailPage: React.FC = () => {
                     <label className="text-sm font-medium text-gray-500 ">{t('branch_detail.manager')}</label>
                   </div>
                   {isEditMode ? (
-                    <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
+                    <div>
                       {loadingManagers ? (
                         <p className="text-sm text-gray-500">{t('branch_detail.loading')}</p>
-                      ) : managers.length === 0 ? (
-                        <p className="text-sm text-gray-500">{t('branch_detail.no_managers_available')}</p>
                       ) : (
-                        managers.map((manager) => (
-                          <div key={manager._id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`manager-${manager._id}`}
-                              checked={editValues.managerId.includes(manager._id)}
-                              onCheckedChange={(checked) => handleManagerChange(manager._id, checked as boolean)}
-                            />
-                            <label
-                              htmlFor={`manager-${manager._id}`}
-                              className="text-sm text-gray-800 cursor-pointer flex-1"
-                            >
-                              {manager.userId.fullName} - {manager.userId.email}
-                            </label>
-                          </div>
-                        ))
+                        <ManagerSelector
+                          managers={managers.map((manager) => ({
+                            _id: manager._id,
+                            fullName: manager.userId.fullName,
+                            email: manager.userId.email,
+                            status: manager.userId.status
+                          }))}
+                          selectedManagerIds={editValues.managerId}
+                          onManagerChange={(managerIds) =>
+                            setEditValues((prev) => ({ ...prev, managerId: managerIds }))
+                          }
+                          placeholder={t('branch_detail.manager_placeholder')}
+                        />
                       )}
                     </div>
                   ) : (
                     <div className="space-y-1">
                       {Array.isArray(branch.managerId) && branch.managerId.length > 0 ? (
-                        branch.managerId.map((manager, index) => (
-                          <p key={index} className="text-lg text-gray-800">
-                            {manager.fullName} - {manager.email}
-                          </p>
-                        ))
+                        branch.managerId
+                          .filter((manager) => manager.status === 'ACTIVE') // Chỉ hiển thị manager có status ACTIVE
+                          .map((manager, index) => (
+                            <p key={index} className="text-lg text-gray-800">
+                              {manager.fullName} - {manager.email}
+                            </p>
+                          ))
                       ) : branch.managerId && !Array.isArray(branch.managerId) ? (
-                        <p className="text-lg text-gray-800">
-                          {branch.managerId.fullName} - {branch.managerId.email}
-                        </p>
+                        branch.managerId.status === 'ACTIVE' ? ( // Kiểm tra status cho single manager
+                          <p className="text-lg text-gray-800">
+                            {branch.managerId.fullName} - {branch.managerId.email}
+                          </p>
+                        ) : null
                       ) : (
                         <p className="text-lg text-gray-800">{t('branch_detail.no_manager_option')}</p>
                       )}

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useScrollToTop } from '@/hooks/useScrollToTop';
 import { Header } from '@/components/layout/BaseHeader';
 import { Footer } from '@/components/layout/BaseFooter';
@@ -23,6 +24,7 @@ import { Search, Filter, MapPin, Star, Grid, List, Loader2 } from 'lucide-react'
 import type { BranchListParams } from '@/types/api/Branch';
 
 const GymListPage: React.FC = () => {
+  const { t } = useTranslation();
   // Scroll to top when component mounts
   useScrollToTop();
 
@@ -41,7 +43,8 @@ const GymListPage: React.FC = () => {
     page: 1,
     limit: 6,
     sortBy: 'rating',
-    sortOrder: 'desc'
+    sortOrder: 'desc',
+    isActive: true
   });
 
   // Update API params when debounced search term changes
@@ -118,10 +121,8 @@ const GymListPage: React.FC = () => {
       <section className="bg-gradient-to-br from-orange-500 via-orange-600 to-purple-600 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">Tìm Phòng Tập Lý Tưởng</h1>
-            <p className="text-xl md:text-2xl opacity-90 max-w-3xl mx-auto mb-8">
-              Khám phá hệ thống phòng tập hiện đại với trang thiết bị chuyên nghiệp
-            </p>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">{t('gym.search_title')}</h1>
+            <p className="text-xl md:text-2xl opacity-90 max-w-3xl mx-auto mb-8">{t('gym.search_subtitle')}</p>
 
             {/* Search Bar */}
             <div className="max-w-2xl mx-auto relative">
@@ -132,7 +133,7 @@ const GymListPage: React.FC = () => {
                 )}
                 <Input
                   type="text"
-                  placeholder="Tìm kiếm theo tên phòng tập, địa chỉ..."
+                  placeholder={t('gym.search_placeholder')}
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
                   className="w-full pl-12 pr-12 py-4 text-lg rounded-xl border-0 shadow-lg focus:ring-2 focus:ring-white/30 bg-white/95 text-gray-800 placeholder-gray-500"

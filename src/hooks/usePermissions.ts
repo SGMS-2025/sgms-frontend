@@ -31,28 +31,22 @@ export const usePermissions = (filters?: PermissionFilters, pagination?: Permiss
   const { t } = useTranslation();
 
   const fetchPermissions = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      const response = await permissionApi.getPermissions(filters, pagination);
+    const response = await permissionApi.getPermissions(filters, pagination);
 
-      if (response.success) {
-        setPermissions(response.data.permissions);
-        setTotal(response.data.total);
-        setPage(response.data.page);
-        setLimit(response.data.limit);
-      } else {
-        setError(response.message);
-        toast.error(t('permissions.fetch_error'));
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : t('permissions.fetch_error');
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
+    if (response.success) {
+      setPermissions(response.data.permissions);
+      setTotal(response.data.total);
+      setPage(response.data.page);
+      setLimit(response.data.limit);
+    } else {
+      setError(response.message);
+      toast.error(t('permissions.fetch_error'));
     }
+
+    setLoading(false);
   }, [filters, pagination, t]);
 
   useEffect(() => {
@@ -84,25 +78,19 @@ export const useUserPermissions = (userId?: string, query?: GetUserPermissionsQu
   const fetchUserPermissions = useCallback(async () => {
     if (!userId) return;
 
-    try {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      const response = await permissionApi.getUserPermissions(userId, query);
+    const response = await permissionApi.getUserPermissions(userId, query);
 
-      if (response.success) {
-        setUserPermissions(response.data);
-      } else {
-        setError(response.message);
-        toast.error(t('permissions.fetch_user_permissions_error'));
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : t('permissions.fetch_user_permissions_error');
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
+    if (response.success) {
+      setUserPermissions(response.data);
+    } else {
+      setError(response.message);
+      toast.error(t('permissions.fetch_user_permissions_error'));
     }
+
+    setLoading(false);
   }, [userId, query, t]);
 
   useEffect(() => {
@@ -128,23 +116,17 @@ export const usePermissionOperations = () => {
 
   const assignPermission = useCallback(
     async (data: AssignPermissionRequest) => {
-      try {
-        setLoading(true);
-        const response = await permissionApi.assignPermission(data);
+      setLoading(true);
+      const response = await permissionApi.assignPermission(data);
 
-        if (response.success) {
-          toast.success(t('permissions.assign_success'));
-          return response.data;
-        } else {
-          toast.error(response.message);
-          throw new Error(response.message);
-        }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : t('permissions.assign_error');
-        toast.error(errorMessage);
-        throw err;
-      } finally {
+      if (response.success) {
+        toast.success(t('permissions.assign_success'));
         setLoading(false);
+        return response.data;
+      } else {
+        toast.error(response.message);
+        setLoading(false);
+        throw new Error(response.message);
       }
     },
     [t]
@@ -152,23 +134,17 @@ export const usePermissionOperations = () => {
 
   const assignMultiplePermissions = useCallback(
     async (data: AssignMultiplePermissionsRequest) => {
-      try {
-        setLoading(true);
-        const response = await permissionApi.assignMultiplePermissions(data);
+      setLoading(true);
+      const response = await permissionApi.assignMultiplePermissions(data);
 
-        if (response.success) {
-          toast.success(t('permissions.assign_multiple_success'));
-          return response.data;
-        } else {
-          toast.error(response.message);
-          throw new Error(response.message);
-        }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : t('permissions.assign_multiple_error');
-        toast.error(errorMessage);
-        throw err;
-      } finally {
+      if (response.success) {
+        toast.success(t('permissions.assign_multiple_success'));
         setLoading(false);
+        return response.data;
+      } else {
+        toast.error(response.message);
+        setLoading(false);
+        throw new Error(response.message);
       }
     },
     [t]
@@ -176,23 +152,17 @@ export const usePermissionOperations = () => {
 
   const assignManagerToBranch = useCallback(
     async (data: AssignManagerToBranchRequest) => {
-      try {
-        setLoading(true);
-        const response = await permissionApi.assignManagerToBranch(data);
+      setLoading(true);
+      const response = await permissionApi.assignManagerToBranch(data);
 
-        if (response.success) {
-          toast.success(t('permissions.assign_manager_success'));
-          return response.data;
-        } else {
-          toast.error(response.message);
-          throw new Error(response.message);
-        }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : t('permissions.assign_manager_error');
-        toast.error(errorMessage);
-        throw err;
-      } finally {
+      if (response.success) {
+        toast.success(t('permissions.assign_manager_success'));
         setLoading(false);
+        return response.data;
+      } else {
+        toast.error(response.message);
+        setLoading(false);
+        throw new Error(response.message);
       }
     },
     [t]
@@ -200,23 +170,17 @@ export const usePermissionOperations = () => {
 
   const assignManagerToBranches = useCallback(
     async (data: AssignManagerToBranchesRequest) => {
-      try {
-        setLoading(true);
-        const response = await permissionApi.assignManagerToBranches(data);
+      setLoading(true);
+      const response = await permissionApi.assignManagerToBranches(data);
 
-        if (response.success) {
-          toast.success(t('permissions.assign_manager_branches_success'));
-          return response.data;
-        } else {
-          toast.error(response.message);
-          throw new Error(response.message);
-        }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : t('permissions.assign_manager_branches_error');
-        toast.error(errorMessage);
-        throw err;
-      } finally {
+      if (response.success) {
+        toast.success(t('permissions.assign_manager_branches_success'));
         setLoading(false);
+        return response.data;
+      } else {
+        toast.error(response.message);
+        setLoading(false);
+        throw new Error(response.message);
       }
     },
     [t]
@@ -224,23 +188,17 @@ export const usePermissionOperations = () => {
 
   const revokePermission = useCallback(
     async (data: RevokePermissionRequest) => {
-      try {
-        setLoading(true);
-        const response = await permissionApi.revokePermission(data);
+      setLoading(true);
+      const response = await permissionApi.revokePermission(data);
 
-        if (response.success) {
-          toast.success(t('permissions.revoke_success'));
-          return response.data;
-        } else {
-          toast.error(response.message);
-          throw new Error(response.message);
-        }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : t('permissions.revoke_error');
-        toast.error(errorMessage);
-        throw err;
-      } finally {
+      if (response.success) {
+        toast.success(t('permissions.revoke_success'));
         setLoading(false);
+        return response.data;
+      } else {
+        toast.error(response.message);
+        setLoading(false);
+        throw new Error(response.message);
       }
     },
     [t]
@@ -248,23 +206,35 @@ export const usePermissionOperations = () => {
 
   const revokeManagerFromBranch = useCallback(
     async (data: AssignManagerToBranchRequest) => {
-      try {
-        setLoading(true);
-        const response = await permissionApi.revokeManagerFromBranch(data);
+      setLoading(true);
+      const response = await permissionApi.revokeManagerFromBranch(data);
 
-        if (response.success) {
-          toast.success(t('permissions.revoke_manager_success'));
-          return response.data;
-        } else {
-          toast.error(response.message);
-          throw new Error(response.message);
-        }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : t('permissions.revoke_manager_error');
-        toast.error(errorMessage);
-        throw err;
-      } finally {
+      if (response.success) {
+        toast.success(t('permissions.revoke_manager_success'));
         setLoading(false);
+        return response.data;
+      } else {
+        toast.error(response.message);
+        setLoading(false);
+        throw new Error(response.message);
+      }
+    },
+    [t]
+  );
+
+  const bulkRevokePermissions = useCallback(
+    async (data: { userIds: string[]; permissionNames: string[]; resourceId?: string; resourceType?: string }) => {
+      setLoading(true);
+      const response = await permissionApi.bulkRevokePermissions(data);
+
+      if (response.success) {
+        toast.success(t('permissions.revoke_success'));
+        setLoading(false);
+        return response.data;
+      } else {
+        toast.error(response.message);
+        setLoading(false);
+        throw new Error(response.message);
       }
     },
     [t]
@@ -272,23 +242,17 @@ export const usePermissionOperations = () => {
 
   const assignStaffToBranches = useCallback(
     async (data: AssignStaffToBranchesRequest) => {
-      try {
-        setLoading(true);
-        const response = await permissionApi.assignStaffToBranches(data);
+      setLoading(true);
+      const response = await permissionApi.assignStaffToBranches(data);
 
-        if (response.success) {
-          toast.success(t('permissions.assign_staff_success'));
-          return response.data;
-        } else {
-          toast.error(response.message);
-          throw new Error(response.message);
-        }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : t('permissions.assign_staff_error');
-        toast.error(errorMessage);
-        throw err;
-      } finally {
+      if (response.success) {
+        toast.success(t('permissions.assign_staff_success'));
         setLoading(false);
+        return response.data;
+      } else {
+        toast.error(response.message);
+        setLoading(false);
+        throw new Error(response.message);
       }
     },
     [t]
@@ -302,7 +266,8 @@ export const usePermissionOperations = () => {
     assignManagerToBranches,
     assignStaffToBranches,
     revokePermission,
-    revokeManagerFromBranch
+    revokeManagerFromBranch,
+    bulkRevokePermissions
   };
 };
 
@@ -311,20 +276,15 @@ export const usePermissionCheck = () => {
   const [loading, setLoading] = useState(false);
 
   const checkPermission = useCallback(async (params: CheckPermissionQuery): Promise<boolean> => {
-    try {
-      setLoading(true);
-      const response = await permissionApi.checkPermission(params);
+    setLoading(true);
+    const response = await permissionApi.checkPermission(params);
 
-      if (response.success) {
-        return response.data.hasPermission;
-      }
-      return false;
-    } catch (err) {
-      console.error('Permission check error:', err);
-      return false;
-    } finally {
+    if (response.success) {
       setLoading(false);
+      return response.data.hasPermission;
     }
+    setLoading(false);
+    return false;
   }, []);
 
   return {
@@ -343,33 +303,41 @@ export const useEffectivePermissions = (userId?: string, query?: GetEffectivePer
   const fetchEffectivePermissions = useCallback(async () => {
     if (!userId) return;
 
-    try {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      const response = await permissionApi.getEffectivePermissions(userId, query);
+    // Add resourceId and resourceType for branch-scoped permissions
+    // Only include resourceId if it's a valid ObjectId, otherwise omit it
+    const queryWithResource = {
+      ...query
+    };
 
-      if (response.success) {
-        setPermissions(response.data.permissions);
-      } else {
-        setError(response.message);
-        toast.error(t('permissions.fetch_effective_permissions_error'));
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : t('permissions.fetch_effective_permissions_error');
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
+    // Only add resourceId if it's provided and not 'default-branch'
+    if (query?.resourceId && query.resourceId !== 'default-branch') {
+      queryWithResource.resourceId = query.resourceId;
+      queryWithResource.resourceType = query?.resourceType || 'branch';
     }
+
+    console.log('🔍 Frontend: Fetching effective permissions for userId:', userId, 'query:', queryWithResource);
+    const response = await permissionApi.getEffectivePermissions(userId, queryWithResource);
+    console.log('🔍 Frontend: API response:', response);
+
+    if (response.success) {
+      setPermissions(response.data.permissions);
+    } else {
+      setError(response.message);
+      toast.error(t('permissions.fetch_effective_permissions_error'));
+    }
+
+    setLoading(false);
   }, [userId, query, t]);
 
   useEffect(() => {
     fetchEffectivePermissions();
   }, [fetchEffectivePermissions]);
 
-  const refetch = useCallback(() => {
-    fetchEffectivePermissions();
+  const refetch = useCallback(async () => {
+    return await fetchEffectivePermissions();
   }, [fetchEffectivePermissions]);
 
   const hasPermission = useCallback(
@@ -398,25 +366,19 @@ export const useManagerBranches = (userId?: string) => {
   const fetchManagerBranches = useCallback(async () => {
     if (!userId) return;
 
-    try {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      const response = await permissionApi.getManagerBranches(userId);
+    const response = await permissionApi.getManagerBranches(userId);
 
-      if (response.success) {
-        setBranches(response.data);
-      } else {
-        setError(response.message);
-        toast.error(t('permissions.fetch_manager_branches_error'));
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : t('permissions.fetch_manager_branches_error');
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
+    if (response.success) {
+      setBranches(response.data);
+    } else {
+      setError(response.message);
+      toast.error(t('permissions.fetch_manager_branches_error'));
     }
+
+    setLoading(false);
   }, [userId, t]);
 
   useEffect(() => {
@@ -445,25 +407,19 @@ export const useBranchManagers = (branchId?: string) => {
   const fetchBranchManagers = useCallback(async () => {
     if (!branchId) return;
 
-    try {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      const response = await permissionApi.getBranchManagers(branchId);
+    const response = await permissionApi.getBranchManagers(branchId);
 
-      if (response.success) {
-        setManagers(response.data);
-      } else {
-        setError(response.message);
-        toast.error(t('permissions.fetch_branch_managers_error'));
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : t('permissions.fetch_branch_managers_error');
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
+    if (response.success) {
+      setManagers(response.data);
+    } else {
+      setError(response.message);
+      toast.error(t('permissions.fetch_branch_managers_error'));
     }
+
+    setLoading(false);
   }, [branchId, t]);
 
   useEffect(() => {

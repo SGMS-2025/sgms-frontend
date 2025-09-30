@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Edit, User, Building2, Phone, MapPin, Calendar, Shield, DollarSign, X, Loader2 } from 'lucide-react';
+import { Edit, User, Building2, Phone, MapPin, Calendar, Shield, DollarSign, X, Loader2, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useStaffDetails, useUpdateStaff } from '@/hooks/useStaff';
-import { useUser } from '@/hooks/useAuth';
+import { useCanManageStaff } from '@/hooks/useCanManageStaff';
 import EditStaffForm from '@/components/forms/EditStaffForm';
 import type { StaffDisplay, Staff, StaffFormData, StaffJobTitle, StaffUpdateData } from '@/types/api/Staff';
 
@@ -18,7 +18,7 @@ interface StaffProfileModalProps {
 
 export default function StaffProfileModal({ isOpen, onClose, staff, initialEditMode = false }: StaffProfileModalProps) {
   const { t } = useTranslation();
-  const currentUser = useUser();
+  const { canManageStaff } = useCanManageStaff();
   const [activeTab, setActiveTab] = useState<'personal' | 'branch'>('personal');
   const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState<StaffFormData>({
@@ -30,7 +30,7 @@ export default function StaffProfileModal({ isOpen, onClose, staff, initialEditM
     email: '',
     jobTitle: 'Personal Trainer',
     salary: '',
-    branchId: '',
+    branchId: [],
     status: 'ACTIVE'
   });
 
@@ -63,13 +63,13 @@ export default function StaffProfileModal({ isOpen, onClose, staff, initialEditM
         email: staffDetails.userId?.email || staff.email || '',
         jobTitle: staffDetails.jobTitle || (staff.jobTitle as StaffJobTitle) || 'Personal Trainer',
         salary: staffDetails.salary?.toString() || staff.salary || '',
-        branchId: staffDetails.branchId?._id || '',
+        branchId: staffDetails.branchId.map((branch) => branch._id).filter(Boolean),
         status: staffDetails.status || staff.status || 'ACTIVE'
       });
     }
   }, [staffDetails, staff]);
 
-  const handleInputChange = (field: keyof StaffFormData, value: string) => {
+  const handleInputChange = (field: keyof StaffFormData, value: string | string[]) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value
@@ -95,9 +95,9 @@ export default function StaffProfileModal({ isOpen, onClose, staff, initialEditM
 
     // Staff fields
     if (formData.jobTitle) updateData.jobTitle = formData.jobTitle;
-    // Only include branchId if user is OWNER (managers cannot change branch)
-    if (formData.branchId && currentUser?.role === 'OWNER') {
-      updateData.branchId = formData.branchId;
+    // Temporarily allow all users to change branch
+    if (formData.branchId.length > 0) {
+      updateData.branchId = formData.branchId; // Pass the entire array
     }
     if (formData.salary) updateData.salary = parseInt(formData.salary);
     if (formData.status) updateData.status = formData.status;
@@ -121,7 +121,7 @@ export default function StaffProfileModal({ isOpen, onClose, staff, initialEditM
         email: staffDetails.userId?.email || staff.email || '',
         jobTitle: staffDetails.jobTitle || (staff.jobTitle as StaffJobTitle) || 'Personal Trainer',
         salary: staffDetails.salary?.toString() || staff.salary || '',
-        branchId: staffDetails.branchId?._id || '',
+        branchId: staffDetails.branchId.map((branch) => branch._id).filter(Boolean),
         status: staffDetails.status || staff.status || 'ACTIVE'
       });
     }
@@ -132,7 +132,7 @@ export default function StaffProfileModal({ isOpen, onClose, staff, initialEditM
 
   return (
     <div className="fixed inset-0 bg-black/50 bg-opacity-10 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg overflow-hidden shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg overflow-hidden shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto hide-scrollbar">
         {/* Modal Header */}
         <div className="bg-[#f05a29] p-6 relative">
           <button onClick={onClose} className="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors">
@@ -241,12 +241,22 @@ export default function StaffProfileModal({ isOpen, onClose, staff, initialEditM
               onCancel={handleCancel}
               t={t}
               loading={updateLoading}
-              currentBranchName={staffDetails?.branchId?.branchName || staff.branch}
             />
           ) : activeTab === 'branch' ? (
-            <BranchInfo staff={staff} staffDetails={staffDetails} t={t} onEdit={handleEditClick} />
+            <BranchInfo
+              staffDetails={staffDetails}
+              t={t}
+              onEdit={handleEditClick}
+              canEdit={staff ? canManageStaff(staff) : false}
+            />
           ) : (
-            <PersonalInfo staff={staff} staffDetails={staffDetails} t={t} onEdit={handleEditClick} />
+            <PersonalInfo
+              staff={staff}
+              staffDetails={staffDetails}
+              t={t}
+              onEdit={handleEditClick}
+              canEdit={staff ? canManageStaff(staff) : false}
+            />
           )}
         </div>
       </div>
@@ -255,71 +265,157 @@ export default function StaffProfileModal({ isOpen, onClose, staff, initialEditM
 }
 
 function BranchInfo({
-  staff,
   staffDetails,
   t,
-  onEdit
+  onEdit,
+  canEdit
 }: {
-  staff: StaffDisplay;
   staffDetails: Staff | null;
   t: (key: string) => string;
   onEdit: () => void;
+  canEdit: boolean;
 }) {
+  const branches = staffDetails?.branchId || [];
+
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xl font-bold text-orange-500">{t('staff_modal.branch_info').toUpperCase()}</h3>
-        <Button variant="outline" className="flex items-center gap-2 bg-transparent" onClick={onEdit}>
-          <Edit className="w-4 h-4" />
-          {t('staff_modal.edit_profile')}
-        </Button>
-      </div>
-
-      <div className="space-y-6">
-        {/* Row 1: Branch name, Branch address */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <User className="w-4 h-4" />
-              <span className="font-medium">{t('staff_modal.branch_name')}</span>
-            </div>
-            <div className="bg-white p-3 rounded-lg">
-              <p className="text-gray-700">{staffDetails?.branchId?.branchName || staff.branch}</p>
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <MapPin className="w-4 h-4" />
-              <span className="font-medium">{t('staff_modal.branch_address')}</span>
-            </div>
-            <div className="bg-white p-3 rounded-lg">
-              <p className="text-gray-700">{staffDetails?.branchId?.location}</p>
-            </div>
-          </div>
+    <div className="space-y-6">
+      <div>
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-bold text-orange-500">{t('staff_modal.branch_info').toUpperCase()}</h3>
+          {canEdit && (
+            <Button variant="outline" className="flex items-center gap-2 bg-transparent" onClick={onEdit}>
+              <Edit className="w-4 h-4" />
+              {t('staff_modal.edit_profile')}
+            </Button>
+          )}
         </div>
 
-        {/* Row 2: Hotline, Branch owner */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Phone className="w-4 h-4" />
-              <span className="font-medium">{t('staff_modal.hotline')}</span>
-            </div>
-            <div className="bg-white p-3 rounded-lg">
-              <p className="text-gray-700">{staffDetails?.branchId?.hotline}</p>
-            </div>
-          </div>
+        <div className="space-y-6">
+          {branches.length > 0 ? (
+            branches.map((branch, index) => (
+              <div key={branch._id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="space-y-4">
+                  {/* Branch Header */}
+                  <div className="flex items-center gap-2 mb-4">
+                    <Building2 className="w-5 h-5 text-orange-500" />
+                    <h4 className="text-lg font-semibold text-gray-800">
+                      {branch.branchName}
+                      {branches.length > 1 && (
+                        <span className="ml-2 text-sm text-gray-500">
+                          ({index + 1}/{branches.length})
+                        </span>
+                      )}
+                    </h4>
+                  </div>
 
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <User className="w-4 h-4" />
-              <span className="font-medium">{t('staff_modal.branch_manager')}</span>
+                  {/* Branch Information Grid */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Branch Address */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <MapPin className="w-4 h-4" />
+                        <span className="font-medium">{t('staff_modal.branch_address')}</span>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg">
+                        <p className="text-gray-700">{branch.location || t('staff_modal.no_info')}</p>
+                      </div>
+                    </div>
+
+                    {/* Hotline */}
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Phone className="w-4 h-4" />
+                        <span className="font-medium">{t('staff_modal.hotline')}</span>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg">
+                        <p className="text-gray-700">{branch.hotline || t('staff_modal.no_info')}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Manager Information */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <User className="w-4 h-4" />
+                      <span className="font-medium">
+                        {t('staff_modal.branch_manager')}
+                        {Array.isArray(branch.managerId) && branch.managerId.length > 1 && (
+                          <span className="ml-1 text-sm text-gray-500">({branch.managerId.length})</span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg">
+                      {(() => {
+                        if (!branch.managerId) {
+                          return <p className="text-gray-700">{t('staff_modal.no_info')}</p>;
+                        }
+
+                        // Handle array structure - show all managers
+                        if (Array.isArray(branch.managerId)) {
+                          if (branch.managerId.length === 0) {
+                            return <p className="text-gray-700">{t('staff_modal.no_info')}</p>;
+                          }
+
+                          return (
+                            <div className="space-y-2">
+                              {branch.managerId.map((manager, index) => (
+                                <div
+                                  key={manager._id || index}
+                                  className="border-b border-gray-100 pb-2 last:border-b-0 last:pb-0"
+                                >
+                                  <p className="text-gray-800 font-medium">{manager.fullName}</p>
+                                  {manager.email && (
+                                    <p className="text-sm text-gray-600 flex items-center gap-2">
+                                      <Mail className="w-3 h-3" />
+                                      {manager.email}
+                                    </p>
+                                  )}
+                                  {manager.phoneNumber && (
+                                    <p className="text-sm text-gray-600 flex items-center gap-2">
+                                      <Phone className="w-3 h-3" />
+                                      {manager.phoneNumber}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        }
+
+                        // Handle object structure
+                        if (typeof branch.managerId === 'object') {
+                          return (
+                            <div>
+                              <p className="text-gray-800 font-medium">{branch.managerId.fullName}</p>
+                              {branch.managerId.email && (
+                                <p className="text-sm text-gray-600 flex items-center gap-2">
+                                  <Mail className="w-3 h-3" />
+                                  {branch.managerId.email}
+                                </p>
+                              )}
+                              {branch.managerId.phoneNumber && (
+                                <p className="text-sm text-gray-600 flex items-center gap-2">
+                                  <Phone className="w-3 h-3" />
+                                  {branch.managerId.phoneNumber}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }
+
+                        return <p className="text-gray-700">{branch.managerId}</p>;
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="bg-white rounded-lg p-6 text-center">
+              <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">{t('staff_modal.no_branch_assigned')}</p>
             </div>
-            <div className="bg-white p-3 rounded-lg">
-              <p className="text-gray-700">{staffDetails?.branchId?.managerId?.fullName || t('staff_modal.no_info')}</p>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
@@ -330,22 +426,26 @@ function PersonalInfo({
   staff,
   staffDetails,
   t,
-  onEdit
+  onEdit,
+  canEdit
 }: {
   staff: StaffDisplay;
   staffDetails: Staff | null;
   t: (key: string) => string;
   onEdit: () => void;
+  canEdit: boolean;
 }) {
   return (
     <div className="space-y-6">
       <div>
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold text-orange-500">{t('staff_modal.personal_info').toUpperCase()}</h3>
-          <Button variant="outline" className="flex items-center gap-2 bg-transparent" onClick={onEdit}>
-            <Edit className="w-4 h-4" />
-            {t('staff_modal.edit_profile')}
-          </Button>
+          {canEdit && (
+            <Button variant="outline" className="flex items-center gap-2 bg-transparent" onClick={onEdit}>
+              <Edit className="w-4 h-4" />
+              {t('staff_modal.edit_profile')}
+            </Button>
+          )}
         </div>
 
         <div className="space-y-6">

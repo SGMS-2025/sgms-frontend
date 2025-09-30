@@ -5,14 +5,19 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { cn } from '@/utils/utils';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import { Calendar, Upload, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
 import { useCreateStaff } from '@/hooks/useStaff';
 import { useUser } from '@/hooks/useAuth';
-import { branchApi } from '@/services/api/branchApi';
+import { useBranch } from '@/contexts/BranchContext';
 import type { AddStaffFormProps, CreateStaffRequest, FormData } from '@/types/api/Staff';
-import type { Branch } from '@/types/api/Branch';
 import { toast } from 'sonner';
 import { createImageUploadHandler, STAFF_IMAGE_OPTIONS } from '@/utils/imageUtils';
 import {
@@ -35,21 +40,6 @@ const LoadingView: React.FC<{ message: string }> = ({ message }) => (
     <div className="text-center">
       <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-[#f05a29]" />
       <p className="text-gray-600">{message}</p>
-    </div>
-  </div>
-);
-
-// Access denied component
-const AccessDeniedView: React.FC<{ onCancel: () => void; t: (key: string) => string }> = ({ onCancel, t }) => (
-  <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-    <div className="text-center">
-      <div className="bg-white p-8 rounded-lg shadow-md">
-        <h2 className="text-xl font-bold text-red-600 mb-4">{t('staff.access_denied')}</h2>
-        <p className="text-gray-600 mb-4">{t('staff.access_denied_message')}</p>
-        <Button onClick={onCancel} className="bg-[#f05a29] hover:bg-[#df4615] text-white">
-          {t('staff.go_back')}
-        </Button>
-      </div>
     </div>
   </div>
 );
@@ -248,58 +238,23 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
   const navigate = useNavigate();
   const user = useUser();
   const { createStaff, loading: createLoading, error: createError, resetError } = useCreateStaff();
+  const { branches, loading: loadingBranches } = useBranch();
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [loadingBranches, setLoadingBranches] = useState(true);
   const [isUsernameManuallyEdited, setIsUsernameManuallyEdited] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<FormData>>({
     userType: 'manager',
     jobTitle: 'Manager',
-    salary: '5000000'
+    salary: '5000000',
+    branchId: []
   });
 
   // Validation errors state
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  // Helper function to load branches
-  const loadBranches = async () => {
-    if (!user || user.role !== 'OWNER') {
-      setLoadingBranches(false);
-      return;
-    }
-
-    setLoadingBranches(true);
-    const response = await branchApi.getBranches({ isActive: true });
-
-    if (response.success) {
-      const userBranches = response.data.branches.filter((branch) => {
-        if (typeof branch.ownerId === 'string') {
-          return branch.ownerId === user._id;
-        } else if (branch.ownerId && typeof branch.ownerId === 'object') {
-          return branch.ownerId._id === user._id;
-        }
-        return false;
-      });
-      setBranches(userBranches);
-
-      if (userBranches.length === 0) {
-        toast.warning(t('staff.no_branches_available'));
-      }
-    } else {
-      toast.error(t('branch.failed_to_load'));
-    }
-
-    setLoadingBranches(false);
-  };
-
-  // Load branches on component mount
-  useEffect(() => {
-    loadBranches();
-  }, [t, user]);
 
   // Reset error when form data changes
   useEffect(() => {
@@ -307,6 +262,13 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
       resetError();
     }
   }, [formData, resetError, createError]);
+
+  // Show warning if no branches available
+  useEffect(() => {
+    if (!loadingBranches && branches.length === 0 && user?.role === 'OWNER') {
+      toast.warning(t('staff.no_branches_available'));
+    }
+  }, [loadingBranches, branches, user?.role, t]);
 
   const isLoading = externalLoading || createLoading;
 
@@ -352,9 +314,17 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
 
     requiredFields.forEach((field) => {
       const value = formData[field] || '';
-      const error = validateField(field, value);
-      if (error) {
-        newErrors[field] = error;
+      // Handle branchId specially - now always an array
+      if (field === 'branchId') {
+        const branchIds = Array.isArray(value) ? value : [];
+        if (branchIds.length === 0) {
+          newErrors[field] = 'Branch is required';
+        }
+      } else {
+        const error = validateField(field, value as string);
+        if (error) {
+          newErrors[field] = error;
+        }
       }
     });
 
@@ -362,7 +332,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
     const optionalFields: (keyof FormData)[] = ['phone', 'salary', 'birthDate', 'address'];
     optionalFields.forEach((field) => {
       const value = formData[field] || '';
-      if (value.trim()) {
+      if (typeof value === 'string' && value.trim()) {
         const error = validateField(field, value);
         if (error) {
           newErrors[field] = error;
@@ -403,17 +373,35 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
     return cleanedUsername.substring(0, 20); // Limit to 20 characters
   };
 
-  const handleInputChange = (field: keyof FormData, value: string) => {
+  // Handle date selection
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      const formattedDate = format(date, 'yyyy-MM-dd');
+      handleInputChange('birthDate', formattedDate);
+
+      // Only close the date picker if the date is valid
+      // If there's an error, keep it open so user can see the validation message
+      const validation = validateDateOfBirthStaff(formattedDate);
+      if (validation.isValid) {
+        setDatePickerOpen(false);
+      }
+    }
+  };
+
+  const handleInputChange = (field: keyof FormData, value: string | string[]) => {
     setFormData((prev) => {
-      const newData = { ...prev, [field]: value };
+      // Ensure branchId is always an array
+      const processedValue = field === 'branchId' ? (Array.isArray(value) ? value : value ? [value] : []) : value;
+
+      const newData = { ...prev, [field]: processedValue };
 
       // Auto-set jobTitle when userType changes
-      if (field === 'userType') {
+      if (field === 'userType' && typeof value === 'string') {
         newData.jobTitle = mapUserTypeToJobTitle(value);
       }
 
       // Auto-generate username from email when email changes (only if username hasn't been manually edited)
-      if (field === 'email' && value && !isUsernameManuallyEdited) {
+      if (field === 'email' && typeof value === 'string' && value && !isUsernameManuallyEdited) {
         const generatedUsername = generateUsernameFromEmail(value);
         if (generatedUsername) {
           newData.username = generatedUsername;
@@ -421,7 +409,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
       }
 
       // Track if username is manually edited
-      if (field === 'username') {
+      if (field === 'username' && typeof value === 'string') {
         setIsUsernameManuallyEdited(true);
       }
 
@@ -429,15 +417,31 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
     });
 
     // Clear error for this field and validate
-    const error = validateField(field, value);
-    setErrors((prev) => ({
-      ...prev,
-      [field]: error || ''
-    }));
+    if (field === 'branchId') {
+      // Special handling for branchId array - now always an array
+      const branchIds = Array.isArray(value) ? value : [];
+      if (branchIds.length === 0) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: 'Branch is required'
+        }));
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: ''
+        }));
+      }
+    } else {
+      const error = validateField(field, value as string);
+      setErrors((prev) => ({
+        ...prev,
+        [field]: error || ''
+      }));
+    }
 
     // Auto-validate jobTitle when userType changes
     if (field === 'userType') {
-      const jobTitle = mapUserTypeToJobTitle(value);
+      const jobTitle = mapUserTypeToJobTitle(value as string);
       const jobTitleError = validateField('jobTitle', jobTitle);
       setErrors((prev) => ({
         ...prev,
@@ -446,7 +450,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
     }
 
     // Auto-validate username when email changes and generates username
-    if (field === 'email' && value && !isUsernameManuallyEdited) {
+    if (field === 'email' && typeof value === 'string' && value && !isUsernameManuallyEdited) {
       const generatedUsername = generateUsernameFromEmail(value);
       if (generatedUsername) {
         const usernameError = validateField('username', generatedUsername);
@@ -458,24 +462,13 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
     }
 
     // If this is password field, also revalidate confirm password
-    if (field === 'password' && formData.confirmPassword) {
+    if (field === 'password' && typeof value === 'string' && formData.confirmPassword) {
       const confirmError = validateField('confirmPassword', formData.confirmPassword);
       setErrors((prev) => ({
         ...prev,
         confirmPassword: confirmError || ''
       }));
     }
-  };
-
-  // Helper function to map user type to backend role
-  const mapUserTypeToRole = (userType: string): 'MANAGER' | 'TECHNICIAN' | 'PT' | 'CUSTOMER' => {
-    const roleMapping: Record<string, 'MANAGER' | 'TECHNICIAN' | 'PT' | 'CUSTOMER'> = {
-      manager: 'MANAGER',
-      device: 'TECHNICIAN',
-      pt: 'PT',
-      customer: 'CUSTOMER'
-    };
-    return roleMapping[userType] || 'MANAGER';
   };
 
   // Helper function to map user type to job title
@@ -491,6 +484,9 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
   // Helper function to prepare staff data for API
   const prepareStaffData = (): CreateStaffRequest => {
     const userType = formData.userType || 'manager';
+    // branchId is now always an array
+    const branchId = Array.isArray(formData.branchId) ? formData.branchId : [];
+
     return {
       username: formData.username || '',
       email: formData.email || '',
@@ -501,9 +497,9 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
       dateOfBirth: formData.birthDate,
       address: formData.address,
       jobTitle: mapUserTypeToJobTitle(userType),
-      branchId: formData.branchId || '',
+      branchId: branchId,
       salary: formData.salary ? parseInt(formData.salary) : 5000000,
-      role: mapUserTypeToRole(userType),
+      role: 'STAFF', // All staff members have STAFF role in user table
       status: 'ACTIVE'
     };
   };
@@ -549,10 +545,6 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
   // Check if user has permission
   if (!user) {
     return <LoadingView message={t('common.loading')} />;
-  }
-
-  if (user.role !== 'OWNER') {
-    return <AccessDeniedView onCancel={handleCancel} t={t} />;
   }
 
   return (
@@ -674,17 +666,38 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
                     <Label htmlFor="birthdate" className="text-sm font-medium text-gray-700">
                       {t('staff.birth_date')}
                     </Label>
-                    <div className="relative">
-                      <Input
-                        id="birthdate"
-                        type="date"
-                        className={`pr-10 ${errors.birthDate ? 'border-red-500' : ''}`}
-                        value={formData.birthDate || ''}
-                        onChange={(e) => handleInputChange('birthDate', e.target.value)}
-                        disabled={isLoading}
-                      />
-                      <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    </div>
+                    <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            'w-full justify-start text-left font-normal bg-white border-gray-200 hover:bg-gray-50 focus:border-orange-500',
+                            !formData.birthDate && 'text-muted-foreground',
+                            errors.birthDate && 'border-red-500 focus:border-red-500'
+                          )}
+                          disabled={isLoading}
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {formData.birthDate
+                            ? format(new Date(formData.birthDate + 'T00:00:00'), 'dd/MM/yyyy', { locale: vi })
+                            : t('staff.select_birth_date')}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 bg-white border-gray-200 shadow-lg" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={formData.birthDate ? new Date(formData.birthDate + 'T00:00:00') : undefined}
+                          onSelect={handleDateSelect}
+                          initialFocus
+                          locale={vi}
+                          className="bg-white border-0"
+                          fromYear={1950}
+                          toYear={new Date().getFullYear()}
+                          captionLayout="dropdown"
+                          disabled={(date) => date > new Date()}
+                        />
+                      </PopoverContent>
+                    </Popover>
                     {errors.birthDate && <p className="text-sm text-red-500 mt-1">{errors.birthDate}</p>}
                   </div>
 
@@ -692,22 +705,17 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
                     <Label htmlFor="branch" className="text-sm font-medium text-gray-700">
                       * {t('staff.branch')}
                     </Label>
-                    <Select
-                      value={formData.branchId || ''}
-                      onValueChange={(value) => handleInputChange('branchId', value)}
+                    <MultiSelect
+                      options={branches.map((branch) => ({
+                        label: branch.branchName,
+                        value: branch._id
+                      }))}
+                      selected={Array.isArray(formData.branchId) ? formData.branchId : []}
+                      onChange={(selected) => handleInputChange('branchId', selected)}
+                      placeholder={loadingBranches ? t('common.loading') : t('staff.select_branch')}
+                      className={errors.branchId ? 'border-red-500' : ''}
                       disabled={isLoading || loadingBranches}
-                    >
-                      <SelectTrigger className={` ${errors.branchId ? 'border-red-500' : ''}`}>
-                        <SelectValue placeholder={loadingBranches ? t('common.loading') : t('staff.select_branch')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {branches.map((branch) => (
-                          <SelectItem key={branch._id} value={branch._id}>
-                            {branch.branchName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    />
                     {errors.branchId && <p className="text-sm text-red-500 mt-1">{errors.branchId}</p>}
                   </div>
                 </div>

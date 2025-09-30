@@ -73,12 +73,12 @@ export interface AssignManagerToBranchRequest {
 
 export interface AssignManagerToBranchesRequest {
   userId: string;
-  branchIds: string[];
+  branchId: string[];
 }
 
 export interface AssignStaffToBranchesRequest {
   userId: string;
-  branchIds: string[];
+  branchId: string[];
   jobTitle: JobTitle;
 }
 
@@ -199,7 +199,7 @@ export interface AssignPermissionFormData {
 
 export interface AssignManagerFormData {
   userId: string;
-  branchIds: string[];
+  branchId: string[];
 }
 
 export interface BulkPermissionFormData {
@@ -255,6 +255,8 @@ export interface PermissionItem {
   permissionName: string;
   resource: string;
   action: string;
+  scope: PermissionScope; // Add scope field
+  disabled?: boolean; // Add disabled flag for UI
 }
 
 export interface PermissionGroup {

@@ -20,7 +20,7 @@ export interface Staff {
     };
     status: StaffStatus;
   };
-  branchId: {
+  branchId: Array<{
     _id: string;
     branchName: string;
     location: string;
@@ -31,13 +31,16 @@ export interface Staff {
       email: string;
       phoneNumber?: string;
     };
-  };
+  }>;
   status?: StaffStatus;
   salary: number;
   createdAt: string;
   updatedAt: string;
   // Frontend only fields
   selected?: boolean;
+  // Special fields for OWNER/ADMIN
+  isOwner?: boolean;
+  isAdmin?: boolean;
 }
 
 export interface StaffStats {
@@ -66,7 +69,13 @@ export interface StaffDisplay {
   email: string;
   phone: string;
   salary: string;
-  branch: string;
+  branch: string; // Primary branch name for display
+  branches: Array<{
+    _id: string;
+    branchName: string;
+    location: string;
+    hotline?: string;
+  }>; // All branches this staff belongs to
   status?: StaffStatus;
   selected?: boolean;
 }
@@ -108,9 +117,9 @@ export interface CreateStaffRequest {
   dateOfBirth?: string;
   address?: string;
   jobTitle: string;
-  branchId: string;
+  branchId: string[];
   salary?: number;
-  role: 'MANAGER' | 'TECHNICIAN' | 'PT' | 'CUSTOMER';
+  role: 'STAFF';
   status?: StaffStatus;
 }
 
@@ -127,7 +136,7 @@ export interface FormData {
   password?: string;
   confirmPassword?: string;
   profileImage?: string | null;
-  branchId?: string;
+  branchId?: string[]; // Always an array now
   salary?: string;
 }
 
@@ -171,7 +180,7 @@ export interface StaffFormData {
   email: string;
   jobTitle: StaffJobTitle;
   salary: string;
-  branchId: string;
+  branchId: string[];
   status: StaffStatus;
 }
 
@@ -186,7 +195,7 @@ export interface StaffUpdateData {
 
   // Staff fields
   jobTitle?: StaffJobTitle;
-  branchId?: string;
+  branchId?: string[]; // Always an array now
   salary?: number;
   status?: StaffStatus;
 }
@@ -202,4 +211,16 @@ export interface StaffForPermissionModal {
   };
   jobTitle: StaffJobTitle;
   status: StaffStatus;
+  branchId: Array<{
+    _id: string;
+    branchName: string;
+    location: string;
+    hotline?: string;
+    managerId?: {
+      _id: string;
+      fullName: string;
+      email: string;
+      phoneNumber?: string;
+    };
+  }>;
 }

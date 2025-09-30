@@ -1,5 +1,6 @@
 import type { ApiResponse } from '@/types/api/Api';
 import type { DiscountCampaign, DiscountCampaignListResponse, DiscountCampaignListParams } from '@/types/api/Discount';
+import type { DiscountCampaignApiData } from '@/types/api/Discount';
 import { api } from './api';
 
 export const discountCampaignApi = {
@@ -13,14 +14,14 @@ export const discountCampaignApi = {
     return response.data;
   },
 
-  createCampaign: async (campaignData: Partial<DiscountCampaign>): Promise<ApiResponse<DiscountCampaign>> => {
+  createCampaign: async (campaignData: DiscountCampaignApiData): Promise<ApiResponse<DiscountCampaign>> => {
     const response = await api.post('/discount-campaigns', campaignData);
     return response.data;
   },
 
   updateCampaign: async (
     campaignId: string,
-    updateData: Partial<DiscountCampaign>
+    updateData: DiscountCampaignApiData
   ): Promise<ApiResponse<DiscountCampaign>> => {
     const response = await api.put(`/discount-campaigns/${campaignId}`, updateData);
     return response.data;

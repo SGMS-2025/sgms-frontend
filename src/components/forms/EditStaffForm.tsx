@@ -3,6 +3,7 @@ import { User, Building2, Phone, MapPin, Calendar, Shield, DollarSign, Save, XCi
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
@@ -10,27 +11,26 @@ import { cn } from '@/utils/utils';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useBranch } from '@/contexts/BranchContext';
-import { useUser } from '@/hooks/useAuth';
+// import { useUser } from '@/hooks/useAuth'; // Temporarily disabled
 import type { StaffFormData, StaffStatus, StaffJobTitle } from '@/types/api/Staff';
 import {
   validateFullName,
-  validatePhoneNumberEdit,
-  validateAddressEdit,
+  validatePhoneNumber,
+  validateAddress,
   validateEmail,
   validateJobTitle,
-  validateSalaryEdit,
+  validateSalary,
   validateBranchId,
   validateDateOfBirthStaff
 } from '@/utils/validation';
 
 interface EditStaffFormProps {
   formData: StaffFormData;
-  onInputChange: (field: keyof StaffFormData, value: string) => void;
+  onInputChange: (field: keyof StaffFormData, value: string | string[]) => void;
   onSave: () => void;
   onCancel: () => void;
   t: (key: string) => string;
   loading?: boolean;
-  currentBranchName?: string;
 }
 
 export default function EditStaffForm({
@@ -39,20 +39,24 @@ export default function EditStaffForm({
   onSave,
   onCancel,
   t,
-  loading = false,
-  currentBranchName
+  loading = false
 }: EditStaffFormProps) {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { branches, loading: branchesLoading } = useBranch();
-  const currentUser = useUser();
 
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
       const formattedDate = format(date, 'yyyy-MM-dd');
       onInputChange('dateOfBirth', formattedDate);
-      setDatePickerOpen(false);
       validateField('dateOfBirth', formattedDate);
+
+      // Only close the date picker if the date is valid
+      // If there's an error, keep it open so user can see the validation message
+      const validation = validateDateOfBirthStaff(formattedDate);
+      if (validation.isValid) {
+        setDatePickerOpen(false);
+      }
     }
   };
 
@@ -65,10 +69,10 @@ export default function EditStaffForm({
         validation = validateFullName(value);
         break;
       case 'phoneNumber':
-        validation = validatePhoneNumberEdit(value);
+        validation = validatePhoneNumber(value);
         break;
       case 'address':
-        validation = validateAddressEdit(value);
+        validation = validateAddress(value);
         break;
       case 'email':
         validation = validateEmail(value);
@@ -77,7 +81,7 @@ export default function EditStaffForm({
         validation = validateJobTitle(value);
         break;
       case 'salary':
-        validation = validateSalaryEdit(value);
+        validation = validateSalary(value);
         break;
       case 'branchId':
         validation = validateBranchId(value);
@@ -95,9 +99,26 @@ export default function EditStaffForm({
     }));
   };
 
-  const handleInputChange = (field: keyof StaffFormData, value: string) => {
+  const handleInputChange = (field: keyof StaffFormData, value: string | string[]) => {
     onInputChange(field, value);
-    validateField(field, value);
+
+    if (field === 'branchId') {
+      // Handle branchId as array
+      const branchIds = Array.isArray(value) ? value : [];
+      if (branchIds.length === 0) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: 'Branch is required'
+        }));
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: ''
+        }));
+      }
+    } else {
+      validateField(field, value as string);
+    }
   };
 
   const validateAllFields = () => {
@@ -109,12 +130,12 @@ export default function EditStaffForm({
       newErrors.fullName = fullNameValidation.error || '';
     }
 
-    const phoneValidation = validatePhoneNumberEdit(formData.phoneNumber || '');
+    const phoneValidation = validatePhoneNumber(formData.phoneNumber || '');
     if (!phoneValidation.isValid) {
       newErrors.phoneNumber = phoneValidation.error || '';
     }
 
-    const addressValidation = validateAddressEdit(formData.address || '');
+    const addressValidation = validateAddress(formData.address || '');
     if (!addressValidation.isValid) {
       newErrors.address = addressValidation.error || '';
     }
@@ -129,14 +150,15 @@ export default function EditStaffForm({
       newErrors.jobTitle = jobTitleValidation.error || '';
     }
 
-    const salaryValidation = validateSalaryEdit(formData.salary || '');
+    const salaryValidation = validateSalary(formData.salary || '');
     if (!salaryValidation.isValid) {
       newErrors.salary = salaryValidation.error || '';
     }
 
-    const branchValidation = validateBranchId(formData.branchId || '');
-    if (!branchValidation.isValid) {
-      newErrors.branchId = branchValidation.error || '';
+    // Handle branchId as array
+    const branchIds = Array.isArray(formData.branchId) ? formData.branchId : [];
+    if (branchIds.length === 0) {
+      newErrors.branchId = 'Branch is required';
     }
 
     const dobValidation = validateDateOfBirthStaff(formData.dateOfBirth || '');
@@ -155,14 +177,12 @@ export default function EditStaffForm({
   };
 
   const selectedDate = formData.dateOfBirth ? new Date(formData.dateOfBirth) : undefined;
-  const canEditBranch = currentUser?.role === 'OWNER';
-  // const canSelectManagerRole = currentUser?.role !== 'MANAGER';
+  const canEditBranch = true; // Temporarily allow all users to edit branch
 
-  // Find the current branch name for display
-  const currentBranch = branches.find((branch) => branch._id === formData.branchId);
-
-  // Use currentBranchName prop if available, otherwise use found branch name
-  const displayBranchName = currentBranchName || currentBranch?.branchName;
+  // Handle branchId as array
+  const branchIds = Array.isArray(formData.branchId) ? formData.branchId : [];
+  const selectedBranches = branches.filter((branch) => branchIds.includes(branch._id));
+  const displayBranchNames = selectedBranches.map((branch) => branch.branchName).join(', ');
 
   return (
     <div className="space-y-6">
@@ -231,7 +251,7 @@ export default function EditStaffForm({
               <PopoverContent className="w-auto p-0 bg-white border-gray-200 shadow-lg" align="start">
                 <CalendarComponent
                   mode="single"
-                  selected={selectedDate}
+                  selected={selectedDate ? new Date(selectedDate.toISOString().split('T')[0] + 'T00:00:00') : undefined}
                   onSelect={handleDateSelect}
                   initialFocus
                   locale={vi}
@@ -357,9 +377,9 @@ export default function EditStaffForm({
                 <SelectValue placeholder={t('staff_modal.select_role')} />
               </SelectTrigger>
               <SelectContent>
-                {/* {canSelectManagerRole && <SelectItem value="Manager">{t('staff_modal.role_manager')}</SelectItem>} */}
                 <SelectItem value="Personal Trainer">{t('staff_modal.role_personal_trainer')}</SelectItem>
                 <SelectItem value="Technician">{t('staff_modal.role_technician')}</SelectItem>
+                <SelectItem value="Manager">{t('staff_modal.role_manager')}</SelectItem>
               </SelectContent>
             </Select>
             {errors.jobTitle && <p className="text-red-500 text-sm mt-1">{errors.jobTitle}</p>}
@@ -367,43 +387,32 @@ export default function EditStaffForm({
         </div>
 
         {/* Row 4: Branch, Status */}
-        <div className="flex gap-6">
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="branchName" className="flex items-center gap-2 mb-2">
               <Building2 className="w-4 h-4" />
               <span className="font-medium">{t('staff_modal.branch')}</span>
             </Label>
             {canEditBranch ? (
-              <Select
-                value={formData.branchId}
-                onValueChange={(value) => handleInputChange('branchId', value)}
+              <MultiSelect
+                options={branches.map((branch) => ({
+                  label: branch.branchName,
+                  value: branch._id
+                }))}
+                selected={branchIds}
+                onChange={(selected) => handleInputChange('branchId', selected)}
+                placeholder={branchesLoading ? t('staff_modal.loading_branches') : t('staff_modal.select_branch')}
+                className={cn(errors.branchId && 'border-red-500')}
                 disabled={branchesLoading}
-              >
-                <SelectTrigger
-                  className={cn(
-                    'bg-white border-gray-200 focus:border-orange-500',
-                    errors.branchId && 'border-red-500 focus:border-red-500'
-                  )}
-                >
-                  <SelectValue
-                    placeholder={branchesLoading ? t('staff_modal.loading_branches') : t('staff_modal.select_branch')}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {branches.map((branch) => (
-                    <SelectItem key={branch._id} value={branch._id}>
-                      {branch.branchName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
             ) : (
               <div className="bg-gray-100 border border-gray-200 rounded-md px-3 py-2 text-gray-700">
-                {displayBranchName || t('staff_modal.no_branch_selected')}
+                {displayBranchNames || t('staff_modal.no_branch_selected')}
               </div>
             )}
             {errors.branchId && <p className="text-red-500 text-sm mt-1">{errors.branchId}</p>}
-            {!canEditBranch && <p className="text-xs text-gray-500 mt-1">{t('staff_modal.branch_edit_restriction')}</p>}
+            {/* Temporarily disabled branch edit restriction */}
+            {/* {!canEditBranch && <p className="text-xs text-gray-500 mt-1">{t('staff_modal.branch_edit_restriction')}</p>} */}
           </div>
 
           <div>

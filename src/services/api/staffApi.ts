@@ -36,18 +36,21 @@ export const staffApi = {
     return response.data;
   },
 
+  // Get current user's staff information
+  getMyStaffInfo: async (): Promise<ApiResponse<Staff>> => {
+    const response = await api.get('/staff/my-info');
+    return response.data;
+  },
+
   // Update staff information
   updateStaff: async (staffId: string, updateData: StaffUpdateData): Promise<ApiResponse<Staff>> => {
     const response = await api.put(`/staff/${staffId}`, updateData);
     return response.data;
   },
 
-  // Update staff status
-  updateStaffStatus: async (
-    staffId: string,
-    status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
-  ): Promise<ApiResponse<Staff>> => {
-    const response = await api.patch(`/staff/${staffId}/status`, { status });
+  // Update staff status (automatically sets to DELETED)
+  updateStaffStatus: async (staffId: string): Promise<ApiResponse<Staff>> => {
+    const response = await api.patch(`/staff/${staffId}/status`);
     return response.data;
   },
 
@@ -59,7 +62,14 @@ export const staffApi = {
       // Add all staff data to form
       Object.entries(staffData).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          formData.append(key, value.toString());
+          if (key === 'branchId' && Array.isArray(value)) {
+            // Handle branchId array specially - append each branch ID separately
+            value.forEach((branchId, index) => {
+              formData.append(`${key}[${index}]`, branchId.toString());
+            });
+          } else {
+            formData.append(key, value.toString());
+          }
         }
       });
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Shield, AlertTriangle, Save } from 'lucide-react';
+import { X, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,16 +14,9 @@ import type {
   PermissionGroup
 } from '@/types/api/Permission';
 
-const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = ({
-  isOpen,
-  onClose,
-  staff,
-  onSuccess
-}) => {
+const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = ({ isOpen, onClose, staff }) => {
   const { t } = useTranslation();
-  const [hasChanges, setHasChanges] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [availablePermissions, setAvailablePermissions] = useState<Permission[]>([]);
   const [permissions, setPermissions] = useState<PermissionItem[]>([]);
   const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>([]);
@@ -44,20 +37,18 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
     const loadPermissions = async () => {
       if (!staff?.userId?._id) return;
 
-      setLoading(true);
-
       const response = await permissionApi.getPermissions({}, { limit: 100 });
       if (response.success) {
         setAvailablePermissions(response.data.permissions);
       }
-
-      setLoading(false);
     };
 
     if (isOpen && staff?.userId?._id) {
       loadPermissions();
+      // Force refresh effective permissions when modal opens
+      refetchEffectivePermissions();
     }
-  }, [isOpen, staff?.userId?._id]);
+  }, [isOpen, staff?.userId?._id, refetchEffectivePermissions]);
 
   useEffect(() => {
     if (availablePermissions.length > 0) {
@@ -66,14 +57,24 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
         const isEnabled = Array.isArray(effectivePermissions)
           ? effectivePermissions.includes(sanitizedPermissionName)
           : false;
+        // Disable scoped permissions if staff has no proper context
+        const hasBranchContext = staff?.branchId && staff.branchId.length > 0;
+        const canUsePermission =
+          perm.scope === 'global' ||
+          perm.scope === 'self' ||
+          (perm.scope === 'branch' && hasBranchContext) ||
+          (perm.scope === 'owner' && hasBranchContext);
+
         return {
           id: perm._id,
           name: perm.description || perm.name,
           description: perm.description || `Access to ${perm.resource} ${perm.action}`,
-          enabled: isEnabled,
+          enabled: Boolean(isEnabled && canUsePermission),
           permissionName: sanitizedPermissionName,
           resource: perm.resource,
-          action: perm.action
+          action: perm.action,
+          scope: perm.scope, // Add scope to PermissionItem
+          disabled: !canUsePermission // Add disabled flag
         };
       });
 
@@ -83,24 +84,73 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
       const groupedPermissions = groupPermissionsByResource(mappedPermissions);
       setPermissionGroups(groupedPermissions);
     }
-  }, [availablePermissions, effectivePermissions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availablePermissions, effectivePermissions, staff?.branchId]);
 
-  const handlePermissionToggle = (permissionId: string, enabled: boolean) => {
-    setPermissions((prev) =>
-      prev.map((permission) => (permission.id === permissionId ? { ...permission, enabled } : permission))
-    );
+  const handlePermissionToggle = async (permissionId: string, enabled: boolean) => {
+    const permission = permissions.find((p) => p.id === permissionId);
+    if (!permission || !staff) return;
 
-    // Update permission groups as well
-    setPermissionGroups((prev) =>
-      prev.map((group) => ({
-        ...group,
-        permissions: group.permissions.map((permission) =>
-          permission.id === permissionId ? { ...permission, enabled } : permission
-        )
-      }))
-    );
+    try {
+      setSaving(true);
 
-    setHasChanges(true);
+      // Determine scope and resource info
+      let scope: 'branch' | 'owner' | 'self' = 'branch';
+      let resourceId = staff.branchId?.[0]?._id;
+      let resourceType: 'branch' | 'self' | undefined = 'branch';
+
+      // Handle different permission scopes
+      if (permission.scope === 'owner') {
+        scope = 'owner';
+        resourceId = staff.branchId?.[0]?._id;
+      } else if (permission.scope === 'self') {
+        scope = 'self';
+        resourceId = staff.userId._id;
+        resourceType = 'self';
+      }
+
+      if (enabled) {
+        // Assign permission
+        await assignPermission({
+          userId: staff.userId._id,
+          permissionName: permission.permissionName,
+          scope,
+          resourceId,
+          resourceType
+        });
+      } else {
+        // Revoke permission
+        await revokePermission({
+          userId: staff.userId._id,
+          permissionName: permission.permissionName,
+          resourceId,
+          resourceType
+        });
+      }
+
+      // Update local state only after successful API call
+      setPermissions((prev) => prev.map((p) => (p.id === permissionId ? { ...p, enabled } : p)));
+
+      // Update permission groups as well
+      setPermissionGroups((prev) =>
+        prev.map((group) => ({
+          ...group,
+          permissions: group.permissions.map((p) => (p.id === permissionId ? { ...p, enabled } : p))
+        }))
+      );
+    } catch (error) {
+      console.error('Failed to toggle permission:', error);
+      // Revert the toggle in UI if API call failed
+      setPermissions((prev) => prev.map((p) => (p.id === permissionId ? { ...p, enabled: !enabled } : p)));
+      setPermissionGroups((prev) =>
+        prev.map((group) => ({
+          ...group,
+          permissions: group.permissions.map((p) => (p.id === permissionId ? { ...p, enabled: !enabled } : p))
+        }))
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handlePermissionGroupChange = (permissionGroup: string) => {
@@ -153,68 +203,6 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
       return permissionGroups;
     }
     return permissionGroups.filter((group) => group.resource === selectedPermissionGroup);
-  };
-
-  const handleSave = async () => {
-    if (!staff || !hasChanges) return;
-
-    setSaving(true);
-
-    const userId = staff.userId?._id;
-    if (!userId) {
-      setSaving(false);
-      return;
-    }
-
-    // Get the original effective permissions
-    const originalPermissions = new Set(effectivePermissions);
-
-    // Process each permission change
-    for (const permission of permissions) {
-      const sanitizedPermissionName = permission.permissionName.toLowerCase().trim().replace(/\s+/g, '');
-      const hasOriginalPermission = originalPermissions.has(sanitizedPermissionName);
-
-      if (permission.enabled && !hasOriginalPermission) {
-        // Assign new permission
-        await assignPermission({
-          userId,
-          permissionName: sanitizedPermissionName,
-          scope: 'global', // Use global scope for staff permissions
-          resourceId: undefined,
-          resourceType: undefined
-        });
-      } else if (!permission.enabled && hasOriginalPermission) {
-        // Revoke permission
-        await revokePermission({
-          userId,
-          permissionName: sanitizedPermissionName,
-          resourceId: undefined,
-          resourceType: undefined
-        });
-      }
-    }
-    setHasChanges(false);
-
-    const freshResponse = await permissionApi.getEffectivePermissions(userId);
-    if (freshResponse.success) {
-      setPermissions((prev) =>
-        prev.map((permission) => ({
-          ...permission,
-          enabled: freshResponse.data.permissions.includes(
-            permission.permissionName.toLowerCase().trim().replace(/\s+/g, '')
-          )
-        }))
-      );
-    }
-
-    refetchEffectivePermissions();
-
-    setTimeout(() => {
-      onSuccess?.();
-      onClose();
-    }, 1000);
-
-    setSaving(false);
   };
 
   if (!isOpen || !staff) {
@@ -297,7 +285,7 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
         {/* Permissions List */}
         <div className="flex-1 overflow-hidden">
           <ScrollArea className="h-full p-6">
-            {loading || permissionsLoading ? (
+            {permissionsLoading ? (
               <div className="flex items-center justify-center h-32">
                 <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
                 <span className="ml-2 text-gray-600">{t('permissions.loading_permissions')}</span>
@@ -331,38 +319,74 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
 
                       {/* Group Permissions */}
                       <div className="space-y-2 ml-6">
-                        {group.permissions.map((permission) => (
-                          <div
-                            key={permission.id}
-                            className={`flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors ${
-                              permission.enabled ? 'border-green-200 bg-green-50' : 'border-gray-200'
-                            }`}
-                          >
-                            <div className="flex items-center space-x-3">
-                              <div
-                                className={`p-1.5 rounded-md ${permission.enabled ? 'bg-green-100' : 'bg-green-100'}`}
-                              >
-                                <Shield className="h-3 w-3 text-green-600" />
-                              </div>
-                              <div>
-                                <h4
-                                  className={`text-sm font-medium ${
-                                    permission.enabled ? 'text-green-900' : 'text-gray-900'
+                        {group.permissions.map((permission) => {
+                          return (
+                            <div
+                              key={permission.id}
+                              className={`flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors ${
+                                permission.disabled
+                                  ? 'border-gray-100 bg-gray-50 opacity-50'
+                                  : permission.enabled
+                                    ? 'border-green-200 bg-green-50'
+                                    : 'border-gray-200'
+                              }`}
+                            >
+                              <div className="flex items-center space-x-3">
+                                <div
+                                  className={`p-1.5 rounded-md ${
+                                    permission.disabled
+                                      ? 'bg-gray-100'
+                                      : permission.enabled
+                                        ? 'bg-green-100'
+                                        : 'bg-gray-100'
                                   }`}
                                 >
-                                  {permission.name}
-                                </h4>
-                                <p className="text-xs text-gray-500">{permission.description}</p>
-                                <p className="text-xs text-gray-400 font-mono">{permission.permissionName}</p>
+                                  <Shield
+                                    className={`h-3 w-3 ${
+                                      permission.disabled
+                                        ? 'text-gray-400'
+                                        : permission.enabled
+                                          ? 'text-green-600'
+                                          : 'text-gray-400'
+                                    }`}
+                                  />
+                                </div>
+                                <div>
+                                  <h4
+                                    className={`text-sm font-medium ${
+                                      permission.disabled
+                                        ? 'text-gray-500'
+                                        : permission.enabled
+                                          ? 'text-green-900'
+                                          : 'text-gray-900'
+                                    }`}
+                                  >
+                                    {permission.name}
+                                    {permission.disabled && (
+                                      <span className="ml-2 text-xs text-red-500 font-normal">
+                                        (
+                                        {permission.scope === 'branch' || permission.scope === 'owner'
+                                          ? 'Requires branch assignment'
+                                          : 'Permission unavailable'}
+                                        )
+                                      </span>
+                                    )}
+                                  </h4>
+                                  <p className="text-xs text-gray-500">{permission.description}</p>
+                                  <p className="text-xs text-gray-400 font-mono">{permission.permissionName}</p>
+                                </div>
                               </div>
+                              <Switch
+                                key={`${permission.id}-${permission.enabled}`}
+                                checked={permission.enabled}
+                                onCheckedChange={(enabled) => {
+                                  handlePermissionToggle(permission.id, enabled);
+                                }}
+                                disabled={saving || permission.disabled}
+                              />
                             </div>
-                            <Switch
-                              checked={permission.enabled}
-                              onCheckedChange={(enabled) => handlePermissionToggle(permission.id, enabled)}
-                              disabled={saving}
-                            />
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   ))
@@ -375,11 +399,11 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
         {/* Footer */}
         <div className="p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
           {/* Messages */}
-          <div className="space-y-3 mb-4">
-            {hasChanges && (
+          <div className="space-y-3">
+            {saving && (
               <div className="flex items-center space-x-2 text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                <span className="text-sm">{t('permissions.changes_detected')}</span>
+                <div className="w-4 h-4 border-2 border-blue-700 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                <span className="text-sm">{t('permissions.updating_permission')}</span>
               </div>
             )}
 
@@ -395,27 +419,11 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
                 </span>
               </div>
             )}
-          </div>
 
-          {/* Button */}
-          <div className="flex items-center justify-end space-x-3">
-            <Button
-              onClick={handleSave}
-              disabled={!hasChanges || saving}
-              className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 relative z-10"
-            >
-              {saving ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                  {t('permissions.saving')}
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  {t('permissions.save_changes')}
-                </>
-              )}
-            </Button>
+            <div className="flex items-center space-x-2 text-gray-600 bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <Shield className="w-4 h-4 flex-shrink-0" />
+              <span className="text-sm">{t('permissions.changes_saved_automatically')}</span>
+            </div>
           </div>
         </div>
       </div>

@@ -2,6 +2,21 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+/* Custom styles for select elements to ensure borders are visible */
+select {
+  border: 1px solid #d1d5db !important;
+  background-color: white !important;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+select:focus {
+  border-color: #f97316 !important;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2) !important;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -335,4 +350,313 @@ select:focus {
 
 .animate-scroll {
   animation: scroll 20s linear infinite;
+}
+
+/* Hide scrollbar for all browsers */
+.hide-scrollbar {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE and Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Opera */
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.hide-scrollbar::-webkit-scrollbar-track {
+  display: none !important;
+}
+
+.hide-scrollbar::-webkit-scrollbar-thumb {
+  display: none !important;
+}
+
+/* Mini Calendar Alignment */
+.mini-calendar-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.mini-calendar-wrapper .rdp {
+  width: 100%;
+  max-width: 100%;
+}
+
+.mini-calendar-wrapper .rdp-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.mini-calendar-wrapper .rdp-head_cell,
+.mini-calendar-wrapper .rdp-cell {
+  width: calc(100% / 7);
+  text-align: center;
+  padding: 0.25rem;
+}
+
+/* Calendar Layout Fixes */
+.calendar-main-container {
+  overflow: hidden !important;
+  height: 100vh !important;
+}
+
+.calendar-time-column {
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  background-color: white;
+  border-right: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  width: 80px;
+}
+
+.calendar-scrollable-area {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  position: relative;
+  width: 100%;
+  background-color: white;
+}
+
+.calendar-scrollable-area::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Perfect alignment for all elements */
+.calendar-grid-wrapper,
+.calendar-content-area,
+.calendar-day-grid,
+.calendar-day-column-new {
+  box-sizing: border-box;
+}
+
+/* Ensure no margin/padding issues */
+.calendar-scrollable-area.no-padding {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Fix any potential border inconsistencies */
+.calendar-day-column-new .calendar-time-cell:last-child {
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+/* Calendar Grid Cells */
+.calendar-grid-cell {
+  transition: background-color 0.15s ease;
+  position: relative;
+  border-bottom: 1px solid #e5e7eb !important; /* Force consistent border */
+  height: 64px !important; /* Ensure exact height match */
+  box-sizing: border-box;
+}
+
+.calendar-grid-cell:hover {
+  background-color: #f8fafc;
+}
+
+/* Calendar Time Column Cells */
+.calendar-time-column > div {
+  border-bottom: 1px solid #e5e7eb !important; /* Match grid cell borders */
+  height: 64px !important; /* Ensure exact height match */
+  box-sizing: border-box;
+}
+
+/* Calendar Events */
+.calendar-event {
+  position: absolute;
+  border-left: 3px solid;
+  border-radius: 4px;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  margin: 2px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+/* Current Time Line */
+.current-time-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #ea4335;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.current-time-line::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #ea4335;
+}
+
+/* New Simple Calendar Grid System */
+.calendar-grid-wrapper {
+  display: flex;
+  width: 100%;
+  height: 960px; /* Fixed height for 16 hours */
+  min-height: 960px;
+  position: relative;
+}
+
+.calendar-time-sidebar {
+  width: 80px;
+  background-color: #f9fafb;
+  border-right: 1px solid #e5e7eb;
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  flex-shrink: 0;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+  min-height: 960px; /* 16 hours × 60px = 960px */
+  height: 960px;
+  position: relative;
+}
+
+/* Add horizontal lines on time sidebar to match grid lines */
+.calendar-time-sidebar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    #e5e7eb 0px,
+    #e5e7eb 1px,
+    transparent 1px,
+    transparent 60px
+  );
+  pointer-events: none;
+  z-index: 5;
+}
+
+.calendar-content-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden; /* Prevent content overflow */
+  height: 960px;
+  min-height: 960px;
+}
+
+/* Time labels positioned exactly on horizontal border lines */
+.time-marker {
+  position: absolute;
+  right: 6px;
+  background-color: white;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #4b5563;
+  transform: translateY(-8px); /* Adjust to sit slightly above the line for better visibility */
+  z-index: 15;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Grid cells for days and hours */
+.calendar-day-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  height: 100%;
+  min-height: 960px; /* 16 hours × 60px = 960px */
+  width: 100%;
+}
+
+.calendar-day-column-new {
+  border-right: 1px solid #e5e7eb;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 960px; /* Ensure full height */
+}
+
+.calendar-day-column-new:last-child {
+  border-right: none;
+}
+
+/* Add the same horizontal grid lines pattern to each day column */
+.calendar-day-column-new::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    #e5e7eb 0px,
+    #e5e7eb 1px,
+    transparent 1px,
+    transparent 60px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.calendar-time-cell {
+  height: 60px;
+  min-height: 60px !important;
+  max-height: 60px !important;
+  flex: 0 0 60px; /* Flex properties to maintain size */
+  border: none; /* Remove all borders, we use pseudo-elements for grid lines */
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  position: relative;
+  background: transparent;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  width: 100%;
+  z-index: 2; /* Above the grid lines */
+}
+
+.calendar-time-cell:hover {
+  background-color: #f8fafc;
+}
+
+.calendar-time-cell:focus {
+  background-color: #f1f5f9;
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
+}
+
+/* Ensure perfect horizontal line alignment */
+.calendar-main-container .h-16 {
+  height: 60px !important;
+  min-height: 60px !important;
+  max-height: 60px !important;
+  box-sizing: border-box;
+}
+
+/* Force consistent border colors */
+.calendar-main-container .border-gray-200,
+.calendar-main-container .border-b {
+  border-color: #e5e7eb !important;
+}
+
+/* Remove old unused CSS */
+.calendar-grid-cell,
+.calendar-time-column > div {
+  display: none;
 }

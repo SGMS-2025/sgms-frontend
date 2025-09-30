@@ -1,9 +1,13 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
-import { Star, MapPin } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Star, MapPin, Sparkles } from 'lucide-react';
 import type { GymHeroSectionProps } from '@/types/components/gym';
 
-export const GymHeroSection: React.FC<GymHeroSectionProps> = ({ branch }) => {
+export const GymHeroSection: React.FC<GymHeroSectionProps> = ({ branch, onJoinClick }) => {
+  const { t } = useTranslation();
+
   return (
     <section className="relative bg-white">
       <div className="max-w-7xl mx-auto px-4">
@@ -17,7 +21,7 @@ export const GymHeroSection: React.FC<GymHeroSectionProps> = ({ branch }) => {
 
           {/* Gym Information Overlay */}
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 rounded-b-xl">
-            <div className="flex items-end gap-6">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
               {/* Gym logo */}
               <div className="w-32 h-32 bg-gradient-to-br from-orange-400/60 via-orange-500/40 to-orange-600/60 rounded-lg p-0.5 shadow-lg">
                 <div className="w-full h-full bg-gray-50 rounded-lg p-1">
@@ -30,18 +34,18 @@ export const GymHeroSection: React.FC<GymHeroSectionProps> = ({ branch }) => {
               </div>
 
               {/* Gym info */}
-              <div className="flex-1 text-white pb-4">
+              <div className="flex-1 text-white">
                 <div className="flex items-center gap-2 mb-2">
                   <Badge variant="default" className="bg-gym-orange text-white font-semibold px-3 py-1 shadow-lg">
-                    Gym
+                    {t('gymHero.badge')}
                   </Badge>
                 </div>
                 <h1 className="text-4xl font-bold mb-3">{branch.branchName}</h1>
-                <div className="flex items-center gap-4 text-sm">
+                <div className="flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:gap-4">
                   <div className="flex items-center gap-1">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                     <span className="font-medium">{branch.rating}</span>
-                    <span className="text-white/80">({branch.totalReviews} đánh giá)</span>
+                    <span className="text-white/80">{t('gymHero.reviews', { count: branch.totalReviews })}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <MapPin className="w-4 h-4" />
@@ -49,6 +53,19 @@ export const GymHeroSection: React.FC<GymHeroSectionProps> = ({ branch }) => {
                   </div>
                 </div>
               </div>
+
+              {onJoinClick && (
+                <div className="flex justify-end pb-2">
+                  <Button
+                    type="button"
+                    onClick={onJoinClick}
+                    className="gap-2 rounded-full bg-white/90 text-slate-900 hover:bg-white"
+                  >
+                    <Sparkles className="h-4 w-4 text-orange-500" />
+                    {t('gymHero.joinMembership')}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

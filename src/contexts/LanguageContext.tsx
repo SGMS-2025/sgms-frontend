@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import i18n from '../configs/i18n';
 
@@ -13,21 +13,32 @@ export const LanguageContext = createContext<LanguageContextProps>({
   setLanguage: () => {}
 });
 
+export const useLanguage = () => {
+  const context = useContext(LanguageContext);
+  if (!context) {
+    throw new Error('useLanguage must be used within a LanguageProvider');
+  }
+  return context;
+};
+
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
-  const [language, setLanguageState] = useState('en');
+  const [language, setLanguage] = useState('en');
 
   useEffect(() => {
     const storedLang = localStorage.getItem('language');
     if (storedLang) {
-      setLanguageState(storedLang);
+      setLanguage(storedLang);
       i18n.changeLanguage(storedLang);
     }
   }, []);
 
-  const setLanguage = (lang: string) => {
-    setLanguageState(lang);
+  const handleSetLanguage = (lang: string) => {
+    setLanguage(lang);
     i18n.changeLanguage(lang);
     localStorage.setItem('language', lang);
   };
-  return <LanguageContext.Provider value={{ language, setLanguage }}>{children}</LanguageContext.Provider>;
+
+  const contextValue = useMemo(() => ({ language, setLanguage: handleSetLanguage }), [language]);
+
+  return <LanguageContext.Provider value={contextValue}>{children}</LanguageContext.Provider>;
 };

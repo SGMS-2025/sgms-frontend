@@ -22,6 +22,18 @@ import BranchDetailPage from '@/pages/owner/BranchDetailPage';
 import AddBranchPage from '@/pages/owner/AddBranchPage';
 import AddNewStaff from '@/pages/owner/AddNewStaff';
 import DiscountPage from '@/pages/owner/DiscountPage';
+import { TechnicianLayout } from '@/layouts/TechnicianLayout';
+import TechnicianDashboard from '@/pages/technician/TechnicianDashboard';
+import { EquipmentListPage } from '@/pages/technician/EquipmentListPage';
+import { AddEquipmentPage } from '@/pages/technician/AddEquipmentPage';
+import { EquipmentDetailPage } from '@/pages/technician/EquipmentDetailPage';
+import { EditEquipmentPage } from '@/pages/technician/EditEquipmentPage';
+import MembershipPlansPage from '@/pages/owner/MembershipPlansPage';
+import AddWorkShiftPage from '@/pages/owner/AddWorkShiftPage';
+import EditWorkShiftPage from '@/pages/owner/EditWorkShiftPage';
+import WorkShiftCalendarPage from '@/pages/owner/WorkShiftCalendarPage';
+import PTServiceManagement from '@/components/dashboard/PTServiceManagement';
+import ClassServiceManagement from '@/components/dashboard/ClassServiceManagement';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 
@@ -156,8 +168,48 @@ const AppRoutes: React.FC = () => {
           <Route path="add-branch" element={<AddBranchPage />} />
           {/* Add New Staff Route */}
           <Route path="staff/add" element={<AddNewStaff />} />
-          {/* Discount Management Route */}
+          {/* Personal Training Management Route */}
+          <Route path="pt-services" element={<PTServiceManagement />} />
+          {/* Class Service Management Route */}
+          <Route path="class-services" element={<ClassServiceManagement />} />
+          {/* Services Management Route */}
           <Route path="discounts" element={<DiscountPage />} />
+          {/* Membership Management Route */}
+          <Route path="memberships" element={<MembershipPlansPage />} />
+          {/* Shared Equipment Routes for Manager */}
+          <Route path="equipment" element={<EquipmentListPage />} />
+          <Route path="equipment/add" element={<AddEquipmentPage />} />
+          <Route path="equipment/:id" element={<EquipmentDetailPage />} />
+          <Route path="equipment/:id/edit" element={<EditEquipmentPage />} />
+
+          {/* Work Shift Management Routes */}
+          <Route path="workshifts/add" element={<AddWorkShiftPage />} />
+          <Route path="workshifts/:id/edit" element={<EditWorkShiftPage />} />
+          <Route path="workshifts/calendar" element={<WorkShiftCalendarPage />} />
+        </Route>
+      </Route>
+
+      {/* Equipment Management Routes - for Technician and Personal Trainer */}
+      <Route
+        path="/manage/technician"
+        element={
+          <ProtectedRoute
+            allowedRoles={['STAFF', 'OWNER', 'ADMIN']}
+            allowedJobTitles={['Technician', 'Personal Trainer']}
+            fallbackPath="/home"
+          />
+        }
+      >
+        <Route path="" element={<TechnicianLayout />}>
+          {/* Dashboard Route */}
+          <Route path="" element={<TechnicianDashboard />} />
+
+          {/* Shared Equipment Routes for Technician */}
+          <Route path="equipment" element={<EquipmentListPage />} />
+          <Route path="equipment/add" element={<AddEquipmentPage />} />
+          <Route path="equipment/:id" element={<EquipmentDetailPage />} />
+          <Route path="equipment/:id/edit" element={<EditEquipmentPage />} />
+          <Route path="*" element={<Navigate to="/manage/technician" replace />} />
         </Route>
       </Route>
 

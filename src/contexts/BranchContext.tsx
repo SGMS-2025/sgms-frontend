@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type {
   BranchDisplay,
@@ -10,6 +11,8 @@ import type {
 import { branchApi } from '@/services/api/branchApi';
 import { convertBranchToDisplay } from '@/utils/branchUtils';
 import { useAuth } from './AuthContext';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 
 const BranchContext = createContext<BranchContextType | undefined>(undefined);
 
@@ -19,30 +22,32 @@ interface BranchProviderProps {
 
 export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
   const { state: authState } = useAuth();
+  const { t } = useTranslation();
   const [currentBranch, setCurrentBranch] = useState<BranchDisplay | null>(null);
   const [branches, setBranches] = useState<BranchDisplay[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isFetching, setIsFetching] = useState(false);
   const [isSwitchingBranch, setIsSwitchingBranch] = useState(false);
+  const isFetchingRef = useRef(false);
 
   // Check if user can access my-branches API
-  const canAccessMyBranches = authState.user && ['OWNER', 'ADMIN', 'MANAGER'].includes(authState.user.role);
+  // OWNER, ADMIN can always access
+  // STAFF can access if they have the right permissions (handled by backend)
+  const canAccessMyBranches = authState.user && ['OWNER', 'ADMIN', 'STAFF'].includes(authState.user.role);
 
   // Fetch branches on mount - chỉ chạy một lần
   useEffect(() => {
     const fetchBranches = async () => {
       // Prevent multiple simultaneous calls
-      if (isFetching) return;
+      if (isFetchingRef.current) return;
 
       // Only fetch my-branches if user has permission
       if (!canAccessMyBranches) {
         setLoading(false);
-        setIsFetching(false);
         return;
       }
 
-      setIsFetching(true);
+      isFetchingRef.current = true;
       setLoading(true);
       setError(null);
 
@@ -74,24 +79,23 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
       }
 
       setLoading(false);
-      setIsFetching(false);
+      isFetchingRef.current = false;
     };
 
     fetchBranches();
-  }, [canAccessMyBranches]); // Re-run when user role changes
+  }, [canAccessMyBranches, authState.user?._id, authState.user?.role]); // Re-run when user role changes
 
   const fetchBranches = useCallback(async () => {
     // Prevent multiple simultaneous calls
-    if (isFetching) return;
+    if (isFetchingRef.current) return;
 
     // Only fetch my-branches if user has permission
     if (!canAccessMyBranches) {
       setLoading(false);
-      setIsFetching(false);
       return;
     }
 
-    setIsFetching(true);
+    isFetchingRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -120,18 +124,13 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
     }
 
     setLoading(false);
-    setIsFetching(false);
+    isFetchingRef.current = false;
   }, [canAccessMyBranches]);
 
   const fetchBranchDetail = async (branchId: string): Promise<BranchDisplay | null> => {
-    // Check if branch is already in branches list to avoid unnecessary API call
-    const existingBranch = branches.find((b) => b._id === branchId);
-    if (existingBranch) {
-      return existingBranch;
-    }
-
-    // Use public route for all users (including customers)
-    const response = await branchApi.getBranchDetail(branchId).catch(() => ({
+    // Always fetch fresh data from API to ensure we have the latest manager information
+    // Use protected endpoint to get branch details regardless of active status
+    const response = await branchApi.getBranchDetailProtected(branchId).catch(() => ({
       success: false,
       message: 'Network error - Failed to fetch branch detail',
       data: null
@@ -199,10 +198,10 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
     }
   };
 
-  const toggleBranchStatus = async (branchId: string) => {
+  const toggleBranchStatus = async (branchId: string): Promise<BranchDisplay | null> => {
     // Only allow if user has permission
     if (!canAccessMyBranches) {
-      return;
+      return null;
     }
 
     const response = await branchApi.toggleBranchStatus(branchId).catch(() => ({
@@ -213,13 +212,25 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
 
     if (response.success && response.data) {
       const updatedBranch = convertBranchToDisplay(response.data);
+
+      // Update branches list
       setBranches((prev) => prev.map((branch) => (branch._id === branchId ? updatedBranch : branch)));
 
       // Update current branch if it's the one being updated
       if (currentBranch?._id === branchId) {
         setCurrentBranch(updatedBranch);
       }
+
+      // Show success toast
+      toast.success(t('toast.branch_status_updated_success'));
+
+      return updatedBranch; // Return updated branch for immediate use
     }
+
+    // Show error toast
+    toast.error(t('toast.branch_status_updated_failed'));
+
+    return null;
   };
 
   const switchBranch = async (branchId: string) => {
@@ -227,15 +238,7 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
 
     setIsSwitchingBranch(true);
 
-    // Find branch in existing list first
-    const existingBranch = branches.find((b) => b._id === branchId);
-    if (existingBranch) {
-      setCurrentBranch(existingBranch);
-      setIsSwitchingBranch(false);
-      return;
-    }
-
-    // If not found, fetch from API using public route
+    // Always fetch fresh data from API to ensure we have the latest manager information
     const branchDetail = await fetchBranchDetail(branchId);
     if (branchDetail) {
       setCurrentBranch(branchDetail);

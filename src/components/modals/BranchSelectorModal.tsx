@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, Building, Plus } from 'lucide-react';
+import { MapPin, Building, Plus, Circle, CheckCircle } from 'lucide-react';
 import type { BranchDisplay } from '@/types/api/Branch';
 
 interface BranchSelectorModalProps {
@@ -112,8 +112,16 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-black rounded-full flex-shrink-0"></div>
-                    <span className="text-sm font-medium text-orange-500">{t('branch_selector.active_status')}</span>
+                    <div
+                      className={`w-2 h-2 rounded-full flex-shrink-0 ${currentBranch.isActive ? 'bg-green-500' : 'bg-red-500'}`}
+                    ></div>
+                    <span
+                      className={`text-sm font-medium ${currentBranch.isActive ? 'text-green-600' : 'text-red-600'}`}
+                    >
+                      {currentBranch.isActive
+                        ? t('branch_selector.active_status')
+                        : t('branch_selector.inactive_status')}
+                    </span>
                   </div>
 
                   <div className="flex items-center space-x-3">
@@ -122,11 +130,16 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
                       {(() => {
                         if (!currentBranch.managerId) return t('branch_selector.no_manager');
                         if (Array.isArray(currentBranch.managerId)) {
-                          return currentBranch.managerId.length > 0
-                            ? currentBranch.managerId[0].fullName
+                          const activeManagers = currentBranch.managerId.filter(
+                            (manager) => manager.status === 'ACTIVE'
+                          );
+                          return activeManagers.length > 0
+                            ? activeManagers[0].fullName
                             : t('branch_selector.no_manager');
                         }
-                        return currentBranch.managerId.fullName;
+                        return currentBranch.managerId.status === 'ACTIVE'
+                          ? currentBranch.managerId.fullName
+                          : t('branch_selector.no_manager');
                       })()}
                     </span>
                   </div>
@@ -149,28 +162,43 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
               {branches && branches.length > 0 ? (
                 branches
                   .filter((branch) => branch._id !== currentBranch?._id)
-                  .map((branch) => (
-                    <button
-                      type="button"
-                      key={branch._id}
-                      className="w-full flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
-                      onClick={() => handleBranchSelect(branch)}
-                    >
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={branch.coverImage} alt={branch.branchName} />
-                        <AvatarFallback className="bg-orange-100 text-orange-600 text-sm font-semibold">
-                          {branch.branchName.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-gray-800 text-sm">{branch.branchName}</p>
-                        <div className="flex items-center space-x-1 mt-1">
-                          <MapPin className="h-3 w-3 text-gray-500" />
-                          <p className="text-xs text-gray-500 truncate">{branch.location}</p>
+                  .map((branch) => {
+                    const statusColor = branch.isActive ? 'text-green-600' : 'text-red-600';
+                    const statusBg = branch.isActive ? 'bg-green-100' : 'bg-red-100';
+                    const statusText = branch.isActive ? 'Active' : 'Inactive';
+
+                    return (
+                      <button
+                        type="button"
+                        key={branch._id}
+                        className="w-full flex items-center space-x-3 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 group"
+                        onClick={() => handleBranchSelect(branch)}
+                      >
+                        <Avatar className="h-8 w-8 ring-1 ring-gray-200 group-hover:ring-orange-300 transition-all">
+                          <AvatarImage src={branch.coverImage} alt={branch.branchName} />
+                          <AvatarFallback className="bg-orange-100 text-orange-600 text-xs font-semibold">
+                            {branch.branchName.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-800 text-sm truncate">{branch.branchName}</p>
+                            <div
+                              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium ${statusBg} ${statusColor}`}
+                            >
+                              <Circle className="h-1.5 w-1.5 fill-current" />
+                              {statusText}
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-1 mt-0.5">
+                            <MapPin className="h-3 w-3 text-gray-500 flex-shrink-0" />
+                            <p className="text-xs text-gray-500 truncate">{branch.location}</p>
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  ))
+                        <CheckCircle className="h-4 w-4 text-blue-600 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </button>
+                    );
+                  })
               ) : (
                 <div className="text-center py-4 text-gray-500">
                   <p>{t('branch_selector.no_other_branches')}</p>

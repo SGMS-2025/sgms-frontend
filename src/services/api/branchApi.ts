@@ -59,13 +59,32 @@ export const branchApi = {
     return response.data;
   },
 
+  // Get branches with role-based filtering (for authenticated users)
+  getBranchesWithAuth: async (params?: BranchListParams): Promise<BranchListResponse> => {
+    const searchParams = new URLSearchParams();
+
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          searchParams.append(key, value.toString());
+        }
+      });
+    }
+
+    const queryString = searchParams.toString();
+    const url = queryString ? `/branches/authenticated?${queryString}` : '/branches/authenticated';
+
+    const response = await api.get<BranchListResponse>(url);
+    return response.data;
+  },
+
   // Get branch detail by ID (public)
   getBranchDetail: async (branchId: string): Promise<ApiResponse<Branch>> => {
     const response = await api.get(`/branches/public/${branchId}`);
     return response.data;
   },
 
-  // Get branch detail by ID (protected - for owners)
+  // Get branch detail by ID (protected - for authenticated users)
   getBranchDetailProtected: async (branchId: string): Promise<ApiResponse<Branch>> => {
     const response = await api.get(`/branches/${branchId}`);
     return response.data;

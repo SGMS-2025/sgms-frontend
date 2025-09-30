@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -14,7 +14,8 @@ import {
   UserCheck,
   UserX,
   Settings,
-  Shield
+  Shield,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +43,9 @@ import {
 import { useStaffList, useUpdateStaffStatus } from '@/hooks/useStaff';
 import { useTableSort } from '@/hooks/useTableSort';
 import { useUser } from '@/hooks/useAuth';
+import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
+import { useBranch } from '@/contexts/BranchContext';
+import { useCanManageStaff } from '@/hooks/useCanManageStaff';
 import { sortArray, staffSortConfig } from '@/utils/sort';
 import StaffProfileModal from '@/components/modals/StaffProfileModal';
 import StaffPermissionOverlayModal from '@/components/modals/StaffPermissionOverlayModal';
@@ -58,7 +62,10 @@ import { toast } from 'sonner';
 export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) => {
   const { t } = useTranslation();
   const currentUser = useUser();
+  const { currentStaff } = useCurrentUserStaff();
   const navigate = useNavigate();
+  const { currentBranch } = useBranch();
+  const { canManageStaff } = useCanManageStaff();
   const [filters, setFilters] = useState<StaffFilters>({
     searchTerm: '',
     selectedIds: []
@@ -77,9 +84,8 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
   // Use the custom sort hook
   const { sortState, handleSort, getSortIcon } = useTableSort<SortField>();
 
-  // Use the custom hook to fetch data
-  const { staffList, stats, loading, error, pagination, refetch, updateFilters, goToPage } = useStaffList({
-    search: filters.searchTerm || undefined,
+  // Use the custom hook to fetch data (without search parameter)
+  const { staffList, loading, error, pagination, refetch, goToPage } = useStaffList({
     limit: 10
   });
 
@@ -88,32 +94,45 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
 
   const selectedCount = filters.selectedIds.length;
 
-  // Filter out current user's staff record and sort staff list using the utility function
+  // Filter out current user's staff record, filter by current branch, search, and sort staff list using the utility function
   const sortedStaffList = useMemo(() => {
-    const filteredStaffList = currentUser
+    let filteredStaffList = currentUser
       ? staffList.filter((staff) => {
           return staff.email !== currentUser.email;
         })
       : staffList;
 
+    // Filter by current branch if one is selected
+    if (currentBranch) {
+      filteredStaffList = filteredStaffList.filter((staff) => {
+        return staff.branches.some((branch) => branch._id === currentBranch._id);
+      });
+    }
+
+    // Frontend search filter
+    if (filters.searchTerm) {
+      const searchTerm = filters.searchTerm.toLowerCase();
+      filteredStaffList = filteredStaffList.filter((staff) => {
+        return (
+          staff.name.toLowerCase().includes(searchTerm) ||
+          staff.email.toLowerCase().includes(searchTerm) ||
+          staff.phone.toLowerCase().includes(searchTerm) ||
+          staff.jobTitle.toLowerCase().includes(searchTerm) ||
+          staff.branch.toLowerCase().includes(searchTerm) ||
+          staff.branches.some((branch) => branch.branchName.toLowerCase().includes(searchTerm))
+        );
+      });
+    }
+
     return sortArray(filteredStaffList, sortState, (item, field) => {
       const extractor = staffSortConfig[field as keyof typeof staffSortConfig];
       return extractor ? extractor(item) : '';
     });
-  }, [staffList, sortState, currentUser]);
+  }, [staffList, sortState, currentUser, currentBranch, filters.searchTerm]);
 
   const handleSearch = (value: string) => {
     setFilters((prev) => ({ ...prev, searchTerm: value }));
   };
-
-  // Debounce search
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      updateFilters({ search: filters.searchTerm || undefined, page: 1 });
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [filters.searchTerm, updateFilters]);
 
   const handleSelectAll = () => {
     const allIds = sortedStaffList.map((staff) => staff.id);
@@ -205,7 +224,8 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
           phoneNumber: staffData.userId?.phoneNumber
         },
         jobTitle: staffData.jobTitle,
-        status: staffData.status || 'ACTIVE'
+        status: staffData.status || 'ACTIVE',
+        branchId: staffData.branchId || []
       });
       setIsPermissionModalOpen(true);
     } else {
@@ -242,8 +262,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
   const confirmStatusUpdate = async () => {
     if (!staffToUpdate) return;
 
-    const newStatus = staffToUpdate.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    await updateStaffStatus(staffToUpdate.id, newStatus);
+    await updateStaffStatus(staffToUpdate.id);
     await refetch();
     setStatusDialogOpen(false);
     setStaffToUpdate(null);
@@ -317,6 +336,14 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
               {t('dashboard.staff_overview_subtitle') ||
                 'Monitor staffing distribution and performance across your facilities.'}
             </p>
+            {currentBranch && (
+              <div className="flex items-center gap-2 mt-2">
+                <MapPin className="w-4 h-4 text-orange-500" />
+                <span className="text-sm text-orange-600 font-medium">
+                  {t('dashboard.filtering_by_branch') || 'Filtering by branch'}: {currentBranch.branchName}
+                </span>
+              </div>
+            )}
           </div>
           <Button
             variant="outline"
@@ -330,15 +357,15 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
           <div className="rounded-2xl border border-orange-100 bg-[#FFF6EE] p-4">
             <div className="text-xs font-semibold uppercase tracking-wide text-orange-500">{t('dashboard.total')}</div>
             <div className="mt-2 flex items-end justify-between">
-              <div className="text-3xl font-bold text-gray-900">
-                {currentUser ? Math.max(0, (stats?.totalStaff || 0) - 1) : stats?.totalStaff || 0}
-              </div>
+              <div className="text-3xl font-bold text-gray-900">{sortedStaffList.length}</div>
               <div className="rounded-full bg-white/70 p-2 text-orange-500">
                 <Users className="h-5 w-5" />
               </div>
             </div>
             <p className="mt-2 text-xs text-gray-500">
-              {t('dashboard.total_staff_helper') || 'Active staff members overall'}
+              {currentBranch
+                ? `${t('dashboard.total_staff_helper') || 'Active staff members'} - ${currentBranch.branchName}`
+                : t('dashboard.total_staff_helper') || 'Active staff members overall'}
             </p>
           </div>
 
@@ -348,7 +375,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
             </div>
             <div className="mt-2 flex items-end justify-between text-gray-900">
               <span className="text-3xl font-semibold">
-                {stats?.staffByJobTitle?.find((item) => item._id === 'Quản lý thiết bị')?.count || 0}
+                {sortedStaffList.filter((staff) => staff.jobTitle === 'Technician').length}
               </span>
               <div className="rounded-full bg-white p-2 text-gray-500">
                 <FileText className="h-5 w-5" />
@@ -365,7 +392,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
             </div>
             <div className="mt-2 flex items-end justify-between text-gray-900">
               <span className="text-3xl font-semibold">
-                {stats?.staffByJobTitle?.find((item) => item._id === 'Quản lý chi nhánh')?.count || 0}
+                {sortedStaffList.filter((staff) => staff.jobTitle === 'Manager').length}
               </span>
               <div className="rounded-full bg-white p-2 text-gray-500">
                 <Users className="h-5 w-5" />
@@ -380,7 +407,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
             <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">{t('dashboard.pt')}</div>
             <div className="mt-2 flex items-end justify-between text-gray-900">
               <span className="text-3xl font-semibold">
-                {stats?.staffByJobTitle?.find((item) => item._id === 'PT')?.count || 0}
+                {sortedStaffList.filter((staff) => staff.jobTitle === 'Personal Trainer').length}
               </span>
               <div className="rounded-full bg-white p-2 text-gray-500">
                 <Users className="h-5 w-5" />
@@ -425,8 +452,27 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
               </span>
             )}
             <Button
-              className="h-11 rounded-full bg-orange-500 px-6 text-sm font-semibold text-white shadow-sm hover:bg-orange-600"
-              onClick={handleAddStaff}
+              className={`h-11 rounded-full px-6 text-sm font-semibold shadow-sm ${
+                currentUser?.role === 'OWNER' ||
+                currentUser?.role === 'ADMIN' ||
+                (currentStaff && currentStaff.jobTitle === 'Manager')
+                  ? 'bg-orange-500 text-white hover:bg-orange-600'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+              onClick={
+                currentUser?.role === 'OWNER' ||
+                currentUser?.role === 'ADMIN' ||
+                (currentStaff && currentStaff.jobTitle === 'Manager')
+                  ? handleAddStaff
+                  : undefined
+              }
+              disabled={
+                !(
+                  currentUser?.role === 'OWNER' ||
+                  currentUser?.role === 'ADMIN' ||
+                  (currentStaff && currentStaff.jobTitle === 'Manager')
+                )
+              }
             >
               <Plus className="mr-2 h-4 w-4" />
               {t('dashboard.add_staff')}
@@ -447,23 +493,49 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
 
           <button
             className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${
-              sortedStaffList.length > 0 && sortedStaffList.every((staff) => filters.selectedIds.includes(staff.id))
-                ? 'border border-orange-200 bg-orange-100 text-orange-600 shadow-sm'
-                : 'border border-gray-200 bg-white text-gray-500 hover:border-orange-200 hover:text-orange-500'
+              currentUser?.role === 'OWNER' ||
+              currentUser?.role === 'ADMIN' ||
+              (currentStaff && currentStaff.jobTitle === 'Manager')
+                ? sortedStaffList.length > 0 && sortedStaffList.every((staff) => filters.selectedIds.includes(staff.id))
+                  ? 'border border-orange-200 bg-orange-100 text-orange-600 shadow-sm'
+                  : 'border border-gray-200 bg-white text-gray-500 hover:border-orange-200 hover:text-orange-500'
+                : 'border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}
-            onClick={handleSelectAll}
+            onClick={
+              currentUser?.role === 'OWNER' ||
+              currentUser?.role === 'ADMIN' ||
+              (currentStaff && currentStaff.jobTitle === 'Manager')
+                ? handleSelectAll
+                : undefined
+            }
+            disabled={
+              !(
+                currentUser?.role === 'OWNER' ||
+                currentUser?.role === 'ADMIN' ||
+                (currentStaff && currentStaff.jobTitle === 'Manager')
+              )
+            }
           >
             <span
               className={`flex h-4 w-4 items-center justify-center rounded-full border ${
-                sortedStaffList.length > 0 && sortedStaffList.every((staff) => filters.selectedIds.includes(staff.id))
-                  ? 'border-orange-400 bg-orange-500 text-white'
-                  : 'border-gray-300 text-transparent'
+                currentUser?.role === 'OWNER' ||
+                currentUser?.role === 'ADMIN' ||
+                (currentStaff && currentStaff.jobTitle === 'Manager')
+                  ? sortedStaffList.length > 0 &&
+                    sortedStaffList.every((staff) => filters.selectedIds.includes(staff.id))
+                    ? 'border-orange-400 bg-orange-500 text-white'
+                    : 'border-gray-300 text-transparent'
+                  : 'border-gray-300 bg-gray-200 text-gray-400'
               }`}
             >
-              {sortedStaffList.length > 0 &&
-                sortedStaffList.every((staff) => filters.selectedIds.includes(staff.id)) && (
-                  <span className="text-[10px]">✓</span>
-                )}
+              {currentUser?.role === 'OWNER' ||
+              currentUser?.role === 'ADMIN' ||
+              (currentStaff && currentStaff.jobTitle === 'Manager')
+                ? sortedStaffList.length > 0 &&
+                  sortedStaffList.every((staff) => filters.selectedIds.includes(staff.id)) && (
+                    <span className="text-[10px]">✓</span>
+                  )
+                : null}
             </span>
             <span>{t('dashboard.select_all')}</span>
           </button>
@@ -474,15 +546,53 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
             <span className="font-medium text-gray-600">{t('dashboard.bulk_actions') || 'Bulk actions'}:</span>
             <div className="flex flex-wrap items-center gap-2">
               <button
-                className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-all hover:border-orange-200 hover:text-orange-500"
-                onClick={handleBulkEdit}
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-all ${
+                  currentUser?.role === 'OWNER' ||
+                  currentUser?.role === 'ADMIN' ||
+                  (currentStaff && currentStaff.jobTitle === 'Manager')
+                    ? 'border border-gray-200 bg-white text-gray-600 hover:border-orange-200 hover:text-orange-500'
+                    : 'border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                }`}
+                onClick={
+                  currentUser?.role === 'OWNER' ||
+                  currentUser?.role === 'ADMIN' ||
+                  (currentStaff && currentStaff.jobTitle === 'Manager')
+                    ? handleBulkEdit
+                    : undefined
+                }
+                disabled={
+                  !(
+                    currentUser?.role === 'OWNER' ||
+                    currentUser?.role === 'ADMIN' ||
+                    (currentStaff && currentStaff.jobTitle === 'Manager')
+                  )
+                }
               >
                 <Edit className="h-4 w-4" />
                 {t('dashboard.bulk_edit')}
               </button>
               <button
-                className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-600 transition-all hover:bg-orange-100"
-                onClick={handleBulkDelete}
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-all ${
+                  currentUser?.role === 'OWNER' ||
+                  currentUser?.role === 'ADMIN' ||
+                  (currentStaff && currentStaff.jobTitle === 'Manager')
+                    ? 'border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100'
+                    : 'border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                }`}
+                onClick={
+                  currentUser?.role === 'OWNER' ||
+                  currentUser?.role === 'ADMIN' ||
+                  (currentStaff && currentStaff.jobTitle === 'Manager')
+                    ? handleBulkDelete
+                    : undefined
+                }
+                disabled={
+                  !(
+                    currentUser?.role === 'OWNER' ||
+                    currentUser?.role === 'ADMIN' ||
+                    (currentStaff && currentStaff.jobTitle === 'Manager')
+                  )
+                }
               >
                 <Trash2 className="h-4 w-4" />
                 {t('dashboard.bulk_delete')}
@@ -562,7 +672,27 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
                     <div className="flex items-center space-x-3">
                       <Checkbox
                         checked={filters.selectedIds.includes(staff.id)}
-                        onCheckedChange={() => handleSelectStaff(staff.id)}
+                        onCheckedChange={
+                          currentUser?.role === 'OWNER' ||
+                          currentUser?.role === 'ADMIN' ||
+                          (currentStaff && currentStaff.jobTitle === 'Manager')
+                            ? () => handleSelectStaff(staff.id)
+                            : undefined
+                        }
+                        disabled={
+                          !(
+                            currentUser?.role === 'OWNER' ||
+                            currentUser?.role === 'ADMIN' ||
+                            (currentStaff && currentStaff.jobTitle === 'Manager')
+                          )
+                        }
+                        className={
+                          currentUser?.role === 'OWNER' ||
+                          currentUser?.role === 'ADMIN' ||
+                          (currentStaff && currentStaff.jobTitle === 'Manager')
+                            ? ''
+                            : 'opacity-50'
+                        }
                       />
                       <span
                         className={
@@ -608,17 +738,27 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-orange-200 hover:text-orange-500"
-                        onClick={() => handleEditStaff(staff)}
+                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${
+                          canManageStaff(staff)
+                            ? 'border-gray-200 bg-white text-gray-500 hover:border-orange-200 hover:text-orange-500'
+                            : 'border-gray-200 bg-gray-100 text-gray-300 cursor-not-allowed'
+                        }`}
+                        onClick={canManageStaff(staff) ? () => handleEditStaff(staff) : undefined}
+                        disabled={!canManageStaff(staff)}
+                        title={canManageStaff(staff) ? t('common.edit') : t('dashboard.no_permission')}
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-orange-200 hover:text-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={() => handleManagePermissions(staff)}
-                        title={t('dashboard.manage_permissions')}
+                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${
+                          canManageStaff(staff)
+                            ? 'border-gray-200 bg-white text-gray-500 hover:border-orange-200 hover:text-orange-500'
+                            : 'border-gray-200 bg-gray-100 text-gray-300 cursor-not-allowed'
+                        }`}
+                        onClick={canManageStaff(staff) ? () => handleManagePermissions(staff) : undefined}
+                        title={canManageStaff(staff) ? t('dashboard.manage_permissions') : t('dashboard.no_permission')}
                         aria-label={`${t('dashboard.manage_permissions')} - ${staff.name}`}
-                        disabled={permissionLoadingId === staff.id}
+                        disabled={!canManageStaff(staff) || permissionLoadingId === staff.id}
                       >
                         {permissionLoadingId === staff.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -627,11 +767,20 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
                         )}
                       </button>
                       <button
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-orange-100 bg-orange-50 text-orange-500 transition-colors hover:bg-orange-100"
-                        onClick={() => handleToggleStaffStatus(staff)}
+                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${
+                          canManageStaff(staff)
+                            ? 'border-orange-100 bg-orange-50 text-orange-500 hover:bg-orange-100'
+                            : 'border-gray-200 bg-gray-100 text-gray-300 cursor-not-allowed'
+                        }`}
+                        onClick={canManageStaff(staff) ? () => handleToggleStaffStatus(staff) : undefined}
                         title={
-                          staff.status === 'ACTIVE' ? t('dashboard.inactive_staff') : t('dashboard.activate_staff')
+                          canManageStaff(staff)
+                            ? staff.status === 'ACTIVE'
+                              ? t('dashboard.inactive_staff')
+                              : t('dashboard.activate_staff')
+                            : t('dashboard.no_permission')
                         }
+                        disabled={!canManageStaff(staff)}
                       >
                         {staff.status === 'ACTIVE' ? (
                           <UserX className="h-4 w-4" />
@@ -652,7 +801,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
       {pagination && (
         <div className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="text-sm text-gray-500">
-            {`${t('dashboard.showing')} ${(pagination.currentPage - 1) * pagination.itemsPerPage + 1} - ${Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} ${t('dashboard.of_total')} ${currentUser ? Math.max(0, pagination.totalItems - 1) : pagination.totalItems} ${t('dashboard.staff_members')}`}
+            {`${t('dashboard.showing')} ${(pagination.currentPage - 1) * pagination.itemsPerPage + 1} - ${Math.min(pagination.currentPage * pagination.itemsPerPage, sortedStaffList.length)} ${t('dashboard.of_total')} ${sortedStaffList.length} ${t('dashboard.staff_members')}`}
           </div>
           <Pagination className="justify-end md:justify-center">
             <PaginationContent>
@@ -728,30 +877,19 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
         onSuccess={handlePermissionSuccess}
       />
 
-      {/* Status Update Confirmation Dialog */}
+      {/* Delete Staff Confirmation Dialog */}
       <AlertDialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {staffToUpdate?.status === 'ACTIVE'
-                ? t('dashboard.confirm_inactive_staff')
-                : t('dashboard.confirm_activate_staff')}
-            </AlertDialogTitle>
+            <AlertDialogTitle>{t('dashboard.confirm_delete_staff')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {staffToUpdate?.status === 'ACTIVE'
-                ? t('dashboard.inactive_staff_description', { name: staffToUpdate?.name })
-                : t('dashboard.activate_staff_description', { name: staffToUpdate?.name })}
+              {t('dashboard.delete_staff_description', { name: staffToUpdate?.name })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setStatusDialogOpen(false)}>{t('dashboard.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmStatusUpdate}
-              className={
-                staffToUpdate?.status === 'ACTIVE' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
-              }
-            >
-              {staffToUpdate?.status === 'ACTIVE' ? t('dashboard.inactive') : t('dashboard.activate')}
+            <AlertDialogAction onClick={confirmStatusUpdate} className="bg-red-600 hover:bg-red-700">
+              {t('dashboard.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
