@@ -248,7 +248,7 @@ export const permissionApi = {
       failed: { userId: string; permissionName: string; error: string }[];
     }>
   > => {
-    const response = await api.post('/permissions/bulk-revoke', data);
+    const response = await api.delete('/permissions/bulk-revoke', { data });
     return response.data;
   }
 };
