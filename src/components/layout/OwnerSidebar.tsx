@@ -228,17 +228,32 @@ const UserProfile: React.FC<{
 
   const menuItems = (
     <>
-      <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
+      <DropdownMenuItem
+        onClick={() => {
+          navigate('/profile');
+        }}
+        className="cursor-pointer"
+      >
         <UserCircle className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.profile')}
       </DropdownMenuItem>
 
-      <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
+      <DropdownMenuItem
+        onClick={() => {
+          navigate('/settings');
+        }}
+        className="cursor-pointer"
+      >
         <Settings className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.account_settings')}
       </DropdownMenuItem>
 
-      <DropdownMenuItem onClick={() => navigate('/security')} className="cursor-pointer">
+      <DropdownMenuItem
+        onClick={() => {
+          navigate('/security');
+        }}
+        className="cursor-pointer"
+      >
         <Shield className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.security')}
       </DropdownMenuItem>
@@ -390,42 +405,56 @@ export const OwnerSidebar: React.FC = () => {
       icon: <LayoutDashboard className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.dashboard'),
       isActive: location.pathname === '/manage/owner',
-      onClick: () => navigate('/manage/owner')
+      onClick: () => {
+        navigate('/manage/owner');
+      }
     },
     {
       icon: <Users className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.staff'),
       isActive: location.pathname === '/manage/staff',
-      onClick: () => navigate('/manage/staff')
+      onClick: () => {
+        navigate('/manage/staff');
+      }
     },
     {
       icon: <Dumbbell className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.equipment'),
-      onClick: () => navigate('/manage/equipment')
+      onClick: () => {
+        navigate('/manage/equipment');
+      }
     },
     {
       icon: <UserCheck className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.pt_services'),
       isActive: location.pathname === '/manage/pt-services',
-      onClick: () => navigate('/manage/pt-services')
+      onClick: () => {
+        navigate('/manage/pt-services');
+      }
     },
     {
       icon: <UsersRound className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.class_services'),
       isActive: location.pathname === '/manage/class-services',
-      onClick: () => navigate('/manage/class-services')
+      onClick: () => {
+        navigate('/manage/class-services');
+      }
     },
     {
       icon: <Tag className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.promotions'),
       isActive: location.pathname === '/manage/discounts',
-      onClick: () => navigate('/manage/discounts')
+      onClick: () => {
+        navigate('/manage/discounts');
+      }
     },
     {
       icon: <IdCard className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.membership_plans'),
       isActive: location.pathname === '/manage/memberships',
-      onClick: () => navigate('/manage/memberships')
+      onClick: () => {
+        navigate('/manage/memberships');
+      }
     },
     {
       icon: <BarChart3 className="w-5 h-5 stroke-[1.75]" />,
@@ -436,7 +465,9 @@ export const OwnerSidebar: React.FC = () => {
       icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.work_schedule'),
       isActive: location.pathname === '/manage/workshifts/calendar',
-      onClick: () => navigate('/manage/workshifts/calendar')
+      onClick: () => {
+        navigate('/manage/workshifts/calendar');
+      }
     },
     {
       icon: <MessageSquare className="w-5 h-5 stroke-[1.75]" />,
