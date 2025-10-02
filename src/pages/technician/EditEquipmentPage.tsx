@@ -3,8 +3,9 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useEquipmentDetails, useUpdateEquipment } from '../../hooks/useEquipment';
-import { useBranches } from '../../hooks/useBranches';
+import { useBranch } from '../../contexts/BranchContext';
 import { validateEquipmentForm } from '../../utils/equipmentValidation';
+import type { Branch } from '../../types/api/Branch';
 import type { UpdateEquipmentRequest, CreateEquipmentRequest } from '../../types/api/Equipment';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { NotFoundMessage } from '../../components/common/NotFoundMessage';
@@ -44,7 +45,16 @@ export const EditEquipmentPage: React.FC = () => {
     refetch: refetchEquipment
   } = useEquipmentDetails(id || null);
 
-  const { branches, loading: branchesLoading } = useBranches();
+  const { branches: branchDisplays, loading: branchesLoading } = useBranch();
+
+  // Convert BranchDisplay[] to Branch[] for compatibility
+  const branches: Branch[] = branchDisplays.map((branch) => ({
+    ...branch,
+    openingHours:
+      typeof branch.openingHours === 'object'
+        ? `${branch.openingHours.open} - ${branch.openingHours.close}`
+        : branch.openingHours
+  }));
 
   // Update equipment mutation
   const {

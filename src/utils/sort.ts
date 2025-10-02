@@ -87,3 +87,12 @@ export const staffSortConfig = {
   salary: createValueExtractor('salary', 'number'),
   status: createValueExtractor('status', 'string')
 };
+
+/**
+ * Sort configuration for testimonial data
+ */
+export const testimonialSortConfig = {
+  title: createValueExtractor('title', 'string'),
+  createdAt: createValueExtractor('createdAt', 'date'),
+  status: createValueExtractor('status', 'string')
+};

@@ -49,6 +49,14 @@ interface SidebarItemProps {
   badge?: number;
 }
 
+interface MenuItemProps {
+  icon: React.ReactNode;
+  label: string;
+  isActive?: boolean;
+  onClick: () => void;
+  badge?: number;
+}
+
 const SidebarItem: React.FC<SidebarItemProps> = ({
   icon,
   label,
@@ -377,7 +385,7 @@ export const OwnerSidebar: React.FC = () => {
     navigate('/manage/add-branch');
   };
 
-  const mainNavItems = [
+  const mainNavItems: MenuItemProps[] = [
     {
       icon: <LayoutDashboard className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.dashboard'),
@@ -432,13 +440,15 @@ export const OwnerSidebar: React.FC = () => {
     },
     {
       icon: <MessageSquare className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.feedback'),
-      badge: 3, // Mock notification badge
-      onClick: () => console.log('Feedback clicked')
+      label: t('sidebar.testimonials'),
+      isActive: location.pathname === '/manage/testimonials',
+      onClick: () => {
+        navigate('/manage/testimonials');
+      }
     }
   ];
 
-  const secondaryNavItems = [
+  const secondaryNavItems: MenuItemProps[] = [
     {
       icon: <Settings className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.settings'),

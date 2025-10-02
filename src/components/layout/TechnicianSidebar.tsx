@@ -148,19 +148,14 @@ const QuickActions: React.FC<{
   }
 
   return (
-    <div className="px-3 py-2">
-      <div className="flex items-center gap-2">
-        <div className="flex-1">
-          <BranchSelectorButton
-            currentBranch={currentBranch}
-            branches={branches}
-            onBranchSelect={onBranchSelect}
-            onAddBranch={onAddBranch}
-            onViewBranch={onViewBranch}
-          />
-        </div>
-        {/* Refresh icon is moved inside BranchSelectorButton component as a second popover trigger */}
-      </div>
+    <div className="px-3">
+      <BranchSelectorButton
+        currentBranch={currentBranch}
+        branches={branches}
+        onBranchSelect={onBranchSelect}
+        onAddBranch={onAddBranch}
+        onViewBranch={onViewBranch}
+      />
     </div>
   );
 };

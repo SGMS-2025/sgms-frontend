@@ -3,8 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useCreateEquipment } from '../../hooks/useEquipment';
-import { useBranches } from '../../hooks/useBranches';
+import { useBranch } from '../../contexts/BranchContext';
 import { useCurrentUserStaff } from '../../hooks/useCurrentUserStaff';
+import type { Branch } from '../../types/api/Branch';
 import { validateEquipmentForm } from '../../utils/equipmentValidation';
 import type { CreateEquipmentRequest, UpdateEquipmentRequest, Equipment } from '../../types/api/Equipment';
 import { QRCodeModal } from '../../components/modals/QRCodeModal';
@@ -27,7 +28,16 @@ export const AddEquipmentPage: React.FC = () => {
   };
 
   const { currentStaff, loading: userLoading } = useCurrentUserStaff();
-  const { branches, loading: branchesLoading } = useBranches();
+  const { branches: branchDisplays, loading: branchesLoading } = useBranch();
+
+  // Convert BranchDisplay[] to Branch[] for compatibility
+  const branches: Branch[] = branchDisplays.map((branch) => ({
+    ...branch,
+    openingHours:
+      typeof branch.openingHours === 'object'
+        ? `${branch.openingHours.open} - ${branch.openingHours.close}`
+        : branch.openingHours
+  }));
 
   const {
     createEquipment,
