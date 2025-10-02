@@ -22,11 +22,11 @@ import BranchDetailPage from '@/pages/owner/BranchDetailPage';
 import AddBranchPage from '@/pages/owner/AddBranchPage';
 import AddNewStaff from '@/pages/owner/AddNewStaff';
 import DiscountPage from '@/pages/owner/DiscountPage';
+import TestimonialPage from '@/pages/owner/TestimonialPage';
 import { TechnicianLayout } from '@/layouts/TechnicianLayout';
 import TechnicianDashboard from '@/pages/technician/TechnicianDashboard';
 import { EquipmentListPage } from '@/pages/technician/EquipmentListPage';
 import { AddEquipmentPage } from '@/pages/technician/AddEquipmentPage';
-import { EquipmentDetailPage } from '@/pages/technician/EquipmentDetailPage';
 import { EditEquipmentPage } from '@/pages/technician/EditEquipmentPage';
 import MembershipPlansPage from '@/pages/owner/MembershipPlansPage';
 import AddWorkShiftPage from '@/pages/owner/AddWorkShiftPage';
@@ -176,10 +176,12 @@ const AppRoutes: React.FC = () => {
           <Route path="discounts" element={<DiscountPage />} />
           {/* Membership Management Route */}
           <Route path="memberships" element={<MembershipPlansPage />} />
+          {/* Testimonial Management Route */}
+          <Route path="testimonials" element={<TestimonialPage />} />
+
           {/* Shared Equipment Routes for Manager */}
           <Route path="equipment" element={<EquipmentListPage />} />
           <Route path="equipment/add" element={<AddEquipmentPage />} />
-          <Route path="equipment/:id" element={<EquipmentDetailPage />} />
           <Route path="equipment/:id/edit" element={<EditEquipmentPage />} />
 
           {/* Work Shift Management Routes */}
@@ -207,7 +209,6 @@ const AppRoutes: React.FC = () => {
           {/* Shared Equipment Routes for Technician */}
           <Route path="equipment" element={<EquipmentListPage />} />
           <Route path="equipment/add" element={<AddEquipmentPage />} />
-          <Route path="equipment/:id" element={<EquipmentDetailPage />} />
           <Route path="equipment/:id/edit" element={<EditEquipmentPage />} />
           <Route path="*" element={<Navigate to="/manage/technician" replace />} />
         </Route>

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Search, Plus, Eye, Edit, Trash2, Building2, Download } from 'lucide-react';
+import { Search, Plus, Eye, Edit, Trash2, Building2, Download, ChevronDown, Check, MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { QRCodeButton } from '../../components/QRCodeButton';
+import { EquipmentDetailModal } from '../../components/modals/EquipmentDetailModal';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Pagination,
@@ -21,7 +22,7 @@ import {
   useUpdateEquipmentStatus
 } from '../../hooks/useEquipment';
 import { useEquipmentQR } from '../../hooks/useEquipmentQR';
-import { useBranches } from '../../hooks/useBranches';
+import { useBranch } from '../../contexts/BranchContext';
 import { useCurrentUserStaff } from '../../hooks/useCurrentUserStaff';
 import type { Equipment, EquipmentCategory, EquipmentStatus } from '../../types/api/Equipment';
 import { getEquipmentStatusDisplay, EQUIPMENT_CATEGORY_DISPLAY } from '../../types/api/Equipment';
@@ -41,16 +42,19 @@ export const EquipmentListPage: React.FC = () => {
     return '/manage/technician/equipment'; // fallback
   };
 
-  const { currentStaff: currentUser, loading: userLoading } = useCurrentUserStaff();
-  const { branches, loading: branchesLoading } = useBranches();
+  const { loading: userLoading } = useCurrentUserStaff();
+  const { currentBranch, loading: branchesLoading } = useBranch();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
-  const [selectedBranch, setSelectedBranch] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'equipment' | 'repair' | 'maintenance'>('equipment');
   const [currentPage, setCurrentPage] = useState(1);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
 
   const {
     equipments,
@@ -62,19 +66,19 @@ export const EquipmentListPage: React.FC = () => {
   } = useEquipmentList({
     page: currentPage,
     limit: 10,
-    branchId: selectedBranch || undefined,
+    branchId: currentBranch?._id || undefined,
     category: (selectedCategory as EquipmentCategory) || undefined,
     status: (selectedStatus as EquipmentStatus) || undefined,
     search: searchTerm || undefined
   });
 
-  // Equipment stats
+  // Equipment stats - only fetch when a specific branch is selected
   const {
     stats,
     loading: statsLoading,
     error: statsError,
     refetch: refetchStats
-  } = useEquipmentStats(selectedBranch || undefined);
+  } = useEquipmentStats(currentBranch?._id || undefined);
 
   // Delete equipment mutation
   const { deleteEquipment, loading: deleteLoading, error: deleteError } = useDeleteEquipment();
@@ -85,47 +89,35 @@ export const EquipmentListPage: React.FC = () => {
   // QR Code operations
   const { downloadAllQRCodes, loading: qrLoading, error: qrError } = useEquipmentQR();
 
-  // Filter branches based on user role
-  const filteredBranches = React.useMemo(() => {
-    if (!currentUser) return branches;
-
-    if (currentUser.isOwner || currentUser.isAdmin) {
-      return branches; // Show all branches
-    }
-
-    // For STAFF, only show branches they have access to
-    if (currentUser.branchId) {
-      const userBranchIds = currentUser.branchId.map((branch) => branch._id);
-      return branches.filter((branch) => userBranchIds.includes(branch._id));
-    }
-
-    return branches;
-  }, [currentUser, branches]);
-
-  // Auto-select first branch for STAFF if they only have access to one branch
-  useEffect(() => {
-    if (currentUser && !currentUser.isOwner && !currentUser.isAdmin && filteredBranches.length === 1) {
-      const branchId = filteredBranches[0]._id;
-      setSelectedBranch(branchId);
-    }
-  }, [currentUser, filteredBranches]);
-
   // Update filters when search/filter values change
   useEffect(() => {
+    if (!currentBranch?._id) return;
+
     updateFilters({
       page: currentPage,
       limit: 10,
-      branchId: selectedBranch || undefined,
+      branchId: currentBranch._id,
       category: (selectedCategory as EquipmentCategory) || undefined,
       status: (selectedStatus as EquipmentStatus) || undefined,
       search: searchTerm || undefined
     });
-  }, [currentPage, selectedBranch, selectedCategory, selectedStatus, searchTerm, updateFilters]);
+  }, [currentPage, currentBranch?._id, selectedCategory, selectedStatus, searchTerm, updateFilters]);
 
-  const handleBranchChange = (branchId: string) => {
-    setSelectedBranch(branchId);
-    setCurrentPage(1);
-  };
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.dropdown-container')) {
+        setShowCategoryDropdown(false);
+        setShowStatusDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleDelete = async (id: string) => {
     if (window.confirm(t('equipment.confirm_delete'))) {
@@ -134,6 +126,11 @@ export const EquipmentListPage: React.FC = () => {
       refetchStats();
       toast.success(t('equipment.delete_success'));
     }
+  };
+
+  const handleViewEquipment = (equipment: Equipment) => {
+    setSelectedEquipmentId(equipment._id);
+    setShowDetailModal(true);
   };
 
   const handleEdit = (equipment: Equipment) => {
@@ -180,21 +177,20 @@ export const EquipmentListPage: React.FC = () => {
   };
 
   const handleDownloadAllQRCodes = async () => {
-    if (!selectedBranch) {
+    if (!currentBranch?._id) {
       toast.error(t('equipment.select_branch_to_download'));
       return;
     }
 
-    const blob = await downloadAllQRCodes(selectedBranch);
+    const blob = await downloadAllQRCodes(currentBranch._id);
     if (blob) {
-      const branch = branches.find((b) => b._id === selectedBranch);
-      const branchName = branch ? branch.branchName : 'Unknown';
+      const branchName = currentBranch.branchName || 'Unknown';
 
       // Create download link
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `qr-codes-${branchName}-${selectedBranch}.zip`;
+      link.download = `qr-codes-${branchName}-${currentBranch._id}.zip`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -239,120 +235,111 @@ export const EquipmentListPage: React.FC = () => {
             </div>
 
             {/* Stats Cards */}
-            {stats && (
-              <div className="grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-2xl border border-orange-100 bg-[#FFF6EE] p-4">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-orange-500">TOTAL</div>
-                  <div className="mt-2 flex items-end justify-between">
-                    <div className="text-3xl font-bold text-gray-900">{stats.totalEquipments}</div>
-                    <div className="rounded-full bg-white/70 p-2 text-orange-500">
-                      <Building2 className="h-5 w-5" />
-                    </div>
+            {currentBranch?._id && stats && !statsLoading ? (
+              <div>
+                <div className="mb-4">
+                  <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 border border-orange-200 rounded-full w-fit">
+                    <MapPin className="w-4 h-4 text-orange-500" />
+                    <span className="text-sm font-semibold text-orange-600">
+                      {t('equipment.filtering_by_branch') || 'Filtering by branch'}: {currentBranch.branchName}
+                    </span>
                   </div>
-                  <p className="mt-2 text-xs text-gray-500">
-                    {t('equipment.total_equipment_helper') || 'Total equipment items'}
-                  </p>
                 </div>
 
-                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">Strength</div>
-                  <div className="mt-2 flex items-end justify-between text-gray-900">
-                    <span className="text-3xl font-semibold">
-                      {stats.categoryStats.find((c) => c._id === 'STRENGTH')?.count || 0}
-                    </span>
-                    <div className="rounded-full bg-white p-2 text-gray-500">
-                      <span className="text-orange-600 font-bold text-sm">💪</span>
+                {/* Large TOTAL Card with Category Cards inside */}
+                <div className="mb-4">
+                  <div className="rounded-xl border border-orange-100 bg-[#FFF6EE] p-6">
+                    <div className="mb-6">
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-wide text-orange-500 mb-2">
+                          {t('equipment.total_equipment_helper')}
+                        </div>
+                        <div className="text-4xl font-bold text-gray-900 mb-2">{stats.totalEquipments}</div>
+                      </div>
                     </div>
-                  </div>
-                  <p className="mt-2 text-xs text-gray-500">
-                    {t('equipment.strength_helper') || 'Strength training equipment'}
-                  </p>
-                </div>
 
-                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">Cardio</div>
-                  <div className="mt-2 flex items-end justify-between text-gray-900">
-                    <span className="text-3xl font-semibold">
-                      {stats.categoryStats.find((c) => c._id === 'CARDIO')?.count || 0}
-                    </span>
-                    <div className="rounded-full bg-white p-2 text-gray-500">
-                      <span className="text-red-600 font-bold text-sm">❤️</span>
-                    </div>
-                  </div>
-                  <p className="mt-2 text-xs text-gray-500">
-                    {t('equipment.cardio_helper') || 'Cardiovascular equipment'}
-                  </p>
-                </div>
+                    {/* Category Cards Grid inside TOTAL card */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3">
+                      <div className="bg-white border border-gray-200 rounded-lg p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-gray-900 mb-1">STRENGTH</div>
+                        <div className="text-2xl font-semibold text-gray-900 mb-1">
+                          {stats.categoryStats.find((c) => c._id === 'STRENGTH')?.count || 0}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {t('equipment.strength_helper') || 'Strength training equipment'}
+                        </p>
+                      </div>
 
-                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">Flexibility</div>
-                  <div className="mt-2 flex items-end justify-between text-gray-900">
-                    <span className="text-3xl font-semibold">
-                      {stats.categoryStats.find((c) => c._id === 'FLEXIBILITY')?.count || 0}
-                    </span>
-                    <div className="rounded-full bg-white p-2 text-gray-500">
-                      <span className="text-blue-600 font-bold text-sm">🧘</span>
-                    </div>
-                  </div>
-                  <p className="mt-2 text-xs text-gray-500">
-                    {t('equipment.flexibility_helper') || 'Flexibility & stretching equipment'}
-                  </p>
-                </div>
+                      <div className="bg-white border border-gray-200 rounded-lg p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-gray-900 mb-1">CARDIO</div>
+                        <div className="text-2xl font-semibold text-gray-900 mb-1">
+                          {stats.categoryStats.find((c) => c._id === 'CARDIO')?.count || 0}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {t('equipment.cardio_helper') || 'Cardiovascular equipment'}
+                        </p>
+                      </div>
 
-                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">Functional</div>
-                  <div className="mt-2 flex items-end justify-between text-gray-900">
-                    <span className="text-3xl font-semibold">
-                      {stats.categoryStats.find((c) => c._id === 'FUNCTIONAL')?.count || 0}
-                    </span>
-                    <div className="rounded-full bg-white p-2 text-gray-500">
-                      <span className="text-green-600 font-bold text-sm">🏃</span>
-                    </div>
-                  </div>
-                  <p className="mt-2 text-xs text-gray-500">
-                    {t('equipment.functional_helper') || 'Functional training equipment'}
-                  </p>
-                </div>
+                      <div className="bg-white border border-gray-200 rounded-lg p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-gray-900 mb-1">
+                          FLEXIBILITY
+                        </div>
+                        <div className="text-2xl font-semibold text-gray-900 mb-1">
+                          {stats.categoryStats.find((c) => c._id === 'FLEXIBILITY')?.count || 0}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {t('equipment.flexibility_helper') || 'Flexibility & stretching equipment'}
+                        </p>
+                      </div>
 
-                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">Sports</div>
-                  <div className="mt-2 flex items-end justify-between text-gray-900">
-                    <span className="text-3xl font-semibold">
-                      {stats.categoryStats.find((c) => c._id === 'SPORTS')?.count || 0}
-                    </span>
-                    <div className="rounded-full bg-white p-2 text-gray-500">
-                      <span className="text-purple-600 font-bold text-sm">⚽</span>
-                    </div>
-                  </div>
-                  <p className="mt-2 text-xs text-gray-500">{t('equipment.sports_helper') || 'Sports equipment'}</p>
-                </div>
+                      <div className="bg-white border border-gray-200 rounded-lg p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-gray-900 mb-1">
+                          FUNCTIONAL
+                        </div>
+                        <div className="text-2xl font-semibold text-gray-900 mb-1">
+                          {stats.categoryStats.find((c) => c._id === 'FUNCTIONAL')?.count || 0}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {t('equipment.functional_helper') || 'Functional training equipment'}
+                        </p>
+                      </div>
 
-                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">Accessories</div>
-                  <div className="mt-2 flex items-end justify-between text-gray-900">
-                    <span className="text-3xl font-semibold">
-                      {stats.categoryStats.find((c) => c._id === 'ACCESSORIES')?.count || 0}
-                    </span>
-                    <div className="rounded-full bg-white p-2 text-gray-500">
-                      <span className="text-yellow-600 font-bold text-sm">🔧</span>
-                    </div>
-                  </div>
-                  <p className="mt-2 text-xs text-gray-500">
-                    {t('equipment.accessories_helper') || 'Equipment accessories'}
-                  </p>
-                </div>
+                      <div className="bg-white border border-gray-200 rounded-lg p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-gray-900 mb-1">SPORTS</div>
+                        <div className="text-2xl font-semibold text-gray-900 mb-1">
+                          {stats.categoryStats.find((c) => c._id === 'SPORTS')?.count || 0}
+                        </div>
+                        <p className="text-xs text-gray-500">{t('equipment.sports_helper') || 'Sports equipment'}</p>
+                      </div>
 
-                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-600">Other</div>
-                  <div className="mt-2 flex items-end justify-between text-gray-900">
-                    <span className="text-3xl font-semibold">
-                      {stats.categoryStats.find((c) => c._id === 'OTHER')?.count || 0}
-                    </span>
-                    <div className="rounded-full bg-white p-2 text-gray-500">
-                      <span className="text-gray-600 font-bold text-sm">📦</span>
+                      <div className="bg-white border border-gray-200 rounded-lg p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-gray-900 mb-1">
+                          ACCESSORIES
+                        </div>
+                        <div className="text-2xl font-semibold text-gray-900 mb-1">
+                          {stats.categoryStats.find((c) => c._id === 'ACCESSORIES')?.count || 0}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {t('equipment.accessories_helper') || 'Equipment accessories'}
+                        </p>
+                      </div>
+
+                      <div className="bg-white border border-gray-200 rounded-lg p-3">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-gray-900 mb-1">OTHER</div>
+                        <div className="text-2xl font-semibold text-gray-900 mb-1">
+                          {stats.categoryStats.find((c) => c._id === 'OTHER')?.count || 0}
+                        </div>
+                        <p className="text-xs text-gray-500">{t('equipment.other_helper') || 'Other equipment'}</p>
+                      </div>
                     </div>
                   </div>
-                  <p className="mt-2 text-xs text-gray-500">{t('equipment.other_helper') || 'Other equipment'}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-8 text-center">
+                <div className="text-gray-500">
+                  <Building2 className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{t('common.loading') || 'Loading...'}</h3>
                 </div>
               </div>
             )}
@@ -423,79 +410,114 @@ export const EquipmentListPage: React.FC = () => {
                 <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               </div>
 
-              {/* Branch Selector - Hide for STAFF with only 1 branch */}
-              {(() => {
-                const shouldHideSelector =
-                  currentUser && !currentUser.isOwner && !currentUser.isAdmin && branches.length === 1;
+              {/* Category Filter */}
+              <div className="relative dropdown-container">
+                <button
+                  onClick={() => {
+                    setShowCategoryDropdown(!showCategoryDropdown);
+                    setShowStatusDropdown(false);
+                  }}
+                  className="h-11 px-4 border border-gray-200 rounded-full bg-white text-sm font-medium text-gray-700 hover:border-orange-300 hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 flex items-center justify-between min-w-[160px]"
+                >
+                  <span className="truncate flex-1 text-left">
+                    {selectedCategory
+                      ? EQUIPMENT_CATEGORY_DISPLAY[selectedCategory as keyof typeof EQUIPMENT_CATEGORY_DISPLAY]
+                      : t('equipment.all_categories')}
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 text-gray-400 transition-transform duration-200 ml-2 flex-shrink-0 ${showCategoryDropdown ? 'rotate-180' : ''}`}
+                  />
+                </button>
 
-                if (shouldHideSelector) {
-                  return (
-                    <div className="flex items-center space-x-2 px-3 py-2 bg-gray-100 border border-gray-300 rounded-full min-w-[200px]">
-                      <Building2 className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-700">
-                        {branches[0]?.branchName} - {branches[0]?.location}
-                      </span>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <select
-                      value={selectedBranch}
-                      onChange={(e) => handleBranchChange(e.target.value)}
-                      className="h-11 pl-10 pr-4 border border-gray-300 rounded-full focus:ring-2 focus:ring-orange-500 min-w-[200px] bg-white"
-                      disabled={branchesLoading}
+                {showCategoryDropdown && (
+                  <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-2">
+                    <button
+                      onClick={() => {
+                        setSelectedCategory('');
+                        setShowCategoryDropdown(false);
+                      }}
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between ${
+                        selectedCategory === '' ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
+                      }`}
                     >
-                      <option value="">{t('equipment.all_branches')}</option>
-                      {branches.map((branch) => (
-                        <option key={branch._id} value={branch._id}>
-                          {branch.branchName} - {branch.location}
-                        </option>
-                      ))}
-                    </select>
-                    {branchesLoading && (
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500"></div>
-                      </div>
-                    )}
+                      <span>{t('equipment.all_categories')}</span>
+                      {selectedCategory === '' && <Check className="h-4 w-4 text-orange-500" />}
+                    </button>
+                    {Object.entries(EQUIPMENT_CATEGORY_DISPLAY).map(([key, value]) => (
+                      <button
+                        key={key}
+                        onClick={() => {
+                          setSelectedCategory(key);
+                          setShowCategoryDropdown(false);
+                        }}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between ${
+                          selectedCategory === key ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
+                        }`}
+                      >
+                        <span>{value}</span>
+                        {selectedCategory === key && <Check className="h-4 w-4 text-orange-500" />}
+                      </button>
+                    ))}
                   </div>
-                );
-              })()}
+                )}
+              </div>
 
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="h-11 px-4 border border-gray-300 rounded-full focus:ring-2 focus:ring-orange-500 bg-white"
-              >
-                <option value="">{t('equipment.all_categories')}</option>
-                {Object.entries(EQUIPMENT_CATEGORY_DISPLAY).map(([key, value]) => (
-                  <option key={key} value={key}>
-                    {value}
-                  </option>
-                ))}
-              </select>
+              {/* Status Filter */}
+              <div className="relative dropdown-container">
+                <button
+                  onClick={() => {
+                    setShowStatusDropdown(!showStatusDropdown);
+                    setShowCategoryDropdown(false);
+                  }}
+                  className="h-11 px-4 border border-gray-200 rounded-full bg-white text-sm font-medium text-gray-700 hover:border-orange-300 hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 flex items-center justify-between min-w-[160px]"
+                >
+                  <span className="truncate flex-1 text-left">
+                    {selectedStatus ? getEquipmentStatusDisplay(selectedStatus, t).label : t('equipment.all_statuses')}
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 text-gray-400 transition-transform duration-200 ml-2 flex-shrink-0 ${showStatusDropdown ? 'rotate-180' : ''}`}
+                  />
+                </button>
 
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="h-11 px-4 border border-gray-300 rounded-full focus:ring-2 focus:ring-orange-500 bg-white"
-              >
-                <option value="">{t('equipment.all_statuses')}</option>
-                {['ACTIVE', 'INACTIVE', 'MAINTENANCE', 'REPAIR', 'RETIRED'].map((key) => {
-                  const statusDisplay = getEquipmentStatusDisplay(key, t);
-                  return (
-                    <option key={key} value={key}>
-                      {statusDisplay.label}
-                    </option>
-                  );
-                })}
-              </select>
+                {showStatusDropdown && (
+                  <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-2">
+                    <button
+                      onClick={() => {
+                        setSelectedStatus('');
+                        setShowStatusDropdown(false);
+                      }}
+                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between ${
+                        selectedStatus === '' ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
+                      }`}
+                    >
+                      <span>{t('equipment.all_statuses')}</span>
+                      {selectedStatus === '' && <Check className="h-4 w-4 text-orange-500" />}
+                    </button>
+                    {['ACTIVE', 'INACTIVE', 'MAINTENANCE', 'REPAIR', 'RETIRED'].map((key) => {
+                      const statusDisplay = getEquipmentStatusDisplay(key, t);
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => {
+                            setSelectedStatus(key);
+                            setShowStatusDropdown(false);
+                          }}
+                          className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between ${
+                            selectedStatus === key ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
+                          }`}
+                        >
+                          <span>{statusDisplay.label}</span>
+                          {selectedStatus === key && <Check className="h-4 w-4 text-orange-500" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
               <button
                 onClick={handleDownloadAllQRCodes}
-                disabled={qrLoading || !selectedBranch}
+                disabled={qrLoading || !currentBranch?._id}
                 className="h-11 rounded-full bg-blue-500 px-4 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 min-w-[140px] justify-center"
               >
                 <Download className="h-4 w-4" />
@@ -630,7 +652,7 @@ export const EquipmentListPage: React.FC = () => {
                           <div className="flex items-center gap-2">
                             <button
                               className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-orange-200 hover:text-orange-500"
-                              onClick={() => navigate(`${getBasePath()}/${equipment._id}`)}
+                              onClick={() => handleViewEquipment(equipment)}
                               title="Xem chi tiết"
                             >
                               <Eye className="h-4 w-4" />
@@ -789,6 +811,21 @@ export const EquipmentListPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Equipment Detail Modal */}
+      <EquipmentDetailModal
+        isOpen={showDetailModal}
+        onClose={() => {
+          setShowDetailModal(false);
+          setSelectedEquipmentId(null);
+        }}
+        equipmentId={selectedEquipmentId}
+        onEdit={(equipment) => {
+          setShowDetailModal(false);
+          setSelectedEquipmentId(null);
+          handleEdit(equipment);
+        }}
+      />
     </div>
   );
 };

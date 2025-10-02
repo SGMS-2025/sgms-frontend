@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { equipmentApi } from '@/services/api/equipmentApi';
 import type {
@@ -131,10 +131,17 @@ export const useEquipmentStats = (branchId?: string): UseEquipmentStatsReturn =>
   const [stats, setStats] = useState<EquipmentStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const prevBranchIdRef = useRef<string | undefined>(branchId);
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
     setError(null);
+
+    // Reset stats immediately when branchId changes to prevent showing stale data
+    if (prevBranchIdRef.current !== branchId) {
+      setStats(null);
+      prevBranchIdRef.current = branchId;
+    }
 
     const response = await equipmentApi.getEquipmentStats(branchId);
 
