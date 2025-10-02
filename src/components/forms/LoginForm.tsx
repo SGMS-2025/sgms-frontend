@@ -186,6 +186,23 @@ export function LoginForm() {
           <span className="text-sm text-gray-600 ml-2">Google</span>
         </Button>
 
+        {/* Zalo Login */}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => (window.location.href = `${import.meta.env.VITE_API_URL}/auth/zalo/login`)}
+          className="w-full bg-white/20 backdrop-blur-sm text-white border-gray-300 py-4 rounded-lg mb-4 hover:bg-white/30 flex items-center justify-center animate-fadeInUp"
+          style={{ animationDelay: '1.5s' }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-5 h-5" fill="#0068ff">
+            <circle cx="12" cy="12" r="10" />
+            <text x="12" y="16" textAnchor="middle" fontSize="10" fill="#fff">
+              Z
+            </text>
+          </svg>
+          <span className="text-sm text-gray-600 ml-2">Zalo</span>
+        </Button>
+
         {/* Register Link */}
         <p className="text-center text-sm text-gray-500 animate-fadeInUp" style={{ animationDelay: '1.6s' }}>
           {t('auth.no_account_prompt')}{' '}

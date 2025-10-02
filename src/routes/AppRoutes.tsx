@@ -11,6 +11,7 @@ import VerifyOTPPage from '@/pages/auth/VerifyOTPPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 import VerifyForgotPasswordOTPPage from '@/pages/auth/VerifyForgotPasswordOTPPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
+import ZaloCallbackPage from '@/pages/auth/ZaloCallbackPage';
 import HomePage from '@/pages/home-test';
 import LandingPage from '@/pages/landing/LandingPage';
 import GymListPage from '@/pages/gyms/GymListPage';
@@ -127,6 +128,8 @@ const AppRoutes: React.FC = () => {
 
       {/* Verify OTP Route - redirect to home if already authenticated */}
       <Route path="/verify-otp" element={isAuthenticated ? <Navigate to="/home" replace /> : <VerifyOTPPage />} />
+
+      <Route path="/auth/zalo/callback" element={<ZaloCallbackPage />} />
 
       {/* Forgot Password Routes */}
       <Route
