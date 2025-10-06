@@ -18,6 +18,7 @@ interface MembershipFormProps {
   onClose: () => void;
   isCreateMode: boolean;
   plan?: MembershipPlan;
+  editingBranchId?: string;
   branchOptions: MembershipPlanBranchInfo[];
   branchMap: Record<string, MembershipPlanBranchInfo>;
   onSubmit: (
@@ -54,6 +55,7 @@ export const MembershipForm: React.FC<MembershipFormProps> = ({
   onClose,
   isCreateMode,
   plan,
+  editingBranchId,
   branchOptions,
   branchMap,
   onSubmit,
@@ -74,7 +76,7 @@ export const MembershipForm: React.FC<MembershipFormProps> = ({
         setOverrideForm(initialOverrideForm);
         setActiveTab('template');
       } else if (plan) {
-        // Load existing plan data
+        // Load existing plan data for template form
         setTemplateForm({
           name: plan.name,
           description: plan.description || '',
@@ -85,11 +87,32 @@ export const MembershipForm: React.FC<MembershipFormProps> = ({
           branchId: plan.branchId.map((b) => b._id),
           isActive: plan.isActive
         });
-        setActiveTab('template');
+
+        // If editing an override (editingBranchId exists), find and load the override data
+        let overrideData = null;
+        if (editingBranchId && plan.overrides) {
+          overrideData = plan.overrides.find((override) => override.appliesToBranchId === editingBranchId);
+        }
+
+        // Pre-populate override form with override data if editing, otherwise use template data as defaults
+        setOverrideForm({
+          name: overrideData?.name || plan.name,
+          description: overrideData?.description || plan.description || '',
+          price: (overrideData?.price || plan.price).toString(),
+          currency: overrideData?.currency || plan.currency,
+          durationInMonths: (overrideData?.durationInMonths || plan.durationInMonths).toString(),
+          benefits: (overrideData?.benefits || plan.benefits).join('\n'),
+          targetBranchIds: editingBranchId ? [editingBranchId] : [],
+          revertBranchIds: [],
+          isActive: overrideData?.isActive ?? plan.isActive
+        });
+
+        // Set active tab based on context: if editing from override detail, open Branches tab
+        setActiveTab(editingBranchId ? 'overrides' : 'template');
       }
       setErrors({});
     }
-  }, [isOpen, isCreateMode, plan]);
+  }, [isOpen, isCreateMode, plan, editingBranchId]);
 
   const updateTemplateForm = <Field extends keyof MembershipTemplateFormValues>(
     field: Field,
@@ -114,6 +137,7 @@ export const MembershipForm: React.FC<MembershipFormProps> = ({
   const validateForm = (formData: MembershipTemplateFormValues | MembershipOverrideFormValues): boolean => {
     const newErrors: Record<string, string> = {};
 
+    // Common validations
     if (!formData.name.trim()) {
       newErrors.name = t('membershipManager.validation.nameRequired');
     }
@@ -130,16 +154,20 @@ export const MembershipForm: React.FC<MembershipFormProps> = ({
       newErrors.durationInMonths = t('membershipManager.validation.durationInvalid');
     }
 
+    // Template-specific validation
     if ('branchId' in formData && (!formData.branchId || formData.branchId.length === 0)) {
       newErrors.branchId = t('membershipManager.validation.branchMissing');
     }
 
-    if (
-      'targetBranchIds' in formData &&
-      formData.targetBranchIds.length === 0 &&
-      formData.revertBranchIds.length === 0
-    ) {
-      newErrors.targetBranchIds = t('membershipManager.validation.overrideDataMissing');
+    // Override-specific validation
+    if ('targetBranchIds' in formData) {
+      // Must have either target branches or revert branches
+      if (formData.targetBranchIds.length === 0 && formData.revertBranchIds.length === 0) {
+        newErrors.targetBranchIds = t('membershipManager.validation.overrideDataMissing');
+      }
+
+      // If applying to target branches, validation is required
+      // If only reverting, no additional validation needed
     }
 
     setErrors(newErrors);
@@ -204,7 +232,7 @@ export const MembershipForm: React.FC<MembershipFormProps> = ({
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => (open ? undefined : onClose)}>
+    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent side="right" className="flex h-full w-full flex-col overflow-hidden sm:max-w-2xl">
         <SheetHeader className="px-4 pt-6 pb-4">
           <SheetTitle>
@@ -462,11 +490,14 @@ export const MembershipForm: React.FC<MembershipFormProps> = ({
             <Button onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
-                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   {t('common.saving')}
                 </>
               ) : (
-                t('membershipManager.sheet.actions.save')
+                <>
+                  <div className="mr-2 h-4 w-4" />
+                  {t('membershipManager.sheet.actions.save')}
+                </>
               )}
             </Button>
           </div>
