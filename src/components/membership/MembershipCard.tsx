@@ -34,8 +34,9 @@ interface MembershipCardProps {
   branchMap: Record<string, MembershipPlanBranchInfo>;
   branchesWithAccess: Set<string>;
   mutatingPlanId?: string;
+  currentBranchId?: string;
   onPreview: (plan: MembershipPlan, branchId?: string) => void;
-  onEdit: (plan: MembershipPlan) => void;
+  onEdit: (plan: MembershipPlan, branchId?: string) => void;
   onToggleStatus: (plan: MembershipPlan) => void;
 }
 
@@ -47,6 +48,7 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({
   branchMap,
   branchesWithAccess,
   mutatingPlanId,
+  currentBranchId,
   onPreview,
   onEdit,
   onToggleStatus
@@ -72,6 +74,19 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({
     ? 'border border-emerald-200 bg-emerald-50 text-emerald-600'
     : 'border border-slate-200 bg-slate-100 text-slate-500';
 
+  // Determine which branches to display based on whether this is an override or template
+  const branchesToDisplay = React.useMemo(() => {
+    // If viewing an override (custom plan for specific branch)
+    if (resolved.source === 'override' && resolved.override) {
+      // Only show the branch this override applies to
+      const overrideBranch = assignedBranches.find((branch) => branch._id === resolved.override?.appliesToBranchId);
+      return overrideBranch ? [overrideBranch] : [];
+    }
+
+    // If viewing template, show all assigned branches
+    return assignedBranches;
+  }, [resolved.source, resolved.override, assignedBranches]);
+
   return (
     <Card className="group flex flex-col overflow-hidden border border-orange-100 shadow-sm transition hover:border-orange-200 hover:shadow-md h-full">
       <div className={`h-0.5 w-full bg-gradient-to-r ${accentClass}`} />
@@ -89,12 +104,12 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => onPreview(plan)} className="flex items-center gap-2">
+                <DropdownMenuItem onClick={() => onPreview(plan, currentBranchId)} className="flex items-center gap-2">
                   <Eye className="h-4 w-4" />
                   {t('membershipManager.card.viewDetails')}
                 </DropdownMenuItem>
                 {branchesWithAccess.size > 0 && (
-                  <DropdownMenuItem onClick={() => onEdit(plan)} className="flex items-center gap-2">
+                  <DropdownMenuItem onClick={() => onEdit(plan, currentBranchId)} className="flex items-center gap-2">
                     <Edit className="h-4 w-4" />
                     {t('membershipManager.card.edit')}
                   </DropdownMenuItem>
@@ -128,23 +143,29 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 mt-3">
-            <Badge
-              variant="secondary"
-              className="rounded-full border border-slate-200 bg-white/90 uppercase text-[10px] px-2 py-1"
-            >
-              {plan.isTemplate ? t('membershipManager.card.templateBadge') : t('membershipManager.card.customBadge')}
-            </Badge>
-            {resolved.source === 'override' && (
-              <Badge className="rounded-full border border-amber-200 bg-amber-50 text-amber-700 text-[10px] px-2 py-1">
+            {/* Type Badge: TEMPLATE or CUSTOM */}
+            {plan.isTemplate ? (
+              <Badge
+                variant="secondary"
+                className="rounded-full border border-slate-200 bg-white/90 uppercase text-[10px] px-2 py-1 font-semibold"
+              >
+                {t('membershipManager.card.templateBadge')}
+              </Badge>
+            ) : (
+              <Badge className="rounded-full border border-amber-200 bg-amber-50 text-amber-700 uppercase text-[10px] px-2 py-1 font-semibold">
                 {t('membershipManager.card.customBadge')}
               </Badge>
             )}
+
+            {/* Status Badge: Active or Inactive */}
             <Badge className={`rounded-full text-[10px] font-medium px-2 py-1 ${statusTone}`}>
               {resolved.isActive
                 ? t('membershipManager.card.statusActive')
                 : t('membershipManager.card.statusInactive')}
             </Badge>
-            {overrideCount > 0 && (
+
+            {/* Override Count Badge: Only for templates with overrides */}
+            {plan.isTemplate && overrideCount > 0 && (
               <Badge className="rounded-full border border-purple-200 bg-purple-50 text-[10px] font-medium text-purple-600 px-2 py-1">
                 {t('membershipManager.card.customCount', { count: overrideCount })}
               </Badge>
@@ -183,9 +204,9 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({
         {/* Branches section */}
         <div className="space-y-2 flex-shrink-0 mb-1">
           <span className="text-sm font-semibold text-slate-700">{t('membershipManager.card.branchesLabel')}</span>
-          {assignedBranches.length ? (
+          {branchesToDisplay.length ? (
             <ul className="space-y-1">
-              {assignedBranches.slice(0, 2).map((branch) => {
+              {branchesToDisplay.slice(0, 2).map((branch) => {
                 const { name } = getBranchName(branch, branchMap);
                 return (
                   <li key={branch._id} className="flex items-center gap-2 text-sm text-slate-600">
@@ -194,10 +215,10 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({
                   </li>
                 );
               })}
-              {assignedBranches.length > 2 && (
+              {branchesToDisplay.length > 2 && (
                 <li className="flex items-center gap-2 text-sm text-slate-500">
                   <Circle className="h-4 w-4 flex-shrink-0" />
-                  <span>{t('membershipManager.card.moreBranches', { count: assignedBranches.length - 2 })}</span>
+                  <span>{t('membershipManager.card.moreBranches', { count: branchesToDisplay.length - 2 })}</span>
                 </li>
               )}
             </ul>

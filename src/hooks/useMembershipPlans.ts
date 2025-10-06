@@ -113,16 +113,19 @@ export const usePublicMembershipPlans = (
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<BackendPaginationResponse | null>(null);
 
+  // Memoize params to prevent unnecessary re-fetches
+  const memoizedParams = useMemo(() => params, [params.branchId]);
+
   const fetchPlans = useCallback(
     async (override: Partial<PublicMembershipPlanParams> = {}) => {
-      if (!enabled || !params.branchId) {
+      if (!enabled || !memoizedParams.branchId) {
         return;
       }
 
       setLoading(true);
       setError(null);
 
-      const response = await membershipApi.getPublicMembershipPlans({ ...params, ...override });
+      const response = await membershipApi.getPublicMembershipPlans({ ...memoizedParams, ...override });
       if (response.success) {
         setPlans(response.data.plans);
         setPagination(response.data.pagination ?? null);
@@ -132,7 +135,7 @@ export const usePublicMembershipPlans = (
 
       setLoading(false);
     },
-    [enabled, params]
+    [enabled, memoizedParams]
   );
 
   useEffect(() => {

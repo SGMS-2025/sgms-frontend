@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, RefreshCcw, Layers, CheckCircle2, Settings2, PauseCircle, Sparkles } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -20,12 +21,15 @@ import { useMembershipPlans } from '@/hooks/useMembershipPlans';
 import { resolvePlanData, calculateOverrideCount, getAssignedBranches } from '@/utils/membershipHelpers';
 import { membershipApi } from '@/services/api/membershipApi';
 import { parseBenefits } from '@/utils/membership';
+import { sortArray } from '@/utils/sort';
+import type { SortState } from '@/types/utils/sort';
 
 import type { MembershipPlan, MembershipPlanBranchInfo, MembershipPlanOverride } from '@/types/api/Membership';
 import type { MembershipOverrideFormValues, MembershipTemplateFormValues } from '@/types/forms/membership';
 
 type ViewMode = 'all' | 'base' | 'custom';
 type StatusFilter = 'all' | 'active' | 'inactive';
+type SortField = 'name' | 'price' | 'duration' | 'createdAt' | 'updatedAt' | 'status';
 
 interface SummaryStat {
   key: string;
@@ -50,13 +54,16 @@ export default function MembershipPlansPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('all');
+  const [sortState, setSortState] = useState<SortState<SortField>>({ field: 'updatedAt', order: 'desc' });
   const [previewContext, setPreviewContext] = useState<PreviewContext | null>(null);
   const [mutatingPlanId, setMutatingPlanId] = useState<string | undefined>();
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isCreateMode, setIsCreateMode] = useState(true);
   const [editingPlan, setEditingPlan] = useState<MembershipPlan | null>(null);
+  const [editingBranchId, setEditingBranchId] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastSubmitTime, setLastSubmitTime] = useState<number>(0);
 
   // API hooks
   const {
@@ -91,7 +98,7 @@ export default function MembershipPlansPage() {
   }, [plans]);
 
   const filteredPlans = useMemo(() => {
-    return plans.filter((plan: MembershipPlan) => {
+    let filtered = plans.filter((plan: MembershipPlan) => {
       const resolved = resolvePlanData(plan, currentBranch?._id);
 
       // Search filter
@@ -121,7 +128,33 @@ export default function MembershipPlansPage() {
 
       return true;
     });
-  }, [plans, searchQuery, statusFilter, viewMode, currentBranch?._id]);
+
+    // Apply sorting
+    if (sortState.field && sortState.order) {
+      filtered = sortArray(filtered, sortState, (plan, field) => {
+        const resolved = resolvePlanData(plan, currentBranch?._id);
+
+        switch (field) {
+          case 'name':
+            return resolved.name.toLowerCase();
+          case 'price':
+            return resolved.price;
+          case 'duration':
+            return resolved.durationInMonths;
+          case 'createdAt':
+            return new Date(plan.createdAt).getTime();
+          case 'updatedAt':
+            return new Date(plan.updatedAt).getTime();
+          case 'status':
+            return resolved.isActive ? 'active' : 'inactive';
+          default:
+            return '';
+        }
+      });
+    }
+
+    return filtered;
+  }, [plans, searchQuery, statusFilter, viewMode, sortState, currentBranch?._id]);
 
   // Summary statistics
   const summaryStats: SummaryStat[] = useMemo(() => {
@@ -175,13 +208,22 @@ export default function MembershipPlansPage() {
     refetch();
   }, [refetch]);
 
+  const handleSortFieldChange = useCallback((field: string) => {
+    setSortState((prev) => ({ ...prev, field: field as SortField }));
+  }, []);
+
+  const handleSortOrderChange = useCallback((order: string) => {
+    setSortState((prev) => ({ ...prev, order: order as 'asc' | 'desc' }));
+  }, []);
+
   const handlePreview = useCallback((plan: MembershipPlan, branchId?: string) => {
     setPreviewContext({ plan, branchId });
     setIsDetailOpen(true);
   }, []);
 
-  const handleEdit = useCallback((plan: MembershipPlan) => {
+  const handleEdit = useCallback((plan: MembershipPlan, branchId?: string) => {
     setEditingPlan(plan);
+    setEditingBranchId(branchId); // Store branchId context for form
     setIsCreateMode(false);
     setIsFormOpen(true);
   }, []);
@@ -200,41 +242,172 @@ export default function MembershipPlansPage() {
     setIsFormOpen(true);
   }, []);
 
-  const handleFormSubmit = useCallback(
-    async (data: MembershipTemplateFormValues | MembershipOverrideFormValues) => {
-      if (isCreateMode) {
-        const templateData = data as MembershipTemplateFormValues;
-        const payload = {
-          name: templateData.name.trim(),
-          description: templateData.description.trim() || undefined,
-          price: Number(templateData.price),
-          currency: templateData.currency.trim().toUpperCase(),
-          durationInMonths: Number(templateData.durationInMonths),
-          benefits: parseBenefits(templateData.benefits),
-          branchId: templateData.branchId,
-          isActive: templateData.isActive
-        };
+  // Helper: Update preview context after successful update
+  const updatePreviewContextIfNeeded = useCallback(
+    (updatedPlan: MembershipPlan) => {
+      if (isDetailOpen && previewContext?.plan._id === updatedPlan._id && updatedPlan) {
+        setPreviewContext({
+          ...previewContext,
+          plan: updatedPlan
+        });
+      }
+    },
+    [isDetailOpen, previewContext]
+  );
 
-        try {
-          const response = await membershipApi.createMembershipPlan(payload);
-          if (response.success) {
-            await refetch();
-            setIsFormOpen(false);
-            return { success: true };
-          }
-          return { success: false, message: response.message };
-        } catch (error) {
-          console.error('Error creating membership plan:', error);
-          return { success: false, message: 'Failed to create membership plan' };
-        }
-      } else if (editingPlan) {
-        // Handle edit logic here
-        // This would need to be implemented based on the specific requirements
+  // Helper: Handle create membership plan
+  const handleCreatePlan = useCallback(
+    async (data: MembershipTemplateFormValues) => {
+      const payload = {
+        name: data.name.trim(),
+        description: data.description.trim() || undefined,
+        price: Number(data.price),
+        currency: data.currency.trim().toUpperCase(),
+        durationInMonths: Number(data.durationInMonths),
+        benefits: parseBenefits(data.benefits),
+        branchId: data.branchId,
+        isActive: data.isActive
+      };
+
+      const response = await membershipApi.createMembershipPlan(payload);
+
+      if (response.success) {
+        await refetch();
+        setIsFormOpen(false);
+        toast.success(t('membershipManager.toast.createSuccess'));
         return { success: true };
       }
-      return { success: false, message: 'Invalid operation' };
+
+      toast.error(response.message || t('membershipManager.toast.createError'));
+      return { success: false, message: response.message };
     },
-    [isCreateMode, editingPlan, refetch]
+    [refetch, t]
+  );
+
+  // Helper: Handle template update
+  const handleTemplateUpdate = useCallback(
+    async (data: MembershipTemplateFormValues, planId: string) => {
+      const updatePayload = {
+        updateScope: 'template' as const,
+        data: {
+          name: data.name.trim(),
+          description: data.description.trim() || undefined,
+          price: Number(data.price),
+          currency: data.currency.trim().toUpperCase(),
+          durationInMonths: Number(data.durationInMonths),
+          benefits: parseBenefits(data.benefits),
+          isActive: data.isActive
+        },
+        branchId: data.branchId
+      };
+
+      const response = await membershipApi.updateMembershipPlan(planId, updatePayload, data.branchId);
+
+      if (response.success) {
+        await refetch();
+        updatePreviewContextIfNeeded(response.data);
+        setIsFormOpen(false);
+        toast.success(t('membershipManager.toast.updateSuccess'));
+        return { success: true };
+      }
+
+      toast.error(response.message || t('membershipManager.toast.updateError'));
+      return { success: false, message: response.message };
+    },
+    [refetch, t, updatePreviewContextIfNeeded]
+  );
+
+  // Helper: Handle branch override update
+  const handleBranchOverrideUpdate = useCallback(
+    async (data: MembershipOverrideFormValues, plan: MembershipPlan) => {
+      const updatePayload: {
+        updateScope: 'branches';
+        targetBranchIds?: string[];
+        data?: Record<string, unknown>;
+        revertBranchIds?: string[];
+      } = {
+        updateScope: 'branches' as const
+      };
+
+      if (data.targetBranchIds.length > 0) {
+        updatePayload.targetBranchIds = data.targetBranchIds;
+        updatePayload.data = {
+          name: data.name.trim(),
+          description: data.description.trim() || undefined,
+          price: Number(data.price),
+          currency: data.currency.trim().toUpperCase(),
+          durationInMonths: Number(data.durationInMonths),
+          benefits: parseBenefits(data.benefits),
+          isActive: data.isActive
+        };
+      }
+
+      if (data.revertBranchIds.length > 0) {
+        updatePayload.revertBranchIds = data.revertBranchIds;
+      }
+
+      const resourceBranchIds = plan.branchId.map((b) => b._id);
+      const response = await membershipApi.updateMembershipPlan(plan._id, updatePayload, resourceBranchIds);
+
+      if (response.success) {
+        await refetch();
+        updatePreviewContextIfNeeded(response.data);
+        setIsFormOpen(false);
+        toast.success(t('membershipManager.toast.overrideSuccess'));
+        return { success: true };
+      }
+
+      toast.error(response.message || t('membershipManager.toast.overrideError'));
+      return { success: false, message: response.message };
+    },
+    [refetch, t, updatePreviewContextIfNeeded]
+  );
+
+  const handleFormSubmit = useCallback(
+    async (data: MembershipTemplateFormValues | MembershipOverrideFormValues) => {
+      // Prevent double submission and debounce
+      const now = Date.now();
+      if (isSubmitting || now - lastSubmitTime < 1000) {
+        return { success: false, message: 'Please wait, submission in progress...' };
+      }
+
+      setIsSubmitting(true);
+      setLastSubmitTime(now);
+
+      let result;
+
+      // Create mode
+      if (isCreateMode) {
+        result = await handleCreatePlan(data as MembershipTemplateFormValues);
+      }
+      // Edit mode
+      else if (editingPlan) {
+        const isTemplateUpdate = 'branchId' in data;
+
+        if (isTemplateUpdate) {
+          result = await handleTemplateUpdate(data as MembershipTemplateFormValues, editingPlan._id);
+        } else {
+          result = await handleBranchOverrideUpdate(data as MembershipOverrideFormValues, editingPlan);
+        }
+      }
+      // Invalid operation
+      else {
+        toast.error('Invalid operation');
+        result = { success: false, message: 'Invalid operation' };
+      }
+
+      setIsSubmitting(false);
+      return result;
+    },
+    [
+      isCreateMode,
+      editingPlan,
+      isSubmitting,
+      lastSubmitTime,
+      handleCreatePlan,
+      handleTemplateUpdate,
+      handleBranchOverrideUpdate
+    ]
   );
 
   const handleFormClose = useCallback(() => {
@@ -342,8 +515,9 @@ export default function MembershipPlansPage() {
               onStatusFilterChange={setStatusFilter}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
-              onRefresh={handleRefresh}
-              isLoading={isLoading}
+              sortState={sortState}
+              onSortFieldChange={handleSortFieldChange}
+              onSortOrderChange={handleSortOrderChange}
             />
           </div>
 
@@ -370,6 +544,7 @@ export default function MembershipPlansPage() {
                     branchMap={branchMap}
                     branchesWithAccess={branchesWithAccess}
                     mutatingPlanId={mutatingPlanId}
+                    currentBranchId={currentBranch?._id}
                     onPreview={handlePreview}
                     onEdit={handleEdit}
                     onToggleStatus={handleToggleStatus}
@@ -387,6 +562,7 @@ export default function MembershipPlansPage() {
         onClose={() => setIsDetailOpen(false)}
         plan={previewContext?.plan || null}
         branchId={previewContext?.branchId}
+        onEdit={handleEdit}
       />
 
       {/* Membership Form */}
@@ -395,6 +571,7 @@ export default function MembershipPlansPage() {
         onClose={handleFormClose}
         isCreateMode={isCreateMode}
         plan={editingPlan || undefined}
+        editingBranchId={editingBranchId}
         branchOptions={
           branches?.map((branch) => ({
             _id: branch._id,
