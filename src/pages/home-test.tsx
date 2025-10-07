@@ -1,4 +1,5 @@
 import { useAuthState, useAuthActions } from '@/hooks/useAuth';
+import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,7 @@ import { useEffect } from 'react';
 export default function HomePage() {
   const { isAuthenticated, user, isLoading } = useAuthState();
   const { logout } = useAuthActions();
+  const { currentStaff, loading: staffLoading } = useCurrentUserStaff();
   const navigate = useNavigate();
 
   // Handle redirects using useEffect - must be called before any early returns
@@ -21,22 +23,37 @@ export default function HomePage() {
     }
   }, [isAuthenticated, user, navigate]);
 
-  // Redirect owner to owner dashboard using useEffect - must be called before any early returns
+  // Redirect users to appropriate dashboards based on role and job title
   useEffect(() => {
     if (user && user.role === 'OWNER') {
       console.log('Redirecting owner to /manage/owner dashboard');
       console.log('User role:', user.role);
       navigate('/manage/owner');
+    } else if (user && user.role === 'STAFF' && currentStaff) {
+      // Redirect STAFF based on job title
+      console.log('Staff job title:', currentStaff.jobTitle);
+
+      if (currentStaff.jobTitle === 'Personal Trainer') {
+        console.log('Redirecting Personal Trainer to /manage/pt dashboard');
+        navigate('/manage/pt');
+      } else if (currentStaff.jobTitle === 'Technician') {
+        console.log('Redirecting Technician to /manage/technician dashboard');
+        navigate('/manage/technician');
+      } else {
+        console.log('Staff with job title:', currentStaff.jobTitle, '- staying on home page');
+      }
     }
-  }, [user, navigate]);
+  }, [user, currentStaff, navigate]);
 
   // Display loading while fetching
-  if (isLoading) {
+  if (isLoading || (user?.role === 'STAFF' && staffLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Đang tải...</p>
+          <p className="mt-4 text-gray-600">
+            {user?.role === 'STAFF' && staffLoading ? 'Đang tải thông tin nhân viên...' : 'Đang tải...'}
+          </p>
         </div>
       </div>
     );

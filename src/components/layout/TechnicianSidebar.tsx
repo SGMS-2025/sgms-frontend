@@ -23,7 +23,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { BranchSelectorButton } from '@/components/dashboard/BranchSelectorButton';
@@ -34,6 +37,8 @@ import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
+import { Bell } from 'lucide-react';
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -106,6 +111,7 @@ const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
           </h1>
         </div>
       )}
+
       {/* Show the toggle on the right when expanded; hide when collapsed */}
       {!isCollapsed && (
         <button
@@ -220,6 +226,16 @@ const UserProfile: React.FC<{
         <UserCircle className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.profile')}
       </DropdownMenuItem>
+
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger className="cursor-pointer">
+          <Bell className="w-4 h-4 mr-3 stroke-[1.75]" />
+          {t('sidebar.notifications')}
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent className="p-0">
+          <NotificationDropdown />
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
 
       <DropdownMenuItem
         onClick={() => {
@@ -435,6 +451,16 @@ export const TechnicianSidebar: React.FC = () => {
       }
     });
   }
+
+  // Add calendar for all technician roles
+  mainNavItems.push({
+    icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
+    label: t('technician.sidebar.schedule', 'My Schedule'),
+    isActive: location.pathname.startsWith('/manage/technician/calendar'),
+    onClick: () => {
+      navigate('/manage/technician/calendar');
+    }
+  });
 
   // For OWNER, Manager - show management links
   if (authUser?.role === 'OWNER' || currentStaff?.jobTitle === 'Manager') {

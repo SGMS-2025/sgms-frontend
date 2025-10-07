@@ -11,7 +11,6 @@ import {
   LayoutDashboard,
   MessageSquare,
   Settings,
-  HelpCircle,
   ChevronUp,
   LogOut,
   UserCircle,
@@ -27,7 +26,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { BranchSelectorButton } from '@/components/dashboard/BranchSelectorButton';
@@ -37,6 +39,8 @@ import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
+import { Bell } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 // no extra popovers here; BranchSelectorButton handles its own popover
 
@@ -122,6 +126,7 @@ const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
           </h1>
         </div>
       )}
+
       {/* Show the toggle on the right when expanded; hide when collapsed */}
       {!isCollapsed && (
         <button
@@ -237,6 +242,16 @@ const UserProfile: React.FC<{
         <UserCircle className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.profile')}
       </DropdownMenuItem>
+
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger className="cursor-pointer">
+          <Bell className="w-4 h-4 mr-3 stroke-[1.75]" />
+          {t('sidebar.notifications')}
+        </DropdownMenuSubTrigger>
+        <DropdownMenuSubContent className="p-0">
+          <NotificationDropdown />
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
 
       <DropdownMenuItem
         onClick={() => {
@@ -479,19 +494,6 @@ export const OwnerSidebar: React.FC = () => {
     }
   ];
 
-  const secondaryNavItems: MenuItemProps[] = [
-    {
-      icon: <Settings className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.settings'),
-      onClick: () => console.log('Settings clicked')
-    },
-    {
-      icon: <HelpCircle className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.help'),
-      onClick: () => console.log('Help clicked')
-    }
-  ];
-
   return (
     <div
       className={`bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0 transition-all duration-300 ${
@@ -526,30 +528,6 @@ export const OwnerSidebar: React.FC = () => {
             />
           ))}
         </nav>
-
-        {/* Secondary Navigation */}
-        <div className="mt-8">
-          {!isCollapsed && (
-            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-3">
-              {t('sidebar.support')}
-            </div>
-          )}
-          <nav
-            className={`space-y-1 ${isCollapsed ? 'overflow-hidden' : ''}`}
-            role="navigation"
-            aria-label={t('sidebar.navigation.support')}
-          >
-            {secondaryNavItems.map((item) => (
-              <SidebarItem
-                key={item.label}
-                icon={item.icon}
-                label={item.label}
-                onClick={item.onClick}
-                isCollapsed={isCollapsed}
-              />
-            ))}
-          </nav>
-        </div>
       </div>
 
       {/* Branch switch */}

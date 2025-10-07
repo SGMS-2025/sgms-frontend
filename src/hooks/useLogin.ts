@@ -13,11 +13,7 @@ export const useLogin = () => {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async (
-    loginData: LoginRequest,
-    rememberMe: boolean = false,
-    selectedRole: 'customer' | 'owner' = 'customer'
-  ) => {
+  const handleLogin = async (loginData: LoginRequest, rememberMe: boolean = false) => {
     if (!loginData.emailOrUsername || !loginData.password) {
       toast.error(t('error.fill_all_fields'));
       return;
@@ -27,18 +23,38 @@ export const useLogin = () => {
 
     const response = await authApi.login(loginData);
 
+    console.log('🔍 Login response:', response);
+    console.log('🔍 Response data:', response.data);
+    console.log('🔍 Access token:', response.data?.accessToken);
+
     if (response.success) {
-      // Only save user to AuthContext
+      // Save user to AuthContext
       login(response.data.user);
+
+      // For HTTP-only cookies, tokens are automatically set by the server
+      // But we also save to localStorage as fallback for socket connections
+      if (response.data.accessToken) {
+        localStorage.setItem('token', response.data.accessToken);
+        console.log('✅ Login successful - token saved to localStorage as fallback');
+      } else {
+        console.log('✅ Login successful - tokens are stored in HTTP-only cookies');
+      }
 
       if (rememberMe) {
         localStorage.setItem('userEmailOrUsername', loginData.emailOrUsername);
       }
 
-      // Navigate based on selected role
-      if (selectedRole === 'owner') {
-        console.log('Redirecting to /manage/owner');
+      // Navigate based on user role and job title
+      const userRole = response.data.user.role;
+
+      if (userRole === 'OWNER') {
+        console.log('Redirecting owner to /manage/owner');
         navigate('/manage/owner');
+      } else if (userRole === 'STAFF') {
+        // For STAFF, we need to check job title to determine the correct dashboard
+        // We'll redirect to /home first, then let HomePage handle the specific redirect
+        console.log('Redirecting staff to /home (will be redirected to appropriate dashboard)');
+        navigate('/home');
       } else {
         console.log('Redirecting to /home');
         navigate('/home');

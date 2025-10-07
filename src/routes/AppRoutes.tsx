@@ -33,10 +33,67 @@ import MembershipPlansPage from '@/pages/owner/MembershipPlansPage';
 import AddWorkShiftPage from '@/pages/owner/AddWorkShiftPage';
 import EditWorkShiftPage from '@/pages/owner/EditWorkShiftPage';
 import WorkShiftCalendarPage from '@/pages/owner/WorkShiftCalendarPage';
+import TechnicianCalendarPage from '@/pages/technician/TechnicianCalendarPage';
 import PTServiceManagement from '@/components/dashboard/PTServiceManagement';
 import ClassServiceManagement from '@/components/dashboard/ClassServiceManagement';
+import { PTLayout } from '@/layouts/PTLayout';
+import PTDashboard from '@/pages/pt/PTDashboard';
+import PTCalendarPage from '@/pages/pt/PTCalendarPage';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
+import { SidebarProvider } from '@/contexts/SidebarContext';
+import { OwnerSidebar } from '@/components/layout/OwnerSidebar';
+import { TechnicianSidebar } from '@/components/layout/TechnicianSidebar';
+
+// WorkShift Calendar with Layout Component
+const WorkShiftCalendarPageWithLayout: React.FC = () => {
+  const { isAuthenticated, user, isLoading } = useAuthState();
+
+  // Show loading while authentication is being checked
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user has permission to access workshift calendar
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Allow OWNER and STAFF roles
+  if (user.role !== 'OWNER' && user.role !== 'STAFF') {
+    return <Navigate to="/home" replace />;
+  }
+
+  // Choose appropriate sidebar based on user role
+  const renderSidebar = () => {
+    if (user.role === 'OWNER') {
+      return <OwnerSidebar />;
+    } else if (user.role === 'STAFF') {
+      return <TechnicianSidebar />;
+    }
+    return <OwnerSidebar />; // fallback
+  };
+
+  return (
+    <SidebarProvider>
+      <div className="h-screen bg-[#f1f3f4] flex">
+        {renderSidebar()}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            <WorkShiftCalendarPage />
+          </div>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+};
 
 // Protected Route Component - supports multiple roles and job titles
 interface ProtectedRouteProps {
@@ -155,7 +212,10 @@ const AppRoutes: React.FC = () => {
       <Route path="/gyms" element={<GymListPage />} />
       <Route path="/gym/:id" element={<GymDetailPage />} />
 
-      {/* Management Routes - only for OWNER role and Manager job title */}
+      {/* Work Shift Calendar Route - accessible to all STAFF (must be before /manage route) */}
+      <Route path="/manage/workshifts/calendar" element={<WorkShiftCalendarPageWithLayout />} />
+
+      {/* Management Routes - for OWNER role and STAFF with Manager job title */}
       <Route
         path="/manage"
         element={<ProtectedRoute allowedRoles={['OWNER', 'STAFF']} allowedJobTitles={['Manager']} />}
@@ -190,17 +250,16 @@ const AppRoutes: React.FC = () => {
           {/* Work Shift Management Routes */}
           <Route path="workshifts/add" element={<AddWorkShiftPage />} />
           <Route path="workshifts/:id/edit" element={<EditWorkShiftPage />} />
-          <Route path="workshifts/calendar" element={<WorkShiftCalendarPage />} />
         </Route>
       </Route>
 
-      {/* Equipment Management Routes - for Technician and Personal Trainer */}
+      {/* Equipment Management Routes - for Technician only */}
       <Route
         path="/manage/technician"
         element={
           <ProtectedRoute
             allowedRoles={['STAFF', 'OWNER', 'ADMIN']}
-            allowedJobTitles={['Technician', 'Personal Trainer']}
+            allowedJobTitles={['Technician']}
             fallbackPath="/home"
           />
         }
@@ -213,7 +272,33 @@ const AppRoutes: React.FC = () => {
           <Route path="equipment" element={<EquipmentListPage />} />
           <Route path="equipment/add" element={<AddEquipmentPage />} />
           <Route path="equipment/:id/edit" element={<EditEquipmentPage />} />
+
+          {/* Calendar Route for Technician */}
+          <Route path="calendar" element={<TechnicianCalendarPage />} />
+
           <Route path="*" element={<Navigate to="/manage/technician" replace />} />
+        </Route>
+      </Route>
+
+      {/* Personal Trainer Routes - for Personal Trainer only */}
+      <Route
+        path="/manage/pt"
+        element={
+          <ProtectedRoute
+            allowedRoles={['STAFF', 'OWNER', 'ADMIN']}
+            allowedJobTitles={['Personal Trainer']}
+            fallbackPath="/home"
+          />
+        }
+      >
+        <Route path="" element={<PTLayout />}>
+          {/* Dashboard Route */}
+          <Route path="" element={<PTDashboard />} />
+
+          {/* Calendar Route for PT */}
+          <Route path="calendar" element={<PTCalendarPage />} />
+
+          <Route path="*" element={<Navigate to="/manage/pt" replace />} />
         </Route>
       </Route>
 
@@ -222,7 +307,6 @@ const AppRoutes: React.FC = () => {
         <Route path="" element={<ExamplePage />} />
         {/* Add more example routes here */}
       </Route>
-
       {/* Catch all route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

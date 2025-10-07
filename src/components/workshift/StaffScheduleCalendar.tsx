@@ -24,6 +24,7 @@ import { cn } from '@/utils/utils';
 import { useBranch } from '@/contexts/BranchContext';
 import { staffApi } from '@/services/api/staffApi';
 import { workShiftApi } from '@/services/api/workShiftApi';
+// import { useSocket } from '@/hooks/useSocket';
 import type { Staff } from '@/types/api/Staff';
 import type { WorkShift } from '@/types/api/WorkShift';
 import type { StaffScheduleCalendarProps } from '@/types/api/StaffSchedule';
@@ -49,6 +50,8 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   const [showWorkShiftDetail, setShowWorkShiftDetail] = useState(false);
   const [showDisabledShifts, setShowDisabledShifts] = useState(true);
   const { currentBranch } = useBranch();
+  // Socket state is available but not used in this component
+  // const { state } = useSocket();
 
   // Get current week dates
   const getWeekDates = (date: Date) => {
@@ -73,6 +76,8 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   };
 
   // Get all workshifts that are active during a specific time slot (including ongoing shifts)
+  // This function is defined but not currently used
+  /*
   const getActiveShiftsForSlot = (date: Date, hour: number) => {
     const slotStart = new Date(date);
     slotStart.setHours(hour, 0, 0, 0);
@@ -106,6 +111,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     });
     return activeShifts;
   };
+  */
 
   // Get workshifts that START in a specific hour (for rendering)
   const getWorkShiftsForSlot = (date: Date, hour: number) => {
@@ -128,18 +134,18 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     return filteredShifts;
   };
 
-  // Calculate position and width for overlapping shifts based on active shifts in the time slot
+  // Calculate position and width for overlapping shifts based on shifts that START in this time slot
   const calculateShiftPosition = (shift: WorkShift, date: Date, currentHour: number) => {
-    // Get all active shifts in this time slot
-    const activeShifts = getActiveShiftsForSlot(date, currentHour);
+    // Get all shifts that START in this time slot (not all active shifts)
+    const shiftsForSlot = getWorkShiftsForSlot(date, currentHour);
 
-    // Find the index of current shift in active shifts
-    const shiftIndex = activeShifts.findIndex((s) => s._id === shift._id);
-    const totalActiveShifts = activeShifts.length;
+    // Find the index of current shift in the shifts that start in this slot
+    const shiftIndex = shiftsForSlot.findIndex((s) => s._id === shift._id);
+    const totalShiftsInSlot = shiftsForSlot.length;
 
-    // Calculate width and position
-    const width = totalActiveShifts > 1 ? `${100 / totalActiveShifts}%` : '100%';
-    const left = totalActiveShifts > 1 ? `${(shiftIndex * 100) / totalActiveShifts}%` : '0%';
+    // Calculate width and position based on shifts that start in this slot
+    const width = totalShiftsInSlot > 1 ? `${100 / totalShiftsInSlot}%` : '100%';
+    const left = totalShiftsInSlot > 1 ? `${(shiftIndex * 100) / totalShiftsInSlot}%` : '0%';
 
     // Z-index based on start time (earlier shifts have lower z-index, so later shifts appear on top)
     const zIndex = 10 + shiftIndex;
@@ -356,6 +362,27 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   useEffect(() => {
     fetchWorkShifts();
   }, [currentBranch?._id, fetchWorkShifts]);
+
+  // Listen for work shift notifications and refresh data
+  useEffect(() => {
+    const handleWorkShiftNotification = () => {
+      // Refresh work shifts when notification is received
+      fetchWorkShifts();
+    };
+
+    // Listen for work shift notifications
+    const handleNotification = (event: CustomEvent) => {
+      if (event.detail.type.includes('WORKSHIFT')) {
+        handleWorkShiftNotification();
+      }
+    };
+
+    window.addEventListener('workshift-notification', handleNotification as EventListener);
+
+    return () => {
+      window.removeEventListener('workshift-notification', handleNotification as EventListener);
+    };
+  }, [fetchWorkShifts]);
 
   // Filter workshifts by selected staff (if any) and disabled status
   const filteredWorkShifts = workShifts.filter((shift) => {

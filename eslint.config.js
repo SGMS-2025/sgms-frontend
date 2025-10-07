@@ -39,7 +39,16 @@ export default tseslint.config([
         }
       ],
       // Set the react-refresh/only-export-components rule to warning (warn) instead of error.
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }]
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      // Allow variables starting with underscore to be unused
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_'
+        }
+      ]
     }
   },
 ])
