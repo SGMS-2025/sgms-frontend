@@ -48,6 +48,7 @@ import { useTestimonialList, useUpdateTestimonialStatus, useDeleteTestimonial } 
 import { useBranch } from '@/contexts/BranchContext';
 import TestimonialModal from '@/components/modals/TestimonialModalProps';
 import { AddTestimonialModal } from '@/components/modals/AddTestimonialModalProps';
+import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import type { TestimonialDisplay, TestimonialManagementProps } from '@/types/api/Testimonial';
 
 export const TestimonialFeed: React.FC<TestimonialManagementProps> = ({ onAddTestimonial }) => {
@@ -363,7 +364,9 @@ export const TestimonialFeed: React.FC<TestimonialManagementProps> = ({ onAddTes
             {/* Post Content */}
             <div className="p-4">
               <h2 className="text-lg font-semibold text-gray-900 mb-2">{testimonial.title}</h2>
-              <p className="text-gray-700 leading-relaxed">{testimonial.content}</p>
+              <div className="text-gray-700 leading-relaxed">
+                <MarkdownRenderer content={testimonial.content} />
+              </div>
             </div>
 
             {/* Post Images */}

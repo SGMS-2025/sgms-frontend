@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, User, Globe, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { useCreateTestimonial } from '@/hooks/useTestimonial';
 import { useAuthState } from '@/hooks/useAuth';
-import { validateTestimonialFormData, validateImageFile } from '@/utils/testimonialsValidation';
+import { validateTestimonialFormData } from '@/utils/testimonialsValidation';
+import { useTestimonialImageUpload } from '@/hooks/useTestimonialImageUpload';
 import { toast } from 'sonner';
+import type { TestimonialImage } from '@/types/api/Testimonial';
 
 interface AddTestimonialModalProps {
   isOpen: boolean;
@@ -23,13 +25,14 @@ export const AddTestimonialModal: React.FC<AddTestimonialModalProps> = ({ isOpen
     content: '',
     status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE'
   });
-  const [images, setImages] = useState<File[]>([]);
+  const [images, setImages] = useState<TestimonialImage[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { createTestimonial } = useCreateTestimonial();
   const { user } = useAuthState();
+  const { uploadingImages, handleImageUpload, removeImage } = useTestimonialImageUpload();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -39,37 +42,18 @@ export const AddTestimonialModal: React.FC<AddTestimonialModalProps> = ({ isOpen
     }
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    if (files.length > 0) {
-      // Validate each file
-      const validFiles: File[] = [];
-      const newPreviews: string[] = [];
-
-      files.forEach((file) => {
-        const validation = validateImageFile(file);
-        if (validation.isValid) {
-          validFiles.push(file);
-          newPreviews.push(URL.createObjectURL(file));
-        } else {
-          toast.error(validation.error);
-        }
-      });
-
-      if (validFiles.length > 0) {
-        setImages((prev) => [...prev, ...validFiles]);
-        setImagePreviews((prev) => [...prev, ...newPreviews]);
-      }
-    }
+  const handleImageUploadChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    await handleImageUpload(files, images, (newImages) => {
+      setImages(newImages);
+      setImagePreviews(newImages.map((img) => img.url));
+    });
   };
 
-  const removeImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-    setImagePreviews((prev) => {
-      const newPreviews = prev.filter((_, i) => i !== index);
-      // Revoke the URL to free memory
-      URL.revokeObjectURL(prev[index]);
-      return newPreviews;
+  const handleRemoveImage = (index: number) => {
+    removeImage(index, images, (newImages) => {
+      setImages(newImages);
+      setImagePreviews(newImages.map((img) => img.url));
     });
   };
 
@@ -79,10 +63,7 @@ export const AddTestimonialModal: React.FC<AddTestimonialModalProps> = ({ isOpen
       title: formData.title,
       content: formData.content,
       status: formData.status,
-      images: images.map((file) => ({
-        publicId: '',
-        url: URL.createObjectURL(file)
-      }))
+      images
     });
 
     if (!validation.isValid) {
@@ -96,10 +77,7 @@ export const AddTestimonialModal: React.FC<AddTestimonialModalProps> = ({ isOpen
       title: formData.title,
       content: formData.content,
       status: formData.status,
-      images: images.map((file) => ({
-        publicId: '',
-        url: URL.createObjectURL(file)
-      }))
+      images
     })
       .then(() => {
         // Reset form
@@ -164,15 +142,16 @@ export const AddTestimonialModal: React.FC<AddTestimonialModalProps> = ({ isOpen
               {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
             </div>
 
-            {/* Content Input */}
+            {/* Content Input - Markdown Editor */}
             <div>
-              <Textarea
-                placeholder={t('testimonial_form.write_content')}
+              <MarkdownEditor
                 value={formData.content}
-                onChange={(e) => handleInputChange('content', e.target.value)}
-                className={`border-0 text-base placeholder:text-gray-400 focus:ring-0 p-0 min-h-[120px] resize-none ${errors.content ? 'border-red-500' : ''}`}
+                onChange={(value) => handleInputChange('content', value)}
+                placeholder={t('testimonial_form.write_content')}
+                error={errors.content}
+                height={200}
+                className="w-full"
               />
-              {errors.content && <p className="text-red-500 text-sm mt-1">{errors.content}</p>}
             </div>
 
             {/* Image Previews */}
@@ -189,7 +168,7 @@ export const AddTestimonialModal: React.FC<AddTestimonialModalProps> = ({ isOpen
                       variant="destructive"
                       size="sm"
                       className="absolute top-2 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => removeImage(index)}
+                      onClick={() => handleRemoveImage(index)}
                     >
                       <X className="h-3 w-3" />
                     </Button>
@@ -204,9 +183,25 @@ export const AddTestimonialModal: React.FC<AddTestimonialModalProps> = ({ isOpen
             <div className="flex items-center space-x-4">
               {/* Photo/Video Upload */}
               <label className="flex items-center space-x-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 px-3 py-2 rounded-lg cursor-pointer transition-colors">
-                <ImageIcon className="h-5 w-5" />
-                <span className="text-sm font-medium">{t('testimonial_form.photo_video')}</span>
-                <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
+                {uploadingImages ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500"></div>
+                    <span className="text-sm font-medium">{t('testimonial_form.uploading_images')}</span>
+                  </>
+                ) : (
+                  <>
+                    <ImageIcon className="h-5 w-5" />
+                    <span className="text-sm font-medium">{t('testimonial_form.photo_video')}</span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageUploadChange}
+                  className="hidden"
+                  disabled={uploadingImages}
+                />
               </label>
 
               {/* Status Selector */}
@@ -229,7 +224,7 @@ export const AddTestimonialModal: React.FC<AddTestimonialModalProps> = ({ isOpen
             {/* Post Button */}
             <Button
               onClick={handleSubmit}
-              disabled={isLoading || !formData.title.trim() || !formData.content.trim()}
+              disabled={isLoading || uploadingImages || !formData.title.trim() || !formData.content.trim()}
               className="bg-orange-600 hover:bg-orange-700 text-white px-6"
             >
               {isLoading ? t('testimonial_form.posting') : t('testimonial_form.post')}

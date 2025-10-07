@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { X, Edit, Loader2, User, Calendar, Globe, Image as ImageIcon, MessageSquare, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MarkdownEditor } from '@/components/ui/MarkdownEditor';
 import { useTestimonialDetails, useUpdateTestimonial } from '@/hooks/useTestimonial';
 import { useAuthState } from '@/hooks/useAuth';
 import type {
@@ -16,6 +16,7 @@ import type {
 } from '@/types/api/Testimonial';
 import { testimonialApi } from '@/services/api/testimonialApi';
 import { validateTestimonialFormData, validateImageFile } from '@/utils/testimonialsValidation';
+import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { toast } from 'sonner';
 
 interface TestimonialModalProps {
@@ -274,7 +275,9 @@ function ViewMode({
       <div className="space-y-4">
         <div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">{currentTestimonial.title}</h2>
-          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{currentTestimonial.content}</p>
+          <div className="text-gray-700 leading-relaxed">
+            <MarkdownRenderer content={currentTestimonial.content} />
+          </div>
         </div>
 
         {/* Images */}
@@ -369,16 +372,16 @@ function EditForm({
           {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
         </div>
 
-        {/* Content Input */}
+        {/* Content Input - Markdown Editor */}
         <div>
-          <Textarea
-            placeholder={t('testimonial_form.write_content')}
+          <MarkdownEditor
             value={formData.content}
-            onChange={(e) => onInputChange('content', e.target.value)}
-            disabled={loading}
-            className={`border-0 text-base placeholder:text-gray-400 focus:ring-0 p-0 min-h-[120px] resize-none ${errors.content ? 'border-red-500' : ''}`}
+            onChange={(value) => onInputChange('content', value)}
+            placeholder={t('testimonial_form.write_content')}
+            error={errors.content}
+            height={200}
+            className="w-full"
           />
-          {errors.content && <p className="text-red-500 text-sm mt-1">{errors.content}</p>}
         </div>
 
         {/* Image Previews */}
@@ -411,8 +414,17 @@ function EditForm({
         <div className="flex items-center space-x-4">
           {/* Photo/Video Upload */}
           <label className="flex items-center space-x-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 px-3 py-2 rounded-lg cursor-pointer transition-colors">
-            <ImageIcon className="h-5 w-5" />
-            <span className="text-sm font-medium">{t('testimonial_form.photo_video')}</span>
+            {uploadingImage ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500"></div>
+                <span className="text-sm font-medium">{t('testimonial_form.uploading_images')}</span>
+              </>
+            ) : (
+              <>
+                <ImageIcon className="h-5 w-5" />
+                <span className="text-sm font-medium">{t('testimonial_form.photo_video')}</span>
+              </>
+            )}
             <input
               type="file"
               multiple
