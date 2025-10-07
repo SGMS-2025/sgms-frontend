@@ -18,7 +18,7 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isDisabling, setIsDisabling] = useState(false);
   const [showConfirmDisable, setShowConfirmDisable] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<{
     startTimeLocal?: string;
     endTimeLocal?: string;
@@ -40,8 +40,30 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
         title: `${workShift.staffId?.userId?.fullName || workShift.staffId?.firstName || t('common.unknown')} - ${t('workshift.work_shift')}`
       });
       setError(null);
+      // Reset loading states when workShift changes
+      setIsDisabling(false);
+      setIsLoading(false);
+      setShowConfirmDisable(false);
     }
   }, [workShift, t]);
+
+  // Reset states when modal closes or opens
+  useEffect(() => {
+    if (!isOpen) {
+      setIsDisabling(false);
+      setIsLoading(false);
+      setShowConfirmDisable(false);
+      setError(null);
+      setIsEditing(false);
+    } else {
+      // Reset states when modal opens to ensure clean state
+      setIsDisabling(false);
+      setIsLoading(false);
+      setShowConfirmDisable(false);
+      setError(null);
+      setIsEditing(false);
+    }
+  }, [isOpen]);
 
   const handleSave = async () => {
     if (!workShift) return;
@@ -113,14 +135,21 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
     setIsDisabling(true);
     setError(null);
 
-    const response = await workShiftApi.disableWorkShift(workShift._id);
+    try {
+      const response = await workShiftApi.disableWorkShift(workShift._id);
 
-    if (response.success) {
-      onUpdate?.(response.data);
-      setShowConfirmDisable(false);
-      onClose();
-    } else {
-      setError(response.message || t('workshift.disable_error'));
+      if (response.success) {
+        onUpdate?.(response.data);
+        setShowConfirmDisable(false);
+        setIsDisabling(false); // Reset disabling state
+        onClose();
+      } else {
+        setError(response.message || t('workshift.disable_error'));
+        setIsDisabling(false); // Reset disabling state on error
+      }
+    } catch {
+      setError(t('workshift.disable_error'));
+      setIsDisabling(false); // Reset disabling state on error
     }
   };
 
@@ -410,15 +439,6 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
               )}
             </div>
           </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="px-4 pb-4">
-              <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                <div className="text-sm text-red-600">{error}</div>
-              </div>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
 

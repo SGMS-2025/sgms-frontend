@@ -113,6 +113,11 @@ const CreateWorkShiftModal: React.FC<CreateWorkShiftModalProps> = ({ isOpen, onC
   }, [selectedDate, setValue]);
 
   const onSubmit = async (data: CreateWorkShiftFormData) => {
+    // Prevent double submission
+    if (loading) {
+      return;
+    }
+
     // Convert form data to API format using helpers
     const createData: CreateWorkShiftRequest = {
       staffId: data.staffId,

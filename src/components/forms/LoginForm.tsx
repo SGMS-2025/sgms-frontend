@@ -28,7 +28,7 @@ export function LoginForm() {
       password
     };
 
-    await handleLogin(loginData, rememberMe, selectedRole);
+    await handleLogin(loginData, rememberMe);
   };
 
   return (

@@ -111,6 +111,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = useCallback(async () => {
     await authApi.logout();
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
     dispatch({ type: 'LOGOUT' });
   }, []);
 
@@ -134,3 +136,6 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
+// Export types separately to avoid fast refresh issues
+// Types are already exported above, no need to re-export

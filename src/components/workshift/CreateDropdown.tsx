@@ -9,11 +9,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Plus, ChevronDown, Calendar, Clock } from 'lucide-react';
 import { cn } from '@/utils/utils';
+import { useWorkshiftPermissions } from '@/hooks/useWorkshiftPermissions';
 import type { CreateDropdownProps } from '@/types/api/WorkShift';
 
 const CreateDropdown: React.FC<CreateDropdownProps> = ({ onCreateWorkShift, onCreateSchedule, className }) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
+  const { canCreateWorkshift } = useWorkshiftPermissions();
 
   const handleCreateWorkShift = () => {
     setIsOpen(false);
@@ -24,6 +26,11 @@ const CreateDropdown: React.FC<CreateDropdownProps> = ({ onCreateWorkShift, onCr
     setIsOpen(false);
     onCreateSchedule();
   };
+
+  // If user cannot create workshifts, don't render the dropdown
+  if (!canCreateWorkshift()) {
+    return null;
+  }
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
