@@ -749,7 +749,8 @@
   "equipment.stt": "No.",
   "equipment.code": "Code",
   "equipment.no_equipment": "No equipment found",
-  "equipment.confirm_delete": "Are you sure you want to delete this equipment?",
+  "equipment.confirm_delete": "Confirm delete equipment",
+  "equipment.confirm_delete_message": "Are you sure you want to delete this equipment?",
   "equipment.delete_success": "Equipment deleted successfully!",
   "equipment.delete_failed": "Error deleting equipment",
   "equipment_code_required": "Equipment code is required",
@@ -1465,6 +1466,7 @@
   "testimonial_form.write_content": "Write your content",
   "testimonial_form.preview": "Preview",
   "testimonial_form.photo_video": "Photo/Video",
+  "testimonial_form.uploading_images": "Uploading...",
   "testimonial_form.posting": "Posting...",
   "testimonial_form.post": "Post",
   "testimonial_modal.testimonial_details": "Testimonial Details",
@@ -1472,5 +1474,11 @@
   "testimonial_modal.view_testimonial_details": "View testimonial details",
   "testimonial_modal.photos": "Photos",
   "common.more": "more",
-  "dashboard.details": "Details"
+  "dashboard.details": "Details",
+  "markdown.markdown_editor": "Markdown Editor",
+  "markdown.preview": "Preview",
+  "markdown.edit": "Edit",
+  "markdown.split": "Split",
+  "markdown.placeholder": "Write your content in Markdown...",
+  "markdown.help_text": "Use Markdown syntax to format your text. Supports **bold**, *italic*, links, lists, and more."
 }

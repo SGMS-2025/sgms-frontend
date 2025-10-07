@@ -752,7 +752,8 @@
   "equipment.stt": "STT",
   "equipment.code": "Mã",
   "equipment.no_equipment": "Không có thiết bị nào",
-  "equipment.confirm_delete": "Bạn có chắc chắn muốn xóa thiết bị này?",
+  "equipment.confirm_delete": " Xác nhận xóa thiết bị",
+  "equipment.confirm_delete_message": "Bạn có chắc chắn muốn xóa thiết bị này?",
   "equipment.delete_success": "Xóa thiết bị thành công!",
   "equipment.delete_failed": "Có lỗi xảy ra khi xóa thiết bị",
   "equipment_code_required": "Mã thiết bị là bắt buộc",
@@ -1465,6 +1466,7 @@
   "testimonial_form.write_content": "Viết nội dung của bạn",
   "testimonial_form.preview": "Xem trước",
   "testimonial_form.photo_video": "Ảnh/Video",
+  "testimonial_form.uploading_images": "Đang tải lên...",
   "testimonial_form.posting": "Đang đăng...",
   "testimonial_form.post": "Đăng",
   "testimonial_modal.testimonial_details": "Chi tiết đánh giá",
@@ -1472,5 +1474,11 @@
   "testimonial_modal.view_testimonial_details": "Xem chi tiết đánh giá",
   "testimonial_modal.photos": "Ảnh",
   "common.more": "thêm",
-  "dashboard.details": "Chi tiết"
+  "dashboard.details": "Chi tiết",
+  "markdown.markdown_editor": "Trình soạn thảo Markdown",
+  "markdown.preview": "Xem trước",
+  "markdown.edit": "Chỉnh sửa",
+  "markdown.split": "Chia đôi",
+  "markdown.placeholder": "Viết nội dung của bạn bằng Markdown...",
+  "markdown.help_text": "Sử dụng cú pháp Markdown để định dạng văn bản. Hỗ trợ **in đậm**, *in nghiêng*, liên kết, danh sách và nhiều hơn nữa."
 }

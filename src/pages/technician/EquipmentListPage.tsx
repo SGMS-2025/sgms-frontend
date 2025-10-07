@@ -7,6 +7,16 @@ import { QRCodeButton } from '../../components/QRCodeButton';
 import { EquipmentDetailModal } from '../../components/modals/EquipmentDetailModal';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog';
+import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -55,6 +65,8 @@ export const EquipmentListPage: React.FC = () => {
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [equipmentToDelete, setEquipmentToDelete] = useState<Equipment | null>(null);
 
   const {
     equipments,
@@ -119,13 +131,20 @@ export const EquipmentListPage: React.FC = () => {
     };
   }, []);
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm(t('equipment.confirm_delete'))) {
-      await deleteEquipment(id);
-      refetchEquipments();
-      refetchStats();
-      toast.success(t('equipment.delete_success'));
-    }
+  const handleDelete = (equipment: Equipment) => {
+    setEquipmentToDelete(equipment);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!equipmentToDelete) return;
+
+    await deleteEquipment(equipmentToDelete._id);
+    refetchEquipments();
+    refetchStats();
+    toast.success(t('equipment.delete_success'));
+    setShowDeleteDialog(false);
+    setEquipmentToDelete(null);
   };
 
   const handleViewEquipment = (equipment: Equipment) => {
@@ -165,7 +184,7 @@ export const EquipmentListPage: React.FC = () => {
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
 
-    if (window.confirm(t('equipment.confirm_delete'))) {
+    if (window.confirm(t('equipment.confirm_bulk_delete', { count: selectedIds.length }))) {
       const deletePromises = selectedIds.map((id) => deleteEquipment(id));
       await Promise.all(deletePromises);
 
@@ -675,7 +694,7 @@ export const EquipmentListPage: React.FC = () => {
                             </button>
                             <button
                               className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-orange-100 bg-orange-50 text-orange-500 transition-colors hover:bg-orange-100"
-                              onClick={() => handleDelete(equipment._id)}
+                              onClick={() => handleDelete(equipment)}
                               title="Xóa"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -826,6 +845,33 @@ export const EquipmentListPage: React.FC = () => {
           handleEdit(equipment);
         }}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('equipment.confirm_delete')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('equipment.confirm_delete_message', {
+                equipmentName: equipmentToDelete?.equipmentName || ''
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDeleteDialog(false)}>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700" disabled={deleteLoading}>
+              {deleteLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  {t('equipment.deleting')}
+                </>
+              ) : (
+                t('common.delete')
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
