@@ -15,7 +15,8 @@ import {
   LogOut,
   UserCircle,
   ShieldCheck as Shield,
-  PanelLeft
+  PanelLeft,
+  X
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -88,7 +89,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
 };
 
 const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
-  const { toggle, setCollapsed } = useSidebar();
+  const { toggle, setCollapsed, setMobileOpen } = useSidebar();
 
   return (
     <div className="flex items-center gap-3 px-3 py-4 border-b border-gray-200 dark:border-gray-800">
@@ -103,21 +104,31 @@ const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
       >
         <img src="/src/assets/images/logo2.png" alt="GYM SMART Logo" className="w-6 h-6 object-contain" />
       </button>
+
       {!isCollapsed && (
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold text-gray-900 truncate">
-            <span className="text-orange-500">GYM</span>
-            <span className="text-gray-800">SMART</span>
-          </h1>
+          <h1 className="text-lg font-bold text-gray-900 truncate">GYM SMART</h1>
+          <p className="text-xs text-gray-500 truncate">Technician</p>
         </div>
       )}
 
-      {/* Show the toggle on the right when expanded; hide when collapsed */}
+      {/* Mobile Close Button */}
+      <button
+        type="button"
+        className="lg:hidden flex-shrink-0 p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
+        onClick={() => setMobileOpen(false)}
+        title="Đóng menu"
+        aria-label="Đóng menu"
+      >
+        <X className="w-4 h-4" />
+      </button>
+
+      {/* Desktop Toggle Button */}
       {!isCollapsed && (
         <button
           type="button"
+          className="hidden lg:flex ml-auto h-8 w-8 rounded-lg items-center justify-center transition-colors bg-gray-100 text-gray-700 hover:bg-orange-50 hover:text-orange-600 active:bg-orange-100 active:shadow-inner dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
           onClick={toggle}
-          className="ml-auto h-8 w-8 rounded-lg flex items-center justify-center transition-colors bg-gray-100 text-gray-700 hover:bg-orange-50 hover:text-orange-600 active:bg-orange-100 active:shadow-inner dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
           aria-pressed={!isCollapsed}
           aria-label="Đóng sidebar"
           title="Đóng sidebar"
@@ -329,7 +340,7 @@ export const TechnicianSidebar: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, setMobileOpen } = useSidebar();
   const { currentBranch, branches, setCurrentBranch, switchBranch } = useBranch();
   const { user: authUser, isAuthenticated } = useAuthState();
   const { updateUser, logout } = useAuthActions();
@@ -393,6 +404,12 @@ export const TechnicianSidebar: React.FC = () => {
     navigate('/manage/add-branch');
   };
 
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    // Close mobile sidebar after navigation
+    setMobileOpen(false);
+  };
+
   const mainNavItems: Array<{
     icon: React.ReactNode;
     label: string;
@@ -404,17 +421,13 @@ export const TechnicianSidebar: React.FC = () => {
       icon: <LayoutDashboard className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.dashboard'),
       isActive: location.pathname === '/manage/technician',
-      onClick: () => {
-        navigate('/manage/technician');
-      }
+      onClick: () => handleNavigation('/manage/technician')
     },
     {
       icon: <Dumbbell className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.equipment'),
       isActive: location.pathname.startsWith('/manage/technician/equipment'),
-      onClick: () => {
-        navigate('/manage/technician/equipment');
-      }
+      onClick: () => handleNavigation('/manage/technician/equipment')
     }
   ];
 
@@ -425,17 +438,13 @@ export const TechnicianSidebar: React.FC = () => {
         icon: <Wrench className="w-5 h-5 stroke-[1.75]" />,
         label: t('sidebar.maintenance'),
         isActive: location.pathname.startsWith('/manage/technician/maintenance'),
-        onClick: () => {
-          navigate('/manage/technician/maintenance');
-        }
+        onClick: () => handleNavigation('/manage/technician/maintenance')
       },
       {
         icon: <BarChart3 className="w-5 h-5 stroke-[1.75]" />,
         label: t('sidebar.reports'),
         isActive: location.pathname.startsWith('/manage/technician/reports'),
-        onClick: () => {
-          navigate('/manage/technician/reports');
-        }
+        onClick: () => handleNavigation('/manage/technician/reports')
       }
     );
   }
@@ -446,9 +455,7 @@ export const TechnicianSidebar: React.FC = () => {
       icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.schedule'),
       isActive: location.pathname.startsWith('/manage/technician/schedule'),
-      onClick: () => {
-        navigate('/manage/technician/schedule');
-      }
+      onClick: () => handleNavigation('/manage/technician/schedule')
     });
   }
 
@@ -457,9 +464,7 @@ export const TechnicianSidebar: React.FC = () => {
     icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
     label: t('technician.sidebar.schedule', 'My Schedule'),
     isActive: location.pathname.startsWith('/manage/technician/calendar'),
-    onClick: () => {
-      navigate('/manage/technician/calendar');
-    }
+    onClick: () => handleNavigation('/manage/technician/calendar')
   });
 
   // For OWNER, Manager - show management links
@@ -469,17 +474,13 @@ export const TechnicianSidebar: React.FC = () => {
         icon: <Building className="w-5 h-5 stroke-[1.75]" />,
         label: 'Chi nhánh',
         isActive: false,
-        onClick: () => {
-          navigate('/manage/owner');
-        }
+        onClick: () => handleNavigation('/manage/owner')
       },
       {
         icon: <Users className="w-5 h-5 stroke-[1.75]" />,
         label: 'Nhân viên',
         isActive: false,
-        onClick: () => {
-          navigate('/manage/staff');
-        }
+        onClick: () => handleNavigation('/manage/staff')
       }
     );
   }
@@ -499,7 +500,7 @@ export const TechnicianSidebar: React.FC = () => {
 
   return (
     <div
-      className={`bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0 transition-all duration-300 ${
+      className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out h-full ${
         isCollapsed ? 'w-16' : 'w-64'
       }`}
     >

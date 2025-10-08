@@ -67,11 +67,11 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
 
     const popoverContent = (
       <PopoverContent
-        side="right"
-        align="end"
-        alignOffset={collapsed ? -12 : 0}
-        sideOffset={collapsed ? 8 : 12}
-        className="w-80 p-0 border-gray-200 shadow-lg"
+        side="bottom"
+        align="start"
+        alignOffset={0}
+        sideOffset={8}
+        className="w-80 max-w-[calc(100vw-2rem)] sm:max-w-none p-0 border-gray-200 shadow-lg sm:!side-right sm:!align-end"
       >
         <div className="h-80 p-4 space-y-3">
           {/* Header */}
