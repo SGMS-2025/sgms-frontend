@@ -120,14 +120,14 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-3 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-gray-900">
+          <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">
             {t('equipment.qr_code')} - {equipment.equipmentName}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Error Display */}
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md">
@@ -146,10 +146,12 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
           {/* Equipment Info */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-medium text-gray-900">{t('equipment.qr_code_info')}</CardTitle>
+              <CardTitle className="text-base sm:text-lg font-medium text-gray-900">
+                {t('equipment.qr_code_info')}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                 <div>
                   <span className="text-gray-600">{t('equipment.equipment_code')}:</span>
                   <span className="ml-2 font-medium">{equipment.equipmentCode}</span>
@@ -172,20 +174,19 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
 
           {/* QR Code Display */}
           <Card>
-            <CardContent className="text-center pt-6">
+            <CardContent className="text-center pt-4 sm:pt-6">
               {loading ? (
-                <div className="flex items-center justify-center h-64">
-                  <RefreshCw className="animate-spin text-blue-500" size={32} />
-                  <span className="ml-2 text-gray-600">{t('equipment.qr_code_generating')}</span>
+                <div className="flex flex-col sm:flex-row items-center justify-center h-48 sm:h-64 gap-2 sm:gap-0">
+                  <RefreshCw className="animate-spin text-blue-500" size={24} />
+                  <span className="text-sm sm:text-base text-gray-600">{t('equipment.qr_code_generating')}</span>
                 </div>
               ) : qrImageUrl ? (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div className="flex justify-center">
                     <img
                       src={qrImageUrl}
                       alt={`${t('equipment.qr_code')} - ${equipment.equipmentName}`}
-                      className="border-2 border-gray-200 rounded-lg shadow-sm"
-                      style={{ maxWidth: '300px', maxHeight: '300px' }}
+                      className="border-2 border-gray-200 rounded-lg shadow-sm w-full max-w-[250px] sm:max-w-[300px] h-auto"
                       onError={(e) => {
                         console.error('QR code image failed to load:', e);
                       }}
@@ -193,9 +194,13 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-600 mb-4">{t('equipment.qr_code_error')}</p>
-                  <Button onClick={handleGenerateQRCode} disabled={loading} className="bg-blue-500 hover:bg-blue-600">
+                <div className="text-center py-6 sm:py-8">
+                  <p className="text-sm sm:text-base text-gray-600 mb-4">{t('equipment.qr_code_error')}</p>
+                  <Button
+                    onClick={handleGenerateQRCode}
+                    disabled={loading}
+                    className="bg-blue-500 hover:bg-blue-600 w-full sm:w-auto"
+                  >
                     <RefreshCw size={16} className="mr-2" />
                     {t('equipment.qr_code_generate')}
                   </Button>
@@ -206,13 +211,13 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-6 border-t">
-          <div className="flex space-x-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-4 sm:pt-6 border-t gap-3 sm:gap-0">
+          <div className="flex justify-center sm:justify-start">
             {qrData && (
               <Button
                 variant="ghost"
                 onClick={handleCopyData}
-                className="flex items-center text-sm text-gray-600 hover:text-gray-800"
+                className="flex items-center text-sm text-gray-600 hover:text-gray-800 w-full sm:w-auto justify-center sm:justify-start"
               >
                 {copied ? <Check size={16} className="mr-1" /> : <Copy size={16} className="mr-1" />}
                 {copied ? t('equipment.qr_code_copied') : t('equipment.qr_code_copy')}
@@ -220,14 +225,14 @@ export const QRCodeModal: React.FC<QRCodeModalProps> = ({
             )}
           </div>
 
-          <div className="flex space-x-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             {qrImageUrl && (
-              <Button onClick={handleDownload} className="bg-green-500 hover:bg-green-600 text-white">
+              <Button onClick={handleDownload} className="bg-green-500 hover:bg-green-600 text-white w-full sm:w-auto">
                 <Download size={16} className="mr-2" />
                 {t('equipment.qr_code_download')}
               </Button>
             )}
-            <Button variant="secondary" onClick={onClose}>
+            <Button variant="secondary" onClick={onClose} className="w-full sm:w-auto">
               {t('equipment.excel_import_close')}
             </Button>
           </div>

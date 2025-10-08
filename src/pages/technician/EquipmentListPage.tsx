@@ -366,38 +366,41 @@ export const EquipmentListPage: React.FC = () => {
 
           {/* Tabs + actions + search */}
           <div className="mb-8 flex flex-col gap-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setActiveTab('equipment')}
-                  className={`inline-flex items-center rounded-full px-6 py-2 text-sm font-medium transition-all ${
+                  className={`inline-flex items-center rounded-full px-4 sm:px-6 py-2 text-sm font-medium transition-all ${
                     activeTab === 'equipment'
                       ? 'bg-orange-500 text-white shadow-sm'
                       : 'border border-gray-200 bg-white text-gray-500 hover:border-orange-300 hover:text-orange-500'
                   }`}
                 >
-                  <Building2 className="mr-2 h-4 w-4" />
-                  {t('equipment.equipment_list')}
+                  <Building2 className="mr-1 sm:mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">{t('equipment.equipment_list')}</span>
+                  <span className="sm:hidden">Equipment</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('repair')}
-                  className={`inline-flex items-center rounded-full px-6 py-2 text-sm font-medium transition-all ${
+                  className={`inline-flex items-center rounded-full px-4 sm:px-6 py-2 text-sm font-medium transition-all ${
                     activeTab === 'repair'
                       ? 'bg-orange-500 text-white shadow-sm'
                       : 'border border-gray-200 bg-white text-gray-500 hover:border-orange-300 hover:text-orange-500'
                   }`}
                 >
-                  {t('equipment.repair_requests')}
+                  <span className="hidden sm:inline">{t('equipment.repair_requests')}</span>
+                  <span className="sm:hidden">Repair</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('maintenance')}
-                  className={`inline-flex items-center rounded-full px-6 py-2 text-sm font-medium transition-all ${
+                  className={`inline-flex items-center rounded-full px-4 sm:px-6 py-2 text-sm font-medium transition-all ${
                     activeTab === 'maintenance'
                       ? 'bg-orange-500 text-white shadow-sm'
                       : 'border border-gray-200 bg-white text-gray-500 hover:border-orange-300 hover:text-orange-500'
                   }`}
                 >
-                  {t('equipment.report_history')}
+                  <span className="hidden sm:inline">{t('equipment.report_history')}</span>
+                  <span className="sm:hidden">History</span>
                 </button>
               </div>
 
@@ -408,11 +411,12 @@ export const EquipmentListPage: React.FC = () => {
                   </span>
                 )}
                 <button
-                  className="h-11 rounded-full bg-orange-500 px-6 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 flex items-center gap-2"
+                  className="h-11 rounded-full bg-orange-500 px-4 sm:px-6 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 flex items-center gap-2"
                   onClick={() => navigate(`${getBasePath()}/add`)}
                 >
                   <Plus className="h-4 w-4" />
-                  {t('equipment.add_equipment')}
+                  <span className="hidden sm:inline">{t('equipment.add_equipment')}</span>
+                  <span className="sm:hidden">Add</span>
                 </button>
               </div>
             </div>
@@ -429,109 +433,113 @@ export const EquipmentListPage: React.FC = () => {
                 <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               </div>
 
-              {/* Category Filter */}
-              <div className="relative dropdown-container">
-                <button
-                  onClick={() => {
-                    setShowCategoryDropdown(!showCategoryDropdown);
-                    setShowStatusDropdown(false);
-                  }}
-                  className="h-11 px-4 border border-gray-200 rounded-full bg-white text-sm font-medium text-gray-700 hover:border-orange-300 hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 flex items-center justify-between min-w-[160px]"
-                >
-                  <span className="truncate flex-1 text-left">
-                    {selectedCategory
-                      ? EQUIPMENT_CATEGORY_DISPLAY[selectedCategory as keyof typeof EQUIPMENT_CATEGORY_DISPLAY]
-                      : t('equipment.all_categories')}
-                  </span>
-                  <ChevronDown
-                    className={`h-4 w-4 text-gray-400 transition-transform duration-200 ml-2 flex-shrink-0 ${showCategoryDropdown ? 'rotate-180' : ''}`}
-                  />
-                </button>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+                {/* Category Filter */}
+                <div className="relative dropdown-container">
+                  <button
+                    onClick={() => {
+                      setShowCategoryDropdown(!showCategoryDropdown);
+                      setShowStatusDropdown(false);
+                    }}
+                    className="h-11 px-3 sm:px-4 border border-gray-200 rounded-full bg-white text-sm font-medium text-gray-700 hover:border-orange-300 hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 flex items-center justify-between w-full sm:min-w-[140px] lg:min-w-[160px]"
+                  >
+                    <span className="truncate flex-1 text-left text-xs sm:text-sm">
+                      {selectedCategory
+                        ? EQUIPMENT_CATEGORY_DISPLAY[selectedCategory as keyof typeof EQUIPMENT_CATEGORY_DISPLAY]
+                        : t('equipment.all_categories')}
+                    </span>
+                    <ChevronDown
+                      className={`h-4 w-4 text-gray-400 transition-transform duration-200 ml-2 flex-shrink-0 ${showCategoryDropdown ? 'rotate-180' : ''}`}
+                    />
+                  </button>
 
-                {showCategoryDropdown && (
-                  <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-2">
-                    <button
-                      onClick={() => {
-                        setSelectedCategory('');
-                        setShowCategoryDropdown(false);
-                      }}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between ${
-                        selectedCategory === '' ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
-                      }`}
-                    >
-                      <span>{t('equipment.all_categories')}</span>
-                      {selectedCategory === '' && <Check className="h-4 w-4 text-orange-500" />}
-                    </button>
-                    {Object.entries(EQUIPMENT_CATEGORY_DISPLAY).map(([key, value]) => (
+                  {showCategoryDropdown && (
+                    <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-2">
                       <button
-                        key={key}
                         onClick={() => {
-                          setSelectedCategory(key);
+                          setSelectedCategory('');
                           setShowCategoryDropdown(false);
                         }}
                         className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between ${
-                          selectedCategory === key ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
+                          selectedCategory === '' ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
                         }`}
                       >
-                        <span>{value}</span>
-                        {selectedCategory === key && <Check className="h-4 w-4 text-orange-500" />}
+                        <span>{t('equipment.all_categories')}</span>
+                        {selectedCategory === '' && <Check className="h-4 w-4 text-orange-500" />}
                       </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Status Filter */}
-              <div className="relative dropdown-container">
-                <button
-                  onClick={() => {
-                    setShowStatusDropdown(!showStatusDropdown);
-                    setShowCategoryDropdown(false);
-                  }}
-                  className="h-11 px-4 border border-gray-200 rounded-full bg-white text-sm font-medium text-gray-700 hover:border-orange-300 hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 flex items-center justify-between min-w-[160px]"
-                >
-                  <span className="truncate flex-1 text-left">
-                    {selectedStatus ? getEquipmentStatusDisplay(selectedStatus, t).label : t('equipment.all_statuses')}
-                  </span>
-                  <ChevronDown
-                    className={`h-4 w-4 text-gray-400 transition-transform duration-200 ml-2 flex-shrink-0 ${showStatusDropdown ? 'rotate-180' : ''}`}
-                  />
-                </button>
-
-                {showStatusDropdown && (
-                  <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-2">
-                    <button
-                      onClick={() => {
-                        setSelectedStatus('');
-                        setShowStatusDropdown(false);
-                      }}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between ${
-                        selectedStatus === '' ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
-                      }`}
-                    >
-                      <span>{t('equipment.all_statuses')}</span>
-                      {selectedStatus === '' && <Check className="h-4 w-4 text-orange-500" />}
-                    </button>
-                    {['ACTIVE', 'INACTIVE', 'MAINTENANCE', 'REPAIR', 'RETIRED'].map((key) => {
-                      const statusDisplay = getEquipmentStatusDisplay(key, t);
-                      return (
+                      {Object.entries(EQUIPMENT_CATEGORY_DISPLAY).map(([key, value]) => (
                         <button
                           key={key}
                           onClick={() => {
-                            setSelectedStatus(key);
-                            setShowStatusDropdown(false);
+                            setSelectedCategory(key);
+                            setShowCategoryDropdown(false);
                           }}
                           className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between ${
-                            selectedStatus === key ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
+                            selectedCategory === key ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
                           }`}
                         >
-                          <span>{statusDisplay.label}</span>
-                          {selectedStatus === key && <Check className="h-4 w-4 text-orange-500" />}
+                          <span>{value}</span>
+                          {selectedCategory === key && <Check className="h-4 w-4 text-orange-500" />}
                         </button>
-                      );
-                    })}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Status Filter */}
+                <div className="relative dropdown-container">
+                  <button
+                    onClick={() => {
+                      setShowStatusDropdown(!showStatusDropdown);
+                      setShowCategoryDropdown(false);
+                    }}
+                    className="h-11 px-3 sm:px-4 border border-gray-200 rounded-full bg-white text-sm font-medium text-gray-700 hover:border-orange-300 hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 flex items-center justify-between w-full sm:min-w-[140px] lg:min-w-[160px]"
+                  >
+                    <span className="truncate flex-1 text-left text-xs sm:text-sm">
+                      {selectedStatus
+                        ? getEquipmentStatusDisplay(selectedStatus, t).label
+                        : t('equipment.all_statuses')}
+                    </span>
+                    <ChevronDown
+                      className={`h-4 w-4 text-gray-400 transition-transform duration-200 ml-2 flex-shrink-0 ${showStatusDropdown ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+
+                  {showStatusDropdown && (
+                    <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-2">
+                      <button
+                        onClick={() => {
+                          setSelectedStatus('');
+                          setShowStatusDropdown(false);
+                        }}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between ${
+                          selectedStatus === '' ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
+                        }`}
+                      >
+                        <span>{t('equipment.all_statuses')}</span>
+                        {selectedStatus === '' && <Check className="h-4 w-4 text-orange-500" />}
+                      </button>
+                      {['ACTIVE', 'INACTIVE', 'MAINTENANCE', 'REPAIR', 'RETIRED'].map((key) => {
+                        const statusDisplay = getEquipmentStatusDisplay(key, t);
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => {
+                              setSelectedStatus(key);
+                              setShowStatusDropdown(false);
+                            }}
+                            className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between ${
+                              selectedStatus === key ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
+                            }`}
+                          >
+                            <span>{statusDisplay.label}</span>
+                            {selectedStatus === key && <Check className="h-4 w-4 text-orange-500" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <button
@@ -584,8 +592,8 @@ export const EquipmentListPage: React.FC = () => {
             <span>{t('dashboard.select_all')}</span>
           </button>
 
-          {/* Table */}
-          <div className="mt-4 overflow-hidden rounded-2xl border border-orange-100 shadow-sm">
+          {/* Desktop Table */}
+          <div className="hidden lg:block mt-4 overflow-hidden rounded-2xl border border-orange-100 shadow-sm">
             <table className="w-full text-left">
               <thead className="bg-[#FFF7EF]">
                 <tr>
@@ -707,6 +715,131 @@ export const EquipmentListPage: React.FC = () => {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="lg:hidden mt-4 space-y-3">
+            {loading ? (
+              <div className="p-4 space-y-4">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div key={index} className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                        <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse" />
+                      </div>
+                      <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+                      <div className="h-3 w-20 bg-gray-200 rounded animate-pulse" />
+                      <div className="h-4 w-48 bg-gray-200 rounded animate-pulse" />
+                      <div className="flex justify-between">
+                        <div className="h-3 w-20 bg-gray-200 rounded animate-pulse" />
+                        <div className="h-3 w-20 bg-gray-200 rounded animate-pulse" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : equipments.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">
+                <Building2 className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <p>{t('equipment.no_equipment')}</p>
+              </div>
+            ) : (
+              equipments.map((equipment, index) => {
+                const statusDisplay = getStatusDisplay(equipment.status);
+                return (
+                  <div
+                    key={equipment._id}
+                    className={`bg-white border border-gray-200 rounded-lg p-4 ${
+                      selectedIds.includes(equipment._id) ? 'ring-2 ring-orange-200 bg-orange-50/50' : ''
+                    }`}
+                  >
+                    <div className="space-y-3">
+                      {/* Header with checkbox and status */}
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center space-x-3">
+                          <Checkbox
+                            checked={selectedIds.includes(equipment._id)}
+                            onCheckedChange={() => handleSelectEquipment(equipment._id)}
+                          />
+                          <span className="text-sm font-medium text-gray-600">
+                            #{(currentPage - 1) * 10 + index + 1}
+                          </span>
+                        </div>
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
+                            statusDisplay.color === 'green'
+                              ? 'bg-green-50 text-green-600'
+                              : statusDisplay.color === 'yellow'
+                                ? 'bg-yellow-50 text-yellow-600'
+                                : statusDisplay.color === 'red'
+                                  ? 'bg-red-50 text-red-500'
+                                  : statusDisplay.color === 'orange'
+                                    ? 'bg-orange-50 text-orange-600'
+                                    : 'bg-gray-50 text-gray-600'
+                          }`}
+                        >
+                          {statusDisplay.icon} {statusDisplay.label}
+                        </span>
+                      </div>
+
+                      {/* Equipment name */}
+                      <div>
+                        <h3 className="font-semibold text-gray-900 text-base">{equipment.equipmentName}</h3>
+                        <p className="text-sm text-gray-500">Code: {equipment.equipmentCode}</p>
+                      </div>
+
+                      {/* Category */}
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Category:</span> {EQUIPMENT_CATEGORY_DISPLAY[equipment.category]}
+                      </div>
+
+                      {/* Purchase date */}
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Purchase Date:</span>{' '}
+                        {new Date(equipment.dateOfPurchase).toLocaleDateString('vi-VN')}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-orange-200 hover:text-orange-500"
+                            onClick={() => handleViewEquipment(equipment)}
+                            title="Xem chi tiết"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <QRCodeButton
+                            equipment={equipment}
+                            size="sm"
+                            variant="outline"
+                            showText={false}
+                            onQRGenerated={() => {
+                              refetchEquipments();
+                            }}
+                          />
+                          <button
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-orange-200 hover:text-orange-500"
+                            onClick={() => handleEdit(equipment)}
+                            title="Chỉnh sửa"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-orange-100 bg-orange-50 text-orange-500 transition-colors hover:bg-orange-100"
+                            onClick={() => handleDelete(equipment)}
+                            title="Xóa"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
 
           {/* Pagination Info and Controls */}
