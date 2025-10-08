@@ -137,31 +137,33 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
         <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-6 lg:p-8">
           {/* Header */}
           <div className="flex flex-col gap-6 mb-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <span className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-orange-500">
                   <Dumbbell className="h-3.5 w-3.5" />
                   {t('equipment.equipment_management')}
                 </span>
-                <h2 className="mt-3 text-2xl font-semibold text-gray-900">{title}</h2>
+                <h2 className="mt-3 text-xl sm:text-2xl font-semibold text-gray-900">{title}</h2>
                 <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 {isAddMode && onShowExcelImport && (
                   <button
                     onClick={onShowExcelImport}
-                    className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:border-orange-300 hover:text-orange-500"
+                    className="rounded-full border border-gray-300 px-3 sm:px-4 py-2 text-sm font-medium text-gray-700 hover:border-orange-300 hover:text-orange-500 flex items-center justify-center"
                   >
-                    <FileSpreadsheet className="mr-2 h-4 w-4 inline" />
-                    {t('equipment.excel_import')}
+                    <FileSpreadsheet className="mr-1 sm:mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">{t('equipment.excel_import')}</span>
+                    <span className="sm:hidden">Import</span>
                   </button>
                 )}
                 <button
                   onClick={onCancel || (() => navigate('/manage/technician/equipment'))}
-                  className="h-11 rounded-full bg-orange-500 px-6 text-sm font-semibold text-white shadow-sm hover:bg-orange-600"
+                  className="h-11 rounded-full bg-orange-500 px-4 sm:px-6 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 flex items-center justify-center"
                 >
-                  <ArrowLeft className="mr-2 h-4 w-4 inline" />
-                  {isAddMode ? t('common.back_to_list') : t('common.back')}
+                  <ArrowLeft className="mr-1 sm:mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">{isAddMode ? t('common.back_to_list') : t('common.back')}</span>
+                  <span className="sm:hidden">Back</span>
                 </button>
               </div>
             </div>
@@ -557,14 +559,14 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
             </div>
 
             {/* Submit Button */}
-            <div className="flex justify-end">
+            <div className="flex justify-center sm:justify-end">
               <button
                 type="submit"
                 disabled={loading}
-                className="h-12 rounded-full bg-orange-500 px-8 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-12 w-full sm:w-auto rounded-full bg-orange-500 px-6 sm:px-8 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center justify-center space-x-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                     <span>{isAddMode ? t('equipment.creating') : t('equipment.updating')}</span>
                   </div>

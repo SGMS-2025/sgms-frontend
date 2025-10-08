@@ -13,7 +13,9 @@ import {
   UserCircle,
   PanelLeft,
   Heart,
-  TrendingUp
+  TrendingUp,
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -57,7 +59,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   return (
     <button
       type="button"
-      className={`group relative flex w-full items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 ${
+      className={`group relative flex w-full items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 ${
         isActive ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-700 hover:bg-orange-50 hover:text-orange-500'
       } ${isCollapsed ? 'justify-center px-2' : ''}`}
       onClick={onClick}
@@ -85,7 +87,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
 };
 
 const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
-  const { toggle, setCollapsed } = useSidebar();
+  const { toggle, setCollapsed, setMobileOpen } = useSidebar();
 
   return (
     <div className="flex items-center gap-3 px-3 py-4 border-b border-gray-200 dark:border-gray-800">
@@ -108,9 +110,21 @@ const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
         </div>
       )}
 
+      {/* Mobile Close Button */}
       <button
         type="button"
-        className="flex-shrink-0 p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
+        className="lg:hidden flex-shrink-0 p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
+        onClick={() => setMobileOpen(false)}
+        title="Đóng menu"
+        aria-label="Đóng menu"
+      >
+        <X className="w-4 h-4" />
+      </button>
+
+      {/* Desktop Toggle Button */}
+      <button
+        type="button"
+        className="hidden lg:block flex-shrink-0 p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
         onClick={toggle}
         title={isCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}
         aria-label={isCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}
@@ -265,7 +279,7 @@ export const PTSidebar: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, setMobileOpen } = useSidebar();
   const { currentBranch, branches, setCurrentBranch, switchBranch } = useBranch();
   const { user: authUser, isAuthenticated } = useAuthState();
   const { updateUser, logout } = useAuthActions();
@@ -366,8 +380,20 @@ export const PTSidebar: React.FC = () => {
       label: t('pt.sidebar.reports', 'Reports'),
       path: '/manage/pt/reports',
       isActive: location.pathname.startsWith('/manage/pt/reports')
+    },
+    {
+      icon: <AlertTriangle className="w-5 h-5" />,
+      label: 'Báo cáo lỗi thiết bị',
+      path: '/manage/pt/equipment-issues',
+      isActive: location.pathname.startsWith('/manage/pt/equipment-issues')
     }
   ];
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    // Close mobile sidebar after navigation
+    setMobileOpen(false);
+  };
 
   const handleLogout = async () => {
     try {
@@ -380,7 +406,7 @@ export const PTSidebar: React.FC = () => {
 
   return (
     <div
-      className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out ${
+      className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out h-full ${
         isCollapsed ? 'w-16' : 'w-64'
       }`}
     >
@@ -409,7 +435,7 @@ export const PTSidebar: React.FC = () => {
             label={item.label}
             isActive={item.isActive}
             isCollapsed={isCollapsed}
-            onClick={() => navigate(item.path)}
+            onClick={() => handleNavigation(item.path)}
           />
         ))}
       </nav>
