@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Star } from 'lucide-react';
 import type { Testimonial, LandingPageProps } from '@/types/pages/landing';
 import { useBreakpoint } from '@/hooks/useWindowSize';
 
 const TestimonialsSection: React.FC<LandingPageProps> = ({ className = '' }) => {
+  const { t } = useTranslation();
   const [currentTestimonialSlide, setCurrentTestimonialSlide] = useState(0);
   const { isMobile } = useBreakpoint();
 
@@ -91,13 +93,23 @@ const TestimonialsSection: React.FC<LandingPageProps> = ({ className = '' }) => 
         {/* Section Title */}
         <div className="text-center mb-12 lg:mb-16">
           <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold text-slate-900 mb-4 tracking-tight">
-            Khách hàng nói gì về{' '}
-            <span className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 bg-clip-text text-transparent">
-              Gym Manager
-            </span>
+            {t('landing.testimonials.title')
+              .split('{highlight}')
+              .map((part, index) =>
+                index === 0 ? (
+                  part
+                ) : (
+                  <React.Fragment key={`testimonials-title-${part.slice(0, 10)}`}>
+                    <span className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 bg-clip-text text-transparent">
+                      {t('landing.testimonials.highlight')}
+                    </span>
+                    {part}
+                  </React.Fragment>
+                )
+              )}
           </h2>
           <p className="text-base lg:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed px-4">
-            Chúng tôi tự hào về khả năng và dịch vụ của mình — và rất vui khi khách hàng cũng có cùng cảm nhận.
+            {t('landing.testimonials.subtitle')}
           </p>
         </div>
 
@@ -118,7 +130,7 @@ const TestimonialsSection: React.FC<LandingPageProps> = ({ className = '' }) => 
             >
               {testimonials.map((testimonial, i) => (
                 <Card
-                  key={i}
+                  key={`testimonial-${testimonial.name}-${i}`}
                   className="flex-shrink-0 w-72 sm:w-80 bg-white border border-slate-200/50 rounded-2xl p-4 sm:p-6 backdrop-blur-sm shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 group animate-fade-in"
                 >
                   <CardContent className="p-0">

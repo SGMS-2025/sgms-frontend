@@ -1,38 +1,40 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { cn } from '@/utils/utils';
 
+type DynamicNavigationLink = {
+  readonly id: string;
+  readonly label: string;
+  readonly href: string;
+  readonly icon?: React.ReactNode;
+};
+
 export interface DynamicNavigationProps {
   /** Navigation links */
-  links: {
-    id: string;
-    label: string;
-    href: string;
-    icon?: React.ReactNode;
-  }[];
+  readonly links: ReadonlyArray<DynamicNavigationLink>;
   /** Background color */
-  backgroundColor?: string;
+  readonly backgroundColor?: string;
   /** Text color */
-  textColor?: string;
+  readonly textColor?: string;
   /** Highlight color */
-  highlightColor?: string;
+  readonly highlightColor?: string;
   /** Glow effect intensity (0-10) */
-  glowIntensity?: number;
+  readonly glowIntensity?: number;
   /** CSS class name */
-  className?: string;
+  readonly className?: string;
   /** Whether to show labels on mobile */
-  showLabelsOnMobile?: boolean;
+  readonly showLabelsOnMobile?: boolean;
   /** Callback when a link is clicked */
-  onLinkClick?: (id: string) => void;
+  readonly onLinkClick?: (id: string) => void;
   /** Initially active link ID */
-  activeLink?: string;
+  readonly activeLink?: string;
   /** Enable ripple effect on click */
-  enableRipple?: boolean;
+  readonly enableRipple?: boolean;
   /** Theme variant */
-  variant?: 'glass' | 'solid' | 'minimal' | 'modern';
+  readonly variant?: 'glass' | 'solid' | 'minimal' | 'modern';
   /** Size variant */
-  size?: 'sm' | 'md' | 'lg';
+  readonly size?: 'sm' | 'md' | 'lg';
   /** Whether navigation is scrolled */
-  isScrolled?: boolean;
+  readonly isScrolled?: boolean;
 }
 
 export const DynamicNavigation = ({
@@ -52,7 +54,10 @@ export const DynamicNavigation = ({
 }: DynamicNavigationProps) => {
   const navRef = useRef<HTMLElement>(null);
   const highlightRef = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState<string | null>(activeLink || (links.length > 0 ? links[0].id : null));
+  const [active, setActive] = useState<string | null>(() => {
+    if (activeLink) return activeLink;
+    return links.length > 0 ? links[0].id : null;
+  });
 
   // Theme variants
   const getVariantStyles = () => {
@@ -180,13 +185,23 @@ export const DynamicNavigation = ({
     }
   };
 
-  // Handle link hover
-  const handleLinkHover = (id: string, isEntering: boolean) => {
-    if (isEntering && id !== active) {
+  // Handle link hover enter
+  const handleLinkHoverEnter = (id: string) => {
+    if (id !== active) {
       updateHighlightPosition(id);
-    } else if (!isEntering) {
-      updateHighlightPosition(active || undefined);
     }
+  };
+
+  // Handle link hover leave
+  const handleLinkHoverLeave = () => {
+    updateHighlightPosition(active || undefined);
+  };
+
+  // Get size-based text class
+  const getSizeTextClass = () => {
+    if (size === 'sm') return 'text-xs';
+    if (size === 'lg') return 'text-lg';
+    return 'text-sm';
   };
 
   // Set initial highlight position and update on changes
@@ -263,8 +278,8 @@ export const DynamicNavigation = ({
                   cn('font-semibold z-30 relative', variant === 'solid' ? 'text-white' : 'text-gray-900')
               )}
               onClick={(e) => handleLinkClick(link.id, e)}
-              onMouseEnter={() => handleLinkHover(link.id, true)}
-              onMouseLeave={() => handleLinkHover(link.id, false)}
+              onMouseEnter={() => handleLinkHoverEnter(link.id)}
+              onMouseLeave={handleLinkHoverLeave}
               style={{
                 color: active === link.id && textColor ? textColor : undefined
               }}
@@ -274,7 +289,7 @@ export const DynamicNavigation = ({
                   className={cn(
                     'flex-shrink-0 transition-transform duration-300',
                     'group-hover:scale-110',
-                    size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-lg' : 'text-sm'
+                    getSizeTextClass()
                   )}
                 >
                   {link.icon}

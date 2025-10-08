@@ -14,6 +14,7 @@ import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import ZaloCallbackPage from '@/pages/auth/ZaloCallbackPage';
 import HomePage from '@/pages/home-test';
 import LandingPage from '@/pages/landing/LandingPage';
+import OwnerLandingPage from '@/pages/landing/OwnerLandingPage';
 import GymListPage from '@/pages/gyms/GymListPage';
 import GymDetailPage from '@/pages/gyms/GymDetailPage';
 import { UserProfile } from '@/pages/profile/ProfilePage';
@@ -177,6 +178,7 @@ const AppRoutes: React.FC = () => {
     <Routes>
       {/* Root Route - redirect based on auth status */}
       <Route path="/" element={<LandingPage />} />
+      <Route path="/owners" element={<OwnerLandingPage />} />
 
       {/* Auth Routes - redirect to home if already authenticated */}
       <Route path="/login" element={isAuthenticated ? <Navigate to="/home" replace /> : <LoginPage />} />

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ChevronRight } from 'lucide-react';
 import { GymCard } from '@/components/cards/GymCard';
 import { GymCardSkeleton } from '@/components/ui/loading-skeleton';
@@ -9,6 +10,7 @@ import type { LandingPageProps } from '@/types/pages/landing';
 
 const GymLocationsSection: React.FC<LandingPageProps> = ({ className = '' }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Fetch top 3 gyms from API
   const { gymCards, loading, error, refetch } = useTopGyms();
@@ -19,13 +21,23 @@ const GymLocationsSection: React.FC<LandingPageProps> = ({ className = '' }) => 
         {/* Section Header */}
         <div className="text-center mb-12 lg:mb-16">
           <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold text-slate-900 mb-4 tracking-tight">
-            Phòng tập{' '}
-            <span className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 bg-clip-text text-transparent">
-              hàng đầu
-            </span>
+            {t('landing.gym_locations.title')
+              .split('{highlight}')
+              .map((part, index) =>
+                index === 0 ? (
+                  part
+                ) : (
+                  <React.Fragment key={index}>
+                    <span className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 bg-clip-text text-transparent">
+                      {t('landing.gym_locations.highlight')}
+                    </span>
+                    {part}
+                  </React.Fragment>
+                )
+              )}
           </h2>
           <p className="text-base lg:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed px-4">
-            Khám phá các phòng tập chuyên nghiệp với cơ sở vật chất hiện đại và đội ngũ huấn luyện viên giàu kinh nghiệm
+            {t('landing.gym_locations.subtitle')}
           </p>
         </div>
 
@@ -52,7 +64,7 @@ const GymLocationsSection: React.FC<LandingPageProps> = ({ className = '' }) => 
             className="inline-flex items-center gap-2 text-slate-600 hover:text-orange-600 transition-colors duration-300 cursor-pointer group"
             onClick={() => navigate('/gyms')}
           >
-            <span className="text-lg font-medium">Xem tất cả phòng tập</span>
+            <span className="text-lg font-medium">{t('landing.gym_locations.view_details')}</span>
             <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
           </div>
           <div className="mt-4 w-16 h-0.5 bg-gradient-to-r from-orange-500 to-purple-500 mx-auto group-hover:w-24 transition-all duration-300"></div>

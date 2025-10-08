@@ -1,6 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&family=Merriweather:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import './assets/css/animations.css';
 
 /* Custom styles for select elements to ensure borders are visible */
 select {
@@ -17,21 +18,10 @@ select:focus {
   box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2) !important;
 }
 
+/* Tailwind CSS dark mode variant - required for v4 */
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400; */
-
-  /* color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale; */
 
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -298,15 +288,15 @@ select:focus {
   letter-spacing: 0.01em;
 }
 
-/* Owner Dashboard Styles */
-select {
+/* Owner Dashboard - Additional select styles for specific components */
+.owner-dashboard select {
   background: transparent;
   border: none;
   outline: none;
   color: inherit;
 }
 
-select:focus {
+.owner-dashboard select:focus {
   outline: none;
 }
 
@@ -346,10 +336,6 @@ select:focus {
   100% {
     transform: translateX(-100%);
   }
-}
-
-.animate-scroll {
-  animation: scroll 20s linear infinite;
 }
 
 /* Hide scrollbar for all browsers */
@@ -525,7 +511,6 @@ select:focus {
   box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
   min-height: 960px; /* 16 hours × 60px = 960px */
   height: 960px;
-  position: relative;
 }
 
 /* Add horizontal lines on time sidebar to match grid lines */
@@ -660,3 +645,5 @@ select:focus {
 .calendar-time-column > div {
   display: none;
 }
+
+/* Scroll reveal animation is now in animations.css */

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MapPin, Clock, ArrowRight, ChevronRight } from 'lucide-react';
@@ -8,6 +9,7 @@ import { OFFERS, getOfferDescription } from '@/constants/landing-data';
 
 const OffersSection: React.FC<LandingPageProps> = ({ className = '' }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <section id="offers" className={`py-24 px-4 bg-slate-50 ${className}`}>
@@ -15,13 +17,23 @@ const OffersSection: React.FC<LandingPageProps> = ({ className = '' }) => {
         {/* Section Header */}
         <div className="text-center mb-12 lg:mb-16">
           <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold text-slate-900 mb-4 tracking-tight">
-            Ưu đãi{' '}
-            <span className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 bg-clip-text text-transparent">
-              hấp dẫn
-            </span>
+            {t('landing.offers.title')
+              .split('{highlight}')
+              .map((part, index) =>
+                index === 0 ? (
+                  part
+                ) : (
+                  <React.Fragment key={index}>
+                    <span className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 bg-clip-text text-transparent">
+                      {t('landing.offers.highlight')}
+                    </span>
+                    {part}
+                  </React.Fragment>
+                )
+              )}
           </h2>
           <p className="text-base lg:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed px-4">
-            Khám phá các gói tập luyện được thiết kế riêng cho mục tiêu của bạn
+            {t('landing.offers.subtitle')}
           </p>
         </div>
 
@@ -56,18 +68,21 @@ const OffersSection: React.FC<LandingPageProps> = ({ className = '' }) => {
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 text-sm">
                       <MapPin className="w-4 h-4 text-slate-600 flex-shrink-0" />
-                      <span className="font-medium text-slate-700">Địa điểm:</span>
+                      <span className="font-medium text-slate-700">{t('landing.offers.location')}</span>
                       <span className="text-slate-600">{offer.location}</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm">
                       <Clock className="w-4 h-4 text-slate-600 flex-shrink-0" />
-                      <span className="font-medium text-slate-700">Thời gian khuyến mãi:</span>
+                      <span className="font-medium text-slate-700">{t('landing.offers.time')}</span>
                       <span className="text-slate-600">{offer.time}</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm">
                       <span className="w-4 h-4 text-slate-600 font-bold flex-shrink-0">₫</span>
-                      <span className="font-medium text-slate-700">Giá dịch vụ:</span>
-                      <span className="text-slate-600">{offer.price}/ tháng</span>
+                      <span className="font-medium text-slate-700">{t('landing.offers.price')}</span>
+                      <span className="text-slate-600">
+                        {offer.price}
+                        {t('landing.offers.price_unit')}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -92,7 +107,7 @@ const OffersSection: React.FC<LandingPageProps> = ({ className = '' }) => {
                     onClick={() => navigate('/login')}
                   >
                     <span className="flex items-center justify-center gap-2">
-                      Đăng ký ngay
+                      {t('landing.offers.register_button')}
                       <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
                     </span>
                   </Button>
@@ -105,7 +120,7 @@ const OffersSection: React.FC<LandingPageProps> = ({ className = '' }) => {
         {/* View All Button - Relume style */}
         <div className="text-center mt-12 lg:mt-16">
           <div className="inline-flex items-center gap-2 text-slate-600 hover:text-orange-600 transition-colors duration-300 cursor-pointer group">
-            <span className="text-lg font-medium">Xem tất cả ưu đãi</span>
+            <span className="text-lg font-medium">{t('landing.offers.view_all')}</span>
             <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
           </div>
           <div className="mt-4 w-16 h-0.5 bg-gradient-to-r from-orange-500 to-purple-500 mx-auto group-hover:w-24 transition-all duration-300"></div>
