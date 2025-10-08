@@ -12,9 +12,16 @@ export interface EquipmentQRCode {
 
 export interface MaintenanceLog {
   _id: string;
+  title: string;
   description: string;
-  loggedBy: string;
+  images: EquipmentImage[];
+  loggedBy: {
+    _id: string;
+    fullName: string;
+    email: string;
+  };
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface EquipmentCondition {
@@ -97,7 +104,48 @@ export interface UpdateEquipmentRequest {
 }
 
 export interface AddMaintenanceLogRequest {
+  title: string;
   description: string;
+  images?: EquipmentImage[];
+}
+
+export interface UpdateMaintenanceLogRequest {
+  title?: string;
+  description?: string;
+  images?: EquipmentImage[];
+}
+
+export interface MaintenanceLogQueryParams {
+  page?: number;
+  limit?: number;
+  sortBy?: 'createdAt' | 'updatedAt' | 'title';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface MaintenanceLogListResponse {
+  success: boolean;
+  message: string;
+  data: MaintenanceLog[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+  timestamp: string;
+  requestId?: string;
+  // Legacy format support
+  maintenanceLogs?: MaintenanceLog[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
 }
 
 export interface AddEquipmentConditionRequest {

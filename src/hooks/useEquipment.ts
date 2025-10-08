@@ -8,9 +8,12 @@ import type {
   CreateEquipmentRequest,
   UpdateEquipmentRequest,
   AddMaintenanceLogRequest,
+  UpdateMaintenanceLogRequest,
+  MaintenanceLogQueryParams,
   AddEquipmentConditionRequest,
   EquipmentCategory,
-  EquipmentStatus
+  EquipmentStatus,
+  MaintenanceLog
 } from '@/types/api/Equipment';
 
 // Hook result interfaces
@@ -300,7 +303,7 @@ export const useDeleteEquipment = (): UseEquipmentMutationsReturn & {
 
       const response = await equipmentApi.deleteEquipment(equipmentId).catch((error) => {
         console.error('Delete equipment error:', error);
-        setError(error.response?.data?.message || error.message || t('equipment.delete_network_error'));
+        setError(error.response?.data?.message ?? error.message ?? t('equipment.delete_network_error'));
         setLoading(false);
         return null;
       });
@@ -587,5 +590,282 @@ export const useEquipmentsNeedingMaintenance = () => {
     loading,
     error,
     refetch
+  };
+};
+
+// Hook for maintenance logs list with pagination
+export interface UseMaintenanceLogsReturn {
+  maintenanceLogs: MaintenanceLog[];
+  loading: boolean;
+  error: string | null;
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  } | null;
+  refetch: () => Promise<void>;
+  updateFilters: (newFilters: Partial<MaintenanceLogQueryParams>) => void;
+  goToPage: (page: number) => void;
+}
+
+export const useMaintenanceLogs = (
+  equipmentId: string | null,
+  initialParams: MaintenanceLogQueryParams = {}
+): UseMaintenanceLogsReturn => {
+  const [maintenanceLogs, setMaintenanceLogs] = useState<MaintenanceLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<UseMaintenanceLogsReturn['pagination']>(null);
+  const [params, setParams] = useState<MaintenanceLogQueryParams>(initialParams);
+
+  const fetchMaintenanceLogs = useCallback(async () => {
+    if (!equipmentId) {
+      setMaintenanceLogs([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const requestParams = {
+      page: 1,
+      limit: 10,
+      ...params
+    };
+
+    // Filter out empty values to avoid backend validation errors
+    const filteredParams = Object.fromEntries(
+      Object.entries(requestParams).filter(([, value]) => {
+        if (value === undefined || value === null) return false;
+        if (typeof value === 'string') return value.length > 0;
+        if (typeof value === 'number') return value !== 0;
+        return true;
+      })
+    );
+
+    const response = await equipmentApi.getMaintenanceLogs(equipmentId, filteredParams);
+
+    if (response.success) {
+      setMaintenanceLogs(response.data || response.maintenanceLogs || []);
+
+      // Transform pagination data to match frontend interface
+      const paginationData = response.meta || response.pagination;
+      if (paginationData) {
+        const transformedPagination = {
+          currentPage: paginationData.page,
+          totalPages: paginationData.totalPages,
+          totalItems: paginationData.total,
+          itemsPerPage: paginationData.limit,
+          hasNextPage: paginationData.hasNext,
+          hasPrevPage: paginationData.hasPrev
+        };
+        setPagination(transformedPagination);
+      }
+    } else {
+      setError(response.message || 'Failed to fetch maintenance logs');
+    }
+
+    setLoading(false);
+  }, [equipmentId, params]);
+
+  const refetch = useCallback(async () => {
+    await fetchMaintenanceLogs();
+  }, [fetchMaintenanceLogs]);
+
+  const updateFilters = useCallback((newFilters: Partial<MaintenanceLogQueryParams>) => {
+    setParams((prev) => ({ ...prev, ...newFilters }));
+  }, []);
+
+  const goToPage = useCallback((page: number) => {
+    setParams((prev) => ({ ...prev, page }));
+  }, []);
+
+  useEffect(() => {
+    fetchMaintenanceLogs();
+  }, [fetchMaintenanceLogs]);
+
+  return {
+    maintenanceLogs,
+    loading,
+    error,
+    pagination,
+    refetch,
+    updateFilters,
+    goToPage
+  };
+};
+
+// Hook for getting maintenance log details by ID
+export interface UseMaintenanceLogDetailsReturn {
+  maintenanceLog: MaintenanceLog | null;
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+}
+
+export const useMaintenanceLogDetails = (
+  equipmentId: string | null,
+  logId: string | null
+): UseMaintenanceLogDetailsReturn => {
+  const [maintenanceLog, setMaintenanceLog] = useState<MaintenanceLog | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchMaintenanceLogDetails = useCallback(async () => {
+    if (!equipmentId || !logId) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const response = await equipmentApi.getMaintenanceLogById(equipmentId, logId);
+
+    if (response.success) {
+      setMaintenanceLog(response.data);
+    } else {
+      setError(response.message || 'Failed to fetch maintenance log details');
+    }
+
+    setLoading(false);
+  }, [equipmentId, logId]);
+
+  const refetch = useCallback(async () => {
+    await fetchMaintenanceLogDetails();
+  }, [fetchMaintenanceLogDetails]);
+
+  // Auto-fetch when equipmentId or logId changes
+  useEffect(() => {
+    fetchMaintenanceLogDetails();
+  }, [fetchMaintenanceLogDetails]);
+
+  return {
+    maintenanceLog,
+    loading,
+    error,
+    refetch
+  };
+};
+
+// Hook for updating maintenance log
+export const useUpdateMaintenanceLog = (): UseEquipmentMutationsReturn & {
+  updateMaintenanceLog: (
+    equipmentId: string,
+    logId: string,
+    updateData: UpdateMaintenanceLogRequest
+  ) => Promise<MaintenanceLog>;
+} => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const updateMaintenanceLog = useCallback(
+    async (equipmentId: string, logId: string, updateData: UpdateMaintenanceLogRequest): Promise<MaintenanceLog> => {
+      setLoading(true);
+      setError(null);
+
+      const response = await equipmentApi.updateMaintenanceLog(equipmentId, logId, updateData);
+
+      if (response.success) {
+        setLoading(false);
+        return response.data;
+      } else {
+        setError(response.message || 'Failed to update maintenance log');
+        setLoading(false);
+        throw new Error(response.message || 'Failed to update maintenance log');
+      }
+    },
+    []
+  );
+
+  const resetError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  return {
+    updateMaintenanceLog,
+    loading,
+    error,
+    resetError
+  };
+};
+
+// Hook for deleting maintenance log
+export const useDeleteMaintenanceLog = (): UseEquipmentMutationsReturn & {
+  deleteMaintenanceLog: (equipmentId: string, logId: string) => Promise<void>;
+} => {
+  const { t } = useTranslation();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const deleteMaintenanceLog = useCallback(
+    async (equipmentId: string, logId: string): Promise<void> => {
+      setLoading(true);
+      setError(null);
+
+      const response = await equipmentApi.deleteMaintenanceLog(equipmentId, logId).catch((error) => {
+        console.error('Delete maintenance log error:', error);
+        setError(error.response?.data?.message ?? error.message ?? t('equipment.maintenance_log_delete_network_error'));
+        setLoading(false);
+        return null;
+      });
+
+      if (response?.success) {
+        setLoading(false);
+      } else if (response) {
+        setError(response.message || t('equipment.maintenance_log_delete_failed'));
+        setLoading(false);
+      }
+    },
+    [t]
+  );
+
+  const resetError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  return {
+    deleteMaintenanceLog,
+    loading,
+    error,
+    resetError
+  };
+};
+
+// Hook for uploading maintenance log images
+export const useUploadMaintenanceLogImages = (): UseEquipmentMutationsReturn & {
+  uploadImages: (files: File[]) => Promise<{ publicId: string; url: string }[]>;
+} => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const uploadImages = useCallback(async (files: File[]): Promise<{ publicId: string; url: string }[]> => {
+    setLoading(true);
+    setError(null);
+
+    const response = await equipmentApi.uploadMaintenanceLogImages(files);
+
+    if (response.success) {
+      setLoading(false);
+      return response.data;
+    } else {
+      setError(response.message || 'Failed to upload images');
+      setLoading(false);
+      throw new Error(response.message || 'Failed to upload images');
+    }
+  }, []);
+
+  const resetError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  return {
+    uploadImages,
+    loading,
+    error,
+    resetError
   };
 };
