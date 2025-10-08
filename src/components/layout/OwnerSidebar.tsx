@@ -16,10 +16,11 @@ import {
   UserCircle,
   ShieldCheck as Shield,
   PanelLeft,
-  Globe,
   UserCheck,
-  UsersRound
+  UsersRound,
+  Bell
 } from 'lucide-react';
+import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -40,8 +41,6 @@ import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
-import { Bell } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
 // no extra popovers here; BranchSelectorButton handles its own popover
 
 interface SidebarItemProps {
@@ -194,7 +193,6 @@ const UserProfile: React.FC<{
 }> = ({ isCollapsed, user, isLoading, onLogout }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { language, setLanguage } = useLanguage();
 
   const displayName = user?.fullName || user?.username || t('sidebar.account') || 'User';
   const roleKey = user?.role ? `roles.${user.role.toLowerCase()}` : '';
@@ -275,10 +273,7 @@ const UserProfile: React.FC<{
 
       <DropdownMenuSeparator />
 
-      <DropdownMenuItem onClick={() => setLanguage(language === 'en' ? 'vi' : 'en')} className="cursor-pointer">
-        <Globe className="w-4 h-4 mr-3 stroke-[1.75]" />
-        {t('sidebar.language')} ({language === 'en' ? 'VI' : 'EN'})
-      </DropdownMenuItem>
+      <LanguageSwitcher variant="sidebar" />
 
       <DropdownMenuSeparator />
 
