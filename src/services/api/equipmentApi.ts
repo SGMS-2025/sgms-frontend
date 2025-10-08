@@ -6,11 +6,15 @@ import type {
   CreateEquipmentRequest,
   UpdateEquipmentRequest,
   AddMaintenanceLogRequest,
+  UpdateMaintenanceLogRequest,
+  MaintenanceLogQueryParams,
+  MaintenanceLogListResponse,
   AddEquipmentConditionRequest,
   EquipmentQueryParams,
   EquipmentStats,
   EquipmentListResponse,
-  ExcelImportResult
+  ExcelImportResult,
+  MaintenanceLog
 } from '../../types/api/Equipment';
 
 class EquipmentApi {
@@ -46,6 +50,45 @@ class EquipmentApi {
 
   async addMaintenanceLog(id: string, data: AddMaintenanceLogRequest): Promise<ApiResponse<Equipment>> {
     const response = await api.post(`/equipments/${id}/maintenance-logs`, data);
+    return response.data;
+  }
+
+  async getMaintenanceLogs(id: string, params: MaintenanceLogQueryParams = {}): Promise<MaintenanceLogListResponse> {
+    const response = await api.get<MaintenanceLogListResponse>(`/equipments/${id}/maintenance-logs`, { params });
+    return response.data;
+  }
+
+  async getMaintenanceLogById(id: string, logId: string): Promise<ApiResponse<MaintenanceLog>> {
+    const response = await api.get(`/equipments/${id}/maintenance-logs/${logId}`);
+    return response.data;
+  }
+
+  async updateMaintenanceLog(
+    id: string,
+    logId: string,
+    data: UpdateMaintenanceLogRequest
+  ): Promise<ApiResponse<MaintenanceLog>> {
+    const response = await api.put(`/equipments/${id}/maintenance-logs/${logId}`, data);
+    return response.data;
+  }
+
+  async deleteMaintenanceLog(id: string, logId: string): Promise<ApiResponse<null>> {
+    const response = await api.delete(`/equipments/${id}/maintenance-logs/${logId}`);
+    return response.data;
+  }
+
+  async uploadMaintenanceLogImages(files: File[]): Promise<ApiResponse<{ publicId: string; url: string }[]>> {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append(`images`, file);
+    });
+
+    const response = await api.post('/equipments/maintenance-logs/upload/images', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
     return response.data;
   }
 
