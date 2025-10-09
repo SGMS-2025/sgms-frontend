@@ -2,7 +2,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthState } from '@/hooks/useAuth';
 import { TestimonialManagement } from '@/components/dashboard/TestimonialManagement';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 
 const TestimonialPage: React.FC = () => {
   const { t } = useTranslation();
@@ -20,11 +19,8 @@ const TestimonialPage: React.FC = () => {
   }
 
   return (
-    <div className="px-3 sm:px-4 lg:px-6">
-      <DashboardHeader />
-      <div className="mt-4">
-        <TestimonialManagement />
-      </div>
+    <div>
+      <TestimonialManagement />
     </div>
   );
 };

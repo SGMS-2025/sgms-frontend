@@ -1,15 +1,16 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Calendar as CalendarIcon, Download, ChevronDown } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
+import { Search, Mail, Settings, Bell } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
+import { useSocketNotifications } from '@/hooks/useSocket';
+import { Badge } from '@/components/ui/badge';
+import { useBranch } from '@/contexts/BranchContext';
+import { BranchSelectorButton } from '@/components/dashboard/BranchSelectorButton';
+import type { BranchDisplay } from '@/types/api/Branch';
 
 interface DashboardHeaderProps {
   title?: string;
@@ -20,6 +21,9 @@ const formatSegment = (segment: string) => segment.replace(/[-_]/g, ' ').replace
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title }) => {
   const { t } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { unreadCount } = useSocketNotifications();
+  const { currentBranch, branches, setCurrentBranch, switchBranch } = useBranch();
 
   const computedTitle = React.useMemo(() => {
     if (title) return title;
@@ -38,53 +42,112 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title }) => {
     return translationMap[lastSegment] ?? formatSegment(lastSegment);
   }, [location.pathname, t, title]);
 
-  return (
-    <header className="border-b border-gray-200 pb-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <h1 className="text-2xl font-semibold leading-tight text-gray-900">{computedTitle}</h1>
+  // Branch switching handlers
+  const handleBranchSelect = (branch: BranchDisplay) => {
+    setCurrentBranch(branch);
+  };
 
-        <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-start sm:gap-3">
-          <div className="relative w-full sm:max-w-xs">
+  const handleAddBranch = () => {
+    navigate('/manage/add-branch');
+  };
+
+  const handleViewBranch = async (branch: BranchDisplay) => {
+    await switchBranch(branch._id);
+    navigate(`/manage/branch/${branch._id}`);
+  };
+
+  return (
+    <header>
+      <div className="flex items-center justify-between">
+        {/* Left side - Sidebar indicator + Title */}
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Sidebar indicator bar */}
+          <div className="w-1 h-6 sm:h-8 bg-gray-800 rounded-full"></div>
+
+          {/* Page title */}
+          <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{computedTitle}</h1>
+        </div>
+
+        {/* Center - Search bar (hidden on mobile) */}
+        <div className="hidden md:flex flex-1 max-w-md mx-4 lg:mx-8">
+          <div className="relative w-full">
             <Input
-              placeholder={t('common.search') || 'Search'}
-              className="h-9 rounded-full border border-gray-200 bg-white pl-10 text-sm shadow-sm focus:border-orange-200 focus:ring-orange-200"
+              placeholder="Type to search ..."
+              className="h-10 rounded-full border border-gray-200 bg-white pl-10 text-sm shadow-sm focus:border-orange-200 focus:ring-orange-200"
             />
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           </div>
+        </div>
 
-          <div className="flex items-center justify-end gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="inline-flex items-center gap-2 rounded-full border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:border-orange-300 hover:text-orange-500"
-                >
-                  <CalendarIcon className="h-4 w-4" />
-                  <span className="hidden sm:inline">{t('dashboard.this_month') || 'This month'}</span>
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem>{t('dashboard.today') || 'Today'}</DropdownMenuItem>
-                <DropdownMenuItem>{t('dashboard.yesterday') || 'Yesterday'}</DropdownMenuItem>
-                <DropdownMenuItem>{t('dashboard.this_week') || 'This week'}</DropdownMenuItem>
-                <DropdownMenuItem>{t('dashboard.this_month') || 'This month'}</DropdownMenuItem>
-                <DropdownMenuItem>{t('dashboard.last_month') || 'Last month'}</DropdownMenuItem>
-                <DropdownMenuItem>{t('dashboard.last_3_months') || 'Last 3 months'}</DropdownMenuItem>
-                <DropdownMenuItem>{t('dashboard.year_to_date') || 'Year to date'}</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+        {/* Right side - Icons and User Profile */}
+        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+          {/* Messages icon (hidden on mobile) */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hidden sm:flex h-10 w-10 rounded-full p-0 text-gray-600 hover:text-orange-500 hover:bg-orange-50"
+          >
+            <Mail className="h-5 w-5" />
+          </Button>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-gray-600 hover:text-orange-500"
-            >
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('dashboard.export') || 'Export'}</span>
-            </Button>
+          {/* Notifications */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-10 w-10 rounded-full p-0 text-gray-600 hover:text-orange-500 hover:bg-orange-50 relative"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Badge>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80 p-0">
+              <NotificationDropdown showBadge={false} />
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Branch Selector - Mobile */}
+          <div className="sm:hidden">
+            <BranchSelectorButton
+              currentBranch={currentBranch}
+              branches={branches}
+              onBranchSelect={handleBranchSelect}
+              onAddBranch={handleAddBranch}
+              onViewBranch={handleViewBranch}
+              collapsed
+            />
           </div>
+
+          {/* Separator (hidden on mobile) */}
+          <div className="hidden sm:block h-6 w-px bg-gray-200"></div>
+
+          {/* Branch Selector */}
+          <div className="hidden sm:block w-64 flex-shrink-0">
+            <BranchSelectorButton
+              currentBranch={currentBranch}
+              branches={branches}
+              onBranchSelect={handleBranchSelect}
+              onAddBranch={handleAddBranch}
+              onViewBranch={handleViewBranch}
+            />
+          </div>
+
+          {/* Settings icon (hidden on mobile) */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hidden sm:flex h-10 w-10 rounded-full p-0 text-gray-600 hover:text-orange-500 hover:bg-orange-50"
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
         </div>
       </div>
     </header>

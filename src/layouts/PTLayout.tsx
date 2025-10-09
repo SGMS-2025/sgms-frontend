@@ -4,6 +4,7 @@ import { PTSidebar } from '@/components/layout/PTSidebar';
 import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 
 const PTLayoutContent: React.FC = () => {
   const { isMobileOpen, setMobileOpen } = useSidebar();
@@ -41,7 +42,15 @@ const PTLayoutContent: React.FC = () => {
           <div className="w-9" /> {/* Spacer for centering */}
         </div>
 
-        <div className="p-4 lg:p-6 min-w-0 w-full">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="px-3 py-4 pb-5">
+            <DashboardHeader />
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="p-6 min-w-0 w-full">
           <Outlet />
         </div>
       </div>

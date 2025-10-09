@@ -102,7 +102,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
             {showText && <span className="font-medium">{currentLanguage.name}</span>}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-48">
+        <DropdownMenuContent align="end" side="right" sideOffset={8} className="w-48">
           {languages.map((lang) => (
             <DropdownMenuItem
               key={lang.code}

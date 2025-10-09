@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -480,16 +479,11 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   const currentTimeInfo = getCurrentTimePosition();
 
   return (
-    <div className="calendar-main-container flex h-screen bg-gray-50 overflow-hidden">
+    <div className="calendar-main-container flex h-full bg-gray-50 overflow-hidden">
       {/* Left Sidebar */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-        {/* Header - Fixed */}
+        {/* Create Actions - Fixed */}
         <div className="p-4 border-b border-gray-200 flex-shrink-0">
-          <div className="flex items-center gap-2 mb-4">
-            <CalendarIcon className="h-6 w-6 text-orange-600" />
-            <h1 className="text-xl font-semibold text-gray-900">{t('workshift.calendar')}</h1>
-          </div>
-
           <CreateDropdown
             onCreateWorkShift={handleCreateWorkShift}
             onCreateSchedule={handleCreateSchedule}
@@ -631,7 +625,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                               <button
                                 key={staff._id}
                                 className={cn(
-                                  'flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors w-full text-left',
+                                  'flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors w-full text-left',
                                   selectedStaffId === staff._id
                                     ? 'bg-orange-50 border border-orange-200'
                                     : 'hover:bg-gray-50'
@@ -640,7 +634,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                                   onStaffSelect?.(staff._id);
                                 }}
                               >
-                                <Avatar className="h-8 w-8">
+                                <Avatar className="h-9 w-9">
                                   <AvatarImage
                                     src={`https://ui-avatars.com/api/?name=${staff.userId.fullName}&background=orange&color=fff`}
                                     alt={staff.userId.fullName}
@@ -649,14 +643,10 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                                     {staff.userId.fullName.charAt(0)}
                                   </AvatarFallback>
                                 </Avatar>
-                                <div className="flex-1 min-w-0">
+                                <div className="flex-1 min-w-0 space-y-1">
                                   <p className="text-sm font-medium text-gray-900 truncate">{staff.userId.fullName}</p>
                                   <p className="text-xs text-gray-500 truncate">{staff.jobTitle}</p>
                                 </div>
-                                <Badge variant="outline" className="text-xs">
-                                  {(Array.isArray(staff.branchId) && staff.branchId[0]?.branchName) ||
-                                    t('common.not_available')}
-                                </Badge>
                               </button>
                             );
                           })}

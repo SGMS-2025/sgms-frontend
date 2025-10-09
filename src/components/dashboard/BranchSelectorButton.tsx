@@ -178,7 +178,7 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="group relative flex items-center py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 text-gray-700 hover:bg-orange-50 hover:text-orange-500 w-full gap-3 px-3"
+            className="group relative flex items-center py-2 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 text-gray-700 hover:bg-orange-50 hover:text-orange-500 w-64 max-w-64 gap-3 px-3"
             title={selectBranchLabel}
           >
             <span className="flex-shrink-0 w-5 h-5 relative">
@@ -190,13 +190,13 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
                 </AvatarFallback>
               </Avatar>
             </span>
-            <span className="flex min-w-0 flex-col flex-1 text-left">
+            <span className="flex min-w-0 flex-col flex-1 text-left overflow-hidden">
               <span className="truncate text-sm font-medium text-gray-900">
                 {currentBranch?.branchName ||
                   (branches.length > 0 ? selectBranchLabel : t('branch_selector.no_branches'))}
               </span>
               {currentBranch && (
-                <span className="flex items-center gap-1 text-xs text-gray-500 min-w-0 mt-0.5">
+                <span className="flex items-center gap-1 text-xs text-gray-500 min-w-0 mt-0.5 overflow-hidden">
                   <MapPin className="h-3 w-3 flex-shrink-0" />
                   <span className="truncate">{currentBranch.location}</span>
                 </span>

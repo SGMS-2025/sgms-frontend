@@ -9,7 +9,7 @@ const TechnicianCalendarPage: React.FC = () => {
   };
 
   return (
-    <div className="h-screen">
+    <div className="h-full">
       <StaffScheduleCalendar selectedStaffId={selectedStaffId} onStaffSelect={handleStaffSelect} />
     </div>
   );
