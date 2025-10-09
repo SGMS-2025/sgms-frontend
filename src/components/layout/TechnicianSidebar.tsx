@@ -16,7 +16,8 @@ import {
   UserCircle,
   ShieldCheck as Shield,
   PanelLeft,
-  X
+  X,
+  FileText
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -465,6 +466,14 @@ export const TechnicianSidebar: React.FC = () => {
     label: t('technician.sidebar.schedule', 'My Schedule'),
     isActive: location.pathname.startsWith('/manage/technician/calendar'),
     onClick: () => handleNavigation('/manage/technician/calendar')
+  });
+
+  // Add equipment issue history for technician
+  mainNavItems.push({
+    icon: <FileText className="w-5 h-5 stroke-[1.75]" />,
+    label: t('technician.sidebar.equipmentIssueHistory', 'Lịch sử báo cáo thiết bị'),
+    isActive: location.pathname.startsWith('/manage/technician/equipment-issues'),
+    onClick: () => handleNavigation('/manage/technician/equipment-issues')
   });
 
   // For OWNER, Manager - show management links

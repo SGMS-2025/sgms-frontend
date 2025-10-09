@@ -251,7 +251,7 @@ export const EquipmentIssueReportForm: React.FC<EquipmentIssueReportFormProps> =
         <div className="flex flex-col sm:flex-row gap-3 pt-4">
           <Button
             type="submit"
-            disabled={!selectedEquipment || !reason.trim() || loading}
+            disabled={!selectedEquipment || !reason.trim() || loading || uploadingImages}
             className="flex-1 bg-orange-500 hover:bg-orange-600 h-10 sm:h-11"
           >
             {loading ? (
