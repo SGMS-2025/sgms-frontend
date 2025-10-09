@@ -31,6 +31,7 @@ import { EquipmentListPage } from '@/pages/technician/EquipmentListPage';
 import { AddEquipmentPage } from '@/pages/technician/AddEquipmentPage';
 import { EditEquipmentPage } from '@/pages/technician/EditEquipmentPage';
 import { EquipmentIssueReportPage } from '@/pages/technician/EquipmentIssueReportPage';
+import { EquipmentIssueHistoryPage } from '@/pages/technician/EquipmentIssueHistoryPage';
 import MembershipPlansPage from '@/pages/owner/MembershipPlansPage';
 import AddWorkShiftPage from '@/pages/owner/AddWorkShiftPage';
 import EditWorkShiftPage from '@/pages/owner/EditWorkShiftPage';
@@ -278,6 +279,9 @@ const AppRoutes: React.FC = () => {
 
           {/* Calendar Route for Technician */}
           <Route path="calendar" element={<TechnicianCalendarPage />} />
+
+          {/* Equipment Issue History Route for Technician */}
+          <Route path="equipment-issues" element={<EquipmentIssueHistoryPage />} />
 
           <Route path="*" element={<Navigate to="/manage/technician" replace />} />
         </Route>

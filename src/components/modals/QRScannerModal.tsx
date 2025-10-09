@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import type { Equipment } from '@/types/api/Equipment';
-import jsQR from 'jsqr'; // Uncomment after installing jsqr
+import jsQR from 'jsqr';
 import { useTranslation } from 'react-i18next';
 
 interface QRScannerModalProps {
@@ -255,9 +255,6 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ isOpen, onClose,
       // Force load
       video.load();
     }
-
-    // Camera is ready, but QR scanning needs to be implemented
-    // User needs to click a button to start scanning
   };
 
   const stopScanning = () => {
