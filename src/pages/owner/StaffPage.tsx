@@ -2,7 +2,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthState } from '@/hooks/useAuth';
 import { StaffManagement } from '@/components/dashboard/StaffManagement';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 
 const StaffPage: React.FC = () => {
   const { t } = useTranslation();
@@ -20,11 +19,8 @@ const StaffPage: React.FC = () => {
   }
 
   return (
-    <div className="px-3 sm:px-4 lg:px-6">
-      <DashboardHeader />
-      <div className="mt-4">
-        <StaffManagement />
-      </div>
+    <div>
+      <StaffManagement />
     </div>
   );
 };

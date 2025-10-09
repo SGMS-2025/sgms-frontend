@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 
 import { MembershipCard } from '@/components/membership/MembershipCard';
 import { MembershipSummary } from '@/components/membership/MembershipSummary';
@@ -467,9 +466,8 @@ export default function MembershipPlansPage() {
   }
 
   return (
-    <div className="px-3 sm:px-4 lg:px-6">
-      <DashboardHeader />
-      <div className="mt-4">
+    <div>
+      <div>
         <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-6 lg:p-8">
           {/* Header */}
           <div className="flex flex-col gap-6 mb-8">

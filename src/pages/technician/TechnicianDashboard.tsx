@@ -1,7 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthState } from '@/hooks/useAuth';
-import { TechnicianHeader } from '@/components/dashboard/TechnicianHeader';
 import { SectionCards } from '@/components/dashboard/SectionCards';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { StatsSidebar } from '@/components/dashboard/StatsSidebar';
@@ -26,11 +25,9 @@ const TechnicianDashboard: React.FC = () => {
   }
 
   return (
-    <div className="px-4 lg:px-6">
-      <TechnicianHeader />
-
+    <div>
       {/* Top Section */}
-      <div className="mb-6 mt-4">
+      <div className="mb-6">
         <SectionCards />
       </div>
 
