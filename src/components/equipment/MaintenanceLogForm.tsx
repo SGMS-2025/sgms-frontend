@@ -191,9 +191,17 @@ export const MaintenanceLogForm: React.FC<MaintenanceLogFormProps> = ({
   const isSubmitting = addLoading || updateLoading;
   const isUploading = uploadingImages;
 
+  // Get button text based on state
+  const getButtonText = () => {
+    if (isSubmitting) {
+      return isEditing ? t('common.updating') : t('common.creating');
+    }
+    return isEditing ? t('common.update') : t('common.create');
+  };
+
   return (
     <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto hide-scrollbar">
         {/* Header */}
         <div className="bg-orange-500 p-4 sm:p-6 relative">
           <button
@@ -381,22 +389,8 @@ export const MaintenanceLogForm: React.FC<MaintenanceLogFormProps> = ({
               disabled={isSubmitting || isUploading}
               className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center h-10"
             >
-              {(() => {
-                if (isSubmitting) {
-                  return (
-                    <>
-                      <LoadingSpinner className="w-4 h-4" />
-                      <span className="ml-2">{isEditing ? t('common.updating') : t('common.creating')}</span>
-                    </>
-                  );
-                }
-                return (
-                  <>
-                    <Plus className="w-4 h-4 mr-2" />
-                    {isEditing ? t('common.update') : t('common.create')}
-                  </>
-                );
-              })()}
+              <Plus className="w-4 h-4 mr-2" />
+              {getButtonText()}
             </button>
           </div>
         </form>

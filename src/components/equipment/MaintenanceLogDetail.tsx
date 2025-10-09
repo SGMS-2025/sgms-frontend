@@ -60,7 +60,7 @@ export const MaintenanceLogDetail: React.FC<MaintenanceLogDetailProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto hide-scrollbar">
         {/* Header */}
         <div className="bg-orange-500 p-4 sm:p-6 relative">
           <button
@@ -163,7 +163,7 @@ export const MaintenanceLogDetail: React.FC<MaintenanceLogDetailProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="border-t bg-gray-50 px-3 sm:px-6 py-3 sm:py-4 flex flex-col gap-2 sm:flex-row sm:gap-3 sm:justify-end">
+        <div className="bg-white px-3 sm:px-6 py-3 sm:py-4 flex flex-col gap-2 sm:flex-row sm:gap-3 sm:justify-end">
           <button
             onClick={onClose}
             className="w-full sm:w-auto px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
