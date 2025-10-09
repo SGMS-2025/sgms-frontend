@@ -82,13 +82,19 @@ export const AddEquipmentPage: React.FC = () => {
 
   // Auto-select first branch for STAFF if they only have access to one branch
   useEffect(() => {
-    if (currentStaff && !currentStaff.isOwner && !currentStaff.isAdmin && filteredBranches.length === 1) {
+    if (
+      currentStaff &&
+      !currentStaff.isOwner &&
+      !currentStaff.isAdmin &&
+      filteredBranches.length === 1 &&
+      !formData.branchId
+    ) {
       setFormData((prev) => ({
         ...prev,
         branchId: filteredBranches[0]._id
       }));
     }
-  }, [currentStaff, filteredBranches]);
+  }, [currentStaff, filteredBranches.length, formData.branchId]);
 
   const handleFormDataChange = (data: CreateEquipmentRequest | UpdateEquipmentRequest) => {
     setFormData(data as CreateEquipmentRequest);

@@ -278,14 +278,7 @@ export const MaintenanceLogList: React.FC<MaintenanceLogListProps> = ({
                   disabled={deleteLoading}
                   className="flex-1 h-10 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
-                  {deleteLoading ? (
-                    <>
-                      <LoadingSpinner />
-                      <span className="ml-2">{t('common.deleting')}</span>
-                    </>
-                  ) : (
-                    t('common.delete')
-                  )}
+                  {deleteLoading ? t('common.deleting') : t('common.delete')}
                 </button>
               </div>
             </div>
