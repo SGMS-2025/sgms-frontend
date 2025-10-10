@@ -34,8 +34,8 @@ const ManagerSelector: React.FC<ManagerSelectorProps> = ({
   const filteredManagers = managers.filter(
     (manager) =>
       manager.status === 'ACTIVE' &&
-      (manager.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        manager.email.toLowerCase().includes(searchTerm.toLowerCase()))
+      ((manager.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (manager.email || '').toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   // Get selected managers

@@ -25,6 +25,7 @@ import AddBranchPage from '@/pages/owner/AddBranchPage';
 import AddNewStaff from '@/pages/owner/AddNewStaff';
 import DiscountPage from '@/pages/owner/DiscountPage';
 import TestimonialPage from '@/pages/owner/TestimonialPage';
+import { ScheduleTemplatePage } from '@/pages/ScheduleTemplatePage';
 import { TechnicianLayout } from '@/layouts/TechnicianLayout';
 import TechnicianDashboard from '@/pages/technician/TechnicianDashboard';
 import { EquipmentListPage } from '@/pages/technician/EquipmentListPage';
@@ -52,6 +53,7 @@ import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 // WorkShift Calendar with Layout Component
 const WorkShiftCalendarPageWithLayout: React.FC = () => {
   const { isAuthenticated, user, isLoading } = useAuthState();
+  const { currentStaff } = useCurrentUserStaff();
 
   // Show loading while authentication is being checked
   if (isLoading) {
@@ -75,11 +77,15 @@ const WorkShiftCalendarPageWithLayout: React.FC = () => {
     return <Navigate to="/home" replace />;
   }
 
-  // Choose appropriate sidebar based on user role
+  // Choose appropriate sidebar based on user role and job title
   const renderSidebar = () => {
     if (user.role === 'OWNER') {
       return <OwnerSidebar />;
     } else if (user.role === 'STAFF') {
+      // Manager should use OwnerSidebar, others use TechnicianSidebar
+      if (currentStaff?.jobTitle === 'Manager') {
+        return <OwnerSidebar />;
+      }
       return <TechnicianSidebar />;
     }
     return <OwnerSidebar />; // fallback
@@ -87,16 +93,15 @@ const WorkShiftCalendarPageWithLayout: React.FC = () => {
 
   return (
     <SidebarProvider>
-      <div className="h-screen bg-[#f1f3f4] flex">
+      <div className="h-screen bg-[#f1f3f4] flex overflow-hidden">
         {renderSidebar()}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto hide-scrollbar">
           {/* Header */}
           <div className="bg-white border-b border-gray-200">
             <div className="px-5 py-2 pb-3">
               <DashboardHeader />
             </div>
           </div>
-
           {/* Main Content */}
           <div className="p-6">
             <WorkShiftCalendarPage />
@@ -254,6 +259,8 @@ const AppRoutes: React.FC = () => {
           <Route path="memberships" element={<MembershipPlansPage />} />
           {/* Testimonial Management Route */}
           <Route path="testimonials" element={<TestimonialPage />} />
+          {/* Schedule Template Management Route */}
+          <Route path="schedule-templates" element={<ScheduleTemplatePage />} />
 
           {/* Shared Equipment Routes for Manager */}
           <Route path="equipment" element={<EquipmentListPage />} />

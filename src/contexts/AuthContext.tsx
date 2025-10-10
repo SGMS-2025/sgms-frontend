@@ -111,8 +111,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = useCallback(async () => {
     await authApi.logout();
     localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    sessionStorage.removeItem('token');
     dispatch({ type: 'LOGOUT' });
   }, []);
 

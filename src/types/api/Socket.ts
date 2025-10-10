@@ -92,6 +92,11 @@ export interface SocketEvents {
 
   // Custom events
   'workshift-notification': (data: WorkShiftNotificationData) => void;
+
+  // Schedule events
+  'schedule-created': (data: Record<string, unknown>) => void;
+  'schedule-updated': (data: Record<string, unknown>) => void;
+  'schedule-deleted': (data: Record<string, unknown>) => void;
   'notification-received': (data: NotificationData) => void;
   'show-notifications': () => void;
 }

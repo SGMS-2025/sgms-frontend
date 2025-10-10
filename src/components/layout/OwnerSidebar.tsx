@@ -127,12 +127,12 @@ const DropdownSidebarItem: React.FC<DropdownSidebarItemProps> = ({ icon, label, 
 
   if (isCollapsed) {
     return (
-      <div className="px-1 py-2 flex justify-center">
+      <div className="px-1 w-12 flex justify-center">
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="group relative flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+              className="group relative flex items-center justify-center py-2.5 rounded-lg hover:bg-gray-100 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 w-full"
               aria-label={label}
               title={label}
             >
@@ -507,14 +507,6 @@ export const OwnerSidebar: React.FC = () => {
       onClick: () => console.log('Finance clicked')
     },
     {
-      icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.work_schedule'),
-      isActive: location.pathname === '/manage/workshifts/calendar',
-      onClick: () => {
-        navigate('/manage/workshifts/calendar');
-      }
-    },
-    {
       icon: <MessageSquare className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.testimonials'),
       isActive: location.pathname === '/manage/testimonials',
@@ -587,6 +579,26 @@ export const OwnerSidebar: React.FC = () => {
               label={t('sidebar.membership_plans') || 'Gói thành viên / Membership'}
               isActive={location.pathname === '/manage/memberships'}
               onClick={() => navigate('/manage/memberships')}
+            />
+          </DropdownSidebarItem>
+
+          {/* Schedule Dropdown */}
+          <DropdownSidebarItem
+            icon={<Calendar className="w-5 h-5 stroke-[1.75]" />}
+            label={t('sidebar.schedule') || 'Schedule'}
+            isCollapsed={isCollapsed}
+          >
+            <SubMenuItem
+              icon={<Calendar className="w-5 h-5 stroke-[1.75]" />}
+              label={t('sidebar.work_schedule') || 'Work Schedule'}
+              isActive={location.pathname === '/manage/workshifts/calendar'}
+              onClick={() => navigate('/manage/workshifts/calendar')}
+            />
+            <SubMenuItem
+              icon={<Calendar className="w-5 h-5 stroke-[1.75]" />}
+              label="Schedule Templates"
+              isActive={location.pathname === '/manage/schedule-templates'}
+              onClick={() => navigate('/manage/schedule-templates')}
             />
           </DropdownSidebarItem>
         </nav>
