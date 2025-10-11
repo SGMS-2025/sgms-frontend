@@ -10,7 +10,7 @@ const PTLayoutContent: React.FC = () => {
   const { isMobileOpen, setMobileOpen } = useSidebar();
 
   return (
-    <div className="h-screen bg-[#f1f3f4] flex relative">
+    <div className="h-screen bg-[#f1f3f4] flex relative overflow-hidden">
       {/* Sidebar */}
       <div
         className={`
@@ -23,7 +23,7 @@ const PTLayoutContent: React.FC = () => {
 
       {/* Main Content */}
       <div
-        className="flex-1 overflow-y-auto relative min-w-0"
+        className="flex-1 overflow-y-auto hide-scrollbar relative min-w-0"
         onClick={() => {
           if (isMobileOpen) {
             setMobileOpen(false);

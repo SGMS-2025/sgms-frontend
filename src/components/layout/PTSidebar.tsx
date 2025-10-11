@@ -23,21 +23,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { BranchSelectorButton } from '@/components/dashboard/BranchSelectorButton';
-import { useBranch } from '@/contexts/BranchContext';
-import type { BranchDisplay } from '@/types/api/Branch';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
-import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
-import { Bell } from 'lucide-react';
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -59,7 +51,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   return (
     <button
       type="button"
-      className={`group relative flex w-full items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 ${
+      className={`group relative flex w-full items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 ${
         isActive ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-700 hover:bg-orange-50 hover:text-orange-500'
       } ${isCollapsed ? 'justify-center px-2' : ''}`}
       onClick={onClick}
@@ -192,15 +184,6 @@ const UserProfile: React.FC<{
         <UserCircle className="mr-2 h-4 w-4" />
         <span>{t('sidebar.profile')}</span>
       </DropdownMenuItem>
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger className="cursor-pointer">
-          <Bell className="mr-2 h-4 w-4" />
-          <span>{t('sidebar.notifications')}</span>
-        </DropdownMenuSubTrigger>
-        <DropdownMenuSubContent className="p-0">
-          <NotificationDropdown />
-        </DropdownMenuSubContent>
-      </DropdownMenuSub>
       <DropdownMenuItem className="cursor-pointer">
         <Settings className="mr-2 h-4 w-4" />
         <span>{t('sidebar.settings')}</span>
@@ -282,7 +265,6 @@ export const PTSidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isCollapsed, setMobileOpen } = useSidebar();
-  const { currentBranch, branches, setCurrentBranch, switchBranch } = useBranch();
   const { user: authUser, isAuthenticated } = useAuthState();
   const { updateUser, logout } = useAuthActions();
   const [profile, setProfile] = React.useState<ApiUser | null>(authUser ?? null);
@@ -330,15 +312,6 @@ export const PTSidebar: React.FC = () => {
       ignore = true;
     };
   }, [isAuthenticated, hasInitiallyFetched, authUser, updateUser]);
-
-  const handleBranchSelect = (branch: BranchDisplay) => {
-    setCurrentBranch(branch);
-  };
-
-  const handleViewBranchDetail = async (branch: BranchDisplay) => {
-    await switchBranch(branch._id);
-    navigate(`/manage/branch/${branch._id}`);
-  };
 
   const menuItems = [
     {
@@ -397,9 +370,9 @@ export const PTSidebar: React.FC = () => {
     setMobileOpen(false);
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     try {
-      await logout();
+      logout();
       navigate('/login');
     } catch (error) {
       console.error('Logout failed:', error);
@@ -413,20 +386,6 @@ export const PTSidebar: React.FC = () => {
       }`}
     >
       <SidebarHeader isCollapsed={isCollapsed} />
-
-      {/* Branch Selector */}
-      {!isCollapsed && (
-        <div className="px-3 py-4 border-b border-gray-200">
-          <BranchSelectorButton
-            currentBranch={currentBranch}
-            branches={branches}
-            onBranchSelect={handleBranchSelect}
-            onAddBranch={() => navigate('/manage/add-branch')}
-            onViewBranch={handleViewBranchDetail}
-            collapsed={isCollapsed}
-          />
-        </div>
-      )}
 
       {/* Navigation Menu */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">

@@ -7,16 +7,15 @@ import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 const ManageLayout: React.FC = () => {
   return (
     <SidebarProvider>
-      <div className="h-screen bg-[#f1f3f4] flex">
+      <div className="h-screen bg-[#f1f3f4] flex overflow-hidden">
         <OwnerSidebar />
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto hide-scrollbar">
           {/* Header */}
           <div className="bg-white border-b border-gray-200">
             <div className="px-5 py-2 pb-3">
               <DashboardHeader />
             </div>
           </div>
-
           {/* Main Content */}
           <div className="p-6">
             <Outlet />

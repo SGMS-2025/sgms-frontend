@@ -25,22 +25,14 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { BranchSelectorButton } from '@/components/dashboard/BranchSelectorButton';
-import { useBranch } from '@/contexts/BranchContext';
-import type { BranchDisplay } from '@/types/api/Branch';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
-import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
-import { Bell } from 'lucide-react';
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -89,7 +81,10 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   );
 };
 
-const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
+const SidebarHeader: React.FC<{ isCollapsed: boolean; currentStaff?: { jobTitle?: string } | null }> = ({
+  isCollapsed,
+  currentStaff
+}) => {
   const { toggle, setCollapsed, setMobileOpen } = useSidebar();
 
   return (
@@ -109,7 +104,7 @@ const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
       {!isCollapsed && (
         <div className="flex-1 min-w-0">
           <h1 className="text-lg font-bold text-gray-900 truncate">GYM SMART</h1>
-          <p className="text-xs text-gray-500 truncate">Technician</p>
+          <p className="text-xs text-gray-500 truncate">{currentStaff?.jobTitle || 'Staff'}</p>
         </div>
       )}
 
@@ -142,42 +137,6 @@ const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
   );
 };
 
-const QuickActions: React.FC<{
-  isCollapsed: boolean;
-  currentBranch: BranchDisplay | null;
-  branches: BranchDisplay[];
-  onBranchSelect: (branch: BranchDisplay) => void;
-  onAddBranch: () => void;
-  onViewBranch: (branch: BranchDisplay) => void | Promise<void>;
-}> = ({ isCollapsed, currentBranch, branches, onBranchSelect, onAddBranch, onViewBranch }) => {
-  if (isCollapsed) {
-    return (
-      <div className="px-2 py-3 flex justify-center">
-        <BranchSelectorButton
-          currentBranch={currentBranch}
-          branches={branches}
-          onBranchSelect={onBranchSelect}
-          onAddBranch={onAddBranch}
-          onViewBranch={onViewBranch}
-          collapsed
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="px-3">
-      <BranchSelectorButton
-        currentBranch={currentBranch}
-        branches={branches}
-        onBranchSelect={onBranchSelect}
-        onAddBranch={onAddBranch}
-        onViewBranch={onViewBranch}
-      />
-    </div>
-  );
-};
-
 const formatRole = (role?: string) => {
   if (!role) return 'Technician';
   return `${role.charAt(0)}${role.slice(1).toLowerCase()}`;
@@ -188,7 +147,8 @@ const UserProfile: React.FC<{
   user: ApiUser | null;
   isLoading: boolean;
   onLogout: () => void;
-}> = ({ isCollapsed, user, isLoading, onLogout }) => {
+  currentStaff?: { jobTitle?: string } | null;
+}> = ({ isCollapsed, user, isLoading, onLogout, currentStaff }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -203,6 +163,11 @@ const UserProfile: React.FC<{
     } else {
       roleLabel = formatRole(user.role);
     }
+  }
+
+  // Override with job title if available
+  if (currentStaff?.jobTitle) {
+    roleLabel = currentStaff.jobTitle;
   }
 
   const avatarUrl = user?.avatar?.url;
@@ -238,16 +203,6 @@ const UserProfile: React.FC<{
         <UserCircle className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.profile')}
       </DropdownMenuItem>
-
-      <DropdownMenuSub>
-        <DropdownMenuSubTrigger className="cursor-pointer">
-          <Bell className="w-4 h-4 mr-3 stroke-[1.75]" />
-          {t('sidebar.notifications')}
-        </DropdownMenuSubTrigger>
-        <DropdownMenuSubContent className="p-0">
-          <NotificationDropdown />
-        </DropdownMenuSubContent>
-      </DropdownMenuSub>
 
       <DropdownMenuItem
         onClick={() => {
@@ -342,7 +297,6 @@ export const TechnicianSidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isCollapsed, setMobileOpen } = useSidebar();
-  const { currentBranch, branches, setCurrentBranch, switchBranch } = useBranch();
   const { user: authUser, isAuthenticated } = useAuthState();
   const { updateUser, logout } = useAuthActions();
   const { currentStaff } = useCurrentUserStaff();
@@ -391,19 +345,6 @@ export const TechnicianSidebar: React.FC = () => {
       ignore = true;
     };
   }, [isAuthenticated, hasInitiallyFetched, authUser, updateUser]);
-
-  const handleBranchSelect = (branch: BranchDisplay) => {
-    setCurrentBranch(branch);
-  };
-
-  const handleViewBranchDetail = async (branch: BranchDisplay) => {
-    await switchBranch(branch._id);
-    navigate(`/manage/branch/${branch._id}`);
-  };
-
-  const handleAddBranch = () => {
-    navigate('/manage/add-branch');
-  };
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -514,7 +455,7 @@ export const TechnicianSidebar: React.FC = () => {
       }`}
     >
       {/* Header */}
-      <SidebarHeader isCollapsed={isCollapsed} />
+      <SidebarHeader isCollapsed={isCollapsed} currentStaff={currentStaff} />
 
       {/* Main Navigation */}
       <div className="flex-1 px-3 py-2 overflow-y-auto">
@@ -558,20 +499,14 @@ export const TechnicianSidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* Branch switch + notifications (above profile) */}
-      <div className="border-t border-gray-200">
-        <QuickActions
-          isCollapsed={isCollapsed}
-          currentBranch={currentBranch}
-          branches={branches}
-          onBranchSelect={handleBranchSelect}
-          onAddBranch={handleAddBranch}
-          onViewBranch={handleViewBranchDetail}
-        />
-      </div>
-
       {/* User Profile */}
-      <UserProfile isCollapsed={isCollapsed} user={profile} isLoading={isProfileLoading} onLogout={logout} />
+      <UserProfile
+        isCollapsed={isCollapsed}
+        user={profile}
+        isLoading={isProfileLoading}
+        onLogout={logout}
+        currentStaff={currentStaff}
+      />
 
       {/* Collapse Toggle removed; controlled via header button */}
     </div>
