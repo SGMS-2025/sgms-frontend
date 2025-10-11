@@ -1,6 +1,10 @@
 import type { ApiResponse } from '@/types/api/Api';
-import type { DiscountCampaign, DiscountCampaignListResponse, DiscountCampaignListParams } from '@/types/api/Discount';
-import type { DiscountCampaignApiData } from '@/types/api/Discount';
+import type {
+  DiscountCampaign,
+  DiscountCampaignListResponse,
+  DiscountCampaignListParams,
+  DiscountCampaignApiData
+} from '@/types/api/Discount';
 import { api } from './api';
 
 export const discountCampaignApi = {
@@ -29,6 +33,22 @@ export const discountCampaignApi = {
 
   deleteCampaign: async (campaignId: string): Promise<ApiResponse<void>> => {
     const response = await api.patch(`/discount-campaigns/${campaignId}/status`);
+    return response.data;
+  },
+
+  /**
+   * Get all active campaigns (for dropdowns, etc.)
+   */
+  getActiveCampaigns: async (): Promise<ApiResponse<DiscountCampaign[]>> => {
+    const response = await api.get<ApiResponse<DiscountCampaign[]>>('/discount-campaigns/active');
+    return response.data;
+  },
+
+  /**
+   * Get active campaigns for a specific branch
+   */
+  getActiveCampaignsByBranch: async (branchId: string): Promise<ApiResponse<DiscountCampaign[]>> => {
+    const response = await api.get<ApiResponse<DiscountCampaign[]>>(`/discount-campaigns/active/branch/${branchId}`);
     return response.data;
   }
 };

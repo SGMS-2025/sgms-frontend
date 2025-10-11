@@ -1,0 +1,394 @@
+import type { ServicePackage } from '@/types/api/Package';
+import type { DiscountCampaign } from '@/types/api/Discount';
+import type { Staff } from '@/types/api/Staff';
+
+export interface CustomerDisplay {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  membershipType: string;
+  membershipStatus: string;
+  joinDate: string;
+  expiryDate: string;
+  totalSpent: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+  branches: Array<{
+    _id: string;
+    branchName: string;
+  }>;
+  // New fields for contracts and transactions
+  serviceName?: string; // Tên dịch vụ
+  contractStartDate?: string; // Ngày bắt đầu hợp đồng
+  contractEndDate?: string; // Ngày hết hạn hợp đồng
+  referrerStaffName?: string; // Tên nhân viên giới thiệu
+  lastPaymentDate?: string; // Ngày thanh toán gần nhất
+  createdAt?: string; // Ngày tạo
+
+  // Additional fields for detailed customer information
+  gender?: string;
+  dateOfBirth?: string;
+  address?: string;
+  isLoyal?: boolean;
+  cardCode?: string;
+  notes?: string;
+
+  // Contract information for edit mode
+  latestServiceContract?: {
+    _id: string;
+    servicePackageId: {
+      _id: string;
+      name: string;
+      description?: string;
+      type?: string;
+      defaultDurationMonths?: number;
+      defaultPriceVND?: number;
+    };
+    startDate: string;
+    endDate?: string;
+    customMonths?: number;
+    duration?: string;
+    initialPaidAmount?: number;
+    totalAmount?: number;
+    remainingDebt?: number;
+    discountCampaignId?: {
+      _id: string;
+      name: string;
+      discountPercentage: number;
+    };
+    referrerStaffId?: {
+      _id: string;
+      fullName: string;
+      email: string;
+    };
+    notes?: string;
+  };
+
+  latestMembershipContract?: {
+    _id: string;
+    membershipPlanId: {
+      _id: string;
+      name: string;
+      description?: string;
+      price: number;
+      durationInMonths: number;
+      benefits?: string[];
+    };
+    startDate: string;
+    endDate?: string;
+    initialPaidAmount?: number;
+    totalAmount?: number;
+    remainingDebt?: number;
+    discountCampaignId?: {
+      _id: string;
+      name: string;
+      discountPercentage: number;
+    };
+    referrerStaffId?: {
+      _id: string;
+      fullName: string;
+      email: string;
+    };
+    notes?: string;
+  };
+}
+
+export interface CustomerFilters {
+  searchTerm: string;
+  selectedIds: string[];
+  visibleColumns: {
+    name: boolean;
+    phone: boolean;
+    membershipType: boolean;
+    serviceName: boolean;
+    contractStartDate: boolean;
+    contractEndDate: boolean;
+    referrerStaffName: boolean;
+    status: boolean;
+    lastPaymentDate: boolean;
+    createdAt: boolean;
+  };
+}
+
+export interface CustomerManagementProps {
+  onAddCustomer?: () => void;
+}
+
+export type CustomerSortField =
+  | 'name'
+  | 'email'
+  | 'phone'
+  | 'membershipType'
+  | 'membershipStatus'
+  | 'joinDate'
+  | 'expiryDate'
+  | 'totalSpent'
+  | 'status'
+  | 'serviceName'
+  | 'contractStartDate'
+  | 'contractEndDate'
+  | 'referrerStaffName'
+  | 'lastPaymentDate'
+  | 'createdAt';
+
+export interface CustomerForModal {
+  _id: string;
+  userId: {
+    _id: string;
+    fullName: string;
+    email: string;
+    phoneNumber?: string;
+  };
+  membershipType: string;
+  membershipStatus: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+  branchId: string[];
+}
+
+export interface CustomerDetailModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  customer: CustomerDisplay | null;
+}
+
+export interface CustomerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  customer?: CustomerDisplay | null;
+  isEditMode?: boolean;
+  onCustomerUpdate?: () => void;
+}
+
+export interface CustomerFormData {
+  // Basic Information
+  name: string;
+  phone: string;
+  email: string;
+  password: string;
+  gender: 'male' | 'female' | 'other';
+  isLoyalCustomer: boolean;
+  cardId: string;
+  address: string;
+  notes: string;
+  dateOfBirth: string;
+  branchId: string;
+  avatar?: File | null;
+
+  // Service Registration - Updated to support multiple selections
+  selectedServicePackage: string; // For service packages (PT/CLASS/etc)
+  selectedMembershipPlan: string; // For membership plans
+  promotionId: string;
+  duration: string;
+  customDuration: string;
+  referrerStaffId: string;
+  activationDate: string;
+  price: string | number;
+  discount: string | number;
+  totalAmount: string | number;
+  amountPaid: string | number;
+  remainingDebt: string | number;
+  serviceNotes: string;
+}
+
+// Additional types for API responses
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  statusCode?: number;
+  code?: string;
+  error?: {
+    meta?: {
+      field?: string;
+    };
+  };
+}
+
+export interface ServiceContract {
+  _id: string;
+  servicePackageId: {
+    _id: string;
+  };
+  referrerStaffId?: {
+    _id: string;
+  };
+  discountCampaignId?: {
+    _id: string;
+  };
+  customMonths?: number;
+  duration?: string;
+  startDate: string;
+  initialPaidAmount?: number;
+  notes?: string;
+}
+
+export interface MembershipContract {
+  _id: string;
+  membershipPlanId: {
+    _id: string;
+  };
+  referrerStaffId?: {
+    _id: string;
+  };
+  discountCampaignId?: {
+    _id: string;
+  };
+  startDate: string;
+  initialPaidAmount?: number;
+  notes?: string;
+}
+
+export interface CustomerDetail {
+  id: string;
+  name?: string;
+  phone?: string;
+  email?: string;
+  gender?: string;
+  isLoyal?: boolean;
+  cardCode?: string;
+  address?: string;
+  notes?: string;
+  dateOfBirth?: string;
+  branches?: Array<{
+    _id: string;
+  }>;
+  referrerStaffId?: string;
+  latestServiceContract?: ServiceContract;
+  latestMembershipContract?: MembershipContract;
+}
+
+export interface StaffWithDetails extends Omit<Staff, 'jobTitle'> {
+  name: string;
+  jobTitle: string;
+}
+
+export interface PackageWithPricing extends ServicePackage {
+  finalPrice?: number;
+  defaultPriceVND?: number;
+}
+
+export interface PromotionWithDiscount extends DiscountCampaign {
+  name: string;
+  discountPercentage: number;
+}
+
+export interface BranchWithAddress {
+  _id: string;
+  branchName: string;
+  address?: string;
+}
+
+// Gender type for form validation
+export type GenderType = 'male' | 'female' | 'other';
+
+// Hook interfaces
+export interface UseCustomerListOptions {
+  limit?: number;
+  page?: number;
+  branchId?: string;
+}
+
+export interface CustomerPagination {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface UseCustomerListReturn {
+  customerList: CustomerDisplay[];
+  loading: boolean;
+  error: string | null;
+  pagination: CustomerPagination | null;
+  refetch: () => Promise<void>;
+  goToPage: (page: number) => void;
+}
+
+export interface UseUpdateCustomerStatusReturn {
+  updateCustomerStatus: (customerId: string) => Promise<void>;
+  loading: boolean;
+  error: string | null;
+}
+
+export interface UseCustomerImportReturn {
+  importCustomers: (
+    file: File,
+    branchId: string
+  ) => Promise<{
+    successCount: number;
+    failedCount: number;
+    errors: Array<{
+      row: number;
+      field: string;
+      message: string;
+    }>;
+  }>;
+  downloadTemplate: () => Promise<void>;
+  loading: boolean;
+  error: string | null;
+  resetError: () => void;
+}
+
+// Raw customer data from API (before transformation)
+export interface RawCustomerData {
+  id?: string;
+  _id?: string;
+  name: string;
+  email: string;
+  phone: string;
+  membershipType: string;
+  membershipStatus: string;
+  joinDate: string;
+  expiryDate: string;
+  totalSpent: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+  branches?: Array<{ _id: string; branchName: string }>;
+  serviceName?: string;
+  contractStartDate?: string;
+  contractEndDate?: string;
+  referrerStaffName?: string;
+  lastPaymentDate?: string;
+  createdAt?: string;
+}
+
+// Customer Excel Import Modal interfaces
+export interface CustomerExcelImportModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onImportSuccess: () => void;
+}
+
+export interface ImportResult {
+  successCount: number;
+  failedCount: number;
+  errors: Array<{
+    row: number;
+    field: string;
+    message: string;
+  }>;
+}
+
+// Customer API interfaces
+export interface CustomerListParams {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  branchId?: string;
+  search?: string;
+  status?: string;
+}
+
+export interface CustomerListResponse {
+  customers: CustomerDisplay[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+}
