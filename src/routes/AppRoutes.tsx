@@ -43,6 +43,7 @@ import ClassServiceManagement from '@/components/dashboard/ClassServiceManagemen
 import { PTLayout } from '@/layouts/PTLayout';
 import PTDashboard from '@/pages/pt/PTDashboard';
 import PTCalendarPage from '@/pages/pt/PTCalendarPage';
+import CustomerManagementPage from '@/pages/owner/CustomerManagementPage';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { SidebarProvider } from '@/contexts/SidebarContext';
@@ -243,6 +244,8 @@ const AppRoutes: React.FC = () => {
           <Route path="owner" element={<OwnerDashboard />} />
           {/* Staff Management Route */}
           <Route path="staff" element={<StaffPage />} />
+          {/* Customer Management Route */}
+          <Route path="customers" element={<CustomerManagementPage />} />
           {/* Branch Detail Route */}
           <Route path="branch/:branchId" element={<BranchDetailPage />} />
           {/* Add Branch Route */}

@@ -39,6 +39,14 @@ export const packageApi = {
   },
 
   /**
+   * Get active packages for a specific branch with branch-specific overrides
+   */
+  getActivePackagesByBranch: async (branchId: string): Promise<ApiResponse<ServicePackage[]>> => {
+    const response = await api.get<ApiResponse<ServicePackage[]>>(`/packages/active/branch/${branchId}`);
+    return response.data;
+  },
+
+  /**
    * Get package by ID
    */
   getPackageById: async (packageId: string): Promise<ApiResponse<ServicePackage>> => {
