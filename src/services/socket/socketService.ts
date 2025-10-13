@@ -42,7 +42,7 @@ class SocketService implements SocketServiceInterface {
           return;
         }
 
-        const serverUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const serverUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'https://gymsmart.site';
 
         this.config = {
           serverUrl,
@@ -56,9 +56,9 @@ class SocketService implements SocketServiceInterface {
         const token = this.getTokenFromCookies() || this.getTokenFromStorage();
 
         this.socket = io(serverUrl, {
-          // Send token in auth object
+          // For HTTP-only cookies, we need to extract token and use auth object
           auth: {
-            token: token
+            token: token || '' // Use extracted token in auth object
           },
           transports: ['websocket', 'polling'],
           timeout: this.config.timeout,
@@ -67,10 +67,7 @@ class SocketService implements SocketServiceInterface {
           reconnection: true,
           reconnectionAttempts: this.maxReconnectAttempts,
           reconnectionDelay: this.reconnectDelay,
-          withCredentials: true, // This sends HTTP-only cookies
-          extraHeaders: {
-            Authorization: token ? `Bearer ${token}` : ''
-          }
+          withCredentials: true // This sends HTTP-only cookies
         });
 
         this.setupEventHandlers(resolve, reject);
@@ -402,9 +399,25 @@ class SocketService implements SocketServiceInterface {
     // Try to get token from document.cookie first
     const cookies = document.cookie;
     if (cookies) {
+      // Method 1: Simple regex
       const accessTokenMatch = /accessToken=([^;]+)/.exec(cookies);
       if (accessTokenMatch) {
         return accessTokenMatch[1];
+      }
+
+      // Method 2: Parse cookies manually
+      const cookiePairs = cookies.split(';');
+      for (const pair of cookiePairs) {
+        const [key, value] = pair.trim().split('=');
+        if (key === 'accessToken' && value) {
+          return value;
+        }
+      }
+
+      // Method 3: Look for JWT pattern
+      const jwtMatch = cookies.match(/accessToken=([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)/);
+      if (jwtMatch) {
+        return jwtMatch[1];
       }
     }
 
