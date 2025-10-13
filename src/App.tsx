@@ -5,7 +5,9 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { BranchProvider } from './contexts/BranchContext';
+import { SocketProvider } from './contexts/SocketContext';
 import { Toast } from '@/components/ui/toast';
+import NavigationHandler from '@/components/navigation/NavigationHandler';
 
 function App() {
   return (
@@ -13,10 +15,13 @@ function App() {
       <LanguageProvider>
         <AuthProvider>
           <BranchProvider>
-            <BrowserRouter>
-              <AppRoutes />
-              <Toast />
-            </BrowserRouter>
+            <SocketProvider>
+              <BrowserRouter>
+                <NavigationHandler />
+                <AppRoutes />
+                <Toast />
+              </BrowserRouter>
+            </SocketProvider>
           </BranchProvider>
         </AuthProvider>
       </LanguageProvider>

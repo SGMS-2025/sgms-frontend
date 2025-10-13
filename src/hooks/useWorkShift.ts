@@ -93,6 +93,27 @@ export const useWorkShiftList = (initialParams: WorkShiftListParams = {}): UseWo
   };
 };
 
+// Helper function to localize error messages
+const localizeErrorMessage = (message: string, t: (key: string) => string, fallbackKey: string): string => {
+  // Check for specific backend error codes and localize them
+  if (message === 'TIME_CONFLICT') {
+    return t('error.TIME_CONFLICT');
+  } else if (message === 'INVALID_TIME_RANGE') {
+    return t('error.INVALID_TIME_RANGE');
+  } else if (message === 'MISSING_FIELDS') {
+    return t('error.MISSING_FIELDS');
+  } else if (message === 'WORKSHIFT_NOT_FOUND') {
+    return t('error.WORKSHIFT_NOT_FOUND');
+  } else if (message === 'CANNOT_DISABLE_PAST_SHIFT') {
+    return t('error.CANNOT_DISABLE_PAST_SHIFT');
+  } else if (message === 'MANAGER_CANNOT_CREATE_WORKSHIFT') {
+    return t('error.MANAGER_CANNOT_CREATE_WORKSHIFT');
+  }
+
+  // Return the original message or fallback if no specific localization found
+  return message || t(fallbackKey);
+};
+
 // Hook for work shift operations
 export const useWorkShiftOperations = () => {
   const [loading, setLoading] = useState(false);
@@ -107,12 +128,17 @@ export const useWorkShiftOperations = () => {
       const response = await workShiftApi.createWorkShift(data);
 
       if (response.success) {
-        toast.success(t('workshift.created_successfully'));
+        toast.success(t('workshift.created_successfully'), {
+          id: 'workshift-create-success' // Unique ID to prevent duplicates
+        });
         setLoading(false);
         return response.data;
       } else {
-        setError(response.message || t('workshift.create_error'));
-        toast.error(response.message || t('workshift.create_error'));
+        const errorMessage = localizeErrorMessage(response.message, t, 'workshift.create_error');
+        setError(errorMessage);
+        toast.error(errorMessage, {
+          id: 'workshift-create-error' // Unique ID to prevent duplicates
+        });
         setLoading(false);
         return null;
       }
@@ -128,12 +154,17 @@ export const useWorkShiftOperations = () => {
       const response = await workShiftApi.updateWorkShift(id, data);
 
       if (response.success) {
-        toast.success(t('workshift.updated_successfully'));
+        toast.success(t('workshift.updated_successfully'), {
+          id: 'workshift-update-success'
+        });
         setLoading(false);
         return response.data;
       } else {
-        setError(response.message || t('workshift.update_error'));
-        toast.error(response.message || t('workshift.update_error'));
+        const errorMessage = localizeErrorMessage(response.message, t, 'workshift.update_error');
+        setError(errorMessage);
+        toast.error(errorMessage, {
+          id: 'workshift-update-error'
+        });
         setLoading(false);
         return null;
       }
@@ -149,12 +180,16 @@ export const useWorkShiftOperations = () => {
       const response = await workShiftApi.deleteWorkShift(id);
 
       if (response.success) {
-        toast.success(t('workshift.deleted_successfully'));
+        toast.success(t('workshift.deleted_successfully'), {
+          id: 'workshift-delete-success'
+        });
         setLoading(false);
         return true;
       } else {
         setError(response.message || t('workshift.delete_error'));
-        toast.error(response.message || t('workshift.delete_error'));
+        toast.error(response.message || t('workshift.delete_error'), {
+          id: 'workshift-delete-error'
+        });
         setLoading(false);
         return false;
       }
@@ -170,12 +205,17 @@ export const useWorkShiftOperations = () => {
       const response = await workShiftApi.disableWorkShift(id);
 
       if (response.success) {
-        toast.success(t('workshift.disabled_successfully'));
+        toast.success(t('workshift.disabled_successfully'), {
+          id: 'workshift-disable-success'
+        });
         setLoading(false);
         return response.data;
       } else {
-        setError(response.message || t('workshift.disable_error'));
-        toast.error(response.message || t('workshift.disable_error'));
+        const errorMessage = localizeErrorMessage(response.message, t, 'workshift.disable_error');
+        setError(errorMessage);
+        toast.error(errorMessage, {
+          id: 'workshift-disable-error'
+        });
         setLoading(false);
         return null;
       }

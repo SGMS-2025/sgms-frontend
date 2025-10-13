@@ -134,3 +134,6 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
+// Export types separately to avoid fast refresh issues
+// Types are already exported above, no need to re-export

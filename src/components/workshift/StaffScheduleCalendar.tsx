@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -22,6 +21,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { useBranch } from '@/contexts/BranchContext';
+import { useAuthState } from '@/hooks/useAuth';
+import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { staffApi } from '@/services/api/staffApi';
 import { workShiftApi } from '@/services/api/workShiftApi';
 import type { Staff } from '@/types/api/Staff';
@@ -49,6 +50,22 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   const [showWorkShiftDetail, setShowWorkShiftDetail] = useState(false);
   const [showDisabledShifts, setShowDisabledShifts] = useState(true);
   const { currentBranch } = useBranch();
+  const { user } = useAuthState();
+  const { currentStaff } = useCurrentUserStaff();
+
+  // Check if user can view staff schedules (Owner and Manager only)
+  const canViewStaffSchedules = useCallback(() => {
+    if (!user) return false;
+
+    // Owner can always view
+    if (user.role === 'OWNER') return true;
+
+    // Staff with Manager job title can view
+    if (user.role === 'STAFF' && currentStaff?.jobTitle === 'Manager') return true;
+
+    // PT and Technician cannot view
+    return false;
+  }, [user, currentStaff]);
 
   // Get current week dates
   const getWeekDates = (date: Date) => {
@@ -72,41 +89,6 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     return date.toDateString() === today.toDateString();
   };
 
-  // Get all workshifts that are active during a specific time slot (including ongoing shifts)
-  const getActiveShiftsForSlot = (date: Date, hour: number) => {
-    const slotStart = new Date(date);
-    slotStart.setHours(hour, 0, 0, 0);
-    const slotEnd = new Date(date);
-    slotEnd.setHours(hour + 1, 0, 0, 0);
-
-    const activeShifts = filteredWorkShifts.filter((shift) => {
-      // Use local time fields from backend instead of UTC
-      const startTimeStr = shift.startTimeLocal || '07:00';
-      const endTimeStr = shift.endTimeLocal || '08:00';
-
-      const [startHour, startMin] = startTimeStr.split(':').map(Number);
-      const [endHour, endMin] = endTimeStr.split(':').map(Number);
-
-      // Create local time objects for comparison
-      const shiftStart = new Date(date);
-      shiftStart.setHours(startHour, startMin, 0, 0);
-
-      const shiftEnd = new Date(date);
-      shiftEnd.setHours(endHour, endMin, 0, 0);
-
-      // Check if shift overlaps with this time slot
-      return shiftStart < slotEnd && shiftEnd > slotStart;
-    });
-
-    // Sort by start time to ensure consistent layering
-    activeShifts.sort((a, b) => {
-      const aStartTime = a.startTimeLocal || '07:00';
-      const bStartTime = b.startTimeLocal || '07:00';
-      return aStartTime.localeCompare(bStartTime);
-    });
-    return activeShifts;
-  };
-
   // Get workshifts that START in a specific hour (for rendering)
   const getWorkShiftsForSlot = (date: Date, hour: number) => {
     const filteredShifts = filteredWorkShifts.filter((shift) => {
@@ -128,18 +110,18 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     return filteredShifts;
   };
 
-  // Calculate position and width for overlapping shifts based on active shifts in the time slot
+  // Calculate position and width for overlapping shifts based on shifts that START in this time slot
   const calculateShiftPosition = (shift: WorkShift, date: Date, currentHour: number) => {
-    // Get all active shifts in this time slot
-    const activeShifts = getActiveShiftsForSlot(date, currentHour);
+    // Get all shifts that START in this time slot (not all active shifts)
+    const shiftsForSlot = getWorkShiftsForSlot(date, currentHour);
 
-    // Find the index of current shift in active shifts
-    const shiftIndex = activeShifts.findIndex((s) => s._id === shift._id);
-    const totalActiveShifts = activeShifts.length;
+    // Find the index of current shift in the shifts that start in this slot
+    const shiftIndex = shiftsForSlot.findIndex((s) => s._id === shift._id);
+    const totalShiftsInSlot = shiftsForSlot.length;
 
-    // Calculate width and position
-    const width = totalActiveShifts > 1 ? `${100 / totalActiveShifts}%` : '100%';
-    const left = totalActiveShifts > 1 ? `${(shiftIndex * 100) / totalActiveShifts}%` : '0%';
+    // Calculate width and position based on shifts that start in this slot
+    const width = totalShiftsInSlot > 1 ? `${100 / totalShiftsInSlot}%` : '100%';
+    const left = totalShiftsInSlot > 1 ? `${(shiftIndex * 100) / totalShiftsInSlot}%` : '0%';
 
     // Z-index based on start time (earlier shifts have lower z-index, so later shifts appear on top)
     const zIndex = 10 + shiftIndex;
@@ -306,9 +288,16 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     return colors[Math.abs(hash) % colors.length];
   };
 
-  // Fetch staff list
+  // Fetch staff list - only for users with permission
   useEffect(() => {
     const fetchStaff = async () => {
+      // Only fetch staff if user has permission to view staff schedules
+      if (!canViewStaffSchedules()) {
+        setStaffList([]);
+        setLoadingStaff(false);
+        return;
+      }
+
       if (!currentBranch?._id) {
         setStaffList([]);
         setLoadingStaff(false);
@@ -329,7 +318,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
       setLoadingStaff(false);
     };
     fetchStaff();
-  }, [currentBranch?._id]);
+  }, [currentBranch?._id, canViewStaffSchedules]);
 
   // Common function to fetch workshifts
   const fetchWorkShifts = useCallback(async () => {
@@ -357,10 +346,31 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     fetchWorkShifts();
   }, [currentBranch?._id, fetchWorkShifts]);
 
+  // Listen for work shift notifications and refresh data
+  useEffect(() => {
+    const handleWorkShiftNotification = () => {
+      // Refresh work shifts when notification is received
+      fetchWorkShifts();
+    };
+
+    // Listen for work shift notifications
+    const handleNotification = (event: CustomEvent) => {
+      if (event.detail.type.includes('WORKSHIFT')) {
+        handleWorkShiftNotification();
+      }
+    };
+
+    window.addEventListener('workshift-notification', handleNotification as EventListener);
+
+    return () => {
+      window.removeEventListener('workshift-notification', handleNotification as EventListener);
+    };
+  }, [fetchWorkShifts]);
+
   // Filter workshifts by selected staff (if any) and disabled status
   const filteredWorkShifts = workShifts.filter((shift) => {
-    // Filter by selected staff
-    if (selectedStaffId && shift.staffId._id !== selectedStaffId) {
+    // Filter by selected staff - add null safety check
+    if (selectedStaffId && (!shift.staffId || shift.staffId._id !== selectedStaffId)) {
       return false;
     }
     // Filter by disabled status
@@ -453,16 +463,11 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   const currentTimeInfo = getCurrentTimePosition();
 
   return (
-    <div className="calendar-main-container flex h-screen bg-gray-50 overflow-hidden">
+    <div className="calendar-main-container flex h-full bg-gray-50 overflow-hidden">
       {/* Left Sidebar */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-        {/* Header - Fixed */}
+        {/* Create Actions - Fixed */}
         <div className="p-4 border-b border-gray-200 flex-shrink-0">
-          <div className="flex items-center gap-2 mb-4">
-            <CalendarIcon className="h-6 w-6 text-orange-600" />
-            <h1 className="text-xl font-semibold text-gray-900">{t('workshift.calendar')}</h1>
-          </div>
-
           <CreateDropdown
             onCreateWorkShift={handleCreateWorkShift}
             onCreateSchedule={handleCreateSchedule}
@@ -517,145 +522,147 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
             </div>
           </div>
 
-          {/* Staff Search */}
-          <div className="p-4 border-b border-gray-200">
-            <div className="mb-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder={t('workshift.search_staff')}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-700">{t('workshift.staff_schedules')}</h3>
-              <div className="flex items-center gap-2">
-                <div className="text-xs text-gray-500">
-                  {selectedStaffId ? `${filteredWorkShifts.length} shifts` : `${workShifts.length} total shifts`}
-                </div>
-                {selectedStaffId && (
-                  <button
-                    onClick={() => {
-                      onStaffSelect?.(undefined);
-                    }}
-                    className="text-xs text-orange-600 hover:text-orange-800 underline"
-                  >
-                    {t('common.show_all')}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Staff List with Expand/Collapse */}
-          <div>
-            {loadingStaff ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600 mx-auto"></div>
-                  <p className="text-sm text-gray-500 mt-2">{t('common.loading')}</p>
+          {/* Staff Search - Only show for Owner and Manager */}
+          {canViewStaffSchedules() && (
+            <div className="p-4 border-b border-gray-200">
+              <div className="mb-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder={t('workshift.search_staff')}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
                 </div>
               </div>
-            ) : (
-              <>
-                {/* Staff List Header with Expand/Collapse */}
-                <div className="px-4 py-2 border-b border-gray-200 bg-gray-50">
-                  <button
-                    onClick={() => setStaffListExpanded(!staffListExpanded)}
-                    className="flex items-center justify-between w-full text-left hover:bg-gray-100 rounded px-2 py-1 transition-colors"
-                  >
-                    <span className="text-sm font-medium text-gray-700">Staff ({staffList.length})</span>
-                    {staffListExpanded ? (
-                      <ChevronUp className="h-4 w-4 text-gray-500" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 text-gray-500" />
-                    )}
-                  </button>
-                </div>
 
-                {/* Staff List Content - No individual scroll */}
-                {staffListExpanded && (
-                  <div className="p-4 space-y-2 bg-white">
-                    {(() => {
-                      if (!currentBranch) {
-                        return (
-                          <div className="text-center py-4">
-                            <Building2 className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                            <p className="text-sm text-gray-500">Select a branch to view staff</p>
-                          </div>
-                        );
-                      }
-
-                      if (staffList.length === 0) {
-                        return (
-                          <div className="text-center py-4">
-                            <p className="text-sm text-gray-500">{t('workshift.no_staff_found')}</p>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <>
-                          {staffList.slice(0, visibleStaffCount).map((staff) => {
-                            return (
-                              <button
-                                key={staff._id}
-                                className={cn(
-                                  'flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors w-full text-left',
-                                  selectedStaffId === staff._id
-                                    ? 'bg-orange-50 border border-orange-200'
-                                    : 'hover:bg-gray-50'
-                                )}
-                                onClick={() => {
-                                  onStaffSelect?.(staff._id);
-                                }}
-                              >
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage
-                                    src={`https://ui-avatars.com/api/?name=${staff.userId.fullName}&background=orange&color=fff`}
-                                    alt={staff.userId.fullName}
-                                  />
-                                  <AvatarFallback className="bg-orange-500 text-white text-xs">
-                                    {staff.userId.fullName.charAt(0)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-900 truncate">{staff.userId.fullName}</p>
-                                  <p className="text-xs text-gray-500 truncate">{staff.jobTitle}</p>
-                                </div>
-                                <Badge variant="outline" className="text-xs">
-                                  {(Array.isArray(staff.branchId) && staff.branchId[0]?.branchName) ||
-                                    t('common.not_available')}
-                                </Badge>
-                              </button>
-                            );
-                          })}
-
-                          {/* Show More/Less Button */}
-                          {staffList.length > visibleStaffCount && (
-                            <button
-                              onClick={() => {
-                                const newCount = visibleStaffCount === 5 ? staffList.length : 5;
-                                setVisibleStaffCount(newCount);
-                              }}
-                              className="w-full text-center py-2 text-sm text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded-lg transition-colors"
-                            >
-                              {visibleStaffCount === 5
-                                ? t('workshift.show_all_staff', { count: staffList.length })
-                                : t('common.show_less')}
-                            </button>
-                          )}
-                        </>
-                      );
-                    })()}
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-gray-700">{t('workshift.staff_schedules')}</h3>
+                <div className="flex items-center gap-2">
+                  <div className="text-xs text-gray-500">
+                    {selectedStaffId ? `${filteredWorkShifts.length} shifts` : `${workShifts.length} total shifts`}
                   </div>
-                )}
-              </>
-            )}
-          </div>
+                  {selectedStaffId && (
+                    <button
+                      onClick={() => {
+                        onStaffSelect?.(undefined);
+                      }}
+                      className="text-xs text-orange-600 hover:text-orange-800 underline"
+                    >
+                      {t('common.show_all')}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Staff List with Expand/Collapse - Only show for Owner and Manager */}
+          {canViewStaffSchedules() && (
+            <div>
+              {loadingStaff ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600 mx-auto"></div>
+                    <p className="text-sm text-gray-500 mt-2">{t('common.loading')}</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Staff List Header with Expand/Collapse */}
+                  <div className="px-4 py-2 border-b border-gray-200 bg-gray-50">
+                    <button
+                      onClick={() => setStaffListExpanded(!staffListExpanded)}
+                      className="flex items-center justify-between w-full text-left hover:bg-gray-100 rounded px-2 py-1 transition-colors"
+                    >
+                      <span className="text-sm font-medium text-gray-700">Staff ({staffList.length})</span>
+                      {staffListExpanded ? (
+                        <ChevronUp className="h-4 w-4 text-gray-500" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-gray-500" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Staff List Content - No individual scroll */}
+                  {staffListExpanded && (
+                    <div className="p-4 space-y-2 bg-white">
+                      {(() => {
+                        if (!currentBranch) {
+                          return (
+                            <div className="text-center py-4">
+                              <Building2 className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                              <p className="text-sm text-gray-500">Select a branch to view staff</p>
+                            </div>
+                          );
+                        }
+
+                        if (staffList.length === 0) {
+                          return (
+                            <div className="text-center py-4">
+                              <p className="text-sm text-gray-500">{t('workshift.no_staff_found')}</p>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <>
+                            {staffList.slice(0, visibleStaffCount).map((staff) => {
+                              return (
+                                <button
+                                  key={staff._id}
+                                  className={cn(
+                                    'flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors w-full text-left',
+                                    selectedStaffId === staff._id
+                                      ? 'bg-orange-50 border border-orange-200'
+                                      : 'hover:bg-gray-50'
+                                  )}
+                                  onClick={() => {
+                                    onStaffSelect?.(staff._id);
+                                  }}
+                                >
+                                  <Avatar className="h-9 w-9">
+                                    <AvatarImage
+                                      src={`https://ui-avatars.com/api/?name=${staff.userId.fullName}&background=orange&color=fff`}
+                                      alt={staff.userId.fullName}
+                                    />
+                                    <AvatarFallback className="bg-orange-500 text-white text-xs">
+                                      {staff.userId.fullName.charAt(0)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1 min-w-0 space-y-1">
+                                    <p className="text-sm font-medium text-gray-900 truncate">
+                                      {staff.userId.fullName}
+                                    </p>
+                                    <p className="text-xs text-gray-500 truncate">{staff.jobTitle}</p>
+                                  </div>
+                                </button>
+                              );
+                            })}
+
+                            {/* Show More/Less Button */}
+                            {staffList.length > visibleStaffCount && (
+                              <button
+                                onClick={() => {
+                                  const newCount = visibleStaffCount === 5 ? staffList.length : 5;
+                                  setVisibleStaffCount(newCount);
+                                }}
+                                className="w-full text-center py-2 text-sm text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded-lg transition-colors"
+                              >
+                                {visibleStaffCount === 5
+                                  ? t('workshift.show_all_staff', { count: staffList.length })
+                                  : t('common.show_less')}
+                              </button>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -771,11 +778,6 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                           >
                             {date.getDate()}
                           </div>
-                          <div className="mt-2 flex items-center justify-center">
-                            <div className="bg-orange-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
-                              <span className="text-xs">1</span>
-                            </div>
-                          </div>
                         </div>
                       ))}
                     </div>
@@ -832,7 +834,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
 
                             {/* Time cells for this day */}
                             {timeSlots.map((slot) => (
-                              <button
+                              <div
                                 key={`cell-${date.getTime()}-${slot.hour}`}
                                 className="calendar-time-cell"
                                 onClick={() => {
@@ -846,9 +848,11 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                                     clickedDateTime.setHours(slot.hour, 0, 0, 0);
                                   }
                                 }}
+                                role="button"
+                                tabIndex={0}
                               >
                                 {renderShiftsForSlot(date, { hour: slot.hour })}
-                              </button>
+                              </div>
                             ))}
                           </div>
                         ))}

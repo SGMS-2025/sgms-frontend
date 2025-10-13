@@ -11,16 +11,18 @@ import {
   LayoutDashboard,
   MessageSquare,
   Settings,
-  HelpCircle,
   ChevronUp,
+  ChevronDown,
   LogOut,
   UserCircle,
   ShieldCheck as Shield,
   PanelLeft,
-  Globe,
   UserCheck,
-  UsersRound
+  UsersRound,
+  Briefcase,
+  Sparkles
 } from 'lucide-react';
+import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -30,15 +32,10 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { BranchSelectorButton } from '@/components/dashboard/BranchSelectorButton';
-import { useBranch } from '@/contexts/BranchContext';
-import type { BranchDisplay } from '@/types/api/Branch';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
-import { useLanguage } from '@/contexts/LanguageContext';
-// no extra popovers here; BranchSelectorButton handles its own popover
 
 interface SidebarItemProps {
   icon: React.ReactNode;
@@ -47,6 +44,28 @@ interface SidebarItemProps {
   onClick?: () => void;
   isCollapsed?: boolean;
   badge?: number;
+}
+
+interface MenuItemProps {
+  icon: React.ReactNode;
+  label: string;
+  isActive?: boolean;
+  onClick: () => void;
+  badge?: number;
+}
+
+interface DropdownSidebarItemProps {
+  icon: React.ReactNode;
+  label: string;
+  isCollapsed?: boolean;
+  children: React.ReactNode;
+}
+
+interface SubMenuItemProps {
+  icon: React.ReactNode;
+  label: string;
+  isActive?: boolean;
+  onClick: () => void;
 }
 
 const SidebarItem: React.FC<SidebarItemProps> = ({
@@ -87,6 +106,77 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   );
 };
 
+const SubMenuItem: React.FC<SubMenuItemProps> = ({ icon, label, isActive = false, onClick }) => {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group relative flex items-center py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 w-full gap-3 px-3 ${
+        isActive ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-700 hover:bg-orange-50 hover:text-orange-500'
+      }`}
+      aria-current={isActive ? 'page' : undefined}
+    >
+      <span className="flex-shrink-0 w-5 h-5 relative">{icon}</span>
+      <span className="text-sm font-medium truncate">{label}</span>
+    </button>
+  );
+};
+
+const DropdownSidebarItem: React.FC<DropdownSidebarItemProps> = ({ icon, label, isCollapsed = false, children }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  if (isCollapsed) {
+    return (
+      <div className="px-1 w-12 flex justify-center">
+        <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="group relative flex items-center justify-center py-2.5 rounded-lg hover:bg-gray-100 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 w-full"
+              aria-label={label}
+              title={label}
+            >
+              <span className="flex-shrink-0 w-5 h-5 relative">{icon}</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="start" sideOffset={8} className="w-48">
+            {children}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`group relative flex items-center py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 text-gray-700 hover:bg-orange-50 hover:text-orange-500 ${
+          isCollapsed ? 'justify-center px-1 w-12' : 'w-full px-3'
+        }`}
+        aria-label={label}
+        title={isCollapsed ? label : undefined}
+      >
+        <span className="flex-shrink-0 w-5 h-5 relative">{icon}</span>
+        {!isCollapsed && (
+          <>
+            <span className="text-sm font-medium truncate flex-1 text-left ml-3">{label}</span>
+            <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center ml-1">
+              <ChevronDown
+                className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+              />
+            </span>
+          </>
+        )}
+      </button>
+
+      {/* Inline submenu - only show when not collapsed */}
+      {!isCollapsed && isOpen && <div className="ml-4 mt-1 space-y-1">{children}</div>}
+    </div>
+  );
+};
+
 const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
   const { t } = useTranslation();
   const { toggle, setCollapsed } = useSidebar();
@@ -114,6 +204,7 @@ const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
           </h1>
         </div>
       )}
+
       {/* Show the toggle on the right when expanded; hide when collapsed */}
       {!isCollapsed && (
         <button
@@ -132,38 +223,50 @@ const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
   );
 };
 
-const QuickActions: React.FC<{
-  isCollapsed: boolean;
-  currentBranch: BranchDisplay | null;
-  branches: BranchDisplay[];
-  onBranchSelect: (branch: BranchDisplay) => void;
-  onAddBranch: () => void;
-  onViewBranch: (branch: BranchDisplay) => void | Promise<void>;
-}> = ({ isCollapsed, currentBranch, branches, onBranchSelect, onAddBranch, onViewBranch }) => {
+const UpgradeCard: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate('/pricing');
+  };
+
   if (isCollapsed) {
     return (
-      <div className="px-1 py-3 flex justify-center">
-        <BranchSelectorButton
-          currentBranch={currentBranch}
-          branches={branches}
-          onBranchSelect={onBranchSelect}
-          onAddBranch={onAddBranch}
-          onViewBranch={onViewBranch}
-          collapsed
-        />
+      <div className="px-1 pb-3">
+        <button
+          type="button"
+          onClick={handleClick}
+          className="group relative flex h-9 w-full items-center justify-center overflow-hidden rounded-lg bg-gradient-to-r from-orange-500 via-orange-400 to-amber-400 text-white shadow-md outline-none transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-orange-500/40"
+        >
+          <span className="pointer-events-none absolute inset-0 bg-white/20 opacity-0 blur-lg transition-opacity duration-300 group-hover:opacity-40" />
+          <Sparkles className="relative h-4 w-4 drop-shadow" />
+          <span className="sr-only">{t('sidebar.upgrade_cta', { defaultValue: 'Upgrade to Pro' })}</span>
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="px-3">
-      <BranchSelectorButton
-        currentBranch={currentBranch}
-        branches={branches}
-        onBranchSelect={onBranchSelect}
-        onAddBranch={onAddBranch}
-        onViewBranch={onViewBranch}
-      />
+    <div className="px-2 pb-4">
+      <button
+        type="button"
+        onClick={handleClick}
+        className="group relative w-full overflow-hidden rounded-xl border border-orange-100 bg-gradient-to-br from-orange-500 via-orange-400 to-amber-400 px-4 py-[10px] text-left text-white shadow-md outline-none transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-orange-300"
+      >
+        <span className="pointer-events-none absolute -left-8 -top-8 h-20 w-20 rounded-full bg-white/20 blur-2xl transition-all duration-500 group-hover:scale-110" />
+        <span className="pointer-events-none absolute right-4 top-3 h-10 w-10 rounded-full border border-white/40 bg-white/30 opacity-60 mix-blend-screen transition-transform duration-500 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+        <div className="relative flex flex-col gap-2.5">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-white/70">
+              {t('sidebar.upgrade_subtitle', { defaultValue: 'For more features' })}
+            </p>
+            <p className="text-base font-semibold leading-tight">
+              {t('sidebar.upgrade_cta', { defaultValue: 'Upgrade to Pro' })}
+            </p>
+          </div>
+        </div>
+      </button>
     </div>
   );
 };
@@ -181,7 +284,6 @@ const UserProfile: React.FC<{
 }> = ({ isCollapsed, user, isLoading, onLogout }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { language, setLanguage } = useLanguage();
 
   const displayName = user?.fullName || user?.username || t('sidebar.account') || 'User';
   const roleKey = user?.role ? `roles.${user.role.toLowerCase()}` : '';
@@ -220,27 +322,39 @@ const UserProfile: React.FC<{
 
   const menuItems = (
     <>
-      <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
+      <DropdownMenuItem
+        onClick={() => {
+          navigate('/profile');
+        }}
+        className="cursor-pointer"
+      >
         <UserCircle className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.profile')}
       </DropdownMenuItem>
 
-      <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
+      <DropdownMenuItem
+        onClick={() => {
+          navigate('/settings');
+        }}
+        className="cursor-pointer"
+      >
         <Settings className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.account_settings')}
       </DropdownMenuItem>
 
-      <DropdownMenuItem onClick={() => navigate('/security')} className="cursor-pointer">
+      <DropdownMenuItem
+        onClick={() => {
+          navigate('/security');
+        }}
+        className="cursor-pointer"
+      >
         <Shield className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.security')}
       </DropdownMenuItem>
 
       <DropdownMenuSeparator />
 
-      <DropdownMenuItem onClick={() => setLanguage(language === 'en' ? 'vi' : 'en')} className="cursor-pointer">
-        <Globe className="w-4 h-4 mr-3 stroke-[1.75]" />
-        {t('sidebar.language')} ({language === 'en' ? 'VI' : 'EN'})
-      </DropdownMenuItem>
+      <LanguageSwitcher variant="sidebar" />
 
       <DropdownMenuSeparator />
 
@@ -315,7 +429,6 @@ export const OwnerSidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isCollapsed } = useSidebar();
-  const { currentBranch, branches, setCurrentBranch, switchBranch } = useBranch();
   const { user: authUser, isAuthenticated } = useAuthState();
   const { updateUser, logout } = useAuthActions();
   const [profile, setProfile] = React.useState<ApiUser | null>(authUser ?? null);
@@ -364,90 +477,50 @@ export const OwnerSidebar: React.FC = () => {
     };
   }, [isAuthenticated, hasInitiallyFetched, authUser, updateUser]);
 
-  const handleBranchSelect = (branch: BranchDisplay) => {
-    setCurrentBranch(branch);
-  };
-
-  const handleViewBranchDetail = async (branch: BranchDisplay) => {
-    await switchBranch(branch._id);
-    navigate(`/manage/branch/${branch._id}`);
-  };
-
-  const handleAddBranch = () => {
-    navigate('/manage/add-branch');
-  };
-
-  const mainNavItems = [
+  const mainNavItems: MenuItemProps[] = [
     {
       icon: <LayoutDashboard className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.dashboard'),
       isActive: location.pathname === '/manage/owner',
-      onClick: () => navigate('/manage/owner')
+      onClick: () => {
+        navigate('/manage/owner');
+      }
     },
     {
       icon: <Users className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.staff'),
       isActive: location.pathname === '/manage/staff',
-      onClick: () => navigate('/manage/staff')
+      onClick: () => {
+        navigate('/manage/staff');
+      }
+    },
+    {
+      icon: <User className="w-5 h-5 stroke-[1.75]" />,
+      label: t('sidebar.customers'),
+      isActive: location.pathname === '/manage/customers',
+      onClick: () => {
+        navigate('/manage/customers');
+      }
     },
     {
       icon: <Dumbbell className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.equipment'),
-      onClick: () => navigate('/manage/equipment')
-    },
-    {
-      icon: <UserCheck className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.pt_services'),
-      isActive: location.pathname === '/manage/pt-services',
-      onClick: () => navigate('/manage/pt-services')
-    },
-    {
-      icon: <UsersRound className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.class_services'),
-      isActive: location.pathname === '/manage/class-services',
-      onClick: () => navigate('/manage/class-services')
-    },
-    {
-      icon: <Tag className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.promotions'),
-      isActive: location.pathname === '/manage/discounts',
-      onClick: () => navigate('/manage/discounts')
-    },
-    {
-      icon: <IdCard className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.membership_plans'),
-      isActive: location.pathname === '/manage/memberships',
-      onClick: () => navigate('/manage/memberships')
+      onClick: () => {
+        navigate('/manage/equipment');
+      }
     },
     {
       icon: <BarChart3 className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.finance'),
-      onClick: () => console.log('Finance clicked')
-    },
-    {
-      icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.work_schedule'),
-      isActive: location.pathname === '/manage/workshifts/calendar',
-      onClick: () => navigate('/manage/workshifts/calendar')
+      onClick: () => {}
     },
     {
       icon: <MessageSquare className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.feedback'),
-      badge: 3, // Mock notification badge
-      onClick: () => console.log('Feedback clicked')
-    }
-  ];
-
-  const secondaryNavItems = [
-    {
-      icon: <Settings className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.settings'),
-      onClick: () => console.log('Settings clicked')
-    },
-    {
-      icon: <HelpCircle className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.help'),
-      onClick: () => console.log('Help clicked')
+      label: t('sidebar.testimonials'),
+      isActive: location.pathname === '/manage/testimonials',
+      onClick: () => {
+        navigate('/manage/testimonials');
+      }
     }
   ];
 
@@ -484,44 +557,63 @@ export const OwnerSidebar: React.FC = () => {
               badge={item.badge}
             />
           ))}
-        </nav>
 
-        {/* Secondary Navigation */}
-        <div className="mt-8">
-          {!isCollapsed && (
-            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-3">
-              {t('sidebar.support')}
-            </div>
-          )}
-          <nav
-            className={`space-y-1 ${isCollapsed ? 'overflow-hidden' : ''}`}
-            role="navigation"
-            aria-label={t('sidebar.navigation.support')}
+          {/* Services Dropdown */}
+          <DropdownSidebarItem
+            icon={<Briefcase className="w-5 h-5 stroke-[1.75]" />}
+            label={t('sidebar.business_services') || 'Dịch vụ / Services'}
+            isCollapsed={isCollapsed}
           >
-            {secondaryNavItems.map((item) => (
-              <SidebarItem
-                key={item.label}
-                icon={item.icon}
-                label={item.label}
-                onClick={item.onClick}
-                isCollapsed={isCollapsed}
-              />
-            ))}
-          </nav>
-        </div>
+            <SubMenuItem
+              icon={<UserCheck className="w-5 h-5 stroke-[1.75]" />}
+              label={t('sidebar.pt_services') || 'PT / Personal Training'}
+              isActive={location.pathname === '/manage/pt-services'}
+              onClick={() => navigate('/manage/pt-services')}
+            />
+            <SubMenuItem
+              icon={<UsersRound className="w-5 h-5 stroke-[1.75]" />}
+              label={t('sidebar.class_services') || 'Lớp học / Class Services'}
+              isActive={location.pathname === '/manage/class-services'}
+              onClick={() => navigate('/manage/class-services')}
+            />
+            <SubMenuItem
+              icon={<Tag className="w-5 h-5 stroke-[1.75]" />}
+              label={t('sidebar.promotions') || 'Khuyến mãi / Promotions'}
+              isActive={location.pathname === '/manage/discounts'}
+              onClick={() => navigate('/manage/discounts')}
+            />
+            <SubMenuItem
+              icon={<IdCard className="w-5 h-5 stroke-[1.75]" />}
+              label={t('sidebar.membership_plans') || 'Gói thành viên / Membership'}
+              isActive={location.pathname === '/manage/memberships'}
+              onClick={() => navigate('/manage/memberships')}
+            />
+          </DropdownSidebarItem>
+
+          {/* Schedule Dropdown */}
+          <DropdownSidebarItem
+            icon={<Calendar className="w-5 h-5 stroke-[1.75]" />}
+            label={t('sidebar.schedule') || 'Schedule'}
+            isCollapsed={isCollapsed}
+          >
+            <SubMenuItem
+              icon={<Calendar className="w-5 h-5 stroke-[1.75]" />}
+              label={t('sidebar.work_schedule') || 'Work Schedule'}
+              isActive={location.pathname === '/manage/workshifts/calendar'}
+              onClick={() => navigate('/manage/workshifts/calendar')}
+            />
+            <SubMenuItem
+              icon={<Calendar className="w-5 h-5 stroke-[1.75]" />}
+              label="Schedule Templates"
+              isActive={location.pathname === '/manage/schedule-templates'}
+              onClick={() => navigate('/manage/schedule-templates')}
+            />
+          </DropdownSidebarItem>
+        </nav>
       </div>
 
-      {/* Branch switch */}
-      <div className="border-t border-gray-200">
-        <QuickActions
-          isCollapsed={isCollapsed}
-          currentBranch={currentBranch}
-          branches={branches}
-          onBranchSelect={handleBranchSelect}
-          onAddBranch={handleAddBranch}
-          onViewBranch={handleViewBranchDetail}
-        />
-      </div>
+      {/* Upgrade prompt */}
+      <UpgradeCard isCollapsed={isCollapsed} />
 
       {/* User Profile */}
       <UserProfile isCollapsed={isCollapsed} user={profile} isLoading={isProfileLoading} onLogout={logout} />

@@ -14,24 +14,19 @@ export const useMembershipPlanActions = ({ onSuccess, onError }: UseMembershipPl
 
   const togglePlanStatus = useCallback(
     async (plan: MembershipPlan) => {
-      try {
-        const response = await membershipApi.toggleMembershipPlanStatus(plan._id, {
-          isActive: !plan.isActive,
-          branchId: plan.branchId.map((branch) => branch._id)
-        });
+      const response = await membershipApi.toggleMembershipPlanStatus(plan._id, {
+        isActive: !plan.isActive,
+        branchId: plan.branchId.map((branch) => branch._id)
+      });
 
-        if (response.success) {
-          toast.success(t('membershipManager.toast.toggleSuccess'));
-          onSuccess?.();
-          return;
-        }
-
-        toast.error(t('membershipManager.toast.toggleError'));
-        onError?.(response);
-      } catch (error) {
-        toast.error(t('membershipManager.toast.toggleError'));
-        onError?.(error);
+      if (response.success) {
+        toast.success(t('membershipManager.toast.toggleSuccess'));
+        onSuccess?.();
+        return;
       }
+
+      toast.error(response.message || t('membershipManager.toast.toggleError'));
+      onError?.(response);
     },
     [t, onSuccess, onError]
   );

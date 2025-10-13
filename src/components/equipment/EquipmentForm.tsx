@@ -1,8 +1,19 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, FileSpreadsheet, Dumbbell } from 'lucide-react';
+import { ArrowLeft, Upload, FileSpreadsheet, Dumbbell, ChevronDown, Check, Calendar } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { CreateEquipmentRequest, UpdateEquipmentRequest } from '../../types/api/Equipment';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { cn } from '@/utils/utils';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import type {
+  CreateEquipmentRequest,
+  UpdateEquipmentRequest,
+  EquipmentCategory,
+  EquipmentStatus
+} from '../../types/api/Equipment';
 import type { Staff } from '../../types/api/Staff';
 import type { Branch } from '../../types/api/Branch';
 import { EQUIPMENT_CATEGORY_DISPLAY, getEquipmentStatusDisplay } from '../../types/api/Equipment';
@@ -39,6 +50,32 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const { t } = useTranslation();
   const { uploadingImages, handleImageUpload, removeImage } = useImageUpload();
 
+  // Dropdown states
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showBranchDropdown, setShowBranchDropdown] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+
+  // Date picker states
+  const [purchaseDatePickerOpen, setPurchaseDatePickerOpen] = useState(false);
+  const [warrantyDatePickerOpen, setWarrantyDatePickerOpen] = useState(false);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.dropdown-container')) {
+        setShowCategoryDropdown(false);
+        setShowBranchDropdown(false);
+        setShowStatusDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     onFormDataChange({
@@ -66,6 +103,28 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
     });
   };
 
+  const handlePurchaseDateSelect = (date: Date | undefined) => {
+    if (date) {
+      const formattedDate = format(date, 'yyyy-MM-dd');
+      onFormDataChange({
+        ...formData,
+        dateOfPurchase: formattedDate
+      });
+    }
+    setPurchaseDatePickerOpen(false);
+  };
+
+  const handleWarrantyDateSelect = (date: Date | undefined) => {
+    if (date) {
+      const formattedDate = format(date, 'yyyy-MM-dd');
+      onFormDataChange({
+        ...formData,
+        warrantyExpirationDate: formattedDate
+      });
+    }
+    setWarrantyDatePickerOpen(false);
+  };
+
   const isAddMode = mode === 'add';
   const title = isAddMode ? t('equipment.add_title') : t('equipment.edit_equipment');
   const subtitle = isAddMode
@@ -78,31 +137,33 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
         <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-6 lg:p-8">
           {/* Header */}
           <div className="flex flex-col gap-6 mb-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <span className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-orange-500">
                   <Dumbbell className="h-3.5 w-3.5" />
                   {t('equipment.equipment_management')}
                 </span>
-                <h2 className="mt-3 text-2xl font-semibold text-gray-900">{title}</h2>
+                <h2 className="mt-3 text-xl sm:text-2xl font-semibold text-gray-900">{title}</h2>
                 <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 {isAddMode && onShowExcelImport && (
                   <button
                     onClick={onShowExcelImport}
-                    className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:border-orange-300 hover:text-orange-500"
+                    className="rounded-full border border-gray-300 px-3 sm:px-4 py-2 text-sm font-medium text-gray-700 hover:border-orange-300 hover:text-orange-500 flex items-center justify-center"
                   >
-                    <FileSpreadsheet className="mr-2 h-4 w-4 inline" />
-                    {t('equipment.excel_import')}
+                    <FileSpreadsheet className="mr-1 sm:mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">{t('equipment.excel_import')}</span>
+                    <span className="sm:hidden">Import</span>
                   </button>
                 )}
                 <button
                   onClick={onCancel || (() => navigate('/manage/technician/equipment'))}
-                  className="h-11 rounded-full bg-orange-500 px-6 text-sm font-semibold text-white shadow-sm hover:bg-orange-600"
+                  className="h-11 rounded-full bg-orange-500 px-4 sm:px-6 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 flex items-center justify-center"
                 >
-                  <ArrowLeft className="mr-2 h-4 w-4 inline" />
-                  {isAddMode ? t('common.back_to_list') : t('common.back')}
+                  <ArrowLeft className="mr-1 sm:mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">{isAddMode ? t('common.back_to_list') : t('common.back')}</span>
+                  <span className="sm:hidden">Back</span>
                 </button>
               </div>
             </div>
@@ -161,36 +222,115 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('equipment.category')} *</label>
-                  <select
-                    name="category"
-                    value={formData.category || 'STRENGTH'}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  >
-                    {Object.entries(EQUIPMENT_CATEGORY_DISPLAY).map(([key, value]) => (
-                      <option key={key} value={key}>
-                        {value}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative dropdown-container">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCategoryDropdown(!showCategoryDropdown);
+                        setShowBranchDropdown(false);
+                        setShowStatusDropdown(false);
+                      }}
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent flex items-center justify-between"
+                    >
+                      <span className="truncate">
+                        {formData.category
+                          ? EQUIPMENT_CATEGORY_DISPLAY[formData.category as keyof typeof EQUIPMENT_CATEGORY_DISPLAY]
+                          : 'Select Category'}
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${showCategoryDropdown ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+
+                    {showCategoryDropdown && (
+                      <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-2">
+                        {Object.entries(EQUIPMENT_CATEGORY_DISPLAY).map(([key, value]) => (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => {
+                              onFormDataChange({
+                                ...formData,
+                                category: key as EquipmentCategory
+                              });
+                              setShowCategoryDropdown(false);
+                            }}
+                            className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between ${
+                              formData.category === key ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
+                            }`}
+                          >
+                            <span>{value}</span>
+                            {formData.category === key && <Check className="h-4 w-4 text-orange-500" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('equipment.branch')} *</label>
-                  <select
-                    name="branchId"
-                    value={formData.branchId || ''}
-                    onChange={handleInputChange}
-                    disabled={branchesLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100"
-                  >
-                    <option value="">{t('equipment.select_branch')}</option>
-                    {branches.map((branch) => (
-                      <option key={branch._id} value={branch._id}>
-                        {branch.branchName}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative dropdown-container">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowBranchDropdown(!showBranchDropdown);
+                        setShowCategoryDropdown(false);
+                        setShowStatusDropdown(false);
+                      }}
+                      disabled={branchesLoading}
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent flex items-center justify-between disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <span className="truncate">
+                        {formData.branchId
+                          ? branches.find((b) => b._id === formData.branchId)?.branchName
+                          : t('equipment.select_branch')}
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${showBranchDropdown ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+
+                    {showBranchDropdown && !branchesLoading && (
+                      <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onFormDataChange({
+                              ...formData,
+                              branchId: ''
+                            });
+                            setShowBranchDropdown(false);
+                          }}
+                          className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between ${
+                            !formData.branchId ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
+                          }`}
+                        >
+                          <span>{t('equipment.select_branch')}</span>
+                          {!formData.branchId && <Check className="h-4 w-4 text-orange-500" />}
+                        </button>
+                        {branches.map((branch) => (
+                          <button
+                            key={branch._id}
+                            type="button"
+                            onClick={() => {
+                              onFormDataChange({
+                                ...formData,
+                                branchId: branch._id
+                              });
+                              setShowBranchDropdown(false);
+                            }}
+                            className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between ${
+                              formData.branchId === branch._id ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
+                            }`}
+                          >
+                            <span>{branch.branchName}</span>
+                            {formData.branchId === branch._id && <Check className="h-4 w-4 text-orange-500" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -225,42 +365,127 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {t('equipment.date_of_purchase')} *
                   </label>
-                  <input
-                    type="date"
-                    name="dateOfPurchase"
-                    value={formData.dateOfPurchase || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
+                  <Popover open={purchaseDatePickerOpen} onOpenChange={setPurchaseDatePickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          'w-full justify-start text-left font-normal bg-white border-gray-300 hover:bg-gray-50 focus:border-orange-500 h-10 px-3 py-2',
+                          !formData.dateOfPurchase && 'text-muted-foreground'
+                        )}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {formData.dateOfPurchase
+                          ? format(new Date(formData.dateOfPurchase + 'T00:00:00'), 'dd/MM/yyyy', { locale: vi })
+                          : t('equipment.select_purchase_date') || 'Select purchase date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-white border-gray-200 shadow-lg" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={formData.dateOfPurchase ? new Date(formData.dateOfPurchase + 'T00:00:00') : undefined}
+                        onSelect={handlePurchaseDateSelect}
+                        initialFocus
+                        locale={vi}
+                        className="bg-white border-0"
+                        fromYear={2000}
+                        toYear={new Date().getFullYear()}
+                        captionLayout="dropdown"
+                        disabled={(date) => date > new Date()}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {t('equipment.warranty_expiration')}
                   </label>
-                  <input
-                    type="date"
-                    name="warrantyExpirationDate"
-                    value={formData.warrantyExpirationDate || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
+                  <Popover open={warrantyDatePickerOpen} onOpenChange={setWarrantyDatePickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          'w-full justify-start text-left font-normal bg-white border-gray-300 hover:bg-gray-50 focus:border-orange-500 h-10 px-3 py-2',
+                          !formData.warrantyExpirationDate && 'text-muted-foreground'
+                        )}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {formData.warrantyExpirationDate
+                          ? format(new Date(formData.warrantyExpirationDate + 'T00:00:00'), 'dd/MM/yyyy', {
+                              locale: vi
+                            })
+                          : t('equipment.select_warranty_date') || 'Select warranty date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-white border-gray-200 shadow-lg" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={
+                          formData.warrantyExpirationDate
+                            ? new Date(formData.warrantyExpirationDate + 'T00:00:00')
+                            : undefined
+                        }
+                        onSelect={handleWarrantyDateSelect}
+                        initialFocus
+                        locale={vi}
+                        className="bg-white border-0"
+                        fromYear={new Date().getFullYear()}
+                        toYear={new Date().getFullYear() + 10}
+                        captionLayout="dropdown"
+                        disabled={(date) => date < new Date()}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">{t('equipment.status')} *</label>
-                  <select
-                    name="status"
-                    value={formData.status || 'ACTIVE'}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  >
-                    <option value="ACTIVE">{getEquipmentStatusDisplay('ACTIVE', t).label}</option>
-                    <option value="INACTIVE">{getEquipmentStatusDisplay('INACTIVE', t).label}</option>
-                    <option value="MAINTENANCE">{getEquipmentStatusDisplay('MAINTENANCE', t).label}</option>
-                    <option value="REPAIR">{getEquipmentStatusDisplay('REPAIR', t).label}</option>
-                    <option value="RETIRED">{getEquipmentStatusDisplay('RETIRED', t).label}</option>
-                  </select>
+                  <div className="relative dropdown-container">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowStatusDropdown(!showStatusDropdown);
+                        setShowCategoryDropdown(false);
+                        setShowBranchDropdown(false);
+                      }}
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent flex items-center justify-between"
+                    >
+                      <span className="truncate">
+                        {formData.status ? getEquipmentStatusDisplay(formData.status, t).label : 'Select Status'}
+                      </span>
+                      <ChevronDown
+                        className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${showStatusDropdown ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+
+                    {showStatusDropdown && (
+                      <div className="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-2">
+                        {['ACTIVE', 'INACTIVE', 'MAINTENANCE', 'REPAIR', 'RETIRED'].map((status) => {
+                          const statusDisplay = getEquipmentStatusDisplay(status, t);
+                          return (
+                            <button
+                              key={status}
+                              type="button"
+                              onClick={() => {
+                                onFormDataChange({
+                                  ...formData,
+                                  status: status as EquipmentStatus
+                                });
+                                setShowStatusDropdown(false);
+                              }}
+                              className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center justify-between ${
+                                formData.status === status ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
+                              }`}
+                            >
+                              <span>{statusDisplay.label}</span>
+                              {formData.status === status && <Check className="h-4 w-4 text-orange-500" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="md:col-span-2">
@@ -334,14 +559,14 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
             </div>
 
             {/* Submit Button */}
-            <div className="flex justify-end">
+            <div className="flex justify-center sm:justify-end">
               <button
                 type="submit"
                 disabled={loading}
-                className="h-12 rounded-full bg-orange-500 px-8 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-12 w-full sm:w-auto rounded-full bg-orange-500 px-6 sm:px-8 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center justify-center space-x-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                     <span>{isAddMode ? t('equipment.creating') : t('equipment.updating')}</span>
                   </div>

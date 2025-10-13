@@ -1,29 +1,10 @@
+import type { ScheduleType, TimeRange, PaginationResponse, SortOrder } from '../common/BaseTypes';
+
 export interface StaffScheduleModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedStaffId?: string;
   initialData?: StaffScheduleFormData;
-}
-
-export interface StaffScheduleFormData {
-  title: string;
-  staffId: string;
-  branchId: string;
-  duration: number;
-  availability: {
-    sunday: { enabled: boolean; startTime: string; endTime: string };
-    monday: { enabled: boolean; startTime: string; endTime: string };
-    tuesday: { enabled: boolean; startTime: string; endTime: string };
-    wednesday: { enabled: boolean; startTime: string; endTime: string };
-    thursday: { enabled: boolean; startTime: string; endTime: string };
-    friday: { enabled: boolean; startTime: string; endTime: string };
-    saturday: { enabled: boolean; startTime: string; endTime: string };
-  };
-  schedulingWindow: {
-    advanceDays: number;
-    maxHours: number;
-  };
-  timezone: string;
 }
 
 export interface DayAvailability {
@@ -40,6 +21,18 @@ export interface WeekAvailability {
   thursday: DayAvailability;
   friday: DayAvailability;
   saturday: DayAvailability;
+}
+
+export interface StaffScheduleFormData {
+  title: string;
+  staffId: string;
+  branchId: string;
+  scheduleDate: string;
+  type: ScheduleType;
+  timeRange: TimeRange;
+  notes?: string;
+  availability: WeekAvailability;
+  timezone: string;
 }
 
 export interface SchedulingWindow {
@@ -74,7 +67,7 @@ export interface StaffScheduleListParams {
   page?: number;
   limit?: number;
   sortBy?: 'createdAt' | 'updatedAt' | 'startTime' | 'endTime';
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: SortOrder;
   staffId?: string;
   branchId?: string;
   dateRange?: {
@@ -85,12 +78,7 @@ export interface StaffScheduleListParams {
 
 export interface StaffScheduleListResponse {
   data: StaffScheduleFormData[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
+  pagination: PaginationResponse;
 }
 
 // Hook return types

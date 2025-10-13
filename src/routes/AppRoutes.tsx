@@ -11,8 +11,10 @@ import VerifyOTPPage from '@/pages/auth/VerifyOTPPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 import VerifyForgotPasswordOTPPage from '@/pages/auth/VerifyForgotPasswordOTPPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
+import ZaloCallbackPage from '@/pages/auth/ZaloCallbackPage';
 import HomePage from '@/pages/home-test';
 import LandingPage from '@/pages/landing/LandingPage';
+import OwnerLandingPage from '@/pages/landing/OwnerLandingPage';
 import GymListPage from '@/pages/gyms/GymListPage';
 import GymDetailPage from '@/pages/gyms/GymDetailPage';
 import { UserProfile } from '@/pages/profile/ProfilePage';
@@ -22,20 +24,94 @@ import BranchDetailPage from '@/pages/owner/BranchDetailPage';
 import AddBranchPage from '@/pages/owner/AddBranchPage';
 import AddNewStaff from '@/pages/owner/AddNewStaff';
 import DiscountPage from '@/pages/owner/DiscountPage';
+import TestimonialPage from '@/pages/owner/TestimonialPage';
+import { ScheduleTemplatePage } from '@/pages/ScheduleTemplatePage';
 import { TechnicianLayout } from '@/layouts/TechnicianLayout';
 import TechnicianDashboard from '@/pages/technician/TechnicianDashboard';
 import { EquipmentListPage } from '@/pages/technician/EquipmentListPage';
 import { AddEquipmentPage } from '@/pages/technician/AddEquipmentPage';
-import { EquipmentDetailPage } from '@/pages/technician/EquipmentDetailPage';
 import { EditEquipmentPage } from '@/pages/technician/EditEquipmentPage';
+import { EquipmentIssueReportPage } from '@/pages/technician/EquipmentIssueReportPage';
+import { EquipmentIssueHistoryPage } from '@/pages/technician/EquipmentIssueHistoryPage';
 import MembershipPlansPage from '@/pages/owner/MembershipPlansPage';
 import AddWorkShiftPage from '@/pages/owner/AddWorkShiftPage';
 import EditWorkShiftPage from '@/pages/owner/EditWorkShiftPage';
 import WorkShiftCalendarPage from '@/pages/owner/WorkShiftCalendarPage';
+import TechnicianCalendarPage from '@/pages/technician/TechnicianCalendarPage';
 import PTServiceManagement from '@/components/dashboard/PTServiceManagement';
 import ClassServiceManagement from '@/components/dashboard/ClassServiceManagement';
+import { PTLayout } from '@/layouts/PTLayout';
+import PTDashboard from '@/pages/pt/PTDashboard';
+import PTCalendarPage from '@/pages/pt/PTCalendarPage';
+import CustomerManagementPage from '@/pages/owner/CustomerManagementPage';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
+import { SidebarProvider } from '@/contexts/SidebarContext';
+import { OwnerSidebar } from '@/components/layout/OwnerSidebar';
+import { TechnicianSidebar } from '@/components/layout/TechnicianSidebar';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+
+// WorkShift Calendar with Layout Component
+const WorkShiftCalendarPageWithLayout: React.FC = () => {
+  const { isAuthenticated, user, isLoading } = useAuthState();
+  const { currentStaff } = useCurrentUserStaff();
+
+  // Show loading while authentication is being checked
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user has permission to access workshift calendar
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Allow OWNER and STAFF roles
+  if (user.role !== 'OWNER' && user.role !== 'STAFF') {
+    return <Navigate to="/home" replace />;
+  }
+
+  // Choose appropriate sidebar based on user role and job title
+  const renderSidebar = () => {
+    if (user.role === 'OWNER') {
+      return <OwnerSidebar />;
+    } else if (user.role === 'STAFF') {
+      // Manager should use OwnerSidebar, others use TechnicianSidebar
+      if (currentStaff?.jobTitle === 'Manager') {
+        return <OwnerSidebar />;
+      }
+      return <TechnicianSidebar />;
+    }
+    return <OwnerSidebar />; // fallback
+  };
+
+  return (
+    <SidebarProvider>
+      <div className="h-screen bg-[#f1f3f4] flex overflow-hidden">
+        {renderSidebar()}
+        <div className="flex-1 overflow-y-auto hide-scrollbar">
+          {/* Header */}
+          <div className="bg-white border-b border-gray-200">
+            <div className="px-5 py-2 pb-3">
+              <DashboardHeader />
+            </div>
+          </div>
+          {/* Main Content */}
+          <div className="p-6">
+            <WorkShiftCalendarPage />
+          </div>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+};
 
 // Protected Route Component - supports multiple roles and job titles
 interface ProtectedRouteProps {
@@ -118,6 +194,7 @@ const AppRoutes: React.FC = () => {
     <Routes>
       {/* Root Route - redirect based on auth status */}
       <Route path="/" element={<LandingPage />} />
+      <Route path="/owners" element={<OwnerLandingPage />} />
 
       {/* Auth Routes - redirect to home if already authenticated */}
       <Route path="/login" element={isAuthenticated ? <Navigate to="/home" replace /> : <LoginPage />} />
@@ -127,6 +204,8 @@ const AppRoutes: React.FC = () => {
 
       {/* Verify OTP Route - redirect to home if already authenticated */}
       <Route path="/verify-otp" element={isAuthenticated ? <Navigate to="/home" replace /> : <VerifyOTPPage />} />
+
+      <Route path="/auth/zalo/callback" element={<ZaloCallbackPage />} />
 
       {/* Forgot Password Routes */}
       <Route
@@ -152,7 +231,10 @@ const AppRoutes: React.FC = () => {
       <Route path="/gyms" element={<GymListPage />} />
       <Route path="/gym/:id" element={<GymDetailPage />} />
 
-      {/* Management Routes - only for OWNER role and Manager job title */}
+      {/* Work Shift Calendar Route - accessible to all STAFF (must be before /manage route) */}
+      <Route path="/manage/workshifts/calendar" element={<WorkShiftCalendarPageWithLayout />} />
+
+      {/* Management Routes - for OWNER role and STAFF with Manager job title */}
       <Route
         path="/manage"
         element={<ProtectedRoute allowedRoles={['OWNER', 'STAFF']} allowedJobTitles={['Manager']} />}
@@ -162,6 +244,8 @@ const AppRoutes: React.FC = () => {
           <Route path="owner" element={<OwnerDashboard />} />
           {/* Staff Management Route */}
           <Route path="staff" element={<StaffPage />} />
+          {/* Customer Management Route */}
+          <Route path="customers" element={<CustomerManagementPage />} />
           {/* Branch Detail Route */}
           <Route path="branch/:branchId" element={<BranchDetailPage />} />
           {/* Add Branch Route */}
@@ -176,26 +260,29 @@ const AppRoutes: React.FC = () => {
           <Route path="discounts" element={<DiscountPage />} />
           {/* Membership Management Route */}
           <Route path="memberships" element={<MembershipPlansPage />} />
+          {/* Testimonial Management Route */}
+          <Route path="testimonials" element={<TestimonialPage />} />
+          {/* Schedule Template Management Route */}
+          <Route path="schedule-templates" element={<ScheduleTemplatePage />} />
+
           {/* Shared Equipment Routes for Manager */}
           <Route path="equipment" element={<EquipmentListPage />} />
           <Route path="equipment/add" element={<AddEquipmentPage />} />
-          <Route path="equipment/:id" element={<EquipmentDetailPage />} />
           <Route path="equipment/:id/edit" element={<EditEquipmentPage />} />
 
           {/* Work Shift Management Routes */}
           <Route path="workshifts/add" element={<AddWorkShiftPage />} />
           <Route path="workshifts/:id/edit" element={<EditWorkShiftPage />} />
-          <Route path="workshifts/calendar" element={<WorkShiftCalendarPage />} />
         </Route>
       </Route>
 
-      {/* Equipment Management Routes - for Technician and Personal Trainer */}
+      {/* Equipment Management Routes - for Technician only */}
       <Route
         path="/manage/technician"
         element={
           <ProtectedRoute
             allowedRoles={['STAFF', 'OWNER', 'ADMIN']}
-            allowedJobTitles={['Technician', 'Personal Trainer']}
+            allowedJobTitles={['Technician']}
             fallbackPath="/home"
           />
         }
@@ -207,9 +294,40 @@ const AppRoutes: React.FC = () => {
           {/* Shared Equipment Routes for Technician */}
           <Route path="equipment" element={<EquipmentListPage />} />
           <Route path="equipment/add" element={<AddEquipmentPage />} />
-          <Route path="equipment/:id" element={<EquipmentDetailPage />} />
           <Route path="equipment/:id/edit" element={<EditEquipmentPage />} />
+
+          {/* Calendar Route for Technician */}
+          <Route path="calendar" element={<TechnicianCalendarPage />} />
+
+          {/* Equipment Issue History Route for Technician */}
+          <Route path="equipment-issues" element={<EquipmentIssueHistoryPage />} />
+
           <Route path="*" element={<Navigate to="/manage/technician" replace />} />
+        </Route>
+      </Route>
+
+      {/* Personal Trainer Routes - for Personal Trainer only */}
+      <Route
+        path="/manage/pt"
+        element={
+          <ProtectedRoute
+            allowedRoles={['STAFF', 'OWNER', 'ADMIN']}
+            allowedJobTitles={['Personal Trainer']}
+            fallbackPath="/home"
+          />
+        }
+      >
+        <Route path="" element={<PTLayout />}>
+          {/* Dashboard Route */}
+          <Route path="" element={<PTDashboard />} />
+
+          {/* Calendar Route for PT */}
+          <Route path="calendar" element={<PTCalendarPage />} />
+
+          {/* Equipment Issue Report Route for PT */}
+          <Route path="equipment-issues" element={<EquipmentIssueReportPage />} />
+
+          <Route path="*" element={<Navigate to="/manage/pt" replace />} />
         </Route>
       </Route>
 
@@ -218,7 +336,6 @@ const AppRoutes: React.FC = () => {
         <Route path="" element={<ExamplePage />} />
         {/* Add more example routes here */}
       </Route>
-
       {/* Catch all route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

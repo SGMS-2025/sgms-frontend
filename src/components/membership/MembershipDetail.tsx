@@ -13,27 +13,36 @@ interface MembershipDetailProps {
   onClose: () => void;
   plan: MembershipPlan | null;
   branchId?: string;
+  onEdit?: (plan: MembershipPlan, branchId?: string) => void;
 }
 
-export const MembershipDetail: React.FC<MembershipDetailProps> = ({ isOpen, onClose, plan, branchId }) => {
+export const MembershipDetail: React.FC<MembershipDetailProps> = ({ isOpen, onClose, plan, branchId, onEdit }) => {
   const { t } = useTranslation();
 
   if (!plan) return null;
 
   const formatCurrency = (value: number, currency: string) => {
-    try {
-      return new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency,
-        maximumFractionDigits: 0
-      }).format(value);
-    } catch {
-      return `${value.toLocaleString('vi-VN')} ${currency}`;
+    // Validate inputs
+    if (typeof value !== 'number' || isNaN(value)) {
+      return `0 ${currency || 'VND'}`;
     }
+
+    // Normalize currency code
+    const currencyCode = currency?.toUpperCase().trim() || 'VND';
+
+    // Safe format with fallback
+    const formatted = new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: currencyCode,
+      maximumFractionDigits: 0
+    }).format(value);
+
+    return formatted;
   };
 
-  const isOverride = branchId && branchId !== plan.branchId[0]?._id;
-  const overrideData = isOverride ? plan.overrides?.find((o) => o.appliesToBranchId === branchId) : null;
+  // Check if viewing an override (branch has custom version)
+  const overrideData = branchId ? plan.overrides?.find((o) => o.appliesToBranchId === branchId) : null;
+  const isOverride = !!overrideData;
 
   const resolvedPlan = {
     name: overrideData?.name || plan.name,
@@ -45,8 +54,13 @@ export const MembershipDetail: React.FC<MembershipDetailProps> = ({ isOpen, onCl
     isActive: overrideData?.isActive ?? plan.isActive
   };
 
+  // When viewing override, only show the specific branch
+  // When viewing template, show all branches
+  const branchesToDisplay =
+    isOverride && branchId ? plan.branchId.filter((branch) => branch._id === branchId) : plan.branchId;
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => (open ? undefined : onClose)}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="w-[95vw] max-w-2xl h-[95vh] max-h-[95vh] p-0 flex flex-col">
         <DialogHeader className="p-6 pb-4">
           <DialogTitle className="text-xl sm:text-2xl font-bold text-orange-800">
@@ -146,7 +160,7 @@ export const MembershipDetail: React.FC<MembershipDetailProps> = ({ isOpen, onCl
             </CardHeader>
             <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
               <div className="space-y-3">
-                {plan.branchId.map((branch) => {
+                {branchesToDisplay.map((branch) => {
                   const isCurrentBranch = branch._id === branchId;
                   const hasOverride = plan.overrides?.some((o) => o.appliesToBranchId === branch._id);
 
@@ -208,7 +222,10 @@ export const MembershipDetail: React.FC<MembershipDetailProps> = ({ isOpen, onCl
             >
               {t('membershipManager.detail.cancel')}
             </Button>
-            <Button className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto order-1 sm:order-2">
+            <Button
+              className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto order-1 sm:order-2"
+              onClick={() => onEdit?.(plan, branchId)}
+            >
               {t('membershipManager.detail.editPlan')}
             </Button>
           </div>

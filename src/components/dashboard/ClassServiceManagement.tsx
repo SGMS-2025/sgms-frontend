@@ -134,219 +134,235 @@ export default function ClassServiceManagement() {
   }
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">{t('class_service.title')}</h1>
-          <p className="text-sm text-muted-foreground">
-            {t('class_service.subtitle')} <span className="font-medium">{currentBranch.branchName}</span>
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <AddFeatureDialog onSubmit={addFeature} loading={loading} serviceType="CLASS" />
-            <AddServiceDialog onSubmit={addService} loading={loading} serviceType="CLASS" />
-          </div>
-        </div>
-      </div>
-
-      {error && (
-        <div className="space-y-4">
-          <ErrorDisplay error={error} onRetry={handleRetry} serviceType="CLASS" />
-          <div className="p-4 border border-blue-200 bg-blue-50 rounded-md">
-            <div className="flex items-center gap-2 text-blue-800 mb-2">
-              <AlertTriangle className="h-5 w-5" />
-              <span className="font-medium">{t('class_service.offline_mode')}</span>
-            </div>
-            <p className="text-blue-700 text-sm mb-3">{t('class_service.offline_message')}</p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                const isConnected = await testConnection();
-                if (isConnected) {
-                  clearError();
-                  reloadMatrix();
-                } else {
-                  alert(t('class_service.api_connection_error'));
-                }
-              }}
-            >
-              {t('class_service.test_connection')}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {loading && !error && (
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-muted-foreground">{t('class_service.loading')}</span>
-        </div>
-      )}
-
-      <div className="bg-white rounded-xl p-6 mb-6 shadow-lg border border-gray-200">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <Building2 className="w-4 h-4 text-orange-500 mr-2" />
-            <span className="text-sm text-orange-500 font-semibold">{t('class_service.features_benefits')}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {!preview && (
-              <Button
-                size="sm"
-                onClick={saveMatrix}
-                disabled={loading}
-                className="px-4 py-2 text-sm text-white border border-orange-500 rounded-full bg-orange-500 hover:bg-orange-600 hover:border-orange-600 transition-colors flex items-center leading-none"
-              >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                {t('class_service.save_changes')}
-              </Button>
-            )}
-            <Button
-              size="sm"
-              onClick={() => setPreview((p) => !p)}
-              className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-full bg-white hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 transition-colors flex items-center leading-none"
-            >
-              {preview ? <Pencil className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-              {preview ? t('class_service.edit') : t('class_service.preview')}
-            </Button>
-          </div>
-        </div>
-
-        {classServices.length === 0 && features.length === 0 && !loading ? (
-          <div className="flex flex-col items-center justify-center py-6 min-h-[200px]">
-            <div className="text-muted-foreground mb-4 text-center">
-              <Building2 className="mx-auto h-10 w-10 mb-2" />
-              <h3 className="text-lg font-medium mb-1">{t('class_service.no_data_title')}</h3>
-              <p className="text-sm">{t('class_service.no_data_subtitle')}</p>
-            </div>
-            <div className="flex justify-center">
-              <AddInitialDataDialog
-                onAddFeature={addFeature}
-                onAddService={addService}
-                loading={loading}
-                serviceType="CLASS"
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="bg-white border border-orange-200 rounded-lg overflow-hidden">
-            {/* Header row */}
-            <div
-              className="grid gap-4 p-4 text-orange-500 text-sm font-semibold bg-orange-50"
-              style={{ gridTemplateColumns: `minmax(260px,1fr) repeat(${classServices.length}, minmax(160px, 1fr))` }}
-            >
-              <div className="flex items-center justify-center">{t('class_service.features_services')}</div>
-              {classServices.map((s) => (
-                <div key={s.id} className="flex flex-col items-center gap-1">
-                  <div className="flex items-center gap-2 justify-center">
-                    <button
-                      className="truncate font-semibold cursor-pointer hover:text-orange-600 transition-colors bg-transparent border-none p-0 text-inherit"
-                      onClick={() => !preview && handleEditService(s)}
-                      title={!preview ? t('class_service.click_to_edit') : ''}
-                      disabled={preview}
-                    >
-                      {s.name}
-                    </button>
-                    {!preview && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 flex-shrink-0 text-orange-500 hover:text-orange-700 hover:bg-orange-100"
-                        onClick={() => handleDeleteService(s)}
-                        disabled={loading}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Price and Duration */}
-                  <div className="flex flex-col items-center gap-1 text-xs text-orange-400">
-                    {s.price && s.price > 0 ? (
-                      <div className="font-medium text-green-600">{s.price.toLocaleString('vi-VN')}₫</div>
-                    ) : (
-                      <div className="text-orange-300 italic text-xs">{t('class_service.no_price')}</div>
-                    )}
-                    {s.durationInMonths && s.durationInMonths > 0 ? (
-                      <div className="text-blue-600">
-                        {s.durationInMonths} {t('class_service.months')}
-                      </div>
-                    ) : (
-                      <div className="text-orange-300 italic text-xs">{t('class_service.no_duration')}</div>
-                    )}
-                  </div>
+    <div>
+      <div>
+        <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-6 lg:p-8">
+          {/* Header */}
+          <div className="flex flex-col gap-6 mb-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex-1">
+                <span className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-orange-500">
+                  <Building2 className="h-3.5 w-3.5" />
+                  {t('class_service.badge')}
+                </span>
+                <h2 className="mt-3 text-xl sm:text-2xl font-semibold text-gray-900">{t('class_service.title')}</h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  {t('class_service.subtitle')} <span className="font-medium">{currentBranch.branchName}</span>
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-2">
+                  <AddFeatureDialog onSubmit={addFeature} loading={loading} serviceType="CLASS" />
+                  <AddServiceDialog onSubmit={addService} loading={loading} serviceType="CLASS" />
                 </div>
-              ))}
+              </div>
             </div>
+          </div>
 
-            {/* Feature rows */}
-            {features.map((f, index) => (
-              <div
-                key={f.id}
-                className={`grid gap-4 p-4 text-sm border-t border-gray-200 ${
-                  index % 2 === 0 ? 'bg-gray-50' : 'bg-white'
-                }`}
-                style={{ gridTemplateColumns: `minmax(260px,1fr) repeat(${classServices.length}, minmax(160px, 1fr))` }}
-              >
-                {/* Feature name column */}
-                <div className="flex items-center justify-center gap-2">
-                  <button
-                    className="text-sm font-medium leading-5 text-center text-gray-800 cursor-pointer hover:text-orange-600 transition-colors bg-transparent border-none p-0"
-                    onClick={() => !preview && handleEditFeature(f)}
-                    title={!preview ? t('class_service.click_to_edit') : ''}
-                    disabled={preview}
+          {error && (
+            <div className="space-y-4">
+              <ErrorDisplay error={error} onRetry={handleRetry} serviceType="CLASS" />
+              <div className="p-4 border border-blue-200 bg-blue-50 rounded-md">
+                <div className="flex items-center gap-2 text-blue-800 mb-2">
+                  <AlertTriangle className="h-5 w-5" />
+                  <span className="font-medium">{t('class_service.offline_mode')}</span>
+                </div>
+                <p className="text-blue-700 text-sm mb-3">{t('class_service.offline_message')}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    const isConnected = await testConnection();
+                    if (isConnected) {
+                      clearError();
+                      reloadMatrix();
+                    } else {
+                      alert(t('class_service.api_connection_error'));
+                    }
+                  }}
+                >
+                  {t('class_service.test_connection')}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {loading && !error && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-muted-foreground">{t('class_service.loading')}</span>
+            </div>
+          )}
+
+          {/* Main Content */}
+          <div className="bg-white rounded-xl p-6 mb-6 shadow-lg border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <Building2 className="w-4 h-4 text-orange-500 mr-2" />
+                <span className="text-sm text-orange-500 font-semibold">{t('class_service.features_benefits')}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {!preview && (
+                  <Button
+                    size="sm"
+                    onClick={saveMatrix}
+                    disabled={loading}
+                    className="px-4 py-2 text-sm text-white border border-orange-500 rounded-full bg-orange-500 hover:bg-orange-600 hover:border-orange-600 transition-colors flex items-center leading-none"
                   >
-                    {f.name}
-                  </button>
-                  {!preview && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 flex-shrink-0 text-orange-500 hover:text-orange-700 hover:bg-orange-100"
-                      onClick={() => handleDeleteFeature(f)}
-                      disabled={loading}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    {t('class_service.save_changes')}
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  onClick={() => setPreview((p) => !p)}
+                  className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-full bg-white hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 transition-colors flex items-center leading-none"
+                >
+                  {preview ? <Pencil className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                  {preview ? t('class_service.edit') : t('class_service.preview')}
+                </Button>
+              </div>
+            </div>
+
+            {classServices.length === 0 && features.length === 0 && !loading ? (
+              <div className="flex flex-col items-center justify-center py-6 min-h-[200px]">
+                <div className="text-muted-foreground mb-4 text-center">
+                  <Building2 className="mx-auto h-10 w-10 mb-2" />
+                  <h3 className="text-lg font-medium mb-1">{t('class_service.no_data_title')}</h3>
+                  <p className="text-sm">{t('class_service.no_data_subtitle')}</p>
+                </div>
+                <div className="flex justify-center">
+                  <AddInitialDataDialog
+                    onAddFeature={addFeature}
+                    onAddService={addService}
+                    loading={loading}
+                    serviceType="CLASS"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white border border-orange-200 rounded-lg overflow-hidden">
+                {/* Header row */}
+                <div
+                  className="grid gap-4 p-4 text-orange-500 text-sm font-semibold bg-orange-50"
+                  style={{
+                    gridTemplateColumns: `minmax(260px,1fr) repeat(${classServices.length}, minmax(160px, 1fr))`
+                  }}
+                >
+                  <div className="flex items-center justify-center">{t('class_service.features_services')}</div>
+                  {classServices.map((s) => (
+                    <div key={s.id} className="flex flex-col items-center gap-1">
+                      <div className="flex items-center gap-2 justify-center">
+                        <button
+                          className="truncate font-semibold cursor-pointer hover:text-orange-600 transition-colors bg-transparent border-none p-0 text-inherit"
+                          onClick={() => !preview && handleEditService(s)}
+                          title={!preview ? t('class_service.click_to_edit') : ''}
+                          disabled={preview}
+                        >
+                          {s.name}
+                        </button>
+                        {!preview && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 flex-shrink-0 text-orange-500 hover:text-orange-700 hover:bg-orange-100"
+                            onClick={() => handleDeleteService(s)}
+                            disabled={loading}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Price and Duration */}
+                      <div className="flex flex-col items-center gap-1 text-xs text-orange-400">
+                        {s.price && s.price > 0 ? (
+                          <div className="font-medium text-green-600">{s.price.toLocaleString('vi-VN')}₫</div>
+                        ) : (
+                          <div className="text-orange-300 italic text-xs">{t('class_service.no_price')}</div>
+                        )}
+                        {s.durationInMonths && s.durationInMonths > 0 ? (
+                          <div className="text-blue-600">
+                            {s.durationInMonths} {t('class_service.months')}
+                          </div>
+                        ) : (
+                          <div className="text-orange-300 italic text-xs">{t('class_service.no_duration')}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Service columns */}
-                {classServices.map((s) => {
-                  const cellKey = `${s.id}__${f.id}`;
-                  const cell = cells[cellKey];
-                  return (
-                    <div key={cellKey} className="flex items-center justify-center">
-                      {preview ? (
-                        // render read-only preview
-                        <div className="flex items-center justify-center py-2">
-                          {cell?.isIncluded ? (
-                            <div className="flex items-center justify-center w-6 h-6 bg-green-600 rounded-full">
-                              <Check className="w-4 h-4 text-white" />
-                            </div>
-                          ) : (
-                            <span className="text-gray-400 text-lg">—</span>
-                          )}
-                        </div>
-                      ) : (
-                        <MatrixCell
-                          feature={f}
-                          cell={cell}
-                          onChange={(patch: Partial<import('@/types/api/Matrix').MatrixCellData>) =>
-                            updateCell(s.id, f.id, patch)
-                          }
+                {/* Feature rows */}
+                {features.map((f, index) => (
+                  <div
+                    key={f.id}
+                    className={`grid gap-4 p-4 text-sm border-t border-gray-200 ${
+                      index % 2 === 0 ? 'bg-gray-50' : 'bg-white'
+                    }`}
+                    style={{
+                      gridTemplateColumns: `minmax(260px,1fr) repeat(${classServices.length}, minmax(160px, 1fr))`
+                    }}
+                  >
+                    {/* Feature name column */}
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        className="text-sm font-medium leading-5 text-center text-gray-800 cursor-pointer hover:text-orange-600 transition-colors bg-transparent border-none p-0"
+                        onClick={() => !preview && handleEditFeature(f)}
+                        title={!preview ? t('class_service.click_to_edit') : ''}
+                        disabled={preview}
+                      >
+                        {f.name}
+                      </button>
+                      {!preview && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 flex-shrink-0 text-orange-500 hover:text-orange-700 hover:bg-orange-100"
+                          onClick={() => handleDeleteFeature(f)}
                           disabled={loading}
-                        />
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       )}
                     </div>
-                  );
-                })}
+
+                    {/* Service columns */}
+                    {classServices.map((s) => {
+                      const cellKey = `${s.id}__${f.id}`;
+                      const cell = cells[cellKey];
+                      return (
+                        <div key={cellKey} className="flex items-center justify-center">
+                          {preview ? (
+                            // render read-only preview
+                            <div className="flex items-center justify-center py-2">
+                              {cell?.isIncluded ? (
+                                <div className="flex items-center justify-center w-6 h-6 bg-green-600 rounded-full">
+                                  <Check className="w-4 h-4 text-white" />
+                                </div>
+                              ) : (
+                                <span className="text-gray-400 text-lg">—</span>
+                              )}
+                            </div>
+                          ) : (
+                            <MatrixCell
+                              feature={f}
+                              cell={cell}
+                              onChange={(patch: Partial<import('@/types/api/Matrix').MatrixCellData>) =>
+                                updateCell(s.id, f.id, patch)
+                              }
+                              disabled={loading}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Confirmation Dialogs */}

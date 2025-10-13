@@ -13,7 +13,12 @@ i18n.use(initReactI18next).init({
   lng: 'en', // default language
   fallbackLng: 'vi',
   interpolation: {
-    escapeValue: false // react already safes from xss
+    escapeValue: false, // react already safes from xss
+    formatSeparator: ',',
+    format: function (value, format, _lng) {
+      if (format === 'uppercase') return value.toUpperCase();
+      return value;
+    }
   }
 });
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { LandingPageProps } from '@/types/pages/landing';
@@ -7,6 +8,7 @@ import { FEATURES } from '@/constants/landing-data';
 
 const FeaturesSection: React.FC<LandingPageProps> = ({ className = '' }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <section className={`py-24 px-4 bg-slate-50 relative overflow-hidden ${className}`}>
@@ -19,13 +21,23 @@ const FeaturesSection: React.FC<LandingPageProps> = ({ className = '' }) => {
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="text-center mb-12 lg:mb-16">
           <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold text-slate-900 mb-4 tracking-tight">
-            Vì sao chọn{' '}
-            <span className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 bg-clip-text text-transparent">
-              Gym Manager
-            </span>
+            {t('landing.features.title')
+              .split('{highlight}')
+              .map((part, index) =>
+                index === 0 ? (
+                  part
+                ) : (
+                  <React.Fragment key={index}>
+                    <span className="bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 bg-clip-text text-transparent">
+                      {t('landing.features.highlight')}
+                    </span>
+                    {part}
+                  </React.Fragment>
+                )
+              )}
           </h2>
           <p className="text-base lg:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed px-4">
-            Hệ thống quản lý phòng tập hiện đại nhất - Giúp bạn tối ưu hóa vận hành và tăng trưởng doanh thu
+            {t('landing.features.subtitle')}
           </p>
         </div>
 
@@ -59,10 +71,10 @@ const FeaturesSection: React.FC<LandingPageProps> = ({ className = '' }) => {
             className="bg-gradient-to-r from-orange-500 to-blue-600 hover:from-orange-600 hover:to-blue-700 px-8 sm:px-12 py-3 sm:py-4 text-lg sm:text-xl font-bold rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 text-white"
             onClick={() => navigate('/login')}
           >
-            🚀 Dùng thử miễn phí 30 ngày
+            {t('landing.features.cta_button')}
           </Button>
           <p className="text-slate-500 mt-4 font-sans text-sm sm:text-base px-4">
-            Không cần thẻ tín dụng • Hỗ trợ setup miễn phí • Hủy bất cứ lúc nào
+            {t('landing.features.cta_subtitle')}
           </p>
         </div>
       </div>

@@ -10,7 +10,7 @@ import type {
 } from '@/types/api/Branch';
 import { branchApi } from '@/services/api/branchApi';
 import { convertBranchToDisplay } from '@/utils/branchUtils';
-import { useAuth } from './AuthContext';
+import { useAuthState } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -21,7 +21,7 @@ interface BranchProviderProps {
 }
 
 export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
-  const { state: authState } = useAuth();
+  const { user } = useAuthState();
   const { t } = useTranslation();
   const [currentBranch, setCurrentBranch] = useState<BranchDisplay | null>(null);
   const [branches, setBranches] = useState<BranchDisplay[]>([]);
@@ -33,7 +33,7 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
   // Check if user can access my-branches API
   // OWNER, ADMIN can always access
   // STAFF can access if they have the right permissions (handled by backend)
-  const canAccessMyBranches = authState.user && ['OWNER', 'ADMIN', 'STAFF'].includes(authState.user.role);
+  const canAccessMyBranches = user && ['OWNER', 'ADMIN', 'STAFF'].includes(user.role);
 
   // Fetch branches on mount - chỉ chạy một lần
   useEffect(() => {
@@ -83,7 +83,7 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
     };
 
     fetchBranches();
-  }, [canAccessMyBranches, authState.user?._id, authState.user?.role]); // Re-run when user role changes
+  }, [canAccessMyBranches, user?._id, user?.role]); // Re-run when user role changes
 
   const fetchBranches = useCallback(async () => {
     // Prevent multiple simultaneous calls
