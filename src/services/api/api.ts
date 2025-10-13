@@ -96,9 +96,20 @@ const handleApiError = (error: AxiosError) => {
     if (errorMessage) {
       const errorCode = errorData.error.code;
 
-      // Show toast notification for user-facing errors
+      // Show toast notification for user-facing errors (except 409 conflicts)
       if (response.status >= 400 && response.status < 500) {
-        handleClientError(response.status, errorMessage);
+        if (response.status === 409) {
+          // For 409 conflicts, return full error info without showing toast
+          return {
+            success: false,
+            message: errorMessage,
+            statusCode: response.status,
+            code: errorCode || 'CONFLICT',
+            error: errorData.error // Include full error object for component handling
+          };
+        } else {
+          handleClientError(response.status, errorMessage);
+        }
       } else {
         toast.error(i18n.t('error.system_error'));
       }

@@ -495,6 +495,14 @@ export const OwnerSidebar: React.FC = () => {
       }
     },
     {
+      icon: <User className="w-5 h-5 stroke-[1.75]" />,
+      label: t('sidebar.customers'),
+      isActive: location.pathname === '/manage/customers',
+      onClick: () => {
+        navigate('/manage/customers');
+      }
+    },
+    {
       icon: <Dumbbell className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.equipment'),
       onClick: () => {
@@ -504,7 +512,7 @@ export const OwnerSidebar: React.FC = () => {
     {
       icon: <BarChart3 className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.finance'),
-      onClick: () => console.log('Finance clicked')
+      onClick: () => {}
     },
     {
       icon: <MessageSquare className="w-5 h-5 stroke-[1.75]" />,

@@ -26,7 +26,14 @@ const PERMISSION_ERROR_MAP: Record<string, string> = {
   'discountcampaign:create': 'error.DISCOUNT_CAMPAIGN_CREATE_PERMISSION_DENIED',
   'discountcampaign:update': 'error.DISCOUNT_CAMPAIGN_UPDATE_PERMISSION_DENIED',
   'discountcampaign:delete': 'error.DISCOUNT_CAMPAIGN_DELETE_PERMISSION_DENIED',
-  'discountcampaign:read': 'error.DISCOUNT_CAMPAIGN_READ_PERMISSION_DENIED'
+  'discountcampaign:read': 'error.DISCOUNT_CAMPAIGN_READ_PERMISSION_DENIED',
+
+  // Customer permissions
+  'customer:create': 'error.CUSTOMER_CREATE_PERMISSION_DENIED',
+  'customer:update': 'error.CUSTOMER_UPDATE_PERMISSION_DENIED',
+  'customer:delete': 'error.CUSTOMER_DELETE_PERMISSION_DENIED',
+  'customer:read': 'error.CUSTOMER_READ_PERMISSION_DENIED',
+  'customer:status': 'error.CUSTOMER_STATUS_PERMISSION_DENIED'
 };
 
 /**

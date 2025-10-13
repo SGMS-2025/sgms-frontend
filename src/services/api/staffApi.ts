@@ -42,6 +42,15 @@ export const staffApi = {
     return response.data;
   },
 
+  // Get staff list by branch ID
+  getStaffListByBranch: async (
+    branchId: string,
+    options: { limit?: number; search?: string; jobTitle?: string } = {}
+  ): Promise<ApiResponse<Staff[]>> => {
+    const response = await api.get(`/staff/branch/${branchId}`, { params: options });
+    return response.data;
+  },
+
   // Update staff information
   updateStaff: async (staffId: string, updateData: StaffUpdateData): Promise<ApiResponse<Staff>> => {
     const response = await api.put(`/staff/${staffId}`, updateData);
