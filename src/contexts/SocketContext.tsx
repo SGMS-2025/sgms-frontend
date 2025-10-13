@@ -129,32 +129,22 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
   // Connect to socket when user is authenticated
   const connect = useCallback(async (): Promise<boolean> => {
-    // For HTTP-only cookies, we don't need to check localStorage
-    // The browser will automatically send cookies with socket connection
-    console.log('🔌 Using HTTP-only cookies for socket connection');
-
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connecting' });
 
     try {
-      console.log('🔌 Calling socketService.connect with HTTP-only cookies...');
-      // For HTTP-only cookies, we don't need to pass token
-      // The browser will automatically send cookies
       const success = await socketService.connect();
-      console.log('🔌 SocketService.connect result:', success);
 
       if (success) {
         dispatch({ type: 'SET_CONNECTED', payload: true });
         dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' });
-        console.log('✅ Socket connected successfully');
         return true;
       } else {
         dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' });
-        console.error('❌ Socket connection failed - success was false');
         return false;
       }
     } catch (error) {
-      console.error('❌ Socket connection failed with error:', error);
+      console.error('Socket connection failed:', error);
       dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' });
       toast.error(t('socket.connection_failed'));
       return false;
@@ -358,7 +348,6 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('🔍 Fetched notifications:', data);
 
         if (data.success && data.data?.notifications) {
           // Convert database notifications to frontend format
@@ -379,14 +368,12 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
           notifications.forEach((notification: Notification) => {
             dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
           });
-
-          console.log(`🔍 Loaded ${notifications.length} existing notifications`);
         }
       } else {
-        console.error('❌ Failed to fetch notifications:', response.status);
+        console.error('Failed to fetch notifications:', response.status);
       }
     } catch (error) {
-      console.error('❌ Error fetching existing notifications:', error);
+      console.error('Error fetching existing notifications:', error);
     }
   }, [authState.user?._id]);
 
@@ -395,22 +382,12 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     if (authState.isAuthenticated && authState.user) {
       // Pass user ID to socket service for notification handling
       if (authState.user._id) {
-        console.log('🔍 Setting user ID for socket service:', authState.user._id);
-        // Store user ID in a way that socket service can access it
         localStorage.setItem('currentUserId', authState.user._id);
       }
 
-      // For HTTP-only cookies, we don't need to check localStorage
-      // The browser automatically sends cookies with requests
-      console.log('🔍 Using HTTP-only cookies for authentication');
-
-      console.log('🔌 Attempting to connect socket...');
       connect();
-
-      // Fetch existing notifications from database
       fetchExistingNotifications();
     } else {
-      console.log('🔌 Disconnecting socket - user not authenticated');
       disconnect();
     }
 

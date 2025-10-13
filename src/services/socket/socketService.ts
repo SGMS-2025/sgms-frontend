@@ -396,13 +396,16 @@ class SocketService implements SocketServiceInterface {
 
   // Get token from HTTP-only cookies (if accessible)
   private getTokenFromCookies(): string | null {
-    // Try to get token from document.cookie first
     const cookies = document.cookie;
+
     if (cookies) {
-      // Method 1: Simple regex
-      const accessTokenMatch = /accessToken=([^;]+)/.exec(cookies);
-      if (accessTokenMatch) {
-        return accessTokenMatch[1];
+      const patterns = [/accessToken=([^;]+)/, /token=([^;]+)/, /authToken=([^;]+)/, /jwt=([^;]+)/];
+
+      for (const pattern of patterns) {
+        const match = pattern.exec(cookies);
+        if (match) {
+          return match[1];
+        }
       }
 
       // Method 2: Parse cookies manually
@@ -426,16 +429,22 @@ class SocketService implements SocketServiceInterface {
 
   // Get token from storage (localStorage/sessionStorage)
   private getTokenFromStorage(): string | null {
-    // Try localStorage first
-    const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
-    if (token) {
-      return token;
+    // Try localStorage first with multiple keys
+    const localStorageKeys = ['token', 'accessToken', 'authToken', 'jwt'];
+    for (const key of localStorageKeys) {
+      const token = localStorage.getItem(key);
+      if (token) {
+        return token;
+      }
     }
 
     // Try sessionStorage as fallback
-    const sessionToken = sessionStorage.getItem('token') || sessionStorage.getItem('accessToken');
-    if (sessionToken) {
-      return sessionToken;
+    const sessionStorageKeys = ['token', 'accessToken', 'authToken', 'jwt'];
+    for (const key of sessionStorageKeys) {
+      const sessionToken = sessionStorage.getItem(key);
+      if (sessionToken) {
+        return sessionToken;
+      }
     }
 
     return null;
