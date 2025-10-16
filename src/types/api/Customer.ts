@@ -288,7 +288,18 @@ export interface UseCustomerListOptions {
   branchId?: string;
 }
 
+// Pagination interface for Customer Management (uses new format)
 export interface CustomerPagination {
+  currentPage: number;
+  itemsPerPage: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+// Pagination interface for PT Customer List (uses old format from PaginationHelper)
+export interface PTCustomerPagination {
   page: number;
   limit: number;
   total: number;
@@ -419,7 +430,7 @@ export interface PTCustomerListParams {
 
 export interface PTCustomerListResponse {
   customers: PTCustomer[];
-  pagination: CustomerPagination;
+  pagination: PTCustomerPagination;
 }
 
 export interface PTCustomerFilters {
@@ -450,7 +461,7 @@ export interface UsePTCustomerListReturn {
   customerList: PTCustomer[];
   loading: boolean;
   error: string | null;
-  pagination: CustomerPagination | null;
+  pagination: PTCustomerPagination | null;
   stats: PTCustomerStats;
   refetch: () => Promise<void>;
   goToPage: (page: number) => void;

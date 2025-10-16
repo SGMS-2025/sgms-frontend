@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import type {
   PTCustomer,
   UsePTCustomerListOptions,
-  CustomerPagination,
+  PTCustomerPagination,
   UsePTCustomerListReturn,
   PTCustomerStats,
   PTCustomerFilters
@@ -13,7 +13,7 @@ export const usePTCustomerList = (options: UsePTCustomerListOptions): UsePTCusto
   const [customerList, setCustomerList] = useState<PTCustomer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState<CustomerPagination | null>(null);
+  const [pagination, setPagination] = useState<PTCustomerPagination | null>(null);
   const [params, setParams] = useState<UsePTCustomerListOptions>(options);
 
   // Update params when options change (but preserve page changes from goToPage)
