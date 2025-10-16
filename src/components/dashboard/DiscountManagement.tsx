@@ -61,8 +61,7 @@ import DiscountCampaignModal from '@/components/modals/DiscountCampaignModal';
 import { useUser } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { useBranch } from '@/contexts/BranchContext';
-import type { DiscountCampaign } from '@/types/api/Discount';
-import type { DiscountCampaignFormData, DiscountCampaignApiData } from '@/types/api/Discount';
+import type { DiscountCampaign, DiscountCampaignFormData, DiscountCampaignApiData } from '@/types/api/Discount';
 
 const DiscountManagement: React.FC = () => {
   const { t } = useTranslation();
@@ -293,7 +292,7 @@ const DiscountManagement: React.FC = () => {
   return (
     <div>
       <div>
-        <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-6 lg:p-8">
+        <div className="basic-management">
           {/* Header */}
           <div className="flex flex-col gap-6 mb-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

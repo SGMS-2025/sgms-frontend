@@ -326,6 +326,15 @@ select:focus {
   .border-gym-orange {
     border-color: var(--gym-orange);
   }
+  /* basic-management: equivalent to p-6 lg:p-8 */
+  .basic-management {
+    padding: 1.5rem;
+  }
+  @media (min-width: 1024px) {
+    .basic-management {
+      padding: 2rem;
+    }
+  }
 }
 
 /* Scrolling banner animation */

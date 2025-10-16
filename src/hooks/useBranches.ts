@@ -4,6 +4,7 @@ import { convertBranchToDisplay } from '@/utils/branchUtils';
 import type {
   Branch,
   BranchListParams,
+  MyBranchesApiResponse,
   GymCardData,
   BranchDisplay,
   UseMyBranchesResult,
@@ -184,6 +185,59 @@ export const useTopGyms = () => {
     loading,
     error,
     refetch: fetchTopGyms
+  };
+};
+
+/**
+ * Hook for attendance page - only fetch branches when logged in
+ */
+export const useAttendanceBranches = (isLoggedIn: boolean): UseMyBranchesResult => {
+  const [branches, setBranches] = useState<BranchDisplay[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<UseMyBranchesResult['pagination']>(null);
+
+  const fetchBranches = useCallback(async () => {
+    if (!isLoggedIn) {
+      setLoading(false);
+      setBranches([]);
+      setError(null);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const response = (await branchApi.getMyBranches({}).catch(() => ({
+      success: false,
+      message: 'Network error - Không thể tải danh sách chi nhánh',
+      data: {
+        branches: [],
+        pagination: null
+      }
+    }))) as MyBranchesApiResponse;
+
+    if (response.success && response.data?.branches) {
+      const displayBranches = response.data.branches.map(convertBranchToDisplay);
+      setBranches(displayBranches);
+      setPagination(response.data.pagination);
+    } else {
+      setError(response.message || 'Không thể tải danh sách chi nhánh');
+    }
+
+    setLoading(false);
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    fetchBranches();
+  }, [fetchBranches]);
+
+  return {
+    branches,
+    loading,
+    error,
+    pagination,
+    refetch: fetchBranches
   };
 };
 

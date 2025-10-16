@@ -85,6 +85,16 @@ export interface BranchListResponse {
   };
 }
 
+// Interface for my-branches API response - matches actual API response structure
+export interface MyBranchesApiResponse {
+  success: boolean;
+  message: string;
+  data: {
+    branches: Branch[];
+    pagination: BackendPaginationResponse | null;
+  };
+}
+
 export interface BranchListParams {
   page?: number;
   limit?: number;

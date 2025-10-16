@@ -173,6 +173,44 @@ export const useStaffDetails = (staffId: string | null) => {
   };
 };
 
+// Hook for getting staff details by userId
+export const useStaffDetailsByUserId = (userId: string | null) => {
+  const [staffDetails, setStaffDetails] = useState<Staff | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchStaffDetails = useCallback(async () => {
+    if (!userId) return;
+
+    setLoading(true);
+    setError(null);
+    const response = await staffApi.getStaffByUserId(userId);
+
+    if (response.success) {
+      setStaffDetails(response.data);
+    } else {
+      setError(response.message || 'Failed to fetch staff details');
+    }
+
+    setLoading(false);
+  }, [userId]);
+
+  const refetch = useCallback(async () => {
+    await fetchStaffDetails();
+  }, [fetchStaffDetails]);
+
+  useEffect(() => {
+    fetchStaffDetails();
+  }, [fetchStaffDetails]);
+
+  return {
+    staffDetails,
+    loading,
+    error,
+    refetch
+  };
+};
+
 export const useUpdateStaff = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
