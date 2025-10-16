@@ -43,6 +43,7 @@ import ClassServiceManagement from '@/components/dashboard/ClassServiceManagemen
 import { PTLayout } from '@/layouts/PTLayout';
 import PTDashboard from '@/pages/pt/PTDashboard';
 import PTCalendarPage from '@/pages/pt/PTCalendarPage';
+import PTCustomerListPage from '@/pages/pt/PTCustomerListPage';
 import CustomerManagementPage from '@/pages/owner/CustomerManagementPage';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
@@ -323,6 +324,9 @@ const AppRoutes: React.FC = () => {
 
           {/* Calendar Route for PT */}
           <Route path="calendar" element={<PTCalendarPage />} />
+
+          {/* Clients Route for PT */}
+          <Route path="clients" element={<PTCustomerListPage />} />
 
           {/* Equipment Issue Report Route for PT */}
           <Route path="equipment-issues" element={<EquipmentIssueReportPage />} />
