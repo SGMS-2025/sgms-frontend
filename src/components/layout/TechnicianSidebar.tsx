@@ -17,7 +17,8 @@ import {
   ShieldCheck as Shield,
   PanelLeft,
   X,
-  FileText
+  FileText,
+  ClipboardList
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -368,8 +369,18 @@ export const TechnicianSidebar: React.FC = () => {
     {
       icon: <Dumbbell className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.equipment'),
-      isActive: location.pathname.startsWith('/manage/technician/equipment'),
+      isActive:
+        location.pathname === '/manage/technician/equipment' ||
+        (location.pathname.startsWith('/manage/technician/equipment/') &&
+          !location.pathname.startsWith('/manage/technician/equipment-inventory') &&
+          !location.pathname.startsWith('/manage/technician/equipment-issues')),
       onClick: () => handleNavigation('/manage/technician/equipment')
+    },
+    {
+      icon: <ClipboardList className="w-5 h-5 stroke-[1.75]" />,
+      label: t('sidebar.equipmentInventory'),
+      isActive: location.pathname.startsWith('/manage/technician/equipment-inventory'),
+      onClick: () => handleNavigation('/manage/technician/equipment-inventory')
     }
   ];
 
@@ -422,13 +433,13 @@ export const TechnicianSidebar: React.FC = () => {
     mainNavItems.push(
       {
         icon: <Building className="w-5 h-5 stroke-[1.75]" />,
-        label: 'Chi nhánh',
+        label: t('sidebar.branch'),
         isActive: false,
         onClick: () => handleNavigation('/manage/owner')
       },
       {
         icon: <Users className="w-5 h-5 stroke-[1.75]" />,
-        label: 'Nhân viên',
+        label: t('sidebar.staff'),
         isActive: false,
         onClick: () => handleNavigation('/manage/staff')
       }
