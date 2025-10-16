@@ -29,14 +29,21 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title }) => {
     if (title) return title;
 
     const segments = location.pathname.split('/').filter(Boolean);
-    const lastSegment = segments.at(-1) ?? 'overview';
+    let lastSegment = segments.at(-1) ?? 'overview';
+
+    // Nếu lastSegment là ObjectId (24 ký tự hex), dùng segment trước đó
+    if (lastSegment && /^[a-f\d]{24}$/i.test(lastSegment)) {
+      lastSegment = segments.at(-2) ?? 'overview';
+    }
 
     const translationMap: Record<string, string> = {
       owner: t('dashboard.overview'),
       dashboard: t('dashboard.overview'),
       staff: t('sidebar.staff'),
       branch: t('sidebar.branch'),
-      branches: t('sidebar.branch')
+      branches: t('sidebar.branch'),
+      'equipment-inventory': t('equipmentInventory.title'),
+      session: t('equipmentInventory.sessionTitle')
     };
 
     return translationMap[lastSegment] ?? formatSegment(lastSegment);

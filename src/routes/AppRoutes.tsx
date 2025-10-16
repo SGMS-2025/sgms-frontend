@@ -33,6 +33,8 @@ import { AddEquipmentPage } from '@/pages/technician/AddEquipmentPage';
 import { EditEquipmentPage } from '@/pages/technician/EditEquipmentPage';
 import { EquipmentIssueReportPage } from '@/pages/technician/EquipmentIssueReportPage';
 import { EquipmentIssueHistoryPage } from '@/pages/technician/EquipmentIssueHistoryPage';
+import { EquipmentInventoryPage } from '@/pages/technician/EquipmentInventoryPage';
+import { EquipmentInventorySessionPage } from '@/pages/technician/EquipmentInventorySessionPage';
 import MembershipPlansPage from '@/pages/owner/MembershipPlansPage';
 import AddWorkShiftPage from '@/pages/owner/AddWorkShiftPage';
 import EditWorkShiftPage from '@/pages/owner/EditWorkShiftPage';
@@ -300,6 +302,10 @@ const AppRoutes: React.FC = () => {
           <Route path="equipment" element={<EquipmentListPage />} />
           <Route path="equipment/add" element={<AddEquipmentPage />} />
           <Route path="equipment/:id/edit" element={<EditEquipmentPage />} />
+
+          {/* Equipment Inventory Routes for Technician */}
+          <Route path="equipment-inventory" element={<EquipmentInventoryPage />} />
+          <Route path="equipment-inventory/session/:sessionId" element={<EquipmentInventorySessionPage />} />
 
           {/* Calendar Route for Technician */}
           <Route path="calendar" element={<TechnicianCalendarPage />} />
