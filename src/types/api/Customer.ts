@@ -288,13 +288,24 @@ export interface UseCustomerListOptions {
   branchId?: string;
 }
 
+// Pagination interface for Customer Management (uses new format)
 export interface CustomerPagination {
   currentPage: number;
-  totalPages: number;
-  totalItems: number;
   itemsPerPage: number;
+  totalItems: number;
+  totalPages: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
+}
+
+// Pagination interface for PT Customer List (uses old format from PaginationHelper)
+export interface PTCustomerPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
 }
 
 export interface UseCustomerListReturn {
@@ -383,12 +394,75 @@ export interface CustomerListParams {
 
 export interface CustomerListResponse {
   customers: CustomerDisplay[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    itemsPerPage: number;
-    hasNextPage: boolean;
-    hasPrevPage: boolean;
+  pagination: CustomerPagination;
+}
+
+// PT Customer specific types
+export interface PTCustomer {
+  _id: string;
+  fullName: string;
+  phone: string;
+  email?: string;
+  avatar?: string;
+  package: {
+    contractId: string;
+    name: string;
+    status: 'ACTIVE' | 'PENDING_ACTIVATION' | 'EXPIRED';
+    totalSessions: number;
+    sessionsUsed: number;
+    sessionsRemaining: number;
+    progressPercent: number;
+    startDate: string;
+    endDate: string;
+    paymentStatus: 'PAID' | 'PENDING' | 'PARTIAL';
   };
+}
+
+export interface PTCustomerListParams {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  branchId?: string;
+  status?: string;
+  packageType?: string;
+}
+
+export interface PTCustomerListResponse {
+  customers: PTCustomer[];
+  pagination: PTCustomerPagination;
+}
+
+export interface PTCustomerFilters {
+  searchTerm: string;
+  statusFilter: string;
+  expirationFilter: string;
+  sessionsFilter: string;
+  sortBy: string;
+}
+
+export interface PTCustomerStats {
+  total: number;
+  active: number;
+  expiringSoon: number;
+  expired: number;
+}
+
+export interface UsePTCustomerListOptions {
+  trainerId: string;
+  limit?: number;
+  page?: number;
+  branchId?: string;
+  status?: string;
+  packageType?: string;
+}
+
+export interface UsePTCustomerListReturn {
+  customerList: PTCustomer[];
+  loading: boolean;
+  error: string | null;
+  pagination: PTCustomerPagination | null;
+  stats: PTCustomerStats;
+  refetch: () => Promise<void>;
+  goToPage: (page: number) => void;
 }
