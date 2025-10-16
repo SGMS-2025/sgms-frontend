@@ -51,6 +51,7 @@ import { SidebarProvider } from '@/contexts/SidebarContext';
 import { OwnerSidebar } from '@/components/layout/OwnerSidebar';
 import { TechnicianSidebar } from '@/components/layout/TechnicianSidebar';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import AttendancePage from '@/pages/attendance/AttendancePage';
 
 // WorkShift Calendar with Layout Component
 const WorkShiftCalendarPageWithLayout: React.FC = () => {
@@ -196,6 +197,9 @@ const AppRoutes: React.FC = () => {
       {/* Root Route - redirect based on auth status */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/owners" element={<OwnerLandingPage />} />
+
+      {/* Attendance Route */}
+      <Route path="/attendance" element={<AttendancePage />} />
 
       {/* Auth Routes - redirect to home if already authenticated */}
       <Route path="/login" element={isAuthenticated ? <Navigate to="/home" replace /> : <LoginPage />} />
