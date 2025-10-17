@@ -280,6 +280,7 @@
   "sidebar.dashboard": "Dashboard",
   "sidebar.branch": "Chi nhánh",
   "sidebar.staff": "Nhân viên",
+  "sidebar.technician": "Kỹ thuật viên",
   "sidebar.equipment": "Thiết bị",
   "sidebar.equipmentInventory": "Điểm danh thiết bị",
   "sidebar.calendar": "Lịch",
@@ -2171,5 +2172,17 @@
   "equipmentInventory.getSessionError": "Không thể lấy thông tin phiên điểm danh",
   "equipmentInventory.getStatsError": "Không thể lấy thống kê điểm danh",
   "equipmentInventory.getMissingEquipmentError": "Không thể lấy danh sách thiết bị mất tích",
-  "equipmentInventory.getCurrentSessionError": "Không thể lấy phiên điểm danh hiện tại"
+  "equipmentInventory.getCurrentSessionError": "Không thể lấy phiên điểm danh hiện tại",
+  "attendance.history.title": "Lịch sử điểm danh",
+  "attendance.history.workshift": "Ca làm (Bắt đầu - Kết thúc)",
+  "attendance.history.day": "Ngày",
+  "attendance.history.empty": "Không có bản ghi điểm danh",
+  "attendance.history.list_title": "Danh sách điểm danh",
+  "attendance.history.from_date": "Từ ngày",
+  "attendance.history.to_date": "Đến ngày",
+  "common.filter": "Lọc",
+  "technician.sidebar.attendanceHistory": "Lịch sử điểm danh",
+  "pt.sidebar.attendanceHistory": "Lịch sử điểm danh",
+  "technician.sidebar.schedule": "Lịch làm việc",
+  "pt.sidebar.schedule": "Lịch làm việc"
 }

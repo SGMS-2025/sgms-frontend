@@ -420,6 +420,13 @@ export const TechnicianSidebar: React.FC = () => {
     onClick: () => handleNavigation('/manage/technician/calendar')
   });
 
+  mainNavItems.push({
+    icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
+    label: t('technician.sidebar.attendanceHistory', 'Attendance History'),
+    isActive: location.pathname.startsWith('/manage/technician/attendance'),
+    onClick: () => handleNavigation('/manage/technician/attendance')
+  });
+
   // Add equipment issue history for technician
   mainNavItems.push({
     icon: <FileText className="w-5 h-5 stroke-[1.75]" />,

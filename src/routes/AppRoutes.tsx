@@ -34,6 +34,7 @@ import { EditEquipmentPage } from '@/pages/technician/EditEquipmentPage';
 import { EquipmentIssueReportPage } from '@/pages/technician/EquipmentIssueReportPage';
 import { EquipmentIssueHistoryPage } from '@/pages/technician/EquipmentIssueHistoryPage';
 import { EquipmentInventoryPage } from '@/pages/technician/EquipmentInventoryPage';
+import TechnicianAttendanceHistoryPage from '@/pages/technician/TechnicianAttendanceHistoryPage';
 import { EquipmentInventorySessionPage } from '@/pages/technician/EquipmentInventorySessionPage';
 import MembershipPlansPage from '@/pages/owner/MembershipPlansPage';
 import AddWorkShiftPage from '@/pages/owner/AddWorkShiftPage';
@@ -46,6 +47,7 @@ import { PTLayout } from '@/layouts/PTLayout';
 import PTDashboard from '@/pages/pt/PTDashboard';
 import PTCalendarPage from '@/pages/pt/PTCalendarPage';
 import PTCustomerListPage from '@/pages/pt/PTCustomerListPage';
+import PTAttendanceHistoryPage from '@/pages/pt/PTAttendanceHistoryPage';
 import CustomerManagementPage from '@/pages/owner/CustomerManagementPage';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
@@ -310,6 +312,9 @@ const AppRoutes: React.FC = () => {
           {/* Calendar Route for Technician */}
           <Route path="calendar" element={<TechnicianCalendarPage />} />
 
+          {/* Attendance History for Technician */}
+          <Route path="attendance" element={<TechnicianAttendanceHistoryPage />} />
+
           {/* Equipment Issue History Route for Technician */}
           <Route path="equipment-issues" element={<EquipmentIssueHistoryPage />} />
 
@@ -337,6 +342,9 @@ const AppRoutes: React.FC = () => {
 
           {/* Clients Route for PT */}
           <Route path="clients" element={<PTCustomerListPage />} />
+
+          {/* Attendance History for PT */}
+          <Route path="attendance" element={<PTAttendanceHistoryPage />} />
 
           {/* Equipment Issue Report Route for PT */}
           <Route path="equipment-issues" element={<EquipmentIssueReportPage />} />

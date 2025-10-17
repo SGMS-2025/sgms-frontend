@@ -333,6 +333,12 @@ export const PTSidebar: React.FC = () => {
       isActive: location.pathname === '/manage/pt/calendar'
     },
     {
+      icon: <Calendar className="w-5 h-5" />,
+      label: t('pt.sidebar.attendanceHistory', 'Attendance History'),
+      path: '/manage/pt/attendance',
+      isActive: location.pathname.startsWith('/manage/pt/attendance')
+    },
+    {
       icon: <Dumbbell className="w-5 h-5" />,
       label: t('pt.sidebar.workoutPlans', 'Workout Plans'),
       path: '/manage/pt/workout-plans',

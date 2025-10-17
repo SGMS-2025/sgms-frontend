@@ -280,6 +280,7 @@
   "sidebar.dashboard": "Dashboard",
   "sidebar.branch": "Branch",
   "sidebar.staff": "Staff",
+  "sidebar.technician": "Technician",
   "sidebar.equipment": "Equipment",
   "sidebar.equipmentInventory": "Equipment Inventory",
   "sidebar.calendar": "Calendar",
@@ -2171,5 +2172,17 @@
   "equipmentInventory.getSessionError": "Unable to get inventory session information",
   "equipmentInventory.getStatsError": "Unable to get inventory statistics",
   "equipmentInventory.getMissingEquipmentError": "Unable to get missing equipment list",
-  "equipmentInventory.getCurrentSessionError": "Unable to get current inventory session"
+  "equipmentInventory.getCurrentSessionError": "Unable to get current inventory session",
+  "attendance.history.title": "Attendance History",
+  "attendance.history.workshift": "Work shift (Start - End)",
+  "attendance.history.day": "Day",
+  "attendance.history.empty": "No attendance records found",
+  "attendance.history.list_title": "Attendance Records",
+  "attendance.history.from_date": "From date",
+  "attendance.history.to_date": "To date",
+  "common.filter": "Filter",
+  "technician.sidebar.attendanceHistory": "Attendance History",
+  "pt.sidebar.attendanceHistory": "Attendance History",
+  "technician.sidebar.schedule": "My Schedule",
+  "pt.sidebar.schedule": "My Schedule"
 }
