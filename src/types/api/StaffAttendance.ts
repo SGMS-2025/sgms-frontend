@@ -31,5 +31,19 @@ export interface StaffAttendance extends BaseEntity {
     startTime: string;
     endTime: string;
     status: string;
+    // Localized display times (e.g., UTC+7)
+    startTimeVN?: string;
+    endTimeVN?: string;
   };
+}
+
+export interface GetAttendanceListParams {
+  username: string;
+  staffId: string;
+  branchId: string;
+  fromDate: string; // ISO string
+  toDate: string; // ISO string
+  page: number;
+  limit: number;
+  sort: string; // e.g. '-checkInTime'
 }
