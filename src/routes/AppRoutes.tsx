@@ -37,6 +37,7 @@ import { EquipmentInventoryPage } from '@/pages/technician/EquipmentInventoryPag
 import TechnicianAttendanceHistoryPage from '@/pages/technician/TechnicianAttendanceHistoryPage';
 import { EquipmentInventorySessionPage } from '@/pages/technician/EquipmentInventorySessionPage';
 import MembershipPlansPage from '@/pages/owner/MembershipPlansPage';
+import ExpensesPage from '@/pages/owner/ExpensesPage';
 import AddWorkShiftPage from '@/pages/owner/AddWorkShiftPage';
 import EditWorkShiftPage from '@/pages/owner/EditWorkShiftPage';
 import WorkShiftCalendarPage from '@/pages/owner/WorkShiftCalendarPage';
@@ -269,6 +270,8 @@ const AppRoutes: React.FC = () => {
           <Route path="discounts" element={<DiscountPage />} />
           {/* Membership Management Route */}
           <Route path="memberships" element={<MembershipPlansPage />} />
+          {/* Expenses Management Route */}
+          <Route path="expenses" element={<ExpensesPage />} />
           {/* Testimonial Management Route */}
           <Route path="testimonials" element={<TestimonialPage />} />
           {/* Schedule Template Management Route */}
