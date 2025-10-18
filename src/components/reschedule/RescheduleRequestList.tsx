@@ -474,7 +474,9 @@ const RescheduleRequestList: React.FC<RescheduleRequestListProps> = ({
                           <div className="text-sm font-medium text-gray-900 truncate max-w-xs">
                             {request.reason || 'No reason provided'}
                           </div>
-                          {typeof request.originalShiftId === 'object' &&
+                          {request.originalShiftId &&
+                            typeof request.originalShiftId === 'object' &&
+                            request.originalShiftId.branchId &&
                             typeof request.originalShiftId.branchId === 'object' &&
                             request.originalShiftId.branchId?.branchName && (
                               <div className="text-sm text-gray-500 flex items-center">

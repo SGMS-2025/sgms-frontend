@@ -27,6 +27,41 @@ import type {
   ReschedulePriority
 } from '@/types/api/Reschedule';
 
+// Type for requester ID that can be string or populated object
+type RequesterIdType =
+  | string
+  | {
+      _id: string;
+      userId?: {
+        _id: string;
+      };
+    };
+
+// Helper function to safely compare requester ID with current user ID
+const isRequesterUser = (requesterId: RequesterIdType, currentUserId?: string): boolean => {
+  if (!currentUserId) {
+    return false;
+  }
+
+  if (typeof requesterId === 'string') {
+    return requesterId === currentUserId;
+  }
+
+  if (requesterId && typeof requesterId === 'object') {
+    // Check if it's a populated staff object with userId
+    if ('userId' in requesterId && requesterId.userId && typeof requesterId.userId === 'object') {
+      return requesterId.userId._id === currentUserId;
+    }
+
+    // Check if it's a simple object with _id
+    if ('_id' in requesterId) {
+      return requesterId._id === currentUserId;
+    }
+  }
+
+  return false;
+};
+
 const getStatusColor = (status: RescheduleState) => {
   switch (status) {
     case 'PENDING_BROADCAST':
@@ -173,11 +208,7 @@ const RescheduleRequestDetailModal: React.FC<RescheduleRequestDetailModalProps> 
   const branch = typeof request.branchId === 'string' ? null : request.branchId;
 
   // Permission checks
-  const canAccept =
-    request.status === 'PENDING_BROADCAST' &&
-    (typeof request.requesterStaffId === 'string'
-      ? request.requesterStaffId !== currentUserId
-      : request.requesterStaffId._id !== currentUserId);
+  const canAccept = request.status === 'PENDING_BROADCAST' && !isRequesterUser(request.requesterStaffId, currentUserId);
 
   const canApprove = request.status === 'PENDING_APPROVAL' && (userRole === 'MANAGER' || userRole === 'OWNER');
 
@@ -187,46 +218,67 @@ const RescheduleRequestDetailModal: React.FC<RescheduleRequestDetailModalProps> 
     (request.status === 'PENDING_BROADCAST' || request.status === 'PENDING_ACCEPTANCE') &&
     (typeof request.requesterStaffId === 'string'
       ? request.requesterStaffId === currentUserId
-      : request.requesterStaffId._id === currentUserId);
+      : request.requesterStaffId.userId?._id === currentUserId);
 
   const handleAccept = async () => {
     if (onAccept) {
       setIsLoading(true);
-      await onAccept(request);
-      // Đóng modal sau khi thành công
-      onClose();
-      setIsLoading(false);
+      try {
+        await onAccept(request);
+        // Đóng modal sau khi thành công
+        onClose();
+      } catch (error) {
+        console.error('Error accepting reschedule request:', error);
+        // Không đóng modal nếu có lỗi
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   const handleApprove = async () => {
     if (onApprove) {
       setIsLoading(true);
-      await onApprove(request);
-      // Đóng modal sau khi thành công
-      onClose();
-      setIsLoading(false);
+      try {
+        await onApprove(request);
+        // Đóng modal sau khi thành công
+        onClose();
+      } catch (error) {
+        console.error('Error approving reschedule request:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   const handleReject = async () => {
     if (onReject) {
       setIsLoading(true);
-      await onReject(request, '');
-      // Đóng modal sau khi thành công
-      onClose();
-      setIsLoading(false);
+      try {
+        await onReject(request, '');
+        // Đóng modal sau khi thành công
+        onClose();
+      } catch (error) {
+        console.error('Error rejecting reschedule request:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   const handleCancel = async () => {
     if (onCancel) {
       setIsLoading(true);
-      await onCancel(request);
-      // Đóng modal sau khi thành công
-      onClose();
-      setIsLoading(false);
-      setShowConfirmCancel(false);
+      try {
+        await onCancel(request);
+        // Đóng modal sau khi thành công
+        onClose();
+        setShowConfirmCancel(false);
+      } catch (error) {
+        console.error('Error cancelling reschedule request:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -306,11 +358,28 @@ const RescheduleRequestDetailModal: React.FC<RescheduleRequestDetailModalProps> 
                         {t('common.view_profile')}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-600 flex-shrink-0">
-                      <Calendar className="h-5 w-5 flex-shrink-0" />
-                      <div className="text-sm font-medium text-gray-900 whitespace-nowrap">
-                        {formatDate(request.createdAt)}
+                    <div className="flex flex-col items-end gap-1 text-gray-600 flex-shrink-0">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-5 w-5 flex-shrink-0" />
+                        <div className="text-sm font-medium text-gray-900 whitespace-nowrap">
+                          {originalShift?.startTime ? formatDate(originalShift.startTime) : t('common.not_available')}
+                        </div>
                       </div>
+                      {originalShift?.startTime && originalShift?.endTime && (
+                        <div className="text-xs text-gray-500 whitespace-nowrap">
+                          {new Date(originalShift.startTime).toLocaleTimeString('vi-VN', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false
+                          })}{' '}
+                          -{' '}
+                          {new Date(originalShift.endTime).toLocaleTimeString('vi-VN', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

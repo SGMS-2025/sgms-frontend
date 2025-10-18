@@ -108,6 +108,12 @@ const TimeOffManagementLayout: React.FC<TimeOffManagementLayoutProps> = ({ staff
       setShowApprovalModal(false);
       setSelectedTimeOff(null);
       refetch();
+    } else {
+      // If approval failed, check if it's because request was already approved
+      // and refresh data to get latest status
+      setTimeout(() => {
+        refetch();
+      }, 1000);
     }
   };
 

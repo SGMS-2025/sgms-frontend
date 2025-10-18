@@ -315,7 +315,7 @@ export const useAcceptRescheduleRequest = () => {
         toast.success(response.message || t('reschedule.accept_success'));
         return response.data;
       } else {
-        toast.error(response.message || t('reschedule.accept_error'));
+        // Don't show toast here - API interceptor already handled it
         throw new Error(response.message || 'Failed to accept reschedule request');
       }
     },
@@ -341,7 +341,7 @@ export const useApproveRescheduleRequest = () => {
         toast.success(response.message || t('reschedule.approve_success'));
         return response.data;
       } else {
-        toast.error(response.message || t('reschedule.approve_error'));
+        // Don't show toast here - API interceptor already handled it
         throw new Error(response.message || 'Failed to approve reschedule request');
       }
     },
@@ -367,7 +367,7 @@ export const useRejectRescheduleRequest = () => {
         toast.success(response.message || t('reschedule.reject_success'));
         return response.data;
       } else {
-        toast.error(response.message || t('reschedule.reject_error'));
+        // Don't show toast here - API interceptor already handled it
         throw new Error(response.message || 'Failed to reject reschedule request');
       }
     },
@@ -393,7 +393,7 @@ export const useCancelRescheduleRequest = () => {
         toast.success(response.message || t('reschedule.cancel_success'));
         return response.data;
       } else {
-        toast.error(response.message || t('reschedule.cancel_error'));
+        // Don't show toast here - API interceptor already handled it
         throw new Error(response.message || 'Failed to cancel reschedule request');
       }
     },
@@ -402,5 +402,31 @@ export const useCancelRescheduleRequest = () => {
 
   return {
     cancelRescheduleRequest
+  };
+};
+
+/**
+ * Hook to delete a reschedule request
+ */
+export const useDeleteRescheduleRequest = () => {
+  const { t } = useTranslation();
+
+  const deleteRescheduleRequest = useCallback(
+    async (requestId: string) => {
+      const response = await rescheduleApi.deleteRescheduleRequest(requestId);
+
+      if (response.success) {
+        toast.success(response.message || t('reschedule.delete_success'));
+        return response.data;
+      } else {
+        // Don't show toast here - API interceptor already handled it
+        throw new Error(response.message || 'Failed to delete reschedule request');
+      }
+    },
+    [t]
+  );
+
+  return {
+    deleteRescheduleRequest
   };
 };

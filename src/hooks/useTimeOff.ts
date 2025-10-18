@@ -225,7 +225,14 @@ export const useTimeOffOperations = () => {
         setLoading(false);
         return response.data;
       } else {
-        const errorMessage = localizeErrorMessage(response.message, t, 'timeoff.approve_error');
+        // Handle specific error cases
+        let errorMessage;
+        if (response.message === 'ONLY_PENDING_TIME_OFF_CAN_BE_APPROVED') {
+          errorMessage = t('error.ONLY_PENDING_TIME_OFF_CAN_BE_APPROVED');
+        } else {
+          errorMessage = localizeErrorMessage(response.message, t, 'timeoff.approve_error');
+        }
+
         setError(errorMessage);
         toast.error(errorMessage, {
           id: 'timeoff-approve-error'

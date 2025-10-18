@@ -37,8 +37,8 @@ export const notificationApi = {
   },
 
   // Clear all notifications for current user
-  clearAllNotifications: async (): Promise<ApiResponse<{ message: string; deletedCount: number }>> => {
-    const response = await api.delete('/notifications/clear-all');
+  clearAllNotifications: async (userId: string): Promise<ApiResponse<{ message: string; deletedCount: number }>> => {
+    const response = await api.delete(`/notifications/user/${userId}`);
     return response.data;
   },
 

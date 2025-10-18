@@ -5,7 +5,8 @@ import {
   useAcceptRescheduleRequest,
   useApproveRescheduleRequest,
   useRejectRescheduleRequest,
-  useCancelRescheduleRequest
+  useCancelRescheduleRequest,
+  useDeleteRescheduleRequest
 } from '@/hooks/useReschedule';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
@@ -61,6 +62,7 @@ const RescheduleManagementLayout: React.FC = () => {
   const { approveRescheduleRequest } = useApproveRescheduleRequest();
   const { rejectRescheduleRequest } = useRejectRescheduleRequest();
   const { cancelRescheduleRequest } = useCancelRescheduleRequest();
+  const { deleteRescheduleRequest } = useDeleteRescheduleRequest();
 
   // Apply client-side filtering
   const filteredRequests = React.useMemo(() => {
@@ -122,6 +124,11 @@ const RescheduleManagementLayout: React.FC = () => {
     refetch();
   };
 
+  const handleDeleteRequest = async (request: RescheduleRequest) => {
+    await deleteRescheduleRequest(request._id);
+    refetch();
+  };
+
   const handleCreateSuccess = () => {
     setShowCreateModal(false);
     refetch();
@@ -162,6 +169,10 @@ const RescheduleManagementLayout: React.FC = () => {
         onCancel={(id) => {
           const request = filteredRequests.find((r) => r._id === id);
           if (request) handleCancelRequest(request);
+        }}
+        onDelete={(id) => {
+          const request = filteredRequests.find((r) => r._id === id);
+          if (request) handleDeleteRequest(request);
         }}
         userRole={currentStaff?.jobTitle === 'Manager' ? 'MANAGER' : authState.user?.role}
         currentUserId={authState.user?._id}

@@ -85,6 +85,12 @@ export const rescheduleApi = {
     return response.data;
   },
 
+  // Delete reschedule request
+  deleteRescheduleRequest: async (requestId: string): Promise<ApiResponse<{ message: string; requestId: string }>> => {
+    const response = await api.delete(`/reschedule/${requestId}`);
+    return response.data;
+  },
+
   // Get reschedule stats
   getRescheduleStats: async (): Promise<ApiResponse<RescheduleStats>> => {
     const response = await api.get('/reschedule/stats');

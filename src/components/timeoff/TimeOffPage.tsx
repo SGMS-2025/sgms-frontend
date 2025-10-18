@@ -83,6 +83,11 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
       const result = await approveTimeOff(id);
       if (result) {
         refetch();
+      } else {
+        // If approval failed, refresh data to get latest status
+        setTimeout(() => {
+          refetch();
+        }, 1000);
       }
     }
   };
@@ -116,6 +121,11 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
       if (result) {
         setShowDetailSheet(false);
         refetch();
+      } else {
+        // If approval failed, refresh data to get latest status
+        setTimeout(() => {
+          refetch();
+        }, 1000);
       }
     }
   };

@@ -223,7 +223,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
     // Also clear from database if user is authenticated
     if (authState.user?._id) {
-      await notificationApi.clearAllNotifications();
+      await notificationApi.clearAllNotifications(authState.user._id);
     }
   }, [authState.user?._id]);
 
