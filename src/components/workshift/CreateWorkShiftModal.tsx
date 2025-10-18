@@ -210,7 +210,7 @@ const CreateWorkShiftModal: React.FC<CreateWorkShiftModalProps> = ({ isOpen, onC
                           <SelectItem key={staff._id} value={staff._id}>
                             <div className="flex items-center gap-2">
                               <User className="h-4 w-4" />
-                              {staff.userId.fullName} ({staff.jobTitle})
+                              {staff.userId?.fullName || 'Unknown'} ({staff.jobTitle})
                             </div>
                           </SelectItem>
                         ));

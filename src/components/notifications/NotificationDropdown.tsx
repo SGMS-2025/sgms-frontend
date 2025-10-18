@@ -4,8 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useAuthState } from '@/hooks/useAuth';
+import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import type { Notification } from '@/contexts/SocketContext';
 import type { WorkShiftNotificationData } from '@/types/api/NotificationWorkShift';
+
+// Custom types for notification data
+interface TimeOffNotificationData {
+  timeOffRequestId?: string;
+}
+
+interface RescheduleNotificationData {
+  rescheduleRequestId?: string;
+  _id?: string;
+}
 
 interface NotificationDropdownProps {
   showBadge?: boolean;
@@ -21,6 +33,8 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   const { t } = useTranslation();
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAllNotifications } = useSocketNotifications();
   const navigate = useNavigate();
+  const { user } = useAuthState();
+  const { currentStaff } = useCurrentUserStaff();
 
   const handleMarkAllAsRead = () => {
     markAllAsRead();
@@ -31,13 +45,10 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   };
 
   const handleViewWorkShift = (workShiftId?: string) => {
-    console.log('Navigating to workshift calendar with ID:', workShiftId);
-
     // Navigate to workshift calendar page
     if (workShiftId && workShiftId !== 'undefined') {
       navigate(`/manage/workshifts/calendar?highlight=${workShiftId}`);
     } else {
-      console.log('No workShiftId found, navigating to general calendar');
       navigate('/manage/workshifts/calendar');
     }
 
@@ -48,14 +59,41 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   };
 
   const handleNotificationClick = (notification: Notification) => {
-    console.log('Notification clicked:', notification);
-    console.log('Notification type:', notification.type);
-    console.log('Notification data:', notification.data);
-    console.log('Has workShiftId:', notification.data?.workShiftId);
-
     // Always mark as read when clicked
     if (!notification.read) {
       markAsRead(notification.id);
+    }
+
+    // Check if it's a time-off notification
+    const isTimeOffNotification =
+      notification.type?.startsWith('notification:timeoff') ||
+      notification.title?.includes('Time Off') ||
+      notification.message?.includes('time off') ||
+      notification.message?.includes('Time Off');
+
+    if (isTimeOffNotification) {
+      // Extract time-off request ID from notification data
+      const timeOffRequestId = (notification.data as TimeOffNotificationData)?.timeOffRequestId;
+
+      // Determine the correct time-off route based on user role and job title
+      let timeOffRoute = '/manage/timeoff'; // Default for OWNER and Manager
+
+      if (user?.role === 'STAFF' && currentStaff?.jobTitle === 'Personal Trainer') {
+        timeOffRoute = '/manage/pt/timeoff';
+      } else if (user?.role === 'STAFF' && currentStaff?.jobTitle === 'Technician') {
+        timeOffRoute = '/manage/technician/timeoff';
+      }
+
+      if (timeOffRequestId) {
+        // Navigate to time-off management page with the specific request highlighted
+        const targetUrl = `${timeOffRoute}?highlight=${timeOffRequestId}`;
+        navigate(targetUrl);
+      } else {
+        // Navigate to general time-off management page
+        navigate(timeOffRoute);
+      }
+      if (onClose) onClose();
+      return;
     }
 
     // Check if it's a workshift notification by multiple criteria
@@ -67,10 +105,22 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       notification.message?.includes('work shift') ||
       notification.message?.includes('Work Shift');
 
-    console.log('Is workshift notification:', isWorkShiftNotification);
-
     if (isWorkShiftNotification) {
       handleViewWorkShift(workShiftData?.workShiftId);
+      return;
+    }
+
+    // If it's a reschedule notification → navigate to reschedule management and preselect the request (if any)
+    const isRescheduleNotification = notification.type?.startsWith('notification:reschedule');
+    if (isRescheduleNotification) {
+      // Try to extract request id from payload
+      const requestId =
+        (notification.data as RescheduleNotificationData)?.rescheduleRequestId ||
+        (notification.data as RescheduleNotificationData)?._id;
+      const url = requestId ? `/reschedule?requestId=${requestId}` : '/reschedule';
+      navigate(url);
+      if (onClose) onClose();
+      return;
     }
   };
 
@@ -224,11 +274,6 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            console.log('Button clicked for notification:', notification);
-                            console.log(
-                              'Button workShiftId:',
-                              (notification.data as WorkShiftNotificationData)?.workShiftId
-                            );
                             handleViewWorkShift((notification.data as WorkShiftNotificationData)?.workShiftId);
                           }}
                           className="h-6 px-2 text-xs hover:bg-blue-50 hover:border-blue-300 transition-colors"

@@ -96,8 +96,8 @@ const EditWorkShiftPage: React.FC = () => {
                 <MapPin className="h-4 w-4" />
                 <span className="font-medium">{t('workshift.branch')}</span>
               </div>
-              <p className="text-gray-900 font-medium">{workShift.branchId.name}</p>
-              <p className="text-sm text-gray-500">{workShift.branchId.location}</p>
+              <p className="text-gray-900 font-medium">{workShift.branchId?.branchName || t('common.unknown')}</p>
+              <p className="text-sm text-gray-500">{workShift.branchId?.location || t('common.unknown')}</p>
             </div>
 
             <div className="space-y-2">

@@ -15,7 +15,10 @@ import {
   Heart,
   TrendingUp,
   AlertTriangle,
-  X
+  X,
+  CalendarDays,
+  ChevronDown,
+  ArrowRightLeft
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -25,6 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+// DropdownSidebarItem component will be defined inline
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuthActions, useAuthState } from '@/hooks/useAuth';
@@ -40,6 +44,20 @@ interface SidebarItemProps {
   badge?: number;
 }
 
+interface DropdownSidebarItemProps {
+  icon: React.ReactNode;
+  label: string;
+  isCollapsed?: boolean;
+  children: React.ReactNode;
+}
+
+interface SubMenuItemProps {
+  icon: React.ReactNode;
+  label: string;
+  isActive?: boolean;
+  onClick: () => void;
+}
+
 const SidebarItem: React.FC<SidebarItemProps> = ({
   icon,
   label,
@@ -51,9 +69,9 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   return (
     <button
       type="button"
-      className={`group relative flex w-full items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 ${
+      className={`group relative flex items-center py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 ${
         isActive ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-700 hover:bg-orange-50 hover:text-orange-500'
-      } ${isCollapsed ? 'justify-center px-2' : ''}`}
+      } ${isCollapsed ? 'justify-center items-center w-12' : 'w-full gap-3 px-3'}`}
       onClick={onClick}
       aria-current={isActive ? 'page' : undefined}
       title={isCollapsed ? label : undefined}
@@ -75,6 +93,77 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
         </span>
       )}
     </button>
+  );
+};
+
+const SubMenuItem: React.FC<SubMenuItemProps> = ({ icon, label, isActive = false, onClick }) => {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group relative flex items-center py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 w-full gap-3 px-3 ${
+        isActive ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-700 hover:bg-orange-50 hover:text-orange-500'
+      }`}
+      aria-current={isActive ? 'page' : undefined}
+    >
+      <span className="flex-shrink-0 w-5 h-5 relative">{icon}</span>
+      <span className="text-sm font-medium truncate">{label}</span>
+    </button>
+  );
+};
+
+const DropdownSidebarItem: React.FC<DropdownSidebarItemProps> = ({ icon, label, isCollapsed = false, children }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  if (isCollapsed) {
+    return (
+      <div className="w-12 flex justify-center items-center">
+        <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="group relative flex items-center justify-center py-2.5 rounded-lg hover:bg-gray-100 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 w-full"
+              aria-label={label}
+              title={label}
+            >
+              <span className="flex-shrink-0 w-5 h-5 relative">{icon}</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="start" sideOffset={8} className="w-48">
+            {children}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`group relative flex items-center py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 text-gray-700 hover:bg-orange-50 hover:text-orange-500 ${
+          isCollapsed ? 'justify-center items-center w-12' : 'w-full gap-3 px-3'
+        }`}
+        aria-label={label}
+        title={isCollapsed ? label : undefined}
+      >
+        <span className="flex-shrink-0 w-5 h-5 relative">{icon}</span>
+        {!isCollapsed && (
+          <>
+            <span className="text-sm font-medium truncate flex-1 text-left ml-3">{label}</span>
+            <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center ml-1">
+              <ChevronDown
+                className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+              />
+            </span>
+          </>
+        )}
+      </button>
+
+      {/* Inline submenu - only show when not collapsed */}
+      {!isCollapsed && isOpen && <div className="ml-4 mt-1 space-y-1">{children}</div>}
+    </div>
   );
 };
 
@@ -326,12 +415,7 @@ export const PTSidebar: React.FC = () => {
       path: '/manage/pt/clients',
       isActive: location.pathname.startsWith('/manage/pt/clients')
     },
-    {
-      icon: <Calendar className="w-5 h-5" />,
-      label: t('pt.sidebar.schedule', 'My Schedule'),
-      path: '/manage/pt/calendar',
-      isActive: location.pathname === '/manage/pt/calendar'
-    },
+    // Schedule and Time Off will be handled by dropdown
     {
       icon: <Calendar className="w-5 h-5" />,
       label: t('pt.sidebar.attendanceHistory', 'Attendance History'),
@@ -388,13 +472,13 @@ export const PTSidebar: React.FC = () => {
   return (
     <div
       className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out h-full ${
-        isCollapsed ? 'w-16' : 'w-64'
+        isCollapsed ? 'w-16 items-center' : 'w-64'
       }`}
     >
       <SidebarHeader isCollapsed={isCollapsed} />
 
       {/* Navigation Menu */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <nav className={`flex-1 py-4 space-y-1 ${isCollapsed ? 'flex flex-col items-center' : 'px-3'}`}>
         {menuItems.map((item) => (
           <SidebarItem
             key={item.path}
@@ -405,6 +489,32 @@ export const PTSidebar: React.FC = () => {
             onClick={() => handleNavigation(item.path)}
           />
         ))}
+
+        {/* Schedule Dropdown */}
+        <DropdownSidebarItem
+          icon={<Calendar className="w-5 h-5" />}
+          label={t('sidebar.schedule', 'Schedule')}
+          isCollapsed={isCollapsed}
+        >
+          <SubMenuItem
+            icon={<Calendar className="w-5 h-5" />}
+            label={t('pt.sidebar.schedule', 'My Schedule')}
+            isActive={location.pathname === '/manage/pt/calendar'}
+            onClick={() => handleNavigation('/manage/pt/calendar')}
+          />
+          <SubMenuItem
+            icon={<CalendarDays className="w-5 h-5" />}
+            label={t('sidebar.time_off', 'Time Off')}
+            isActive={location.pathname.startsWith('/manage/pt/timeoff')}
+            onClick={() => handleNavigation('/manage/pt/timeoff')}
+          />
+          <SubMenuItem
+            icon={<ArrowRightLeft className="w-5 h-5" />}
+            label={t('sidebar.reschedule') || 'Reschedule'}
+            isActive={location.pathname.startsWith('/reschedule')}
+            onClick={() => handleNavigation('/reschedule')}
+          />
+        </DropdownSidebarItem>
       </nav>
 
       {/* User Profile */}

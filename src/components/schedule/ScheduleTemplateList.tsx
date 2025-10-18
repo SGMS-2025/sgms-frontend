@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,6 +42,7 @@ interface ScheduleTemplateListProps {
 }
 
 export const ScheduleTemplateList: React.FC<ScheduleTemplateListProps> = ({ branchId, onTemplateSelect }) => {
+  const { t } = useTranslation();
   const {
     templates,
     loading,
@@ -375,7 +377,7 @@ export const ScheduleTemplateList: React.FC<ScheduleTemplateListProps> = ({ bran
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Building className="w-4 h-4 text-muted-foreground" />
-                        {template.branchId.branchName}
+                        {template.branchId?.branchName || t('common.unknown')}
                       </div>
                     </TableCell>
                     <TableCell>

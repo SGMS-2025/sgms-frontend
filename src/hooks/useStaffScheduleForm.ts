@@ -144,7 +144,7 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
       setValue('staffId', template.ptId._id);
       setIsStaffFieldDisabled(true);
       setTemplateStaffInfo({
-        name: template.ptId.userId.fullName || 'Personal Trainer',
+        name: template.ptId.userId?.fullName || 'Personal Trainer',
         id: template.ptId._id
       });
     } else if (template.classId) {

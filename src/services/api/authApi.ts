@@ -15,7 +15,8 @@ import type {
   ResetPasswordRequest,
   ResetPasswordResponse,
   ChangePasswordRequest,
-  ChangePasswordResponse
+  ChangePasswordResponse,
+  SocketAuthResponse
 } from '@/types/api/Auth';
 
 export const authApi = {
@@ -81,6 +82,12 @@ export const authApi = {
   // Change Password
   changePassword: async (data: ChangePasswordRequest): Promise<ApiResponse<ChangePasswordResponse>> => {
     const response = await api.post('/users/change-password', data);
+    return response.data;
+  },
+
+  // Get Socket Authentication Info (simplified)
+  getSocketAuth: async (): Promise<ApiResponse<SocketAuthResponse>> => {
+    const response = await api.get('/auth/socket-auth');
     return response.data;
   }
 };
