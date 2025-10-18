@@ -222,7 +222,7 @@ const AddBranchPage: React.FC = () => {
                         <ManagerSelector
                           managers={managers.map((manager) => ({
                             _id: manager._id,
-                            fullName: manager.userId.fullName,
+                            fullName: manager.userId?.fullName || 'Unknown',
                             email: manager.userId.email,
                             status: manager.userId.status
                           }))}

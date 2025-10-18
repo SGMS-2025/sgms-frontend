@@ -93,3 +93,19 @@ export interface ChangePasswordResponse {
   message: string;
   data: null;
 }
+
+// Socket Authentication Types
+export interface SocketAuthUser {
+  id: string;
+  role: string;
+  fullName: string;
+  username: string;
+  email: string;
+  staffId?: string;
+  branchIds?: string[];
+}
+
+export interface SocketAuthResponse {
+  authenticated: boolean;
+  user: SocketAuthUser;
+}

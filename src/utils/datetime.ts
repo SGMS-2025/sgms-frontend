@@ -17,6 +17,20 @@ export function localDateTimeToUtcISO(dateYMD: string, timeHHmm: string): string
 }
 
 /**
+ * Create UTC ISO string from date and time, treating them as local time
+ * This ensures the date stays the same regardless of timezone
+ */
+export function createUtcISOFromLocal(dateYMD: string, timeHHmm: string): string {
+  // Parse the date components
+  const [year, month, day] = dateYMD.split('-').map(Number);
+  const [hour, minute] = timeHHmm.split(':').map(Number);
+
+  // Create UTC date directly to avoid timezone conversion
+  const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0));
+  return utcDate.toISOString();
+}
+
+/**
  * Current Date object as Vietnam local time
  */
 export function nowInVietnam(): Date {

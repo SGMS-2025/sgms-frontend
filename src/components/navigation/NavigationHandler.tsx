@@ -14,22 +14,14 @@ const NavigationHandler: React.FC = () => {
 
   useEffect(() => {
     const handleNavigateToWorkShift = () => {
-      console.log('🔔 Navigate to workshift event received');
-      console.log('🔍 User:', user);
-      console.log('🔍 CurrentStaff:', currentStaff);
-      console.log('🔍 Loading:', loading);
-
       if (!user) {
-        console.warn('User not authenticated, cannot navigate to workshift');
         return;
       }
 
       // If currentStaff is still loading and user is STAFF, wait a bit or use fallback
       if (user.role === 'STAFF' && loading) {
-        console.warn('CurrentStaff is still loading, cannot determine navigation route');
         // Retry after a short delay
         const retryNavigation = () => {
-          console.log('🔄 Retrying navigation after delay...');
           window.dispatchEvent(new CustomEvent('navigate-to-workshift'));
         };
         setTimeout(retryNavigation, 1000);
@@ -50,15 +42,8 @@ const NavigationHandler: React.FC = () => {
         targetRoute = '/manage/technician/calendar';
       } else {
         // For other staff or if job title is not determined yet
-        console.warn('User role or job title not supported for workshift navigation');
-        console.warn('User role:', user.role);
-        console.warn('CurrentStaff jobTitle:', currentStaff?.jobTitle);
-        console.warn('CurrentStaff is null:', currentStaff === null);
-        console.warn('Loading state:', loading);
         return;
       }
-
-      console.log(`🚀 Navigating to: ${targetRoute}`);
       navigate(targetRoute);
     };
 

@@ -23,10 +23,6 @@ export const useLogin = () => {
 
     const response = await authApi.login(loginData);
 
-    console.log('🔍 Login response:', response);
-    console.log('🔍 Response data:', response.data);
-    console.log('🔍 Access token:', response.data?.accessToken);
-
     if (response.success) {
       // Save user to AuthContext
       login(response.data.user);
@@ -35,9 +31,6 @@ export const useLogin = () => {
       // But we also save to localStorage as fallback for socket connections
       if (response.data.accessToken) {
         localStorage.setItem('token', response.data.accessToken);
-        console.log('✅ Login successful - token saved to localStorage as fallback');
-      } else {
-        console.log('✅ Login successful - tokens are stored in HTTP-only cookies');
       }
 
       if (rememberMe) {

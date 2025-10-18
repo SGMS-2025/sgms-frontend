@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useTranslation } from 'react-i18next';
-import { useEffectivePermissions, usePermissionOperations } from '@/hooks/usePermissions';
+import { useUserPermissions, usePermissionOperations } from '@/hooks/usePermissions';
 import { permissionApi } from '@/services/api/permissionApi';
 import type {
   Permission,
@@ -22,12 +22,12 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
   const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>([]);
   const [selectedPermissionGroup, setSelectedPermissionGroup] = useState<string>('all');
 
-  // Get effective permissions for the staff member
+  // Get explicitly assigned user permissions for the staff member
   const {
-    permissions: effectivePermissions,
+    userPermissions,
     loading: permissionsLoading,
-    refetch: refetchEffectivePermissions
-  } = useEffectivePermissions(staff?.userId?._id);
+    refetch: refetchUserPermissions
+  } = useUserPermissions(staff?.userId?._id);
 
   // Permission operations hook
   const { assignPermission, revokePermission } = usePermissionOperations();
@@ -37,7 +37,14 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
     const loadPermissions = async () => {
       if (!staff?.userId?._id) return;
 
-      const response = await permissionApi.getPermissions({}, { limit: 100 });
+      const response = await permissionApi.getPermissions(
+        {},
+        {
+          limit: 200,
+          sortBy: 'resource',
+          sortOrder: 'asc'
+        }
+      );
       if (response.success) {
         setAvailablePermissions(response.data.permissions);
       }
@@ -45,25 +52,32 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
 
     if (isOpen && staff?.userId?._id) {
       loadPermissions();
-      // Force refresh effective permissions when modal opens
-      refetchEffectivePermissions();
+      // Force refresh user permissions when modal opens
+      refetchUserPermissions();
     }
-  }, [isOpen, staff?.userId?._id, refetchEffectivePermissions]);
+  }, [isOpen, staff?.userId?._id, refetchUserPermissions]);
 
   useEffect(() => {
     if (availablePermissions.length > 0) {
       const mappedPermissions: PermissionItem[] = availablePermissions.map((perm) => {
         const sanitizedPermissionName = perm.name.toLowerCase().trim().replace(/\s+/g, '');
-        const isEnabled = Array.isArray(effectivePermissions)
-          ? effectivePermissions.includes(sanitizedPermissionName)
+        // Enabled only if there is an explicit UserPermission record active for this permission
+        const isEnabled = Array.isArray(userPermissions)
+          ? userPermissions.some((up) => {
+              const upName = up.permissionInfo?.name?.toLowerCase().trim().replace(/\s+/g, '');
+              return up.isActive && upName === sanitizedPermissionName;
+            })
           : false;
-        // Disable scoped permissions if staff has no proper context
+        // Check if permission can be used (for enabling/disabling)
         const hasBranchContext = staff?.branchId && staff.branchId.length > 0;
         const canUsePermission =
           perm.scope === 'global' ||
           perm.scope === 'self' ||
           (perm.scope === 'branch' && hasBranchContext) ||
           (perm.scope === 'owner' && hasBranchContext);
+
+        // Always show all permissions, but disable those without proper context
+        const shouldShowPermission = true;
 
         return {
           id: perm._id,
@@ -74,18 +88,19 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
           resource: perm.resource,
           action: perm.action,
           scope: perm.scope, // Add scope to PermissionItem
-          disabled: !canUsePermission // Add disabled flag
+          disabled: !canUsePermission, // Add disabled flag
+          shouldShow: shouldShowPermission // Add shouldShow flag
         };
       });
 
       setPermissions(mappedPermissions);
 
-      // Group permissions by resource
+      // Group permissions by resource - show all permissions
       const groupedPermissions = groupPermissionsByResource(mappedPermissions);
       setPermissionGroups(groupedPermissions);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [availablePermissions, effectivePermissions, staff?.branchId]);
+  }, [availablePermissions, userPermissions, staff?.branchId]);
 
   const handlePermissionToggle = async (permissionId: string, enabled: boolean) => {
     const permission = permissions.find((p) => p.id === permissionId);
@@ -94,19 +109,26 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
     try {
       setSaving(true);
 
-      // Determine scope and resource info
-      let scope: 'branch' | 'owner' | 'self' = 'branch';
-      let resourceId = staff.branchId?.[0]?._id;
-      let resourceType: 'branch' | 'self' | undefined = 'branch';
+      // Determine scope and resource info based on permission scope
+      let scope: 'branch' | 'owner' | 'self';
+      let resourceId: string | undefined;
+      let resourceType: 'branch' | 'self' | 'owner' | undefined;
 
       // Handle different permission scopes
       if (permission.scope === 'owner') {
         scope = 'owner';
+        // For owner scope, use branch ID as resourceId and branch as resourceType
         resourceId = staff.branchId?.[0]?._id;
+        resourceType = 'branch';
       } else if (permission.scope === 'self') {
         scope = 'self';
         resourceId = staff.userId._id;
         resourceType = 'self';
+      } else {
+        // Default to branch scope
+        scope = 'branch';
+        resourceId = staff.branchId?.[0]?._id;
+        resourceType = 'branch';
       }
 
       if (enabled) {
@@ -138,8 +160,7 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
           permissions: group.permissions.map((p) => (p.id === permissionId ? { ...p, enabled } : p))
         }))
       );
-    } catch (error) {
-      console.error('Failed to toggle permission:', error);
+    } catch (_error) {
       // Revert the toggle in UI if API call failed
       setPermissions((prev) => prev.map((p) => (p.id === permissionId ? { ...p, enabled: !enabled } : p)));
       setPermissionGroups((prev) =>
@@ -162,7 +183,26 @@ const StaffPermissionOverlayModal: React.FC<StaffPermissionOverlayModalProps> = 
     const resourceMapping: { [key: string]: string } = {
       staff: t('permissions.staff_management'),
       branch: t('permissions.branch_management'),
-      permission: t('permissions.permission_management')
+      permission: t('permissions.permission_management'),
+      reschedule: t('permissions.reschedule_management'),
+      timeoff: t('permissions.timeoff_management'),
+      equipment: t('permissions.equipment_management'),
+      customer: t('permissions.customer_management'),
+      membership: t('permissions.membership_management'),
+      membershipcontract: t('permissions.membership_contract_management'),
+      servicecontract: t('permissions.service_contract_management'),
+      transaction: t('permissions.transaction_management'),
+      schedule: t('permissions.schedule_management'),
+      'schedule-template': t('permissions.schedule_template_management'),
+      'batch-schedule': t('permissions.batch_schedule_management'),
+      scheduler: t('permissions.scheduler_management'),
+      testimonial: t('permissions.testimonial_management'),
+      workshift: t('permissions.workshift_management'),
+      user: t('permissions.user_management'),
+      discountcampaign: t('permissions.discount_campaign_management'),
+      feature: t('permissions.feature_management'),
+      package: t('permissions.package_management'),
+      matrix: t('permissions.matrix_management')
     };
 
     const grouped = permissions.reduce(

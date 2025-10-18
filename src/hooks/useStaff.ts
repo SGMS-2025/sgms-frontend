@@ -12,13 +12,13 @@ import type {
 
 const transformStaffToDisplay = (staff: Staff): StaffDisplay => ({
   id: staff._id,
-  userId: staff.userId._id, // Add userId field
-  name: staff.userId.fullName || staff.userId.username,
+  userId: staff.userId?._id, // Add userId field
+  name: staff.userId?.fullName || staff.userId?.username,
   jobTitle: staff.jobTitle,
-  email: staff.userId.email,
-  phone: staff.userId.phoneNumber || '',
+  email: staff.userId?.email,
+  phone: staff.userId?.phoneNumber || '',
   salary: staff.salary.toLocaleString('vi-VN'),
-  branch: staff.branchId.length > 0 ? staff.branchId[0].branchName : '', // Primary branch for display
+  branch: staff.branchId.length > 0 ? staff.branchId[0]?.branchName : '', // Primary branch for display
   branches: staff.branchId, // All branches
   status: staff.status,
   selected: staff.selected || false

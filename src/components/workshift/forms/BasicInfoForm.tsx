@@ -128,7 +128,22 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
               <div className="p-2 bg-green-50 border border-green-200 rounded-md">
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-800">{selectedTemplate.branchId.branchName}</span>
+                  <span className="text-sm font-medium text-green-800">
+                    {(() => {
+                      // Handle both string ID and BranchReference object
+                      const branchId = selectedTemplate.branchId;
+                      if (branchId && typeof branchId === 'object' && 'branchName' in branchId) {
+                        // If branchId is an object (BranchReference), use branchName directly
+                        return branchId.branchName || t('common.unknown');
+                      } else if (typeof branchId === 'string') {
+                        // If branchId is a string, find the branch name from branches array
+                        const branch = branches.find((b) => b._id === branchId);
+                        return branch?.branchName || t('common.unknown');
+                      } else {
+                        return t('common.unknown');
+                      }
+                    })()}
+                  </span>
                   <span className="text-xs text-green-600">(Pre-selected from template)</span>
                 </div>
               </div>
@@ -179,7 +194,7 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
                       <SelectItem key={staff._id} value={staff._id}>
                         <div className="flex items-center gap-2">
                           <User className="h-3 w-3" />
-                          {staff.userId.fullName} ({staff.jobTitle})
+                          {staff.userId?.fullName || 'Unknown'} ({staff.jobTitle})
                         </div>
                       </SelectItem>
                     ))}

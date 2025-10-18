@@ -21,7 +21,7 @@ export interface WorkShift {
   };
   branchId: {
     _id: string;
-    name: string;
+    branchName: string;
     location: string;
     timezone: string;
   };

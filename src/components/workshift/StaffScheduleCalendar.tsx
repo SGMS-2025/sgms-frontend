@@ -25,11 +25,12 @@ import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { staffApi } from '@/services/api/staffApi';
 import { workShiftApi } from '@/services/api/workShiftApi';
+import { useTimeOffList } from '@/hooks/useTimeOff';
 import type { Staff } from '@/types/api/Staff';
 import type { WorkShift } from '@/types/api/WorkShift';
 import type { StaffScheduleCalendarProps } from '@/types/api/StaffSchedule';
 import StaffScheduleModal from './StaffScheduleModal';
-import WorkShiftDetailModal from './WorkShiftDetailModal';
+import WorkShiftDetailModalWithTimeOff from './WorkShiftDetailModalWithTimeOff';
 import CreateDropdown from './CreateDropdown';
 import CreateWorkShiftModal from './CreateWorkShiftModal';
 
@@ -49,9 +50,15 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   const [selectedWorkShift, setSelectedWorkShift] = useState<WorkShift | null>(null);
   const [showWorkShiftDetail, setShowWorkShiftDetail] = useState(false);
   const [showDisabledShifts, setShowDisabledShifts] = useState(true);
+  const [showTimeOffs, setShowTimeOffs] = useState(true);
   const { currentBranch } = useBranch();
   const { user } = useAuthState();
   const { currentStaff } = useCurrentUserStaff();
+
+  // Time Off functionality
+  const { timeOffs, refetch: refetchTimeOffs } = useTimeOffList({
+    staffId: selectedStaffId || currentStaff?._id
+  });
 
   // Check if user can view staff schedules (Owner and Manager only)
   const canViewStaffSchedules = useCallback(() => {
@@ -108,6 +115,17 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     });
 
     return filteredShifts;
+  };
+
+  // Get time off requests for a specific date
+  const getTimeOffForDate = (date: Date) => {
+    if (!showTimeOffs) return [];
+
+    return timeOffs.filter((timeOff) => {
+      const startDate = new Date(timeOff.startDate);
+      const endDate = new Date(timeOff.endDate);
+      return date >= startDate && date <= endDate;
+    });
   };
 
   // Calculate position and width for overlapping shifts based on shifts that START in this time slot
@@ -212,6 +230,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
           e.stopPropagation();
           setSelectedWorkShift(shift);
           setShowWorkShiftDetail(true);
+          setShowCreateWorkShiftModal(false);
         }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -219,6 +238,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
             e.stopPropagation();
             setSelectedWorkShift(shift);
             setShowWorkShiftDetail(true);
+            setShowCreateWorkShiftModal(false);
           }
         }}
       >
@@ -242,6 +262,32 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
           )}
         </div>
       </button>
+    );
+  };
+
+  // Render time off indicator for a date
+  const renderTimeOffIndicator = (date: Date) => {
+    const timeOffsForDate = getTimeOffForDate(date);
+    if (timeOffsForDate.length === 0) return null;
+
+    const timeOff = timeOffsForDate[0]; // Show first time off for the date
+    const status = timeOff.status;
+
+    // Different colors for different statuses
+    const statusColors = {
+      PENDING: 'bg-yellow-500',
+      APPROVED: 'bg-green-500',
+      REJECTED: 'bg-red-500',
+      CANCELLED: 'bg-gray-500'
+    };
+
+    const statusColor = statusColors[status] || 'bg-purple-500';
+
+    return (
+      <div
+        className={`absolute top-1 right-1 w-3 h-3 rounded-full ${statusColor} border border-white shadow-sm`}
+        title={`Time Off: ${timeOff.type} (${status})`}
+      />
     );
   };
 
@@ -401,6 +447,11 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   // Refresh workshifts after creating new one
   const refreshWorkShifts = async () => {
     await fetchWorkShifts();
+  };
+
+  // Refresh time offs
+  const refreshTimeOffs = async () => {
+    await refetchTimeOffs();
   };
 
   // Handlers for dropdown actions
@@ -623,16 +674,16 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                                 >
                                   <Avatar className="h-9 w-9">
                                     <AvatarImage
-                                      src={`https://ui-avatars.com/api/?name=${staff.userId.fullName}&background=orange&color=fff`}
-                                      alt={staff.userId.fullName}
+                                      src={`https://ui-avatars.com/api/?name=${staff.userId?.fullName || 'Unknown'}&background=orange&color=fff`}
+                                      alt={staff.userId?.fullName || 'Unknown'}
                                     />
                                     <AvatarFallback className="bg-orange-500 text-white text-xs">
-                                      {staff.userId.fullName.charAt(0)}
+                                      {(staff.userId?.fullName || 'U').charAt(0)}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div className="flex-1 min-w-0 space-y-1">
                                     <p className="text-sm font-medium text-gray-900 truncate">
-                                      {staff.userId.fullName}
+                                      {staff.userId?.fullName || 'Unknown'}
                                     </p>
                                     <p className="text-xs text-gray-500 truncate">{staff.jobTitle}</p>
                                   </div>
@@ -726,6 +777,18 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
               >
                 <Ban className="h-4 w-4 mr-1" />
                 {showDisabledShifts ? t('workshift.disabled') : t('workshift.hidden')}
+              </Button>
+
+              {/* Toggle for showing time off indicators */}
+              <Button
+                variant={showTimeOffs ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowTimeOffs(!showTimeOffs)}
+                className={showTimeOffs ? 'bg-black hover:bg-gray-800 text-white' : ''}
+                title={showTimeOffs ? t('timeoff.hide_time_off') : t('timeoff.show_time_off')}
+              >
+                <CalendarIcon className="h-4 w-4 mr-1" />
+                {showTimeOffs ? t('timeoff.time_off') : t('timeoff.hidden')}
               </Button>
               <Button variant="ghost" size="sm">
                 <CalendarIcon className="h-4 w-4" />
@@ -836,7 +899,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                             {timeSlots.map((slot) => (
                               <div
                                 key={`cell-${date.getTime()}-${slot.hour}`}
-                                className="calendar-time-cell"
+                                className="calendar-time-cell relative"
                                 onClick={() => {
                                   const clickedDateTime = new Date(date);
                                   clickedDateTime.setHours(slot.hour, 0, 0, 0);
@@ -852,6 +915,8 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                                 tabIndex={0}
                               >
                                 {renderShiftsForSlot(date, { hour: slot.hour })}
+                                {/* Time Off indicator for the first hour slot of each day */}
+                                {slot.hour === 6 && renderTimeOffIndicator(date)}
                               </div>
                             ))}
                           </div>
@@ -875,14 +940,15 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
         />
       )}
 
-      {/* Work Shift Detail Modal */}
-      <WorkShiftDetailModal
+      {/* Work Shift Detail Modal with Time Off */}
+      <WorkShiftDetailModalWithTimeOff
         isOpen={showWorkShiftDetail}
         onClose={() => {
           setShowWorkShiftDetail(false);
           setSelectedWorkShift(null);
         }}
         workShift={selectedWorkShift}
+        selectedDate={currentDate}
         onEdit={() => {
           // Edit functionality will be implemented later
         }}
@@ -891,6 +957,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
           setWorkShifts((prev) => prev.map((shift) => (shift._id === updatedWorkShift._id ? updatedWorkShift : shift)));
           setSelectedWorkShift(updatedWorkShift);
         }}
+        onTimeOffChange={refreshTimeOffs}
       />
 
       {/* Create Work Shift Modal */}
