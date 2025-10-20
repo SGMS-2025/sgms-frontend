@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { Calendar, Clock, User, MapPin, CheckCircle, Loader2, Ban } from 'lucide-react';
 import type { UpdateWorkShiftRequest, WorkShiftStatus, WorkShiftDetailModalProps } from '@/types/api/WorkShift';
 import { workShiftApi } from '@/services/api/workShiftApi';
+import RescheduleTab from '@/components/reschedule/RescheduleTab';
 
 const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
   isOpen,
@@ -19,6 +20,7 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
   const [isDisabling, setIsDisabling] = useState(false);
   const [showConfirmDisable, setShowConfirmDisable] = useState(false);
   const [_error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'event' | 'reschedule'>('event');
   const [formData, setFormData] = useState<{
     startTimeLocal?: string;
     endTimeLocal?: string;
@@ -227,7 +229,22 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
           </div>
           {/* Event Type Tabs */}
           <div className="flex gap-1 p-2 border-b">
-            <button className="px-3 py-2 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">Event</button>
+            <button
+              className={`px-3 py-2 rounded-full text-sm font-medium transition-colors ${
+                activeTab === 'event' ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+              onClick={() => setActiveTab('event')}
+            >
+              Work Shift
+            </button>
+            <button
+              className={`px-3 py-2 rounded-full text-sm font-medium transition-colors ${
+                activeTab === 'reschedule' ? 'bg-orange-100 text-orange-700' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+              onClick={() => setActiveTab('reschedule')}
+            >
+              Reschedule
+            </button>
             <button className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-full text-sm font-medium">Task</button>
             <button className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-full text-sm font-medium">
               Out of office
@@ -265,127 +282,133 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
               </div>
             </div>
           </div>
-          {/* Main Content - 3 Column Layout */}
+          {/* Main Content */}
           <div className="p-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Column 1 - Basic Info */}
-              <div className="space-y-4">
-                {/* Date and Time Field */}
-                <div className="flex items-start gap-3 py-2 hover:bg-gray-50 rounded cursor-pointer">
-                  <Clock className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
-                  <div className="flex-1">
-                    {isEditing ? (
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium text-gray-900">
-                          {getDayOfWeek(workShift.dayOfTheWeek)},{' '}
-                          {workShift.startTimeFmt
-                            ? workShift.startTimeFmt.split(' ')[1]
-                            : formatDate(workShift.startTime)}
+            {activeTab === 'event' ? (
+              /* Event Tab Content - 3 Column Layout */
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Column 1 - Basic Info */}
+                <div className="space-y-4">
+                  {/* Date and Time Field */}
+                  <div className="flex items-start gap-3 py-2 hover:bg-gray-50 rounded cursor-pointer">
+                    <Clock className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
+                    <div className="flex-1">
+                      {isEditing ? (
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium text-gray-900">
+                            {getDayOfWeek(workShift.dayOfTheWeek)},{' '}
+                            {workShift.startTimeFmt
+                              ? workShift.startTimeFmt.split(' ')[1]
+                              : formatDate(workShift.startTime)}
+                          </div>
+                          <div className="flex gap-2">
+                            <input
+                              type="time"
+                              value={formData.startTimeLocal || workShift.startTimeLocal || ''}
+                              onChange={(e) => setFormData((prev) => ({ ...prev, startTimeLocal: e.target.value }))}
+                              className="text-sm border border-gray-300 rounded px-2 py-1 focus:border-orange-500 focus:outline-none"
+                            />
+                            <span className="text-sm text-gray-600 self-center">-</span>
+                            <input
+                              type="time"
+                              value={formData.endTimeLocal || workShift.endTimeLocal || ''}
+                              onChange={(e) => setFormData((prev) => ({ ...prev, endTimeLocal: e.target.value }))}
+                              className="text-sm border border-gray-300 rounded px-2 py-1 focus:border-orange-500 focus:outline-none"
+                            />
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {t('workshift.timezone')}: {workShift.branchTz || 'UTC'} • {t('workshift.no_repeat')}
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          <input
-                            type="time"
-                            value={formData.startTimeLocal || workShift.startTimeLocal || ''}
-                            onChange={(e) => setFormData((prev) => ({ ...prev, startTimeLocal: e.target.value }))}
-                            className="text-sm border border-gray-300 rounded px-2 py-1 focus:border-orange-500 focus:outline-none"
-                          />
-                          <span className="text-sm text-gray-600 self-center">-</span>
-                          <input
-                            type="time"
-                            value={formData.endTimeLocal || workShift.endTimeLocal || ''}
-                            onChange={(e) => setFormData((prev) => ({ ...prev, endTimeLocal: e.target.value }))}
-                            className="text-sm border border-gray-300 rounded px-2 py-1 focus:border-orange-500 focus:outline-none"
-                          />
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {t('workshift.timezone')}: {workShift.branchTz || 'UTC'} • {t('workshift.no_repeat')}
-                        </div>
+                      ) : (
+                        <>
+                          <div className="text-sm font-medium text-gray-900">
+                            {getDayOfWeek(workShift.dayOfTheWeek)},{' '}
+                            {workShift.startTimeFmt
+                              ? workShift.startTimeFmt.split(' ')[1]
+                              : formatDate(workShift.startTime)}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {workShift.startTimeLocal && workShift.endTimeLocal ? (
+                              <>
+                                {formatTime(workShift.startTimeLocal)} - {formatTime(workShift.endTimeLocal)}
+                              </>
+                            ) : (
+                              <>
+                                {formatTime(workShift.startTime)} - {formatTime(workShift.endTime)}
+                              </>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {t('workshift.timezone')}: {workShift.branchTz || 'UTC'} • {t('workshift.no_repeat')}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Staff Field */}
+                  <button
+                    className="flex items-start gap-3 py-2 hover:bg-gray-50 rounded cursor-pointer w-full text-left"
+                    onClick={() => onEdit?.(workShift)}
+                  >
+                    <User className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900">
+                        {workShift.staffId?.userId?.fullName ||
+                          (workShift.staffId?.firstName && workShift.staffId?.lastName
+                            ? `${workShift.staffId.firstName} ${workShift.staffId.lastName}`
+                            : t('common.unknown_staff'))}
                       </div>
-                    ) : (
-                      <>
-                        <div className="text-sm font-medium text-gray-900">
-                          {getDayOfWeek(workShift.dayOfTheWeek)},{' '}
-                          {workShift.startTimeFmt
-                            ? workShift.startTimeFmt.split(' ')[1]
-                            : formatDate(workShift.startTime)}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          {workShift.startTimeLocal && workShift.endTimeLocal ? (
-                            <>
-                              {formatTime(workShift.startTimeLocal)} - {formatTime(workShift.endTimeLocal)}
-                            </>
-                          ) : (
-                            <>
-                              {formatTime(workShift.startTime)} - {formatTime(workShift.endTime)}
-                            </>
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {t('workshift.timezone')}: {workShift.branchTz || 'UTC'} • {t('workshift.no_repeat')}
-                        </div>
-                      </>
-                    )}
-                  </div>
+                      <div className="text-sm text-gray-600">{workShift.staffId?.jobTitle || t('common.staff')}</div>
+                    </div>
+                  </button>
                 </div>
 
-                {/* Staff Field */}
-                <button
-                  className="flex items-start gap-3 py-2 hover:bg-gray-50 rounded cursor-pointer w-full text-left"
-                  onClick={() => onEdit?.(workShift)}
-                >
-                  <User className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900">
-                      {workShift.staffId?.userId?.fullName ||
-                        (workShift.staffId?.firstName && workShift.staffId?.lastName
-                          ? `${workShift.staffId.firstName} ${workShift.staffId.lastName}`
-                          : t('common.unknown_staff'))}
-                    </div>
-                    <div className="text-sm text-gray-600">{workShift.staffId?.jobTitle || t('common.staff')}</div>
-                  </div>
-                </button>
-              </div>
-
-              {/* Column 2 - Location, Branch & Additional */}
-              <div className="space-y-4">
-                {/* Branch Field */}
-                <div className="flex items-start gap-3 py-2 hover:bg-gray-50 rounded cursor-pointer">
-                  <MapPin className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900">
-                      {typeof workShift.branchId === 'string'
-                        ? t('common.branch')
-                        : workShift.branchId?.name || t('common.branch')}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      {typeof workShift.branchId === 'string'
-                        ? t('workshift.branch_address')
-                        : workShift.branchId?.location || t('workshift.branch_address')}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {t('workshift.timezone')}: {workShift.branchTz || 'UTC'}
+                {/* Column 2 - Location, Branch & Additional */}
+                <div className="space-y-4">
+                  {/* Branch Field */}
+                  <div className="flex items-start gap-3 py-2 hover:bg-gray-50 rounded cursor-pointer">
+                    <MapPin className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900">
+                        {typeof workShift.branchId === 'string'
+                          ? t('common.branch')
+                          : workShift.branchId?.branchName || t('common.branch')}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {typeof workShift.branchId === 'string'
+                          ? t('workshift.branch_address')
+                          : workShift.branchId?.location || t('workshift.branch_address')}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {t('workshift.timezone')}: {workShift.branchTz || 'UTC'}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Calendar Info Field */}
-                <div className="flex items-start gap-3 py-2 hover:bg-gray-50 rounded cursor-pointer">
-                  <Calendar className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900">
-                      {workShift.staffId?.userId?.fullName ||
-                        (workShift.staffId?.firstName && workShift.staffId?.lastName
-                          ? `${workShift.staffId.firstName} ${workShift.staffId.lastName}`
-                          : t('common.unknown_staff'))}{' '}
-                      ({workShift.branchTz || 'UTC'})
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Busy • Default visibility • Notify 10 minutes before
+                  {/* Calendar Info Field */}
+                  <div className="flex items-start gap-3 py-2 hover:bg-gray-50 rounded cursor-pointer">
+                    <Calendar className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900">
+                        {workShift.staffId?.userId?.fullName ||
+                          (workShift.staffId?.firstName && workShift.staffId?.lastName
+                            ? `${workShift.staffId.firstName} ${workShift.staffId.lastName}`
+                            : t('common.unknown_staff'))}{' '}
+                        ({workShift.branchTz || 'UTC'})
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Busy • Default visibility • Notify 10 minutes before
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              /* Reschedule Tab Content */
+              <RescheduleTab workShift={workShift} onClose={onClose} />
+            )}
           </div>
           {/* Footer - Google Calendar Style */}
           <div className="flex justify-between items-center p-4 border-t">

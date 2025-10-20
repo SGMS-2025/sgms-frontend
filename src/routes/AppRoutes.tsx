@@ -33,7 +33,11 @@ import { AddEquipmentPage } from '@/pages/technician/AddEquipmentPage';
 import { EditEquipmentPage } from '@/pages/technician/EditEquipmentPage';
 import { EquipmentIssueReportPage } from '@/pages/technician/EquipmentIssueReportPage';
 import { EquipmentIssueHistoryPage } from '@/pages/technician/EquipmentIssueHistoryPage';
+import { EquipmentInventoryPage } from '@/pages/technician/EquipmentInventoryPage';
+import TechnicianAttendanceHistoryPage from '@/pages/technician/TechnicianAttendanceHistoryPage';
+import { EquipmentInventorySessionPage } from '@/pages/technician/EquipmentInventorySessionPage';
 import MembershipPlansPage from '@/pages/owner/MembershipPlansPage';
+import ExpensesPage from '@/pages/owner/ExpensesPage';
 import AddWorkShiftPage from '@/pages/owner/AddWorkShiftPage';
 import EditWorkShiftPage from '@/pages/owner/EditWorkShiftPage';
 import WorkShiftCalendarPage from '@/pages/owner/WorkShiftCalendarPage';
@@ -43,13 +47,21 @@ import ClassServiceManagement from '@/components/dashboard/ClassServiceManagemen
 import { PTLayout } from '@/layouts/PTLayout';
 import PTDashboard from '@/pages/pt/PTDashboard';
 import PTCalendarPage from '@/pages/pt/PTCalendarPage';
+import PTCustomerListPage from '@/pages/pt/PTCustomerListPage';
+import PTAttendanceHistoryPage from '@/pages/pt/PTAttendanceHistoryPage';
 import CustomerManagementPage from '@/pages/owner/CustomerManagementPage';
+import TimeOffPage from '@/pages/owner/TimeOffPage';
+import TimeOffManagementPage from '@/pages/owner/TimeOffManagementPage';
+import PTTimeOffPage from '@/pages/pt/TimeOffPage';
+import TechnicianTimeOffPage from '@/pages/technician/TimeOffPage';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { SidebarProvider } from '@/contexts/SidebarContext';
 import { OwnerSidebar } from '@/components/layout/OwnerSidebar';
 import { TechnicianSidebar } from '@/components/layout/TechnicianSidebar';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import AttendancePage from '@/pages/attendance/AttendancePage';
+import RescheduleManagementPage from '@/pages/owner/RescheduleManagementPage';
 
 // WorkShift Calendar with Layout Component
 const WorkShiftCalendarPageWithLayout: React.FC = () => {
@@ -106,6 +118,68 @@ const WorkShiftCalendarPageWithLayout: React.FC = () => {
           {/* Main Content */}
           <div className="p-6">
             <WorkShiftCalendarPage />
+          </div>
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+};
+
+// Reschedule Management with Layout Component
+const RescheduleManagementPageWithLayout: React.FC = () => {
+  const { isAuthenticated, user, isLoading } = useAuthState();
+  const { currentStaff } = useCurrentUserStaff();
+
+  // Show loading while authentication is being checked
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user has permission to access reschedule
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Allow OWNER and STAFF roles
+  if (user.role !== 'OWNER' && user.role !== 'STAFF') {
+    return <Navigate to="/home" replace />;
+  }
+
+  // Choose appropriate sidebar based on user role and job title
+  const renderSidebar = () => {
+    if (user.role === 'OWNER') {
+      return <OwnerSidebar />;
+    } else if (user.role === 'STAFF') {
+      // Manager should use OwnerSidebar, others use TechnicianSidebar
+      if (currentStaff?.jobTitle === 'Manager') {
+        return <OwnerSidebar />;
+      }
+      return <TechnicianSidebar />;
+    }
+    return <OwnerSidebar />; // fallback
+  };
+
+  return (
+    <SidebarProvider>
+      <div className="h-screen bg-[#f1f3f4] flex overflow-hidden">
+        {renderSidebar()}
+        <div className="flex-1 overflow-y-auto hide-scrollbar">
+          {/* Header */}
+          <div className="bg-white border-b border-gray-200">
+            <div className="px-5 py-2 pb-3">
+              <DashboardHeader />
+            </div>
+          </div>
+          {/* Main Content */}
+          <div className="p-6">
+            <RescheduleManagementPage />
           </div>
         </div>
       </div>
@@ -196,6 +270,9 @@ const AppRoutes: React.FC = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/owners" element={<OwnerLandingPage />} />
 
+      {/* Attendance Route */}
+      <Route path="/attendance" element={<AttendancePage />} />
+
       {/* Auth Routes - redirect to home if already authenticated */}
       <Route path="/login" element={isAuthenticated ? <Navigate to="/home" replace /> : <LoginPage />} />
 
@@ -226,6 +303,12 @@ const AppRoutes: React.FC = () => {
 
       {/* Profile Route */}
       <Route path="/profile" element={isAuthenticated ? <UserProfile /> : <Navigate to="/login" replace />} />
+
+      {/* Reschedule Management - accessible to authenticated users (OWNER or STAFF) */}
+      <Route
+        path="/reschedule"
+        element={isAuthenticated ? <RescheduleManagementPageWithLayout /> : <Navigate to="/login" replace />}
+      />
 
       {/* Gym Routes - Public routes */}
       <Route path="/gyms" element={<GymListPage />} />
@@ -260,6 +343,8 @@ const AppRoutes: React.FC = () => {
           <Route path="discounts" element={<DiscountPage />} />
           {/* Membership Management Route */}
           <Route path="memberships" element={<MembershipPlansPage />} />
+          {/* Expenses Management Route */}
+          <Route path="expenses" element={<ExpensesPage />} />
           {/* Testimonial Management Route */}
           <Route path="testimonials" element={<TestimonialPage />} />
           {/* Schedule Template Management Route */}
@@ -273,6 +358,10 @@ const AppRoutes: React.FC = () => {
           {/* Work Shift Management Routes */}
           <Route path="workshifts/add" element={<AddWorkShiftPage />} />
           <Route path="workshifts/:id/edit" element={<EditWorkShiftPage />} />
+
+          {/* Time Off Management Routes */}
+          <Route path="timeoff" element={<TimeOffPage />} />
+          <Route path="timeoff/management" element={<TimeOffManagementPage />} />
         </Route>
       </Route>
 
@@ -296,8 +385,17 @@ const AppRoutes: React.FC = () => {
           <Route path="equipment/add" element={<AddEquipmentPage />} />
           <Route path="equipment/:id/edit" element={<EditEquipmentPage />} />
 
+          {/* Equipment Inventory Routes for Technician */}
+          <Route path="equipment-inventory" element={<EquipmentInventoryPage />} />
+          <Route path="equipment-inventory/session/:sessionId" element={<EquipmentInventorySessionPage />} />
+
           {/* Calendar Route for Technician */}
           <Route path="calendar" element={<TechnicianCalendarPage />} />
+
+          {/* Attendance History for Technician */}
+          <Route path="attendance" element={<TechnicianAttendanceHistoryPage />} />
+          {/* Time Off Route for Technician */}
+          <Route path="timeoff" element={<TechnicianTimeOffPage />} />
 
           {/* Equipment Issue History Route for Technician */}
           <Route path="equipment-issues" element={<EquipmentIssueHistoryPage />} />
@@ -323,6 +421,14 @@ const AppRoutes: React.FC = () => {
 
           {/* Calendar Route for PT */}
           <Route path="calendar" element={<PTCalendarPage />} />
+
+          {/* Clients Route for PT */}
+          <Route path="clients" element={<PTCustomerListPage />} />
+          {/* Time Off Route for PT */}
+          <Route path="timeoff" element={<PTTimeOffPage />} />
+
+          {/* Attendance History for PT */}
+          <Route path="attendance" element={<PTAttendanceHistoryPage />} />
 
           {/* Equipment Issue Report Route for PT */}
           <Route path="equipment-issues" element={<EquipmentIssueReportPage />} />

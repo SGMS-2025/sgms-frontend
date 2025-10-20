@@ -4,8 +4,8 @@ import { socketApi } from '../api/socketApi';
 import i18n from '@/configs/i18n';
 import type {
   SocketConfig,
-  NotificationData,
   WorkShiftNotificationData,
+  TimeOffNotificationData,
   SocketEvents,
   SocketServiceInterface,
   SocketConnectionStatus,
@@ -46,20 +46,14 @@ class SocketService implements SocketServiceInterface {
 
         this.config = {
           serverUrl,
-          token: '', // Not needed for HTTP-only cookies
+          token: '', // Not needed for cookie-based auth
           reconnectAttempts: 0,
           reconnectDelay: 1000,
           timeout: 20000
         };
 
-        // Get token from multiple sources
-        const token = this.getTokenFromCookies() || this.getTokenFromStorage();
-
+        // Simplified: Use only cookies for authentication (no separate token needed)
         this.socket = io(serverUrl, {
-          // For HTTP-only cookies, we need to extract token and use auth object
-          auth: {
-            token: token || '' // Use extracted token in auth object
-          },
           transports: ['websocket', 'polling'],
           timeout: this.config.timeout,
           forceNew: true,
@@ -67,7 +61,7 @@ class SocketService implements SocketServiceInterface {
           reconnection: true,
           reconnectionAttempts: this.maxReconnectAttempts,
           reconnectionDelay: this.reconnectDelay,
-          withCredentials: true // This sends HTTP-only cookies
+          withCredentials: true // This sends HTTP-only cookies for authentication
         });
 
         this.setupEventHandlers(resolve, reject);
@@ -147,6 +141,27 @@ class SocketService implements SocketServiceInterface {
       this.handleWorkShiftNotification(data);
     });
 
+    // Time off notifications
+    this.socket.on('notification:timeoff:created', (data: TimeOffNotificationData) => {
+      this.handleTimeOffNotification(data);
+    });
+
+    this.socket.on('notification:timeoff:approved', (data: TimeOffNotificationData) => {
+      this.handleTimeOffNotification(data);
+    });
+
+    this.socket.on('notification:timeoff:rejected', (data: TimeOffNotificationData) => {
+      this.handleTimeOffNotification(data);
+    });
+
+    this.socket.on('notification:timeoff:cancelled', (data: TimeOffNotificationData) => {
+      this.handleTimeOffNotification(data);
+    });
+
+    this.socket.on('notification:timeoff:branch_update', (data: TimeOffNotificationData) => {
+      this.handleTimeOffNotification(data);
+    });
+
     // Ping/pong for connection health
     this.socket.on('pong', () => {
       // Pong received for health check
@@ -202,18 +217,17 @@ class SocketService implements SocketServiceInterface {
 
   private handleWorkShiftNotification(data: WorkShiftNotificationData) {
     // Don't show toast here - let the notification panel handle display
-    // Just emit custom event for components to handle
-    this.emitCustomEvent('workshift-notification', data as unknown as Record<string, unknown>);
+    // SocketContext will handle the notification directly from socket events
+    console.log('🔔 WorkShift notification received in socketService:', data);
   }
 
-  private emitCustomEvent(eventName: string, data: Record<string, unknown>) {
-    const event = new CustomEvent(eventName, { detail: data });
-    window.dispatchEvent(event);
-
-    // Notify registered listeners
-    const listeners = this.listeners.get(eventName) || [];
-    listeners.forEach((listener) => listener(data));
+  private handleTimeOffNotification(data: TimeOffNotificationData) {
+    // Don't show toast here - let the notification panel handle display
+    // SocketContext will handle the notification directly from socket events
+    console.log('🔔 TimeOff notification received in socketService:', data);
   }
+
+  // Removed emitCustomEvent to prevent duplicate notifications
 
   disconnect() {
     if (this.socket) {
@@ -324,7 +338,7 @@ class SocketService implements SocketServiceInterface {
             action: {
               label: currentLang === 'vi' ? 'Xem' : 'View',
               onClick: () => {
-                window.dispatchEvent(new CustomEvent('show-notifications'));
+                globalThis.dispatchEvent(new CustomEvent('show-notifications'));
               }
             }
           });
@@ -361,7 +375,7 @@ class SocketService implements SocketServiceInterface {
             label: i18n.t('socket.view_notifications') || (currentLang === 'vi' ? 'Xem' : 'View'),
             onClick: () => {
               // Trigger a custom event to show notifications
-              window.dispatchEvent(new CustomEvent('show-notifications'));
+              globalThis.dispatchEvent(new CustomEvent('show-notifications'));
             }
           }
         });
@@ -382,73 +396,20 @@ class SocketService implements SocketServiceInterface {
 
     if (response.success && response.data && response.data.length > 0) {
       // Dispatch notifications to frontend
-      response.data.forEach((notification: NotificationData) => {
+      for (const notification of response.data) {
         // Emit a custom event that SocketContext can listen to
-        window.dispatchEvent(
+        globalThis.dispatchEvent(
           new CustomEvent('notification-received', {
-            detail: notification
+            detail: notification as unknown as Record<string, unknown>
           })
         );
-      });
+      }
     }
     return response.data;
   }
 
-  // Get token from HTTP-only cookies (if accessible)
-  private getTokenFromCookies(): string | null {
-    const cookies = document.cookie;
-
-    if (cookies) {
-      const patterns = [/accessToken=([^;]+)/, /token=([^;]+)/, /authToken=([^;]+)/, /jwt=([^;]+)/];
-
-      for (const pattern of patterns) {
-        const match = pattern.exec(cookies);
-        if (match) {
-          return match[1];
-        }
-      }
-
-      // Method 2: Parse cookies manually
-      const cookiePairs = cookies.split(';');
-      for (const pair of cookiePairs) {
-        const [key, value] = pair.trim().split('=');
-        if (key === 'accessToken' && value) {
-          return value;
-        }
-      }
-
-      // Method 3: Look for JWT pattern
-      const jwtMatch = cookies.match(/accessToken=([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)/);
-      if (jwtMatch) {
-        return jwtMatch[1];
-      }
-    }
-
-    return null;
-  }
-
-  // Get token from storage (localStorage/sessionStorage)
-  private getTokenFromStorage(): string | null {
-    // Try localStorage first with multiple keys
-    const localStorageKeys = ['token', 'accessToken', 'authToken', 'jwt'];
-    for (const key of localStorageKeys) {
-      const token = localStorage.getItem(key);
-      if (token) {
-        return token;
-      }
-    }
-
-    // Try sessionStorage as fallback
-    const sessionStorageKeys = ['token', 'accessToken', 'authToken', 'jwt'];
-    for (const key of sessionStorageKeys) {
-      const sessionToken = sessionStorage.getItem(key);
-      if (sessionToken) {
-        return sessionToken;
-      }
-    }
-
-    return null;
-  }
+  // Note: Socket authentication is now handled automatically via cookies
+  // No need for separate authentication check
 
   // Get current user ID from token
   private getCurrentUserId(): string {

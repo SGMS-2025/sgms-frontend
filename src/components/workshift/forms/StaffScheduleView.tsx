@@ -83,7 +83,7 @@ const StaffScheduleView: React.FC<StaffScheduleViewProps> = ({
                     {shift.startTime} - {shift.endTime}
                   </span>
                 </div>
-                <div className="text-gray-500 mt-1">{shift.branchId.name}</div>
+                <div className="text-gray-500 mt-1">{shift.branchId?.branchName || t('common.unknown')}</div>
               </div>
               <div className="flex items-center gap-1">
                 <div

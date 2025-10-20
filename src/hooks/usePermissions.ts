@@ -318,9 +318,7 @@ export const useEffectivePermissions = (userId?: string, query?: GetEffectivePer
       queryWithResource.resourceType = query?.resourceType || 'branch';
     }
 
-    console.log('🔍 Frontend: Fetching effective permissions for userId:', userId, 'query:', queryWithResource);
     const response = await permissionApi.getEffectivePermissions(userId, queryWithResource);
-    console.log('🔍 Frontend: API response:', response);
 
     if (response.success) {
       setPermissions(response.data.permissions);

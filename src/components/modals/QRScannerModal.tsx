@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import type { Equipment } from '@/types/api/Equipment';
 import jsQR from 'jsqr';
 import { useTranslation } from 'react-i18next';
+import { useBranch } from '@/contexts/BranchContext';
 
 interface QRScannerModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface QRScannerModalProps {
 
 export const QRScannerModal: React.FC<QRScannerModalProps> = ({ isOpen, onClose, onEquipmentScanned }) => {
   const { t } = useTranslation();
+  const { currentBranch } = useBranch();
   const [isScanning, setIsScanning] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [error, setError] = useState<string>('');
@@ -38,6 +40,21 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ isOpen, onClose,
       if (response.success && response.data) {
         const equipment = response.data;
 
+        // Check if equipment belongs to current branch
+        // Handle both cases: branchId as string or as populated object
+        const equipmentBranchId =
+          typeof equipment.branchId === 'object' && equipment.branchId && '_id' in equipment.branchId
+            ? (equipment.branchId as { _id: string })._id
+            : equipment.branchId;
+
+        if (currentBranch && equipmentBranchId && equipmentBranchId.toString() !== currentBranch._id.toString()) {
+          toast.error(t('qrScanner.equipmentNotInBranch', 'Thiết bị này không thuộc chi nhánh hiện tại của bạn'));
+          // Clear any scanned data and close modal to stop camera
+          setScannedData('');
+          onClose();
+          return;
+        }
+
         // Add QR code data to equipment
         const equipmentWithQR: Equipment = {
           ...equipment,
@@ -49,15 +66,18 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ isOpen, onClose,
           }
         };
 
+        // Mark as successfully scanned only after passing branch check
+        setScannedData(qrData);
         onEquipmentScanned(equipmentWithQR);
         toast.success(t('qrScanner.scanSuccess', 'Đã quét thành công QR code thiết bị!'));
         onClose();
       } else {
         toast.error(t('qrScanner.equipmentNotFound', 'Không tìm thấy thông tin thiết bị'));
         setIsScanning(false);
+        onClose();
       }
     },
-    [onEquipmentScanned, onClose]
+    [onEquipmentScanned, onClose, currentBranch, t]
   );
 
   const scanQRCode = useCallback(() => {
@@ -113,25 +133,35 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ isOpen, onClose,
     }
 
     if (code) {
-      setScannedData(code.data);
       setIsScanning(false);
 
-      // Parse QR data
-      const qrData = JSON.parse(code.data);
+      // Parse QR data safely without try-catch
+      let qrData: { equipmentId?: string; type?: string } | null = null;
+
+      // Check if the data looks like valid JSON
+      const trimmedData = code.data.trim();
+      if (trimmedData.startsWith('{') && trimmedData.endsWith('}')) {
+        // Attempt to parse JSON
+        const parsed = JSON.parse(trimmedData);
+        if (parsed && typeof parsed === 'object') {
+          qrData = parsed;
+        }
+      }
 
       // Check if QR code has equipmentId
-      if (qrData.equipmentId && qrData.type === 'equipment') {
+      if (qrData && qrData.equipmentId && qrData.type === 'equipment') {
         // Fetch equipment details from API
         fetchEquipmentDetails(qrData.equipmentId, code.data);
       } else {
         toast.error(t('qrScanner.invalidQR', 'QR code không hợp lệ hoặc không phải thiết bị'));
         setIsScanning(false);
+        onClose();
       }
     } else {
       // Continue scanning
       animationFrameRef.current = requestAnimationFrame(scanQRCode);
     }
-  }, [isScanning, fetchEquipmentDetails]);
+  }, [isScanning, fetchEquipmentDetails, onClose, t]);
 
   const startQRScanning = () => {
     if (isScanning) {

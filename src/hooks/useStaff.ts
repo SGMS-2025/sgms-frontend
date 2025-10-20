@@ -12,13 +12,13 @@ import type {
 
 const transformStaffToDisplay = (staff: Staff): StaffDisplay => ({
   id: staff._id,
-  userId: staff.userId._id, // Add userId field
-  name: staff.userId.fullName || staff.userId.username,
+  userId: staff.userId?._id, // Add userId field
+  name: staff.userId?.fullName || staff.userId?.username,
   jobTitle: staff.jobTitle,
-  email: staff.userId.email,
-  phone: staff.userId.phoneNumber || '',
+  email: staff.userId?.email,
+  phone: staff.userId?.phoneNumber || '',
   salary: staff.salary.toLocaleString('vi-VN'),
-  branch: staff.branchId.length > 0 ? staff.branchId[0].branchName : '', // Primary branch for display
+  branch: staff.branchId.length > 0 ? staff.branchId[0]?.branchName : '', // Primary branch for display
   branches: staff.branchId, // All branches
   status: staff.status,
   selected: staff.selected || false
@@ -163,6 +163,44 @@ export const useStaffDetails = (staffId: string | null) => {
 
   const refetch = useCallback(async () => {
     await fetchStaffDetails();
+  }, [fetchStaffDetails]);
+
+  return {
+    staffDetails,
+    loading,
+    error,
+    refetch
+  };
+};
+
+// Hook for getting staff details by userId
+export const useStaffDetailsByUserId = (userId: string | null) => {
+  const [staffDetails, setStaffDetails] = useState<Staff | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchStaffDetails = useCallback(async () => {
+    if (!userId) return;
+
+    setLoading(true);
+    setError(null);
+    const response = await staffApi.getStaffByUserId(userId);
+
+    if (response.success) {
+      setStaffDetails(response.data);
+    } else {
+      setError(response.message || 'Failed to fetch staff details');
+    }
+
+    setLoading(false);
+  }, [userId]);
+
+  const refetch = useCallback(async () => {
+    await fetchStaffDetails();
+  }, [fetchStaffDetails]);
+
+  useEffect(() => {
+    fetchStaffDetails();
   }, [fetchStaffDetails]);
 
   return {

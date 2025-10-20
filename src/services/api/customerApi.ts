@@ -1,6 +1,12 @@
 import type { ApiResponse } from '@/types/api/Api';
 import { api } from './api';
-import type { CustomerDisplay, CustomerListParams, CustomerListResponse } from '@/types/api/Customer';
+import type {
+  CustomerDisplay,
+  CustomerListParams,
+  CustomerListResponse,
+  PTCustomerListParams,
+  PTCustomerListResponse
+} from '@/types/api/Customer';
 
 export const customerApi = {
   getCustomerList: async (params: CustomerListParams = {}): Promise<ApiResponse<CustomerListResponse>> => {
@@ -99,6 +105,15 @@ export const customerApi = {
     const response = await api.get('/customers/template/download', {
       responseType: 'blob'
     });
+    return response.data;
+  },
+
+  // PT Customer specific methods
+  getCustomersByTrainer: async (
+    trainerId: string,
+    params: PTCustomerListParams = {}
+  ): Promise<ApiResponse<PTCustomerListResponse>> => {
+    const response = await api.get(`/customers/trainer/${trainerId}`, { params });
     return response.data;
   }
 };

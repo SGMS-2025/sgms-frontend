@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Restore user from localStorage when the app starts
   useEffect(() => {
-    const restoreAuth = () => {
+    const restoreAuth = async () => {
       try {
         const userStr = localStorage.getItem('user');
         let user = null;
@@ -81,6 +81,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.error('Error parsing user from localStorage:', error);
           }
         }
+
+        if (user) {
+          const response = await authApi.getSocketAuth();
+          if (!response.success) {
+            localStorage.removeItem('user');
+            user = null;
+          }
+        }
+
         dispatch({ type: 'RESTORE', payload: { user } });
       } catch (error) {
         console.error('Error restoring auth:', error);

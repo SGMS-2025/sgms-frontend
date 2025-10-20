@@ -34,8 +34,7 @@ export const useSocketActions = () => {
     checkPendingNotifications,
     forceDeliverNotifications,
     testNotificationSystem,
-    setToken,
-    checkTokenFromHeaders
+    setToken
   } = useSocket();
   return {
     connect,
@@ -45,7 +44,6 @@ export const useSocketActions = () => {
     checkPendingNotifications,
     forceDeliverNotifications,
     testNotificationSystem,
-    setToken,
-    checkTokenFromHeaders
+    setToken
   };
 };

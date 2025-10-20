@@ -17,7 +17,11 @@ import {
   ShieldCheck as Shield,
   PanelLeft,
   X,
-  FileText
+  FileText,
+  ClipboardList,
+  CalendarDays,
+  ChevronDown,
+  ArrowRightLeft
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -43,6 +47,20 @@ interface SidebarItemProps {
   badge?: number;
 }
 
+interface DropdownSidebarItemProps {
+  icon: React.ReactNode;
+  label: string;
+  isCollapsed?: boolean;
+  children: React.ReactNode;
+}
+
+interface SubMenuItemProps {
+  icon: React.ReactNode;
+  label: string;
+  isActive?: boolean;
+  onClick: () => void;
+}
+
 const SidebarItem: React.FC<SidebarItemProps> = ({
   icon,
   label,
@@ -54,9 +72,9 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   return (
     <button
       type="button"
-      className={`group relative flex w-full items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 ${
+      className={`group relative flex items-center py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 ${
         isActive ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-700 hover:bg-orange-50 hover:text-orange-500'
-      } ${isCollapsed ? 'justify-center px-2' : ''}`}
+      } ${isCollapsed ? 'justify-center items-center w-12' : 'w-full gap-3 px-3'}`}
       onClick={onClick}
       aria-current={isActive ? 'page' : undefined}
       title={isCollapsed ? label : undefined}
@@ -78,6 +96,77 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
         </span>
       )}
     </button>
+  );
+};
+
+const SubMenuItem: React.FC<SubMenuItemProps> = ({ icon, label, isActive = false, onClick }) => {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group relative flex items-center py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 w-full gap-3 px-3 ${
+        isActive ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-700 hover:bg-orange-50 hover:text-orange-500'
+      }`}
+      aria-current={isActive ? 'page' : undefined}
+    >
+      <span className="flex-shrink-0 w-5 h-5 relative">{icon}</span>
+      <span className="text-sm font-medium truncate">{label}</span>
+    </button>
+  );
+};
+
+const DropdownSidebarItem: React.FC<DropdownSidebarItemProps> = ({ icon, label, isCollapsed = false, children }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  if (isCollapsed) {
+    return (
+      <div className="w-12 flex justify-center items-center">
+        <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="group relative flex items-center justify-center py-2.5 rounded-lg hover:bg-gray-100 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 w-full"
+              aria-label={label}
+              title={label}
+            >
+              <span className="flex-shrink-0 w-5 h-5 relative">{icon}</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="start" sideOffset={8} className="w-48">
+            {children}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`group relative flex items-center py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 text-gray-700 hover:bg-orange-50 hover:text-orange-500 ${
+          isCollapsed ? 'justify-center items-center w-12' : 'w-full gap-3 px-3'
+        }`}
+        aria-label={label}
+        title={isCollapsed ? label : undefined}
+      >
+        <span className="flex-shrink-0 w-5 h-5 relative">{icon}</span>
+        {!isCollapsed && (
+          <>
+            <span className="text-sm font-medium truncate flex-1 text-left">{label}</span>
+            <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
+              <ChevronDown
+                className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+              />
+            </span>
+          </>
+        )}
+      </button>
+
+      {/* Inline submenu - only show when not collapsed */}
+      {!isCollapsed && isOpen && <div className="ml-4 mt-1 space-y-1">{children}</div>}
+    </div>
   );
 };
 
@@ -240,7 +329,7 @@ const UserProfile: React.FC<{
 
   if (isCollapsed) {
     return (
-      <div className="px-3 py-2 border-t border-gray-200 flex justify-center">
+      <div className={`py-2 border-t border-gray-200 ${isCollapsed ? 'flex justify-center' : 'px-3'}`}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -368,14 +457,30 @@ export const TechnicianSidebar: React.FC = () => {
     {
       icon: <Dumbbell className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.equipment'),
-      isActive: location.pathname.startsWith('/manage/technician/equipment'),
+      isActive:
+        location.pathname === '/manage/technician/equipment' ||
+        (location.pathname.startsWith('/manage/technician/equipment/') &&
+          !location.pathname.startsWith('/manage/technician/equipment-inventory') &&
+          !location.pathname.startsWith('/manage/technician/equipment-issues')),
       onClick: () => handleNavigation('/manage/technician/equipment')
+    },
+    {
+      icon: <ClipboardList className="w-5 h-5 stroke-[1.75]" />,
+      label: t('sidebar.equipmentInventory'),
+      isActive: location.pathname.startsWith('/manage/technician/equipment-inventory'),
+      onClick: () => handleNavigation('/manage/technician/equipment-inventory')
     }
   ];
 
+  // Build additional navigation items
+  const roleSpecificItems = [];
+  const personalTrainerItems = [];
+  const equipmentItems = [];
+  const managementItems = [];
+
   // Add role-specific items
   if (currentStaff?.jobTitle === 'Technician' || currentStaff?.jobTitle === 'Personal Trainer') {
-    mainNavItems.push(
+    roleSpecificItems.push(
       {
         icon: <Wrench className="w-5 h-5 stroke-[1.75]" />,
         label: t('sidebar.maintenance'),
@@ -393,7 +498,7 @@ export const TechnicianSidebar: React.FC = () => {
 
   // For Personal Trainer - show schedule
   if (currentStaff?.jobTitle === 'Personal Trainer') {
-    mainNavItems.push({
+    personalTrainerItems.push({
       icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.schedule'),
       isActive: location.pathname.startsWith('/manage/technician/schedule'),
@@ -409,8 +514,14 @@ export const TechnicianSidebar: React.FC = () => {
     onClick: () => handleNavigation('/manage/technician/calendar')
   });
 
-  // Add equipment issue history for technician
   mainNavItems.push({
+    icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
+    label: t('technician.sidebar.attendanceHistory', 'Attendance History'),
+    isActive: location.pathname.startsWith('/manage/technician/attendance'),
+    onClick: () => handleNavigation('/manage/technician/attendance')
+  });
+  // Add equipment issue history for technician
+  equipmentItems.push({
     icon: <FileText className="w-5 h-5 stroke-[1.75]" />,
     label: t('technician.sidebar.equipmentIssueHistory', 'Lịch sử báo cáo thiết bị'),
     isActive: location.pathname.startsWith('/manage/technician/equipment-issues'),
@@ -419,21 +530,24 @@ export const TechnicianSidebar: React.FC = () => {
 
   // For OWNER, Manager - show management links
   if (authUser?.role === 'OWNER' || currentStaff?.jobTitle === 'Manager') {
-    mainNavItems.push(
+    managementItems.push(
       {
         icon: <Building className="w-5 h-5 stroke-[1.75]" />,
-        label: 'Chi nhánh',
+        label: t('sidebar.branch'),
         isActive: false,
         onClick: () => handleNavigation('/manage/owner')
       },
       {
         icon: <Users className="w-5 h-5 stroke-[1.75]" />,
-        label: 'Nhân viên',
+        label: t('sidebar.staff'),
         isActive: false,
         onClick: () => handleNavigation('/manage/staff')
       }
     );
   }
+
+  // Add all additional items to main navigation
+  mainNavItems.push(...roleSpecificItems, ...personalTrainerItems, ...equipmentItems, ...managementItems);
 
   const secondaryNavItems = [
     {
@@ -451,20 +565,24 @@ export const TechnicianSidebar: React.FC = () => {
   return (
     <div
       className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out h-full ${
-        isCollapsed ? 'w-16' : 'w-64'
+        isCollapsed ? 'w-16 items-center' : 'w-64'
       }`}
     >
       {/* Header */}
       <SidebarHeader isCollapsed={isCollapsed} currentStaff={currentStaff} />
 
       {/* Main Navigation */}
-      <div className="flex-1 px-3 py-2 overflow-y-auto">
+      <div className={`flex-1 py-2 ${isCollapsed ? 'px-1' : 'px-3'}`}>
         {!isCollapsed && (
           <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-3">
             {t('sidebar.main_menu')}
           </div>
         )}
-        <nav className="space-y-1" role="navigation" aria-label="Main">
+        <nav
+          className={`space-y-1 ${isCollapsed ? 'flex flex-col items-center' : ''}`}
+          role="navigation"
+          aria-label="Main"
+        >
           {mainNavItems.map((item) => (
             <SidebarItem
               key={item.label}
@@ -476,6 +594,32 @@ export const TechnicianSidebar: React.FC = () => {
               badge={item.badge}
             />
           ))}
+
+          {/* Schedule Dropdown */}
+          <DropdownSidebarItem
+            icon={<Calendar className="w-5 h-5 stroke-[1.75]" />}
+            label={t('sidebar.schedule', 'Schedule')}
+            isCollapsed={isCollapsed}
+          >
+            <SubMenuItem
+              icon={<Calendar className="w-5 h-5 stroke-[1.75]" />}
+              label={t('technician.sidebar.schedule', 'My Schedule')}
+              isActive={location.pathname.startsWith('/manage/technician/calendar')}
+              onClick={() => handleNavigation('/manage/technician/calendar')}
+            />
+            <SubMenuItem
+              icon={<CalendarDays className="w-5 h-5 stroke-[1.75]" />}
+              label={t('sidebar.time_off', 'Time Off')}
+              isActive={location.pathname.startsWith('/manage/technician/timeoff')}
+              onClick={() => handleNavigation('/manage/technician/timeoff')}
+            />
+            <SubMenuItem
+              icon={<ArrowRightLeft className="w-5 h-5 stroke-[1.75]" />}
+              label={t('sidebar.reschedule') || 'Reschedule'}
+              isActive={location.pathname.startsWith('/reschedule')}
+              onClick={() => handleNavigation('/reschedule')}
+            />
+          </DropdownSidebarItem>
         </nav>
 
         {/* Secondary Navigation */}
@@ -485,7 +629,11 @@ export const TechnicianSidebar: React.FC = () => {
               {t('sidebar.support')}
             </div>
           )}
-          <nav className="space-y-1" role="navigation" aria-label="Support">
+          <nav
+            className={`space-y-1 ${isCollapsed ? 'flex flex-col items-center' : ''}`}
+            role="navigation"
+            aria-label="Support"
+          >
             {secondaryNavItems.map((item) => (
               <SidebarItem
                 key={item.label}

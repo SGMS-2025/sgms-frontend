@@ -20,7 +20,10 @@ import {
   UserCheck,
   UsersRound,
   Briefcase,
-  Sparkles
+  Sparkles,
+  DollarSign,
+  CalendarDays,
+  ArrowRightLeft
 } from 'lucide-react';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -510,11 +513,6 @@ export const OwnerSidebar: React.FC = () => {
       }
     },
     {
-      icon: <BarChart3 className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.finance'),
-      onClick: () => {}
-    },
-    {
       icon: <MessageSquare className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.testimonials'),
       isActive: location.pathname === '/manage/testimonials',
@@ -607,6 +605,32 @@ export const OwnerSidebar: React.FC = () => {
               label="Schedule Templates"
               isActive={location.pathname === '/manage/schedule-templates'}
               onClick={() => navigate('/manage/schedule-templates')}
+            />
+            <SubMenuItem
+              icon={<CalendarDays className="w-5 h-5 stroke-[1.75]" />}
+              label={t('sidebar.time_off') || 'Time Off'}
+              isActive={location.pathname.startsWith('/manage/timeoff')}
+              onClick={() => navigate('/manage/timeoff')}
+            />
+            <SubMenuItem
+              icon={<ArrowRightLeft className="w-5 h-5 stroke-[1.75]" />}
+              label={t('sidebar.reschedule') || 'Reschedule'}
+              isActive={location.pathname.startsWith('/reschedule')}
+              onClick={() => navigate('/reschedule')}
+            />
+          </DropdownSidebarItem>
+
+          {/* Finance Dropdown */}
+          <DropdownSidebarItem
+            icon={<BarChart3 className="w-5 h-5 stroke-[1.75]" />}
+            label={t('sidebar.finance') || 'Finance'}
+            isCollapsed={isCollapsed}
+          >
+            <SubMenuItem
+              icon={<DollarSign className="w-5 h-5 stroke-[1.75]" />}
+              label={t('sidebar.expenses') || 'Chi phí / Expenses'}
+              isActive={location.pathname === '/manage/expenses'}
+              onClick={() => navigate('/manage/expenses')}
             />
           </DropdownSidebarItem>
         </nav>

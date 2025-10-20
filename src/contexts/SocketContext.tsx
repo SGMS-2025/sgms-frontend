@@ -4,7 +4,12 @@ import { socketService } from '@/services/socket/socketService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import type { WorkShiftNotificationData } from '@/types/api/Socket';
+import { notificationApi } from '@/services/api/notificationApi';
+import type {
+  WorkShiftNotificationData,
+  TimeOffNotificationData,
+  RescheduleNotificationData
+} from '@/types/api/Socket';
 
 export interface Notification {
   id: string;
@@ -63,12 +68,20 @@ function socketReducer(state: SocketState, action: SocketAction): SocketState {
         ...state,
         isConnected: action.payload
       };
-    case 'ADD_NOTIFICATION':
+    case 'ADD_NOTIFICATION': {
+      // Check if notification already exists to prevent duplicates
+      const existingNotification = state.notifications.find((notification) => notification.id === action.payload.id);
+
+      if (existingNotification) {
+        return state;
+      }
+
       return {
         ...state,
         notifications: [action.payload, ...state.notifications],
         unreadCount: state.unreadCount + 1
       };
+    }
     case 'MARK_NOTIFICATION_READ':
       return {
         ...state,
@@ -116,7 +129,6 @@ interface SocketContextType {
   forceDeliverNotifications: () => Promise<void>;
   testNotificationSystem: () => Promise<void>;
   setToken: (token: string) => void;
-  checkTokenFromHeaders: () => Promise<void>;
   fetchExistingNotifications: () => Promise<void>;
 }
 
@@ -132,24 +144,17 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connecting' });
 
-    try {
-      const success = await socketService.connect();
+    const success = await socketService.connect();
 
-      if (success) {
-        dispatch({ type: 'SET_CONNECTED', payload: true });
-        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' });
-        return true;
-      } else {
-        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' });
-        return false;
-      }
-    } catch (error) {
-      console.error('Socket connection failed:', error);
-      dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' });
-      toast.error(t('socket.connection_failed'));
-      return false;
-    } finally {
+    if (success) {
+      dispatch({ type: 'SET_CONNECTED', payload: true });
+      dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' });
       dispatch({ type: 'SET_LOADING', payload: false });
+      return true;
+    } else {
+      dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' });
+      dispatch({ type: 'SET_LOADING', payload: false });
+      return false;
     }
   }, [t]);
 
@@ -166,25 +171,18 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connecting' });
 
-    try {
-      const success = await socketService.reconnect();
-      if (success) {
-        dispatch({ type: 'SET_CONNECTED', payload: true });
-        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' });
-        toast.success(t('socket.reconnected'));
-        return true;
-      } else {
-        dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' });
-        toast.error(t('socket.reconnect_failed'));
-        return false;
-      }
-    } catch (error) {
-      console.error('❌ Socket reconnection failed:', error);
+    const success = await socketService.reconnect();
+    if (success) {
+      dispatch({ type: 'SET_CONNECTED', payload: true });
+      dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' });
+      toast.success(t('socket.reconnected'));
+      dispatch({ type: 'SET_LOADING', payload: false });
+      return true;
+    } else {
       dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'error' });
       toast.error(t('socket.reconnect_failed'));
-      return false;
-    } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
+      return false;
     }
   }, [t]);
 
@@ -196,20 +194,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
       // Also update in database if user is authenticated
       if (authState.user?._id) {
-        try {
-          const response = await fetch(`${import.meta.env.VITE_API_URL}/notifications/${notificationId}/read`, {
-            method: 'PATCH',
-            credentials: 'include'
-          });
-
-          if (response.ok) {
-            console.log('✅ Marked notification as read in database');
-          } else {
-            console.error('❌ Failed to mark notification as read in database:', response.status);
-          }
-        } catch (error) {
-          console.error('❌ Error marking notification as read in database:', error);
-        }
+        await notificationApi.markNotificationAsRead(notificationId);
       }
     },
     [authState.user?._id]
@@ -222,23 +207,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
     // Also update in database if user is authenticated
     if (authState.user?._id) {
-      try {
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/notifications/user/${authState.user._id}/mark-all-read`,
-          {
-            method: 'PATCH',
-            credentials: 'include'
-          }
-        );
-
-        if (response.ok) {
-          console.log('✅ Marked all notifications as read in database');
-        } else {
-          console.error('❌ Failed to mark all notifications as read in database:', response.status);
-        }
-      } catch (error) {
-        console.error('❌ Error marking all notifications as read in database:', error);
-      }
+      await notificationApi.markAllNotificationsAsRead();
     }
   }, [authState.user?._id]);
 
@@ -254,20 +223,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
     // Also clear from database if user is authenticated
     if (authState.user?._id) {
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/notifications/user/${authState.user._id}`, {
-          method: 'DELETE',
-          credentials: 'include'
-        });
-
-        if (response.ok) {
-          console.log('🗑️ Cleared all notifications from database');
-        } else {
-          console.error('❌ Failed to clear notifications from database:', response.status);
-        }
-      } catch (error) {
-        console.error('❌ Error clearing notifications from database:', error);
-      }
+      await notificationApi.clearAllNotifications(authState.user._id);
     }
   }, [authState.user?._id]);
 
@@ -288,14 +244,12 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
   // Test notification system
   const testNotificationSystem = useCallback(async () => {
-    console.log('🧪 Testing notification system...');
     await socketService.testNotificationSystem();
   }, []);
 
   // Manually set token (for debugging)
   const setToken = useCallback(
     (token: string) => {
-      console.log('🔑 Manually setting token:', token.substring(0, 20) + '...');
       localStorage.setItem('token', token);
       // Try to reconnect with new token
       void connect();
@@ -303,77 +257,33 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     [connect]
   );
 
-  // Check for token in API response headers
-  const checkTokenFromHeaders = useCallback(async () => {
-    try {
-      console.log('🔍 Checking for token in API response headers...');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/users/profile`, {
-        method: 'GET',
-        credentials: 'include' // Include cookies
-      });
-
-      console.log('🔍 Profile response headers:', response.headers);
-
-      // Check for token in response headers
-      const authHeader = response.headers.get('authorization');
-      const setCookieHeader = response.headers.get('set-cookie');
-
-      if (authHeader) {
-        console.log('🔑 Found token in Authorization header:', authHeader.substring(0, 20) + '...');
-        const token = authHeader.replace('Bearer ', '');
-        localStorage.setItem('token', token);
-      } else if (setCookieHeader) {
-        console.log('🔑 Found token in Set-Cookie header:', setCookieHeader);
-      } else {
-        console.warn('⚠️ No token found in response headers');
-      }
-    } catch (error) {
-      console.error('❌ Error checking token from headers:', error);
-    }
-  }, []);
-
   // Fetch existing notifications from database
   const fetchExistingNotifications = useCallback(async () => {
     if (!authState.user?._id) {
-      console.log('🔍 No user ID available for fetching notifications');
       return;
     }
 
-    try {
-      console.log('🔍 Fetching existing notifications for user:', authState.user._id);
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/notifications/user/${authState.user._id}`, {
-        method: 'GET',
-        credentials: 'include'
-      });
+    const response = await notificationApi.getNotificationsByUserId(authState.user._id);
 
-      if (response.ok) {
-        const data = await response.json();
+    if (response.success && response.data?.notifications) {
+      // Convert database notifications to frontend format
+      const notifications = response.data.notifications.map((dbNotification) => ({
+        id: dbNotification._id,
+        type: dbNotification.type || 'general',
+        title: dbNotification.title,
+        message: dbNotification.content, // Database uses 'content', frontend uses 'message'
+        data: dbNotification.data || {},
+        priority: dbNotification.priority || 'medium',
+        category: dbNotification.category || 'general',
+        actions: dbNotification.actions || [],
+        timestamp: new Date(dbNotification.createdAt),
+        read: dbNotification.read || false
+      }));
 
-        if (data.success && data.data?.notifications) {
-          // Convert database notifications to frontend format
-          const notifications = data.data.notifications.map((dbNotification: Record<string, unknown>) => ({
-            id: dbNotification._id as string,
-            type: (dbNotification.type as string) || 'general',
-            title: dbNotification.title as string,
-            message: dbNotification.content as string, // Database uses 'content', frontend uses 'message'
-            data: (dbNotification.data as Record<string, unknown>) || {},
-            priority: (dbNotification.priority as 'low' | 'medium' | 'high') || 'medium',
-            category: (dbNotification.category as string) || 'general',
-            actions: (dbNotification.actions as string[]) || [],
-            timestamp: new Date(dbNotification.createdAt as string),
-            read: (dbNotification.read as boolean) || false
-          }));
-
-          // Add notifications to state
-          notifications.forEach((notification: Notification) => {
-            dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
-          });
-        }
-      } else {
-        console.error('Failed to fetch notifications:', response.status);
+      // Add notifications to state
+      for (const notification of notifications) {
+        dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
       }
-    } catch (error) {
-      console.error('Error fetching existing notifications:', error);
     }
   }, [authState.user?._id]);
 
@@ -394,14 +304,13 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       disconnect();
     };
-  }, [authState.isAuthenticated, authState.user, connect, disconnect, fetchExistingNotifications]);
+  }, [authState.isAuthenticated, authState.user]);
 
   // Listen for work shift notifications
   useEffect(() => {
     const handleWorkShiftNotification = (data: Record<string, unknown>) => {
-      console.log('🔔 Received notification in context:', data);
       const notification: Notification = {
-        id: `notification-${Date.now()}-${Math.random()}`,
+        id: (data.id as string) || `notification-${Date.now()}-${Math.random()}`, // Use backend ID if available
         type: data.type as string,
         title: data.title as string,
         message: data.message as string,
@@ -418,14 +327,10 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       // Toast notification is handled in socketService to avoid duplicates
     };
 
-    // Listen for custom events from socket service
-    const handleCustomEvent = (event: CustomEvent) => {
-      handleWorkShiftNotification(event.detail);
-    };
+    // Removed handleCustomEvent to avoid duplicate notifications
 
     // Listen for fetched notifications from socketService
     const handleFetchedNotification = (event: CustomEvent) => {
-      console.log('🔔 Received fetched notification:', event.detail);
       const data = event.detail as Record<string, unknown>;
       const notification: Notification = {
         id: (data._id as string) || `notification-${Date.now()}-${Math.random()}`,
@@ -451,24 +356,47 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       handleWorkShiftNotification(data as unknown as Record<string, unknown>);
     };
 
-    // Register socket event listeners
+    const handleTimeOffSocketNotification = (data: TimeOffNotificationData) => {
+      handleWorkShiftNotification(data as unknown as Record<string, unknown>);
+    };
+
+    const handleRescheduleSocketNotification = (data: RescheduleNotificationData) => {
+      handleWorkShiftNotification(data as unknown as Record<string, unknown>);
+    };
+
+    // Register socket event listeners (only socket events, no custom events to avoid duplicates)
     if (socketService.getSocket()) {
       socketService.on('notification:workshift:created', handleSocketNotification);
       socketService.on('notification:workshift:updated', handleSocketNotification);
       socketService.on('notification:workshift:branch_update', handleSocketNotification);
+      socketService.on('notification:timeoff:created', handleTimeOffSocketNotification);
+      socketService.on('notification:timeoff:approved', handleTimeOffSocketNotification);
+      socketService.on('notification:timeoff:rejected', handleTimeOffSocketNotification);
+      socketService.on('notification:timeoff:cancelled', handleTimeOffSocketNotification);
+      socketService.on('notification:timeoff:branch_update', handleTimeOffSocketNotification);
+
+      // Reschedule notifications
+      socketService.on('notification:reschedule:created', handleRescheduleSocketNotification);
+      socketService.on('notification:reschedule:accepted', handleRescheduleSocketNotification);
+      socketService.on('notification:reschedule:approved', handleRescheduleSocketNotification);
+      socketService.on('notification:reschedule:rejected', handleRescheduleSocketNotification);
+      socketService.on('notification:reschedule:cancelled', handleRescheduleSocketNotification);
+      socketService.on('notification:reschedule:expired', handleRescheduleSocketNotification);
+      socketService.on('notification:reschedule:completed', handleRescheduleSocketNotification);
+      socketService.on('notification:reschedule:branch_update', handleRescheduleSocketNotification);
+      socketService.on('notification:reschedule:owner_update', handleRescheduleSocketNotification);
+      socketService.on('notification:reschedule:manager_update', handleRescheduleSocketNotification);
     }
 
-    // Also listen for custom events
-    window.addEventListener('workshift-notification', handleCustomEvent as EventListener);
-    window.addEventListener('notification-received', handleFetchedNotification as EventListener);
+    // Only listen for fetched notifications (not real-time socket events to avoid duplicates)
+    globalThis.addEventListener('notification-received', handleFetchedNotification as EventListener);
 
     // Listen for test notifications
     const handleTestNotification = (event: CustomEvent) => {
-      console.log('🧪 Test notification received:', event.detail);
       const notification: Notification = event.detail;
       dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
     };
-    window.addEventListener('test-notification', handleTestNotification as EventListener);
+    globalThis.addEventListener('test-notification', handleTestNotification as EventListener);
 
     return () => {
       // Clean up socket listeners
@@ -476,11 +404,28 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
         socketService.off('notification:workshift:created', handleSocketNotification);
         socketService.off('notification:workshift:updated', handleSocketNotification);
         socketService.off('notification:workshift:branch_update', handleSocketNotification);
+        socketService.off('notification:timeoff:created', handleTimeOffSocketNotification);
+        socketService.off('notification:timeoff:approved', handleTimeOffSocketNotification);
+        socketService.off('notification:timeoff:rejected', handleTimeOffSocketNotification);
+        socketService.off('notification:timeoff:cancelled', handleTimeOffSocketNotification);
+        socketService.off('notification:timeoff:branch_update', handleTimeOffSocketNotification);
+
+        // Reschedule notifications
+        socketService.off('notification:reschedule:created', handleRescheduleSocketNotification);
+        socketService.off('notification:reschedule:accepted', handleRescheduleSocketNotification);
+        socketService.off('notification:reschedule:approved', handleRescheduleSocketNotification);
+        socketService.off('notification:reschedule:rejected', handleRescheduleSocketNotification);
+        socketService.off('notification:reschedule:cancelled', handleRescheduleSocketNotification);
+        socketService.off('notification:reschedule:expired', handleRescheduleSocketNotification);
+        socketService.off('notification:reschedule:completed', handleRescheduleSocketNotification);
+        socketService.off('notification:reschedule:branch_update', handleRescheduleSocketNotification);
+        socketService.off('notification:reschedule:owner_update', handleRescheduleSocketNotification);
+        socketService.off('notification:reschedule:manager_update', handleRescheduleSocketNotification);
       }
 
-      window.removeEventListener('workshift-notification', handleCustomEvent as EventListener);
-      window.removeEventListener('notification-received', handleFetchedNotification as EventListener);
-      window.removeEventListener('test-notification', handleTestNotification as EventListener);
+      // Only clean up the remaining event listeners
+      globalThis.removeEventListener('notification-received', handleFetchedNotification as EventListener);
+      globalThis.removeEventListener('test-notification', handleTestNotification as EventListener);
     };
   }, []);
 
@@ -502,7 +447,6 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       forceDeliverNotifications,
       testNotificationSystem,
       setToken,
-      checkTokenFromHeaders,
       fetchExistingNotifications
     }),
     [
@@ -519,7 +463,6 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       forceDeliverNotifications,
       testNotificationSystem,
       setToken,
-      checkTokenFromHeaders,
       fetchExistingNotifications
     ]
   );

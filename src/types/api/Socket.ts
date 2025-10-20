@@ -16,7 +16,7 @@ export interface SocketConfig {
 // ===== NOTIFICATION TYPES =====
 
 export type NotificationPriority = 'low' | 'medium' | 'high';
-export type NotificationCategory = 'workshift' | 'staff' | 'branch' | 'system' | 'general';
+export type NotificationCategory = 'workshift' | 'staff' | 'branch' | 'system' | 'general' | 'timeoff' | 'reschedule';
 
 export interface NotificationData {
   type: string;
@@ -44,6 +44,25 @@ export interface WorkShiftNotificationData extends NotificationData {
   };
 }
 
+export interface TimeOffNotificationData extends NotificationData {
+  category: 'timeoff';
+  data: {
+    timeOffRequestId: string;
+    staffId: string;
+    staffName: string;
+    type: string;
+    startDate: string;
+    endDate: string;
+    reason: string;
+    status: string;
+    actor?: {
+      id: string;
+      name: string;
+      role: string;
+    };
+  };
+}
+
 export interface StaffNotificationData extends NotificationData {
   category: 'staff';
   data: {
@@ -61,6 +80,25 @@ export interface BranchNotificationData extends NotificationData {
     branchName: string;
     action: 'created' | 'updated' | 'deleted' | 'status_changed';
     managerId?: string;
+  };
+}
+
+export interface RescheduleNotificationData extends NotificationData {
+  category: 'reschedule';
+  data: {
+    requestId: string;
+    requesterName: string;
+    originalShiftTime: string;
+    swapType: string;
+    priority: string;
+    branchId: string;
+    branchName: string;
+    status: string;
+    actor?: {
+      id: string;
+      name: string;
+      role: string;
+    };
   };
 }
 
@@ -83,6 +121,21 @@ export interface SocketEvents {
   'notification:workshift:created': (data: WorkShiftNotificationData) => void;
   'notification:workshift:updated': (data: WorkShiftNotificationData) => void;
   'notification:workshift:branch_update': (data: WorkShiftNotificationData) => void;
+  'notification:timeoff:created': (data: TimeOffNotificationData) => void;
+  'notification:timeoff:approved': (data: TimeOffNotificationData) => void;
+  'notification:timeoff:rejected': (data: TimeOffNotificationData) => void;
+  'notification:timeoff:cancelled': (data: TimeOffNotificationData) => void;
+  'notification:timeoff:branch_update': (data: TimeOffNotificationData) => void;
+  'notification:reschedule:created': (data: RescheduleNotificationData) => void;
+  'notification:reschedule:accepted': (data: RescheduleNotificationData) => void;
+  'notification:reschedule:approved': (data: RescheduleNotificationData) => void;
+  'notification:reschedule:rejected': (data: RescheduleNotificationData) => void;
+  'notification:reschedule:cancelled': (data: RescheduleNotificationData) => void;
+  'notification:reschedule:expired': (data: RescheduleNotificationData) => void;
+  'notification:reschedule:completed': (data: RescheduleNotificationData) => void;
+  'notification:reschedule:branch_update': (data: RescheduleNotificationData) => void;
+  'notification:reschedule:owner_update': (data: RescheduleNotificationData) => void;
+  'notification:reschedule:manager_update': (data: RescheduleNotificationData) => void;
   'notification:staff:created': (data: StaffNotificationData) => void;
   'notification:staff:updated': (data: StaffNotificationData) => void;
   'notification:staff:deleted': (data: StaffNotificationData) => void;
@@ -92,6 +145,8 @@ export interface SocketEvents {
 
   // Custom events
   'workshift-notification': (data: WorkShiftNotificationData) => void;
+  'timeoff-notification': (data: TimeOffNotificationData) => void;
+  'reschedule-notification': (data: RescheduleNotificationData) => void;
 
   // Schedule events
   'schedule-created': (data: Record<string, unknown>) => void;
