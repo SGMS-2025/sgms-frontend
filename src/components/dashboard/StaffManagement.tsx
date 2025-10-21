@@ -49,6 +49,7 @@ import { useCanManageStaff } from '@/hooks/useCanManageStaff';
 import { sortArray, staffSortConfig } from '@/utils/sort';
 import StaffProfileModal from '@/components/modals/StaffProfileModal';
 import StaffPermissionOverlayModal from '@/components/modals/StaffPermissionOverlayModal';
+import StaffAttendanceHistoryModal from '@/components/modals/StaffAttendanceHistoryModal';
 import type {
   StaffFilters,
   StaffManagementProps,
@@ -80,6 +81,8 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
   const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
   const [permissionStaff, setPermissionStaff] = useState<StaffForPermissionModal | null>(null);
   const [permissionLoadingId, setPermissionLoadingId] = useState<string | null>(null);
+  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+  const [attendanceStaff, setAttendanceStaff] = useState<StaffDisplay | null>(null);
 
   // Use the custom sort hook
   const { sortState, handleSort, getSortIcon } = useTableSort<SortField>();
@@ -259,6 +262,16 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
     setStatusDialogOpen(true);
   };
 
+  const handleViewAttendanceHistory = (staff: StaffDisplay) => {
+    setAttendanceStaff(staff);
+    setIsAttendanceModalOpen(true);
+  };
+
+  const handleCloseAttendanceModal = () => {
+    setIsAttendanceModalOpen(false);
+    setAttendanceStaff(null);
+  };
+
   const confirmStatusUpdate = async () => {
     if (!staffToUpdate) return;
 
@@ -320,7 +333,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
   }
 
   return (
-    <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-6 lg:p-8">
+    <div className="basic-management">
       {/* Header */}
       <div className="flex flex-col gap-6 mb-8">
         <div className="flex items-center justify-between">
@@ -743,6 +756,18 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
                             ? 'border-gray-200 bg-white text-gray-500 hover:border-orange-200 hover:text-orange-500'
                             : 'border-gray-200 bg-gray-100 text-gray-300 cursor-not-allowed'
                         }`}
+                        onClick={canManageStaff(staff) ? () => handleViewAttendanceHistory(staff) : undefined}
+                        title={t('dashboard.view_attendance_history') || 'View attendance history'}
+                        disabled={!canManageStaff(staff)}
+                      >
+                        <FileText className="h-4 w-4" />
+                      </button>
+                      <button
+                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${
+                          canManageStaff(staff)
+                            ? 'border-gray-200 bg-white text-gray-500 hover:border-orange-200 hover:text-orange-500'
+                            : 'border-gray-200 bg-gray-100 text-gray-300 cursor-not-allowed'
+                        }`}
                         onClick={canManageStaff(staff) ? () => handleEditStaff(staff) : undefined}
                         disabled={!canManageStaff(staff)}
                         title={canManageStaff(staff) ? t('common.edit') : t('dashboard.no_permission')}
@@ -875,6 +900,15 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
         onClose={handlePermissionModalDismiss}
         staff={permissionStaff}
         onSuccess={handlePermissionSuccess}
+      />
+
+      {/* Staff Attendance History Modal */}
+      <StaffAttendanceHistoryModal
+        isOpen={isAttendanceModalOpen}
+        onClose={handleCloseAttendanceModal}
+        staffId={attendanceStaff?.id || null}
+        staffName={attendanceStaff?.name}
+        jobTitle={attendanceStaff?.jobTitle}
       />
 
       {/* Delete Staff Confirmation Dialog */}
