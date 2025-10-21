@@ -7,7 +7,6 @@ import {
   Users,
   LayoutDashboard,
   Settings,
-  HelpCircle,
   ChevronUp,
   LogOut,
   UserCircle,
@@ -18,8 +17,11 @@ import {
   X,
   CalendarDays,
   ChevronDown,
-  ArrowRightLeft
+  ArrowRightLeft,
+  ShieldCheck as Shield,
+  User
 } from 'lucide-react';
+import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -34,15 +36,10 @@ import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
+import { Sidebar, type SidebarItem as SidebarItemType } from '@/components/common/Sidebar';
 
-interface SidebarItemProps {
-  icon: React.ReactNode;
-  label: string;
-  isActive?: boolean;
-  onClick?: () => void;
-  isCollapsed?: boolean;
-  badge?: number;
-}
+// TODO: DropdownSidebarItem và SubMenuItem có thể được extract ra common component sau này
+// nếu cần dùng ở nhiều sidebar khác
 
 interface DropdownSidebarItemProps {
   icon: React.ReactNode;
@@ -57,44 +54,6 @@ interface SubMenuItemProps {
   isActive?: boolean;
   onClick: () => void;
 }
-
-const SidebarItem: React.FC<SidebarItemProps> = ({
-  icon,
-  label,
-  isActive = false,
-  onClick,
-  isCollapsed = false,
-  badge
-}) => {
-  return (
-    <button
-      type="button"
-      className={`group relative flex items-center py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 ${
-        isActive ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-700 hover:bg-orange-50 hover:text-orange-500'
-      } ${isCollapsed ? 'justify-center items-center w-12' : 'w-full gap-3 px-3'}`}
-      onClick={onClick}
-      aria-current={isActive ? 'page' : undefined}
-      title={isCollapsed ? label : undefined}
-    >
-      <span className="flex-shrink-0 w-5 h-5 relative">
-        {icon}
-        {badge && badge > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-            {badge > 99 ? '99+' : badge}
-          </span>
-        )}
-      </span>
-      {!isCollapsed && <span className="text-sm font-medium truncate">{label}</span>}
-
-      {/* Tooltip for collapsed state */}
-      {isCollapsed && (
-        <span className="pointer-events-none absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-          {label}
-        </span>
-      )}
-    </button>
-  );
-};
 
 const SubMenuItem: React.FC<SubMenuItemProps> = ({ icon, label, isActive = false, onClick }) => {
   return (
@@ -249,7 +208,7 @@ const UserProfile: React.FC<{
 
   if (isLoading && !user) {
     return (
-      <div className="px-3 py-2 border-t border-gray-200">
+      <div className={`py-2 border-t border-gray-200 ${isCollapsed ? 'px-1 flex justify-center' : 'px-3'}`}>
         <div className="flex items-center gap-3 p-2 rounded-lg bg-gray-100 animate-pulse">
           <div className="h-8 w-8 rounded-full bg-gray-200" />
           {!isCollapsed && (
@@ -270,49 +229,53 @@ const UserProfile: React.FC<{
   const menuItems = (
     <>
       <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
-        <UserCircle className="mr-2 h-4 w-4" />
-        <span>{t('sidebar.profile')}</span>
+        <UserCircle className="w-4 h-4 mr-3 stroke-[1.75]" />
+        {t('sidebar.profile')}
       </DropdownMenuItem>
-      <DropdownMenuItem className="cursor-pointer">
-        <Settings className="mr-2 h-4 w-4" />
-        <span>{t('sidebar.settings')}</span>
+
+      <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
+        <Settings className="w-4 h-4 mr-3 stroke-[1.75]" />
+        {t('sidebar.account_settings')}
       </DropdownMenuItem>
-      <DropdownMenuItem className="cursor-pointer">
-        <HelpCircle className="mr-2 h-4 w-4" />
-        <span>{t('sidebar.help')}</span>
+
+      <DropdownMenuItem onClick={() => navigate('/security')} className="cursor-pointer">
+        <Shield className="w-4 h-4 mr-3 stroke-[1.75]" />
+        {t('sidebar.security')}
       </DropdownMenuItem>
+
       <DropdownMenuSeparator />
-      <DropdownMenuItem onClick={onLogout} className="cursor-pointer text-red-600 focus:text-red-600">
-        <LogOut className="mr-2 h-4 w-4" />
-        <span>{t('sidebar.logout')}</span>
+
+      <LanguageSwitcher variant="sidebar" />
+
+      <DropdownMenuSeparator />
+
+      <DropdownMenuItem onClick={onLogout} className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
+        <LogOut className="w-4 h-4 mr-3 stroke-[1.75]" />
+        {t('sidebar.logout')}
       </DropdownMenuItem>
     </>
   );
 
   if (isCollapsed) {
     return (
-      <div className="px-3 py-2 border-t border-gray-200">
+      <div className="px-1 py-2 border-t border-gray-200 flex justify-center">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="w-full p-2 rounded-lg hover:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
+              className="flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+              aria-label={displayName}
               title={displayName}
             >
-              <Avatar className="h-8 w-8 mx-auto">
+              <Avatar className="w-8 h-8">
                 <AvatarImage src={avatarUrl} alt={displayName} />
-                <AvatarFallback className="bg-orange-500 text-white text-sm">
-                  {displayName.charAt(0).toUpperCase()}
+                <AvatarFallback>
+                  <User className="w-4 h-4 text-gray-600 stroke-[1.75]" />
                 </AvatarFallback>
               </Avatar>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" align="end" className="w-56">
-            <div className="px-2 py-1.5">
-              <p className="text-sm font-medium">{displayName}</p>
-              <p className="text-xs text-muted-foreground">{roleLabel}</p>
-            </div>
-            <DropdownMenuSeparator />
+          <DropdownMenuContent side="right" align="end" sideOffset={8} className="w-56">
             {menuItems}
           </DropdownMenuContent>
         </DropdownMenu>
@@ -321,27 +284,25 @@ const UserProfile: React.FC<{
   }
 
   return (
-    <div className="px-3 py-2 border-t border-gray-200">
+    <div className={`py-2 border-t border-gray-200 ${isCollapsed ? 'px-1 flex justify-center' : 'px-3'}`}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
-          >
-            <Avatar className="h-8 w-8">
+          <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors duration-200 w-full">
+            <Avatar className="w-8 h-8">
               <AvatarImage src={avatarUrl} alt={displayName} />
-              <AvatarFallback className="bg-orange-500 text-white text-sm">
-                {displayName.charAt(0).toUpperCase()}
+              <AvatarFallback>
+                <User className="w-4 h-4 text-gray-600 stroke-[1.75]" />
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1 text-left min-w-0">
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">{displayName}</p>
               <p className="text-xs text-gray-500 truncate">{roleLabel}</p>
             </div>
-            <ChevronUp className="h-4 w-4 text-gray-400" />
-          </button>
+            <ChevronUp className="w-4 h-4 text-gray-400" />
+          </div>
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="end" className="w-56">
+
+        <DropdownMenuContent side="right" align="end" className="w-56 ml-2" sideOffset={8}>
           {menuItems}
         </DropdownMenuContent>
       </DropdownMenu>
@@ -402,63 +363,71 @@ export const PTSidebar: React.FC = () => {
     };
   }, [isAuthenticated, hasInitiallyFetched, authUser, updateUser]);
 
-  const menuItems = [
-    {
-      icon: <LayoutDashboard className="w-5 h-5" />,
-      label: t('sidebar.dashboard'),
-      path: '/manage/pt',
-      isActive: location.pathname === '/manage/pt'
-    },
-    {
-      icon: <Users className="w-5 h-5" />,
-      label: t('pt.sidebar.clients', 'My Clients'),
-      path: '/manage/pt/clients',
-      isActive: location.pathname.startsWith('/manage/pt/clients')
-    },
-    // Schedule and Time Off will be handled by dropdown
-    {
-      icon: <Calendar className="w-5 h-5" />,
-      label: t('pt.sidebar.attendanceHistory', 'Attendance History'),
-      path: '/manage/pt/attendance',
-      isActive: location.pathname.startsWith('/manage/pt/attendance')
-    },
-    {
-      icon: <Dumbbell className="w-5 h-5" />,
-      label: t('pt.sidebar.workoutPlans', 'Workout Plans'),
-      path: '/manage/pt/workout-plans',
-      isActive: location.pathname.startsWith('/manage/pt/workout-plans')
-    },
-    {
-      icon: <Heart className="w-5 h-5" />,
-      label: t('pt.sidebar.nutrition', 'Nutrition Plans'),
-      path: '/manage/pt/nutrition',
-      isActive: location.pathname.startsWith('/manage/pt/nutrition')
-    },
-    {
-      icon: <TrendingUp className="w-5 h-5" />,
-      label: t('pt.sidebar.progress', 'Client Progress'),
-      path: '/manage/pt/progress',
-      isActive: location.pathname.startsWith('/manage/pt/progress')
-    },
-    {
-      icon: <BarChart3 className="w-5 h-5" />,
-      label: t('pt.sidebar.reports', 'Reports'),
-      path: '/manage/pt/reports',
-      isActive: location.pathname.startsWith('/manage/pt/reports')
-    },
-    {
-      icon: <AlertTriangle className="w-5 h-5" />,
-      label: 'Báo cáo lỗi thiết bị',
-      path: '/manage/pt/equipment-issues',
-      isActive: location.pathname.startsWith('/manage/pt/equipment-issues')
-    }
-  ];
-
   const handleNavigation = (path: string) => {
     navigate(path);
     // Close mobile sidebar after navigation
     setMobileOpen(false);
   };
+
+  const menuItems: SidebarItemType[] = [
+    {
+      icon: <LayoutDashboard className="w-5 h-5" />,
+      label: t('sidebar.dashboard'),
+      href: '/manage/pt',
+      isActive: location.pathname === '/manage/pt',
+      onClick: () => handleNavigation('/manage/pt')
+    },
+    {
+      icon: <Users className="w-5 h-5" />,
+      label: t('pt.sidebar.clients', 'My Clients'),
+      href: '/manage/pt/clients',
+      isActive: location.pathname.startsWith('/manage/pt/clients'),
+      onClick: () => handleNavigation('/manage/pt/clients')
+    },
+    // Schedule and Time Off will be handled by dropdown
+    {
+      icon: <Calendar className="w-5 h-5" />,
+      label: t('pt.sidebar.attendanceHistory', 'Attendance History'),
+      href: '/manage/pt/attendance',
+      isActive: location.pathname.startsWith('/manage/pt/attendance'),
+      onClick: () => handleNavigation('/manage/pt/attendance')
+    },
+    {
+      icon: <Dumbbell className="w-5 h-5" />,
+      label: t('pt.sidebar.workoutPlans', 'Workout Plans'),
+      href: '/manage/pt/workout-plans',
+      isActive: location.pathname.startsWith('/manage/pt/workout-plans'),
+      onClick: () => handleNavigation('/manage/pt/workout-plans')
+    },
+    {
+      icon: <Heart className="w-5 h-5" />,
+      label: t('pt.sidebar.nutrition', 'Nutrition Plans'),
+      href: '/manage/pt/nutrition',
+      isActive: location.pathname.startsWith('/manage/pt/nutrition'),
+      onClick: () => handleNavigation('/manage/pt/nutrition')
+    },
+    {
+      icon: <TrendingUp className="w-5 h-5" />,
+      label: t('pt.sidebar.progress', 'Client Progress'),
+      href: '/manage/pt/progress',
+      isActive: location.pathname.startsWith('/manage/pt/progress'),
+      onClick: () => handleNavigation('/manage/pt/progress')
+    },
+    {
+      icon: <BarChart3 className="w-5 h-5" />,
+      label: t('pt.sidebar.reports', 'Reports'),
+      href: '/manage/pt/reports',
+      isActive: location.pathname.startsWith('/manage/pt/reports'),
+      onClick: () => handleNavigation('/manage/pt/reports')
+    },
+    {
+      icon: <AlertTriangle className="w-5 h-5" />,
+      label: 'Báo cáo lỗi thiết bị',
+      href: '/manage/pt/equipment-issues',
+      isActive: location.pathname.startsWith('/manage/pt/equipment-issues'),
+      onClick: () => handleNavigation('/manage/pt/equipment-issues')
+    }
+  ];
 
   const handleLogout = () => {
     try {
@@ -478,44 +447,37 @@ export const PTSidebar: React.FC = () => {
       <SidebarHeader isCollapsed={isCollapsed} />
 
       {/* Navigation Menu */}
-      <nav className={`flex-1 py-4 space-y-1 ${isCollapsed ? 'flex flex-col items-center' : 'px-3'}`}>
-        {menuItems.map((item) => (
-          <SidebarItem
-            key={item.path}
-            icon={item.icon}
-            label={item.label}
-            isActive={item.isActive}
-            isCollapsed={isCollapsed}
-            onClick={() => handleNavigation(item.path)}
-          />
-        ))}
+      <div className={`flex-1 py-4 ${isCollapsed ? 'px-1' : 'px-3'}`}>
+        <Sidebar items={menuItems} isCollapsed={isCollapsed} />
 
         {/* Schedule Dropdown */}
-        <DropdownSidebarItem
-          icon={<Calendar className="w-5 h-5" />}
-          label={t('sidebar.schedule', 'Schedule')}
-          isCollapsed={isCollapsed}
-        >
-          <SubMenuItem
+        <div className="mt-1">
+          <DropdownSidebarItem
             icon={<Calendar className="w-5 h-5" />}
-            label={t('pt.sidebar.schedule', 'My Schedule')}
-            isActive={location.pathname === '/manage/pt/calendar'}
-            onClick={() => handleNavigation('/manage/pt/calendar')}
-          />
-          <SubMenuItem
-            icon={<CalendarDays className="w-5 h-5" />}
-            label={t('sidebar.time_off', 'Time Off')}
-            isActive={location.pathname.startsWith('/manage/pt/timeoff')}
-            onClick={() => handleNavigation('/manage/pt/timeoff')}
-          />
-          <SubMenuItem
-            icon={<ArrowRightLeft className="w-5 h-5" />}
-            label={t('sidebar.reschedule') || 'Reschedule'}
-            isActive={location.pathname.startsWith('/reschedule')}
-            onClick={() => handleNavigation('/reschedule')}
-          />
-        </DropdownSidebarItem>
-      </nav>
+            label={t('sidebar.schedule', 'Schedule')}
+            isCollapsed={isCollapsed}
+          >
+            <SubMenuItem
+              icon={<Calendar className="w-5 h-5" />}
+              label={t('pt.sidebar.schedule', 'My Schedule')}
+              isActive={location.pathname === '/manage/pt/calendar'}
+              onClick={() => handleNavigation('/manage/pt/calendar')}
+            />
+            <SubMenuItem
+              icon={<CalendarDays className="w-5 h-5" />}
+              label={t('sidebar.time_off', 'Time Off')}
+              isActive={location.pathname.startsWith('/manage/pt/timeoff')}
+              onClick={() => handleNavigation('/manage/pt/timeoff')}
+            />
+            <SubMenuItem
+              icon={<ArrowRightLeft className="w-5 h-5" />}
+              label={t('sidebar.reschedule') || 'Reschedule'}
+              isActive={location.pathname.startsWith('/reschedule')}
+              onClick={() => handleNavigation('/reschedule')}
+            />
+          </DropdownSidebarItem>
+        </div>
+      </div>
 
       {/* User Profile */}
       <UserProfile isCollapsed={isCollapsed} user={profile} isLoading={isProfileLoading} onLogout={handleLogout} />

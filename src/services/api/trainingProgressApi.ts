@@ -80,8 +80,10 @@ export const trainingProgressApi = {
     const response = await api.post(`/training-progress/${progressId}/photos/upload`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      timeout: 60000 // 60 seconds timeout for photo upload
     });
+
     return response.data;
   },
 

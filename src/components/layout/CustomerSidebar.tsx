@@ -26,61 +26,13 @@ import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
+import { Sidebar, type SidebarItem } from '@/components/common/Sidebar';
 
-interface SidebarItemProps {
-  icon: React.ReactNode;
-  label: string;
-  isActive?: boolean;
-  onClick?: () => void;
-  isCollapsed?: boolean;
-  badge?: number;
-}
-
-interface MenuItemProps {
-  icon: React.ReactNode;
-  label: string;
-  isActive?: boolean;
-  onClick: () => void;
-  badge?: number;
-}
-
-const SidebarItem: React.FC<SidebarItemProps> = ({
-  icon,
-  label,
-  isActive = false,
-  onClick,
-  isCollapsed = false,
-  badge
-}) => {
-  return (
-    <button
-      type="button"
-      className={`group relative flex items-center py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 ${
-        isActive ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-700 hover:bg-orange-50 hover:text-orange-500'
-      } ${isCollapsed ? 'justify-center px-1 w-12' : 'w-full gap-3 px-3'}`}
-      onClick={onClick}
-      aria-current={isActive ? 'page' : undefined}
-      title={isCollapsed ? label : undefined}
-    >
-      <span className="flex-shrink-0 w-5 h-5 relative">
-        {icon}
-        {badge && badge > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-            {badge > 99 ? '99+' : badge}
-          </span>
-        )}
-      </span>
-      {!isCollapsed && <span className="text-sm font-medium truncate">{label}</span>}
-
-      {/* Tooltip for collapsed state */}
-      {isCollapsed && (
-        <span className="pointer-events-none absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-          {label}
-        </span>
-      )}
-    </button>
-  );
-};
+// TODO: Consider migrating the following sidebars to use the common Sidebar component:
+// - TechnicianSidebar.tsx
+// - PTSidebar.tsx
+// - OwnerSidebar.tsx
+// This would further reduce code duplication across role-based sidebars.
 
 const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
   const { t } = useTranslation();
@@ -324,34 +276,39 @@ export const CustomerSidebar: React.FC = () => {
     };
   }, [isAuthenticated, hasInitiallyFetched, authUser, updateUser]);
 
-  const mainNavItems: MenuItemProps[] = [
+  const mainNavItems: SidebarItem[] = [
     {
       icon: <UserCircle className="w-5 h-5 stroke-[1.75]" />,
       label: t('customer.sidebar.profile', 'Profile'),
+      href: '/customer/profile',
       isActive: location.pathname.startsWith('/customer/profile'),
       onClick: () => handleNavigation('/customer/profile')
     },
     {
       icon: <IdCard className="w-5 h-5 stroke-[1.75]" />,
       label: t('customer.sidebar.membership', 'Membership'),
+      href: '/customer/membership',
       isActive: location.pathname.startsWith('/customer/membership'),
       onClick: () => handleNavigation('/customer/membership')
     },
     {
       icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
       label: t('customer.sidebar.schedule', 'Schedule'),
+      href: '/customer/schedule',
       isActive: location.pathname.startsWith('/customer/schedule'),
       onClick: () => handleNavigation('/customer/schedule')
     },
     {
       icon: <TrendingUp className="w-5 h-5 stroke-[1.75]" />,
       label: t('customer.sidebar.progress', 'Progress'),
+      href: '/customer/progress',
       isActive: location.pathname.startsWith('/customer/progress'),
       onClick: () => handleNavigation('/customer/progress')
     },
     {
       icon: <Shield className="w-5 h-5 stroke-[1.75]" />,
       label: t('customer.sidebar.security', 'Security'),
+      href: '/customer/security',
       isActive: location.pathname.startsWith('/customer/security'),
       onClick: () => handleNavigation('/customer/security')
     }
@@ -369,28 +326,7 @@ export const CustomerSidebar: React.FC = () => {
 
       {/* Main Navigation */}
       <div className={`flex-1 py-2 overflow-y-auto ${isCollapsed ? 'px-1' : 'px-3'}`}>
-        {!isCollapsed && (
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-3">
-            {t('sidebar.main_menu')}
-          </div>
-        )}
-        <nav
-          className={`space-y-1 ${isCollapsed ? 'overflow-hidden' : ''}`}
-          role="navigation"
-          aria-label={t('sidebar.navigation.main')}
-        >
-          {mainNavItems.map((item) => (
-            <SidebarItem
-              key={item.label}
-              icon={item.icon}
-              label={item.label}
-              isActive={item.isActive}
-              onClick={item.onClick}
-              isCollapsed={isCollapsed}
-              badge={item.badge}
-            />
-          ))}
-        </nav>
+        <Sidebar items={mainNavItems} isCollapsed={isCollapsed} title={t('sidebar.main_menu')} />
       </div>
 
       {/* User Profile */}

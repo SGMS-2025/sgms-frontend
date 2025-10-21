@@ -2322,6 +2322,7 @@
   "pt.sidebar.attendanceHistory": "Attendance History",
   "technician.sidebar.schedule": "My Schedule",
   "pt.sidebar.schedule": "My Schedule",
+  "pt.sidebar.clients": "My Clients",
   "common.all": "All",
   "common.pagination.showing": "Showing",
   "common.pagination.of": "of",
@@ -2615,5 +2616,34 @@
   "progress_detail.error.load_failed": "Failed to load customer data",
   "progress_detail.error.load_error": "Error loading customer data",
   "progress_detail.status.active": "Active",
-  "progress_detail.status.inactive": "Inactive"
+  "progress_detail.status.inactive": "Inactive",
+  
+  "validation.progress.weight_required": "Weight is required",
+  "validation.progress.weight_invalid_number": "Weight must be a valid number",
+  "validation.progress.weight_greater_than_zero": "Weight must be greater than 0",
+  "validation.progress.weight_max_exceeded": "Weight cannot exceed 300 kg",
+  "validation.progress.weight_min_required": "Weight cannot be less than 30 kg",
+  
+  "validation.progress.height_required": "Height is required",
+  "validation.progress.height_invalid_number": "Height must be a valid number",
+  "validation.progress.height_greater_than_zero": "Height must be greater than 0",
+  "validation.progress.height_max_exceeded": "Height cannot exceed 250 cm",
+  "validation.progress.height_min_required": "Height cannot be less than 100 cm",
+  
+  "validation.progress.date_required": "Date is required",
+  "validation.progress.date_invalid_format": "Invalid date format",
+  "validation.progress.date_future_not_allowed": "Date cannot be in the future",
+  "validation.progress.date_too_old": "Date cannot be more than 1 year ago",
+  
+  "validation.progress.strength_required": "Strength is required",
+  "validation.progress.strength_invalid_number": "Strength must be a number",
+  "validation.progress.strength_out_of_range": "Strength must be between 0 and 100",
+  
+  "validation.progress.exercises_max_exceeded": "Maximum 10 exercises allowed",
+  "validation.progress.exercises_name_too_long": "Exercise names cannot exceed 50 characters",
+  
+  "validation.progress.notes_required": "Training notes are required",
+  "validation.progress.notes_max_exceeded": "Notes cannot exceed 500 characters",
+  
+  "validation.progress.photos_max_exceeded": "Maximum {{maxPhotos}} photos allowed"
 }

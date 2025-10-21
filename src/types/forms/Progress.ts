@@ -4,7 +4,7 @@ export interface ProgressFormData {
   height: number;
   bmi: number;
   strength: number;
-  note: string;
+  notes: string;
   photos: string[];
   exercises: string[];
 }

@@ -2322,6 +2322,7 @@
   "pt.sidebar.attendanceHistory": "Lịch sử điểm danh",
   "technician.sidebar.schedule": "Lịch làm việc",
   "pt.sidebar.schedule": "Lịch làm việc",
+  "pt.sidebar.clients": "Khách hàng",
   "common.all": "Tất cả",
   "common.pagination.showing": "Hiển thị",
   "common.pagination.of": "của",
@@ -2615,5 +2616,34 @@
   "progress_detail.error.load_failed": "Không thể tải dữ liệu khách hàng",
   "progress_detail.error.load_error": "Lỗi khi tải dữ liệu khách hàng",
   "progress_detail.status.active": "Đang hoạt động",
-  "progress_detail.status.inactive": "Không hoạt động"
+  "progress_detail.status.inactive": "Không hoạt động",
+  
+  "validation.progress.weight_required": "Cân nặng là bắt buộc",
+  "validation.progress.weight_invalid_number": "Cân nặng phải là số hợp lệ",
+  "validation.progress.weight_greater_than_zero": "Cân nặng phải lớn hơn 0",
+  "validation.progress.weight_max_exceeded": "Cân nặng không được vượt quá 300 kg",
+  "validation.progress.weight_min_required": "Cân nặng không được nhỏ hơn 30 kg",
+  
+  "validation.progress.height_required": "Chiều cao là bắt buộc",
+  "validation.progress.height_invalid_number": "Chiều cao phải là số hợp lệ",
+  "validation.progress.height_greater_than_zero": "Chiều cao phải lớn hơn 0",
+  "validation.progress.height_max_exceeded": "Chiều cao không được vượt quá 250 cm",
+  "validation.progress.height_min_required": "Chiều cao không được nhỏ hơn 100 cm",
+  
+  "validation.progress.date_required": "Ngày là bắt buộc",
+  "validation.progress.date_invalid_format": "Định dạng ngày không hợp lệ",
+  "validation.progress.date_future_not_allowed": "Ngày không thể ở tương lai",
+  "validation.progress.date_too_old": "Ngày không thể quá 1 năm trước",
+  
+  "validation.progress.strength_required": "Sức mạnh là bắt buộc",
+  "validation.progress.strength_invalid_number": "Sức mạnh phải là một số",
+  "validation.progress.strength_out_of_range": "Sức mạnh phải từ 0 đến 100",
+  
+  "validation.progress.exercises_max_exceeded": "Tối đa 10 bài tập được phép",
+  "validation.progress.exercises_name_too_long": "Tên bài tập không được vượt quá 50 ký tự",
+  
+  "validation.progress.notes_required": "Ghi chú tập luyện là bắt buộc",
+  "validation.progress.notes_max_exceeded": "Ghi chú không được vượt quá 500 ký tự",
+  
+  "validation.progress.photos_max_exceeded": "Tối đa {{maxPhotos}} ảnh được phép"
 }

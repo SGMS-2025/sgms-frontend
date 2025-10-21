@@ -15,14 +15,9 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useTrainingProgress } from '@/hooks/useTrainingProgress';
 import { toast } from 'sonner';
 import type { TrainingProgressDisplay } from '@/types/api/TrainingProgress';
+import type { TrainingLogTableProps } from '@/types/components/pt/Progress';
 
 type TrainingLog = TrainingProgressDisplay;
-
-interface TrainingLogTableProps {
-  logs: TrainingLog[];
-  onEdit: (log: TrainingLog) => void;
-  onDelete: (logId: string) => void;
-}
 
 export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit, onDelete }) => {
   const { t } = useTranslation();
@@ -77,6 +72,150 @@ export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit
     if (bmi < 30) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
     return 'text-red-600 bg-red-50 border-red-200';
   };
+
+  // Reusable Components
+  const ActionMenu: React.FC<{ log: TrainingLog }> = ({ log }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-32">
+        <DropdownMenuItem onClick={() => onEdit(log)}>
+          <Edit className="h-4 w-4 mr-2" />
+          {t('training_log.table.edit')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleDeleteClick(log.id)} className="text-red-600 focus:text-red-600">
+          <Trash2 className="h-4 w-4 mr-2" />
+          {t('training_log.table.delete')}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  const BMIBadge: React.FC<{ bmi: number }> = ({ bmi }) => (
+    <Badge variant="outline" className={`${getBMIColor(bmi)} border font-medium`}>
+      {bmi.toFixed(1)}
+    </Badge>
+  );
+
+  const StrengthBadge: React.FC<{ strength: string | number }> = ({ strength }) => (
+    <Badge variant="outline" className="bg-[#F05A29] bg-opacity-10 text-[#F05A29] border-[#F05A29]">
+      {strength}
+    </Badge>
+  );
+
+  const PhotoGallery: React.FC<{
+    photos: Array<{ url: string }>;
+    maxPhotos?: number;
+    size?: 'sm' | 'lg';
+  }> = ({ photos, maxPhotos = 3, size = 'sm' }) => {
+    if (!photos || photos.length === 0) {
+      return <Camera className="h-4 w-4 text-gray-300" />;
+    }
+
+    const sizeClass = size === 'sm' ? 'w-8 h-8' : 'w-12 h-12';
+
+    return (
+      <div className="flex gap-1">
+        {photos.slice(0, maxPhotos).map((photo, index) => (
+          <button
+            key={index}
+            onClick={() => setPreviewImage(photo.url)}
+            className={`${sizeClass} rounded border overflow-hidden hover:opacity-80 transition-opacity`}
+          >
+            <img src={photo.url} alt={`Training ${index + 1}`} className="w-full h-full object-cover" />
+          </button>
+        ))}
+        {photos.length > maxPhotos &&
+          (size === 'sm' ? (
+            <span className="text-xs text-gray-500 ml-1">+{photos.length - maxPhotos}</span>
+          ) : (
+            <div className={`${sizeClass} rounded border bg-gray-100 flex items-center justify-center`}>
+              <span className="text-xs text-gray-500">+{photos.length - maxPhotos}</span>
+            </div>
+          ))}
+      </div>
+    );
+  };
+
+  const PaginationControls: React.FC<{ variant: 'desktop' | 'mobile' }> = ({ variant }) => {
+    if (totalPages <= 1) return null;
+
+    if (variant === 'mobile') {
+      return (
+        <div className="flex items-center justify-between mt-2">
+          <Button variant="outline" size="sm" onClick={() => setPage(page - 1)} disabled={!canPrev}>
+            {t('training_log.pagination.prev')}
+          </Button>
+          <div className="text-sm text-gray-500">
+            {page}/{totalPages}
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={!canNext}>
+            {t('training_log.pagination.next')}
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center justify-between mt-3 px-4">
+        <div className="text-sm text-gray-500">
+          {t('training_log.pagination.page')} {page} {t('training_log.pagination.of')} {totalPages}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setPage(page - 1)} disabled={!canPrev}>
+            {t('training_log.pagination.prev')}
+          </Button>
+          <div className="hidden md:flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <Button
+                key={p}
+                variant={p === page ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPage(p)}
+                className={p === page ? 'bg-[#F05A29] text-white hover:bg-[#df4615]' : ''}
+              >
+                {p}
+              </Button>
+            ))}
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={!canNext}>
+            {t('training_log.pagination.next')}
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  const ModalComponents: React.FC = () => (
+    <>
+      {/* Image Preview Modal */}
+      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t('training_log.modal.photo_title')}</DialogTitle>
+          </DialogHeader>
+          {previewImage && (
+            <div className="flex justify-center">
+              <img src={previewImage} alt="Training" className="max-w-full max-h-96 rounded-lg" />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={!!deleteLogId}
+        onClose={() => setDeleteLogId(null)}
+        onConfirm={handleConfirmDelete}
+        isLoading={deleteLoading}
+        title={t('training_log.modal.delete_title')}
+        description={t('training_log.modal.delete_description')}
+      />
+    </>
+  );
 
   if (logs.length === 0) {
     return (
@@ -134,15 +273,11 @@ export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-2">
                       <Calculator className="h-4 w-4 text-gray-400" />
-                      <Badge variant="outline" className={`${getBMIColor(log.bmi)} border font-medium`}>
-                        {log.bmi.toFixed(1)}
-                      </Badge>
+                      <BMIBadge bmi={log.bmi} />
                     </div>
                   </td>
                   <td className="py-4 px-4">
-                    <Badge variant="outline" className="bg-[#F05A29] bg-opacity-10 text-[#F05A29] border-[#F05A29]">
-                      {log.strength}
-                    </Badge>
+                    <StrengthBadge strength={log.strength} />
                   </td>
                   <td className="py-4 px-4 max-w-xs">
                     <p className="text-sm text-gray-700 truncate" title={log.notes}>
@@ -150,46 +285,10 @@ export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit
                     </p>
                   </td>
                   <td className="py-4 px-4">
-                    {log.photos && log.photos.length > 0 ? (
-                      <div className="flex gap-1">
-                        {log.photos.slice(0, 3).map((photo, index) => (
-                          <button
-                            key={index}
-                            onClick={() => setPreviewImage(photo.url)}
-                            className="w-8 h-8 rounded border overflow-hidden hover:opacity-80 transition-opacity"
-                          >
-                            <img src={photo.url} alt={`Training ${index + 1}`} className="w-full h-full object-cover" />
-                          </button>
-                        ))}
-                        {log.photos.length > 3 && (
-                          <span className="text-xs text-gray-500 ml-1">+{log.photos.length - 3}</span>
-                        )}
-                      </div>
-                    ) : (
-                      <Camera className="h-4 w-4 text-gray-300" />
-                    )}
+                    <PhotoGallery photos={log.photos} maxPhotos={3} size="sm" />
                   </td>
                   <td className="py-4 px-4 text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-32">
-                        <DropdownMenuItem onClick={() => onEdit(log)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          {t('training_log.table.edit')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDeleteClick(log.id)}
-                          className="text-red-600 focus:text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          {t('training_log.table.delete')}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <ActionMenu log={log} />
                   </td>
                 </tr>
               ))}
@@ -197,60 +296,8 @@ export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit
           </table>
         </div>
 
-        {/* Pagination controls - desktop */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-3 px-4">
-            <div className="text-sm text-gray-500">
-              {t('training_log.pagination.page')} {page} {t('training_log.pagination.of')} {totalPages}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setPage(page - 1)} disabled={!canPrev}>
-                {t('training_log.pagination.prev')}
-              </Button>
-              {/* Page numbers */}
-              <div className="hidden md:flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <Button
-                    key={p}
-                    variant={p === page ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setPage(p)}
-                    className={p === page ? 'bg-[#F05A29] text-white hover:bg-[#df4615]' : ''}
-                  >
-                    {p}
-                  </Button>
-                ))}
-              </div>
-              <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={!canNext}>
-                {t('training_log.pagination.next')}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Image Preview Modal */}
-        <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>{t('training_log.modal.photo_title')}</DialogTitle>
-            </DialogHeader>
-            {previewImage && (
-              <div className="flex justify-center">
-                <img src={previewImage} alt="Training" className="max-w-full max-h-96 rounded-lg" />
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Confirmation Modal */}
-        <DeleteConfirmationModal
-          isOpen={!!deleteLogId}
-          onClose={() => setDeleteLogId(null)}
-          onConfirm={handleConfirmDelete}
-          isLoading={deleteLoading}
-          title={t('training_log.modal.delete_title')}
-          description={t('training_log.modal.delete_description')}
-        />
+        <PaginationControls variant="desktop" />
+        <ModalComponents />
       </div>
     );
   }
@@ -265,23 +312,7 @@ export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit
               <Calendar className="h-4 w-4 text-gray-400" />
               <span className="text-sm font-medium text-gray-900">{formatDate(log.date)}</span>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-32">
-                <DropdownMenuItem onClick={() => onEdit(log)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  {t('training_log.table.edit')}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleDeleteClick(log.id)} className="text-red-600 focus:text-red-600">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {t('training_log.table.delete')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ActionMenu log={log} />
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-3">
@@ -291,18 +322,14 @@ export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit
             </div>
             <div>
               <p className="text-xs text-gray-500 mb-1">{t('training_log.table.bmi_label')}</p>
-              <Badge variant="outline" className={`${getBMIColor(log.bmi)} border font-medium`}>
-                {log.bmi.toFixed(1)}
-              </Badge>
+              <BMIBadge bmi={log.bmi} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 mb-3">
             <div>
               <p className="text-xs text-gray-500 mb-1">{t('training_log.table.strength_label')}</p>
-              <Badge variant="outline" className="bg-[#F05A29] bg-opacity-10 text-[#F05A29] border-[#F05A29]">
-                {log.strength}
-              </Badge>
+              <StrengthBadge strength={log.strength} />
             </div>
           </div>
 
@@ -316,65 +343,14 @@ export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit
           {log.photos && log.photos.length > 0 && (
             <div>
               <p className="text-xs text-gray-500 mb-2">{t('training_log.table.photos_label')}</p>
-              <div className="flex gap-2">
-                {log.photos.slice(0, 4).map((photo, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setPreviewImage(photo.url)}
-                    className="w-12 h-12 rounded border overflow-hidden hover:opacity-80 transition-opacity"
-                  >
-                    <img src={photo.url} alt={`Training ${index + 1}`} className="w-full h-full object-cover" />
-                  </button>
-                ))}
-                {log.photos.length > 4 && (
-                  <div className="w-12 h-12 rounded border bg-gray-100 flex items-center justify-center">
-                    <span className="text-xs text-gray-500">+{log.photos.length - 4}</span>
-                  </div>
-                )}
-              </div>
+              <PhotoGallery photos={log.photos} maxPhotos={4} size="lg" />
             </div>
           )}
         </div>
       ))}
 
-      {/* Pagination controls - mobile */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-2">
-          <Button variant="outline" size="sm" onClick={() => setPage(page - 1)} disabled={!canPrev}>
-            {t('training_log.pagination.prev')}
-          </Button>
-          <div className="text-sm text-gray-500">
-            {page}/{totalPages}
-          </div>
-          <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={!canNext}>
-            {t('training_log.pagination.next')}
-          </Button>
-        </div>
-      )}
-
-      {/* Image Preview Modal */}
-      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{t('training_log.modal.photo_title')}</DialogTitle>
-          </DialogHeader>
-          {previewImage && (
-            <div className="flex justify-center">
-              <img src={previewImage} alt="Training" className="max-w-full max-h-96 rounded-lg" />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        isOpen={!!deleteLogId}
-        onClose={() => setDeleteLogId(null)}
-        onConfirm={handleConfirmDelete}
-        isLoading={deleteLoading}
-        title={t('training_log.modal.delete_title')}
-        description={t('training_log.modal.delete_description')}
-      />
+      <PaginationControls variant="mobile" />
+      <ModalComponents />
     </div>
   );
 };

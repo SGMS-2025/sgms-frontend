@@ -109,7 +109,7 @@ export interface CreateTrainingProgressRequest {
   weight: number;
   height: number;
   strength: number;
-  note?: string; // Frontend uses 'note'
+  notes?: string;
   exercises?: string[];
   photos?: TrainingProgressPhoto[];
   bodyFatPercentage?: number;
@@ -120,7 +120,7 @@ export interface UpdateTrainingProgressRequest {
   weight?: number;
   height?: number;
   strength?: number;
-  note?: string;
+  notes?: string;
   exercises?: string[];
   photos?: TrainingProgressPhoto[];
   bodyFatPercentage?: number;

@@ -23,6 +23,7 @@ import {
   ChevronDown,
   ArrowRightLeft
 } from 'lucide-react';
+import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -312,6 +313,10 @@ const UserProfile: React.FC<{
         <Shield className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.security')}
       </DropdownMenuItem>
+
+      <DropdownMenuSeparator />
+
+      <LanguageSwitcher variant="sidebar" />
 
       <DropdownMenuSeparator />
 
