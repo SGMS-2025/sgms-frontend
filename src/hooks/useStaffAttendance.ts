@@ -1,9 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
 import { attendanceApi } from '@/services/api/attendanceApi';
 import { toast } from 'sonner';
-import type { StaffAttendance } from '@/types/api/StaffAttendance';
+import type {
+  StaffAttendance,
+  GetStaffAttendanceHistoryParams,
+  StaffAttendanceHistoryResponse,
+  GetAttendanceListParams
+} from '@/types/api/StaffAttendance';
 import { useTranslation } from 'react-i18next';
-import type { GetAttendanceListParams } from '@/types/api/StaffAttendance';
 
 export interface ToggleAttendanceParams {
   username?: string;
@@ -90,5 +94,75 @@ export const useAttendanceHistory = (initialFilters?: AttendanceHistoryFilters) 
     filters,
     setFilters,
     refetch: fetchAttendance
+  };
+};
+
+// New hook for staff attendance history by staffId
+export const useStaffAttendanceHistory = (staffId: string | null, initialFilters?: GetStaffAttendanceHistoryParams) => {
+  const [filters, setFilters] = useState<GetStaffAttendanceHistoryParams>({
+    page: 1,
+    limit: 10,
+    sortBy: 'checkInTime',
+    sortOrder: 'desc',
+    ...initialFilters
+  });
+  const [items, setItems] = useState<StaffAttendance[]>([]);
+  const [pagination, setPagination] = useState<StaffAttendanceHistoryResponse['meta'] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
+
+  const fetchStaffAttendanceHistory = useCallback(async () => {
+    if (!staffId) {
+      setItems([]);
+      setPagination(null);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const response = await attendanceApi.getStaffAttendanceHistory(staffId, filters);
+    if (response.success) {
+      setItems(response.data);
+      setPagination(response.meta);
+    } else {
+      const errorMessage = response.message || t('attendance.error.fetch_failed');
+      setError(errorMessage);
+    }
+    setLoading(false);
+  }, [staffId, filters, t]);
+
+  useEffect(() => {
+    fetchStaffAttendanceHistory();
+  }, [fetchStaffAttendanceHistory]);
+
+  // Reset filters when modal opens (any time staffId is provided)
+  useEffect(() => {
+    if (staffId && initialFilters) {
+      setFilters(initialFilters);
+    }
+  }, [staffId, initialFilters]);
+
+  const updateFilters = useCallback((newFilters: Partial<GetStaffAttendanceHistoryParams>) => {
+    setFilters((prev) => ({ ...prev, ...newFilters }));
+  }, []);
+
+  const goToPage = useCallback(
+    (page: number) => {
+      updateFilters({ page });
+    },
+    [updateFilters]
+  );
+
+  return {
+    items,
+    pagination,
+    loading,
+    error,
+    filters,
+    setFilters: updateFilters,
+    goToPage,
+    refetch: fetchStaffAttendanceHistory
   };
 };
