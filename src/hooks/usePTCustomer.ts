@@ -14,14 +14,19 @@ export const usePTCustomerList = (options: UsePTCustomerListOptions): UsePTCusto
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PTCustomerPagination | null>(null);
-  const [params, setParams] = useState<UsePTCustomerListOptions>(options);
+  const [params, setParams] = useState<UsePTCustomerListOptions>(() => {
+    return options;
+  });
 
   // Update params when options change (but preserve page changes from goToPage)
   useEffect(() => {
-    setParams((prevParams) => ({
-      ...options,
-      page: prevParams.page || options.page || 1 // Preserve current page if it exists
-    }));
+    setParams((prevParams) => {
+      const newParams = {
+        ...options,
+        page: prevParams.page || options.page || 1 // Preserve current page if it exists
+      };
+      return newParams;
+    });
   }, [options.limit, options.branchId, options.status, options.packageType, options.trainerId]);
 
   const fetchCustomers = useCallback(async () => {
@@ -29,7 +34,6 @@ export const usePTCustomerList = (options: UsePTCustomerListOptions): UsePTCusto
       setLoading(false);
       return;
     }
-
     setLoading(true);
     setError(null);
 
@@ -70,7 +74,10 @@ export const usePTCustomerList = (options: UsePTCustomerListOptions): UsePTCusto
   }, [fetchCustomers]);
 
   const goToPage = useCallback((page: number) => {
-    setParams((prev) => ({ ...prev, page }));
+    setParams((prev) => {
+      const newParams = { ...prev, page };
+      return newParams;
+    });
   }, []);
 
   useEffect(() => {
