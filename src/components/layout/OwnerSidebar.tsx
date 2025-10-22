@@ -20,7 +20,8 @@ import {
   UserCheck,
   UsersRound,
   Briefcase,
-  Sparkles
+  Sparkles,
+  CreditCard
 } from 'lucide-react';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -500,6 +501,14 @@ export const OwnerSidebar: React.FC = () => {
       isActive: location.pathname === '/manage/customers',
       onClick: () => {
         navigate('/manage/customers');
+      }
+    },
+    {
+      icon: <CreditCard className="w-5 h-5 stroke-[1.75]" />,
+      label: t('sidebar.payments', { defaultValue: 'Payments' }),
+      isActive: location.pathname === '/manage/payments',
+      onClick: () => {
+        navigate('/manage/payments');
       }
     },
     {

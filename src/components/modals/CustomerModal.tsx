@@ -21,19 +21,21 @@ import { discountCampaignApi } from '@/services/api/discountApi';
 import { staffApi } from '@/services/api/staffApi';
 import { customerApi } from '@/services/api/customerApi';
 import { membershipApi } from '@/services/api/membershipApi';
+import { paymentApi } from '@/services/api/paymentApi';
+import { PayOSPaymentModal } from '@/components/modals/PayOSPaymentModal';
 
 // Currency formatting utilities
 const formatCurrency = (value: string | number): string => {
   if (!value || value === '') return '';
 
-  const strValue = String(value).replace(/[^\d]/g, '');
+  const strValue = String(value).replaceAll(/[^\d]/g, '');
 
   if (!strValue) return '';
 
   // Convert to number for formatting
-  const numValue = parseInt(strValue, 10);
+  const numValue = Number.parseInt(strValue, 10);
 
-  if (isNaN(numValue)) return '';
+  if (Number.isNaN(numValue)) return '';
 
   // Use toLocaleString with proper options for Vietnamese formatting
   return numValue.toLocaleString('vi-VN');
@@ -42,7 +44,7 @@ const formatCurrency = (value: string | number): string => {
 const parseCurrency = (value: string): string => {
   if (!value) return '';
   // Remove all non-numeric characters
-  const cleaned = value.replace(/[^\d]/g, '');
+  const cleaned = value.replaceAll(/[^\d]/g, '');
   return cleaned;
 };
 import type { ServicePackage } from '@/types/api/Package';
@@ -62,6 +64,13 @@ import type {
   BranchWithAddress,
   GenderType
 } from '@/types/api/Customer';
+import type { PayOSPaymentData } from '@/services/api/paymentApi';
+
+type ServiceRegistrationContractPayload = {
+  serviceContract?: { _id?: string };
+  membershipContract?: { _id?: string };
+  contract?: { _id?: string };
+};
 
 const getDurationOptions = (t: (key: string) => string) => [
   { value: '1', label: '1 tháng' },
@@ -122,7 +131,21 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
     totalAmount: '',
     amountPaid: '',
     remainingDebt: '',
-    serviceNotes: ''
+    serviceNotes: '',
+    paymentMethod: 'CASH' // New: Payment method selection
+  });
+
+  // PayOS payment modal state
+  const [payosModal, setPayosModal] = useState<{
+    isOpen: boolean;
+    paymentData: PayOSPaymentData | null;
+    branchId?: string;
+    contractId?: string;
+  }>({
+    isOpen: false,
+    paymentData: null,
+    branchId: undefined,
+    contractId: undefined
   });
 
   // Validation errors state
@@ -277,7 +300,8 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
       totalAmount: '',
       amountPaid: '',
       remainingDebt: '',
-      serviceNotes: ''
+      serviceNotes: '',
+      paymentMethod: 'CASH'
     });
 
     // Reset date states
@@ -343,7 +367,8 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
         0
       ).toString(),
       remainingDebt: '0',
-      serviceNotes: latestServiceContract?.notes || latestMembershipContract?.notes || ''
+      serviceNotes: latestServiceContract?.notes || latestMembershipContract?.notes || '',
+      paymentMethod: 'CASH'
     };
   };
 
@@ -549,16 +574,32 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
 
       // Auto-calculate price when service package or membership plan changes
       if (field === 'selectedServicePackage' || field === 'selectedMembershipPlan') {
+        // Clear the other selection when one is chosen
+        if (field === 'selectedServicePackage' && value) {
+          newData.selectedMembershipPlan = '';
+        } else if (field === 'selectedMembershipPlan' && value) {
+          newData.selectedServicePackage = '';
+          newData.duration = '';
+          newData.customDuration = '';
+        }
+
         const calculatedPrice = calculateTotalPrice(String(value), field, prev);
         newData.price = calculatedPrice.toString();
 
         // Recalculate totals with new price
         const newDiscount = prev.discount === '' ? 0 : parseInt(String(prev.discount), 10) || 0;
         const newTotal = calculatedPrice - newDiscount;
-        const newRemaining = newTotal - (prev.amountPaid === '' ? 0 : parseInt(String(prev.amountPaid), 10) || 0);
+
+        // For membership plans, auto-set amountPaid = totalAmount (full payment required)
+        if (field === 'selectedMembershipPlan' && value) {
+          newData.amountPaid = newTotal.toString();
+          newData.remainingDebt = '0';
+        } else {
+          const newRemaining = newTotal - (prev.amountPaid === '' ? 0 : parseInt(String(prev.amountPaid), 10) || 0);
+          newData.remainingDebt = newRemaining.toString();
+        }
 
         newData.totalAmount = newTotal.toString();
-        newData.remainingDebt = newRemaining.toString();
       }
 
       // Auto-calculate discount when promotion changes
@@ -685,17 +726,11 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
     }
   };
 
-  const handleSubmit = async () => {
-    await handleSubmitInternal();
-  };
-
-  const handleSubmitInternal = async () => {
-    setLoading(true);
-
-    // Validate all required fields
+  // Validation for Basic Information tab
+  const validateBasicInfo = (): Partial<Record<keyof CustomerFormData, string>> => {
     const newErrors: Partial<Record<keyof CustomerFormData, string>> = {};
 
-    // Validate required fields
+    // Required fields for basic info
     const requiredFields: (keyof CustomerFormData)[] = ['name', 'phone', 'email', 'cardId'];
     if (!isEditMode) {
       requiredFields.push('password');
@@ -711,23 +746,47 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
       }
     });
 
-    // Validate optional fields if they have values
-    const optionalFields: (keyof CustomerFormData)[] = [
-      'dateOfBirth',
-      'price',
-      'discount',
-      'amountPaid',
-      'customDuration'
-    ];
-    optionalFields.forEach((field) => {
-      const fieldValue = formData[field];
-      if (fieldValue && fieldValue !== '' && !(fieldValue instanceof File)) {
-        const error = validateField(field, fieldValue as string | number | boolean);
-        if (error) {
-          newErrors[field] = error;
-        }
+    // Validate optional dateOfBirth if it has value
+    if (formData.dateOfBirth && formData.dateOfBirth !== '') {
+      const error = validateField('dateOfBirth', formData.dateOfBirth);
+      if (error) {
+        newErrors.dateOfBirth = error;
       }
-    });
+    }
+
+    // Validate branchId
+    if (!formData.branchId && !currentBranch?._id) {
+      newErrors.branchId = t('customer_modal.validation.branch_required');
+    }
+
+    return newErrors;
+  };
+
+  // Validation for Service Registration tab
+  const validateServiceRegistration = (): Partial<Record<keyof CustomerFormData, string>> => {
+    const newErrors: Partial<Record<keyof CustomerFormData, string>> = {};
+
+    // Validate optional fields if they have values
+    if (formData.price && formData.price !== '') {
+      const error = validateField('price', formData.price);
+      if (error) {
+        newErrors.price = error;
+      }
+    }
+
+    if (formData.discount && formData.discount !== '') {
+      const error = validateField('discount', formData.discount);
+      if (error) {
+        newErrors.discount = error;
+      }
+    }
+
+    if (formData.amountPaid && formData.amountPaid !== '') {
+      const error = validateField('amountPaid', formData.amountPaid);
+      if (error) {
+        newErrors.amountPaid = error;
+      }
+    }
 
     // Special validation: if duration is 'custom', customDuration is required
     if (formData.duration === 'custom') {
@@ -741,12 +800,16 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
       }
     }
 
-    // Validate branchId
-    if (!formData.branchId && !currentBranch?._id) {
-      newErrors.branchId = t('customer_modal.validation.branch_required');
-    }
+    return newErrors;
+  };
 
-    // If there are validation errors, show them and stop
+  // Submit Basic Information only
+  const handleSubmitBasicInfo = async () => {
+    setLoading(true);
+
+    // Validate basic info
+    const newErrors = validateBasicInfo();
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       toast.error(t('customer_modal.validation.check_info'));
@@ -756,14 +819,13 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
 
     setErrors({});
 
-    const customerData = {
+    const basicData = {
       // User data for backend
-      username: formData.phone, // Use phone as username
+      username: formData.phone,
       email: formData.email,
-      password: formData.password,
       fullName: formData.name,
       phoneNumber: formData.phone,
-      gender: formData.gender.toUpperCase(), // Convert to uppercase for backend
+      gender: formData.gender.toUpperCase(),
       dateOfBirth: formData.dateOfBirth || null,
       address: formData.address || null,
 
@@ -772,59 +834,37 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
       cardCode: formData.cardId || null,
       referrerStaffId: formData.referrerStaffId || null,
       notes: formData.notes || null,
-
-      // Service registration data - Updated to support multiple selections
-      branchId: formData.branchId || currentBranch?._id,
-      selectedServicePackage: formData.selectedServicePackage || null,
-      selectedMembershipPlan: formData.selectedMembershipPlan || null,
-      promotionId: formData.promotionId || null,
-      duration: formData.duration === 'custom' ? formData.customDuration : formData.duration,
-      activationDate: formData.activationDate || null,
-      price: formData.price === '' ? 0 : parseInt(String(formData.price), 10) || 0,
-      discount: formData.discount === '' ? 0 : parseInt(String(formData.discount), 10) || 0,
-      totalAmount: formData.totalAmount === '' ? 0 : parseInt(String(formData.totalAmount), 10) || 0,
-      amountPaid: formData.amountPaid === '' ? 0 : parseInt(String(formData.amountPaid), 10) || 0,
-      remainingDebt: formData.remainingDebt === '' ? 0 : parseInt(String(formData.remainingDebt), 10) || 0,
-      serviceNotes: formData.serviceNotes || null
+      branchId: formData.branchId || currentBranch?._id
     };
 
-    if (isEditMode && customer) {
-      await customerApi.updateCustomer(customer.id, customerData);
-      toast.success(t('customer_modal.success.update'));
-      // Call the callback to refresh the customer list
-      if (onCustomerUpdate) {
-        onCustomerUpdate();
-      }
-      onClose();
-    } else {
-      const response = await customerApi.createCustomer(customerData, formData.avatar || undefined);
+    // Only include password for new customers
+    if (!isEditMode) {
+      (basicData as typeof basicData & { password: string }).password = formData.password;
+    }
 
-      // Check if response is an error (from interceptor)
-      if (!response.success) {
-        // This is an error response from the interceptor
-        const errorResponse = response as ApiResponse<unknown>;
-        const errorMessage = errorResponse.message || 'Không thể tạo khách hàng';
-        const statusCode = errorResponse.statusCode;
-        const errorCode = errorResponse.code;
+    try {
+      if (isEditMode && customer) {
+        await customerApi.updateBasicInfo(customer.id, basicData);
+        toast.success(t('customer_modal.success.basic_info_updated'));
+      } else {
+        const response = await customerApi.createCustomer(basicData, formData.avatar || undefined);
 
-        // Handle 409 Conflict errors (duplicate key)
-        if (statusCode === 409 || errorCode === 'MONGO_DUPLICATE_KEY' || errorCode === 'CONFLICT') {
-          // Check if we have field information in the error
-          const errorMeta = errorResponse.error?.meta;
-          if (errorMeta && errorMeta.field) {
-            const field = errorMeta.field;
-            const fieldMessage = errorMessage || `${field} đã tồn tại trong hệ thống`;
+        // Check if response is an error
+        if (!response.success) {
+          const errorResponse = response as ApiResponse<unknown>;
+          const errorMessage = errorResponse.message || 'Không thể tạo khách hàng';
+          const statusCode = errorResponse.statusCode;
+          const errorCode = errorResponse.code;
 
-            // Set field-specific error
-            setErrors((prev) => ({ ...prev, [field]: fieldMessage }));
-
-            // Show toast error and stop loading
-            toast.error(fieldMessage);
-            setLoading(false);
-            return;
-          } else {
-            // Fallback for duplicate key errors without field info
-            if (errorMessage.includes('E11000 duplicate key error')) {
+          // Handle duplicate key errors
+          if (statusCode === 409 || errorCode === 'MONGO_DUPLICATE_KEY' || errorCode === 'CONFLICT') {
+            const errorMeta = errorResponse.error?.meta;
+            if (errorMeta && errorMeta.field) {
+              const field = errorMeta.field;
+              const fieldMessage = errorMessage || `${field} đã tồn tại trong hệ thống`;
+              setErrors((prev) => ({ ...prev, [field]: fieldMessage }));
+              toast.error(fieldMessage);
+            } else {
               if (errorMessage.includes('cardCode_1')) {
                 setErrors((prev) => ({ ...prev, cardId: 'Mã thẻ đã tồn tại' }));
                 toast.error('Mã thẻ đã tồn tại');
@@ -837,778 +877,972 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
               } else {
                 toast.error('Dữ liệu đã tồn tại trong hệ thống');
               }
-            } else {
-              toast.error('Dữ liệu đã tồn tại trong hệ thống');
             }
             setLoading(false);
             return;
+          } else {
+            toast.error(errorMessage);
+            setLoading(false);
+            return;
           }
-        } else {
-          // For other errors, show toast and stop loading
-          toast.error(errorMessage);
-          setLoading(false);
-          return;
         }
-      }
 
-      const contractResult = (
-        response as ApiResponse<{ contract?: { type: string; message: string; error?: unknown; errors?: unknown[] } }>
-      )?.data?.contract;
-      if (contractResult) {
-        if (contractResult.type === 'error') {
-          toast.warning(t('customer_modal.success.contract_error') + `: ${contractResult.message}`);
-        } else if (contractResult.type === 'partial_success') {
-          toast.warning(t('customer_modal.success.contract_partial') + `: ${contractResult.message}`);
-        } else if (contractResult.type === 'success') {
-          toast.success(t('customer_modal.success.contract_created'));
-        }
-      } else {
         toast.success(t('customer_modal.success.create'));
       }
+
+      onCustomerUpdate?.();
+      onClose();
+    } catch (error) {
+      console.error('Error updating basic info:', error);
+      toast.error('Có lỗi xảy ra khi cập nhật thông tin cơ bản');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Submit Service Registration only
+  const handleSubmitServiceRegistration = async () => {
+    if (!isEditMode || !customer) {
+      toast.error('Vui lòng tạo khách hàng trước khi đăng ký dịch vụ');
+      return;
     }
 
+    setLoading(true);
+
+    // Validate service registration
+    const newErrors = validateServiceRegistration();
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast.error(t('customer_modal.validation.check_info'));
+      setLoading(false);
+      return;
+    }
+
+    setErrors({});
+
+    const serviceData = {
+      branchId: formData.branchId || currentBranch?._id,
+      selectedServicePackage: formData.selectedServicePackage || null,
+      selectedMembershipPlan: formData.selectedMembershipPlan || null,
+      promotionId: formData.promotionId || null,
+      duration: formData.duration === 'custom' ? formData.customDuration : formData.duration,
+      activationDate: formData.activationDate || null,
+      price: formData.price === '' ? 0 : parseInt(String(formData.price), 10) || 0,
+      discount: formData.discount === '' ? 0 : parseInt(String(formData.discount), 10) || 0,
+      totalAmount: formData.totalAmount === '' ? 0 : parseInt(String(formData.totalAmount), 10) || 0,
+      amountPaid: formData.amountPaid === '' ? 0 : parseInt(String(formData.amountPaid), 10) || 0,
+      remainingDebt: formData.remainingDebt === '' ? 0 : parseInt(String(formData.remainingDebt), 10) || 0,
+      serviceNotes: formData.serviceNotes || null,
+      referrerStaffId: formData.referrerStaffId || null,
+      paymentMethod: formData.paymentMethod // Add payment method
+    };
+
+    const isBankTransfer = formData.paymentMethod === 'BANK_TRANSFER';
+    const intendedTransferAmount =
+      serviceData.amountPaid > 0
+        ? serviceData.amountPaid
+        : serviceData.remainingDebt > 0
+          ? serviceData.remainingDebt
+          : serviceData.totalAmount;
+
+    const payload = { ...serviceData };
+
+    if (isBankTransfer) {
+      payload.amountPaid = 0;
+      payload.remainingDebt = payload.totalAmount;
+    }
+
+    try {
+      // First, create/update the service registration contract
+      const response = await customerApi.updateServiceRegistration(customer.id, payload);
+
+      // If payment method is BANK_TRANSFER, trigger PayOS flow
+      if (isBankTransfer && intendedTransferAmount > 0) {
+        // Extract contract from the nested response structure
+        const contractData = response.data?.contract as ServiceRegistrationContractPayload | null | undefined;
+        const serviceContract = contractData?.serviceContract;
+        const membershipContract = contractData?.membershipContract;
+        const actualContract = serviceContract ?? membershipContract ?? contractData?.contract;
+
+        const contractId = actualContract?._id;
+        const contractType = formData.selectedServicePackage ? 'service' : 'membership';
+
+        if (!contractId) {
+          console.error('Contract response:', response.data);
+          throw new Error('Contract ID not found in response');
+        }
+
+        if (!payload.branchId) {
+          throw new Error('Branch ID is required for payment');
+        }
+
+        // Create PayOS payment link
+        // PayOS requires description to be max 25 characters
+        const shortDescription =
+          contractType === 'service' ? `DV ${customer.name.substring(0, 20)}` : `TV ${customer.name.substring(0, 20)}`;
+
+        // Use amountPaid if specified, otherwise use full remaining debt
+        const paymentAmount = intendedTransferAmount;
+
+        const paymentResponse = await paymentApi.createPayOSPaymentLink({
+          customerId: customer.id,
+          branchId: payload.branchId,
+          contractId: contractId,
+          contractType: contractType,
+          amount: paymentAmount,
+          description: shortDescription.substring(0, 25) // Ensure max 25 chars
+        });
+
+        if (paymentResponse.success && paymentResponse.data) {
+          // Open PayOS payment modal
+          setPayosModal({
+            isOpen: true,
+            paymentData: paymentResponse.data,
+            branchId: payload.branchId,
+            contractId: contractId
+          });
+
+          toast.success(t('customer_modal.success.service_registration_updated'));
+          // Don't close the modal yet - wait for payment completion
+        }
+      } else {
+        // For other payment methods, just show success and close
+        toast.success(t('customer_modal.success.service_registration_updated'));
+        onCustomerUpdate?.();
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error updating service registration:', error);
+      toast.error('Có lỗi xảy ra khi cập nhật đăng ký dịch vụ');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle PayOS payment success
+  const handlePaymentSuccess = () => {
     onCustomerUpdate?.();
+    // Close both modals
+    setPayosModal({ isOpen: false, paymentData: null, branchId: undefined, contractId: undefined });
     onClose();
-    setLoading(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
-        <DialogHeader className="bg-orange-500 text-white rounded-t-lg -m-6 mb-0 p-6">
-          <DialogTitle className="text-xl font-semibold">
-            {isEditMode ? t('customer_modal.edit_customer') : t('customer_modal.create_customer')}
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
+          <DialogHeader className="bg-orange-500 text-white rounded-t-lg -m-6 mb-0 p-6">
+            <DialogTitle className="text-xl font-semibold">
+              {isEditMode ? t('customer_modal.edit_customer') : t('customer_modal.create_customer')}
+            </DialogTitle>
+          </DialogHeader>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200">
-          <button
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'basic'
-                ? 'border-orange-500 text-orange-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => {
-              setActiveTab('basic');
-            }}
-          >
-            {t('customer_modal.basic_info')}
-          </button>
-          <button
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'service'
-                ? 'border-orange-500 text-orange-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => {
-              setActiveTab('service');
-            }}
-          >
-            {t('customer_modal.service_registration')}
-          </button>
-        </div>
-
-        {/* Basic Information Tab */}
-        {activeTab === 'basic' && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 p-6">
-            {/* Left Column */}
-            <div className="space-y-4">
-              {/* Avatar Upload */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium text-gray-700">{t('customer_modal.avatar')}</Label>
-                <div className="flex items-center space-x-4">
-                  <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-                    {formData.avatar ? (
-                      <img
-                        src={URL.createObjectURL(formData.avatar)}
-                        alt="Avatar"
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                    ) : (
-                      <User className="w-8 h-8 text-gray-400" />
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center space-x-2"
-                      onClick={() => document.getElementById('avatar-upload')?.click()}
-                    >
-                      <Upload className="w-4 h-4" />
-                      <span>{t('customer_modal.upload')}</span>
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" className="flex items-center space-x-2">
-                      <Camera className="w-4 h-4" />
-                      <span>{t('customer_modal.take_photo')}</span>
-                    </Button>
-                  </div>
-                </div>
-                <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-              </div>
-
-              {/* Grid for form fields */}
-              <div className="grid grid-cols-1 gap-4">
-                {/* Customer Name */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    {t('customer_modal.customer_name')} <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder={t('customer_modal.customer_name_placeholder')}
-                    className={`w-full ${errors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-                  />
-                  {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name}</p>}
-                </div>
-
-                {/* Gender */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">{t('customer_modal.gender')}</Label>
-                  <RadioGroup
-                    value={formData.gender}
-                    onValueChange={(value) => handleInputChange('gender', value)}
-                    className="flex space-x-4"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="male" id="male" />
-                      <Label htmlFor="male">{t('customer_modal.male')}</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="female" id="female" />
-                      <Label htmlFor="female">{t('customer_modal.female')}</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="other" id="other" />
-                      <Label htmlFor="other">{t('customer_modal.other')}</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                {/* Loyal Customer */}
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="loyal"
-                    checked={formData.isLoyalCustomer}
-                    onCheckedChange={(checked) => handleInputChange('isLoyalCustomer', checked)}
-                  />
-                  <Label htmlFor="loyal" className="text-sm font-medium text-gray-700">
-                    {t('customer_modal.loyal_customer')}
-                  </Label>
-                </div>
-
-                {/* Phone */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    {t('customer_modal.phone')} <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    placeholder={t('customer_modal.phone_placeholder')}
-                    className={`w-full ${errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-                  />
-                  {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone}</p>}
-                </div>
-
-                {/* Email */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    {t('customer_modal.email')} <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    placeholder={t('customer_modal.email_placeholder')}
-                    type="email"
-                    className={`w-full ${errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-                  />
-                  {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email}</p>}
-                </div>
-
-                {/* Password */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    {t('customer_modal.password')} <span className="text-red-500">*</span>
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      value={formData.password}
-                      onChange={(e) => handleInputChange('password', e.target.value)}
-                      placeholder={t('customer_modal.password_placeholder')}
-                      type={showPassword ? 'text' : 'password'}
-                      className={`w-full pr-10 ${errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password}</p>}
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-4">
-                {/* Date of Birth */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">{t('customer_modal.date_of_birth')}</Label>
-                  <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-full justify-start text-left font-normal bg-white border-gray-200 hover:bg-gray-50 focus:border-orange-500',
-                          !dateOfBirth && 'text-muted-foreground',
-                          errors.dateOfBirth && 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateOfBirth
-                          ? format(dateOfBirth, 'dd/MM/yyyy', { locale: vi })
-                          : t('customer_modal.select_birth_date')}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 bg-white border-gray-200 shadow-lg" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={dateOfBirth}
-                        onSelect={handleDateOfBirthSelect}
-                        autoFocus
-                        locale={vi}
-                        className="bg-white border-0"
-                        fromYear={1950}
-                        toYear={new Date().getFullYear()}
-                        captionLayout="dropdown"
-                        disabled={(date) => date > new Date()}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  {errors.dateOfBirth && <p className="text-sm text-red-500 mt-1">{errors.dateOfBirth}</p>}
-                </div>
-
-                {/* Branch */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">{t('customer_modal.branch')}</Label>
-                  <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg border">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">
-                        {currentBranch?.branchName || t('customer_modal.no_branch_selected')}
-                      </p>
-                      <p className="text-xs text-gray-500">{(currentBranch as BranchWithAddress)?.address}</p>
-                    </div>
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  </div>
-                </div>
-
-                {/* Card ID */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    {t('customer_modal.card_id')} <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    value={formData.cardId}
-                    onChange={(e) => handleInputChange('cardId', e.target.value)}
-                    placeholder={t('customer_modal.card_id_placeholder')}
-                    className={`w-full ${errors.cardId ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-                  />
-                  {errors.cardId && <p className="text-sm text-red-500 mt-1">{errors.cardId}</p>}
-                </div>
-
-                {/* Address */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">{t('customer_modal.address')}</Label>
-                  <Input
-                    value={formData.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                    placeholder={t('customer_modal.address_placeholder')}
-                    className="w-full"
-                  />
-                </div>
-
-                {/* Notes */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">{t('customer_modal.notes')}</Label>
-                  <Textarea
-                    value={formData.notes}
-                    onChange={(e) => handleInputChange('notes', e.target.value)}
-                    placeholder={t('customer_modal.notes_placeholder')}
-                    className="w-full"
-                    rows={3}
-                  />
-                </div>
-              </div>
-            </div>
+          {/* Tabs */}
+          <div className="flex border-b border-gray-200">
+            <button
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'basic'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+              onClick={() => {
+                setActiveTab('basic');
+              }}
+            >
+              {t('customer_modal.basic_info')}
+            </button>
+            <button
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'service'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+              onClick={() => {
+                setActiveTab('service');
+              }}
+            >
+              {t('customer_modal.service_registration')}
+            </button>
           </div>
-        )}
 
-        {/* Service Registration Tab */}
-        {activeTab === 'service' && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 p-6">
-            {dataLoading ? (
-              <div className="col-span-2 flex items-center justify-center py-12">
-                <div className="text-center">
-                  <Clock className="w-8 h-8 animate-spin mx-auto mb-4 text-orange-500" />
-                  <p className="text-gray-600">{t('customer_modal.loading_data')}</p>
+          {/* Basic Information Tab */}
+          {activeTab === 'basic' && (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 p-6">
+              {/* Left Column */}
+              <div className="space-y-4">
+                {/* Avatar Upload */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium text-gray-700">{t('customer_modal.avatar')}</Label>
+                  <div className="flex items-center space-x-4">
+                    <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+                      {formData.avatar ? (
+                        <img
+                          src={URL.createObjectURL(formData.avatar)}
+                          alt="Avatar"
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                      ) : (
+                        <User className="w-8 h-8 text-gray-400" />
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center space-x-2"
+                        onClick={() => document.getElementById('avatar-upload')?.click()}
+                      >
+                        <Upload className="w-4 h-4" />
+                        <span>{t('customer_modal.upload')}</span>
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" className="flex items-center space-x-2">
+                        <Camera className="w-4 h-4" />
+                        <span>{t('customer_modal.take_photo')}</span>
+                      </Button>
+                    </div>
+                  </div>
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                </div>
+
+                {/* Grid for form fields */}
+                <div className="grid grid-cols-1 gap-4">
+                  {/* Customer Name */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">
+                      {t('customer_modal.customer_name')} <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      placeholder={t('customer_modal.customer_name_placeholder')}
+                      className={`w-full ${errors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+                    />
+                    {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name}</p>}
+                  </div>
+
+                  {/* Gender */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">{t('customer_modal.gender')}</Label>
+                    <RadioGroup
+                      value={formData.gender}
+                      onValueChange={(value) => handleInputChange('gender', value)}
+                      className="flex space-x-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="male" id="male" />
+                        <Label htmlFor="male">{t('customer_modal.male')}</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="female" id="female" />
+                        <Label htmlFor="female">{t('customer_modal.female')}</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="other" id="other" />
+                        <Label htmlFor="other">{t('customer_modal.other')}</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  {/* Loyal Customer */}
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="loyal"
+                      checked={formData.isLoyalCustomer}
+                      onCheckedChange={(checked) => handleInputChange('isLoyalCustomer', checked)}
+                    />
+                    <Label htmlFor="loyal" className="text-sm font-medium text-gray-700">
+                      {t('customer_modal.loyal_customer')}
+                    </Label>
+                  </div>
+
+                  {/* Phone */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">
+                      {t('customer_modal.phone')} <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      placeholder={t('customer_modal.phone_placeholder')}
+                      className={`w-full ${errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+                    />
+                    {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone}</p>}
+                  </div>
+
+                  {/* Email */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">
+                      {t('customer_modal.email')} <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      placeholder={t('customer_modal.email_placeholder')}
+                      type="email"
+                      className={`w-full ${errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+                    />
+                    {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email}</p>}
+                  </div>
+
+                  {/* Password */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">
+                      {t('customer_modal.password')} <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        value={formData.password}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                        placeholder={t('customer_modal.password_placeholder')}
+                        type={showPassword ? 'text' : 'password'}
+                        className={`w-full pr-10 ${errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password}</p>}
+                  </div>
                 </div>
               </div>
-            ) : (
-              <>
-                {/* Left Column */}
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4">
-                    {/* Service Package */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">{t('customer_modal.service_package')}</Label>
-                      <div className="flex items-center space-x-2">
-                        <Select
-                          value={formData.selectedServicePackage}
-                          onValueChange={(value) => {
-                            if (value === 'none') {
-                              clearServicePackageSelection();
-                            } else {
-                              handleInputChange('selectedServicePackage', value);
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder={t('customer_modal.select_service_package')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">
-                              <span className="text-gray-500">{t('customer_modal.deselect')}</span>
-                            </SelectItem>
-                            {packages && packages.length > 0 ? (
-                              packages.map((pkg) => (
-                                <SelectItem key={`package-${pkg._id}`} value={`package-${pkg._id}`}>
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">{pkg.name}</span>
-                                    <span className="text-xs text-gray-500">
-                                      {(
-                                        (pkg as PackageWithPricing).finalPrice ||
-                                        (pkg as PackageWithPricing).defaultPriceVND ||
-                                        0
-                                      ).toLocaleString()}{' '}
-                                      VNĐ
-                                      {(pkg as PackageWithPricing).finalPrice &&
-                                        (pkg as PackageWithPricing).finalPrice !==
-                                          (pkg as PackageWithPricing).defaultPriceVND && (
-                                          <span className="text-orange-500 ml-1">(Branch price)</span>
-                                        )}
-                                    </span>
-                                  </div>
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <SelectItem value="no-packages" disabled>
-                                {t('customer_modal.no_service_packages')}
-                              </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
-                        {formData.selectedServicePackage && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={clearServicePackageSelection}
-                            className="text-red-600 border-red-300 hover:bg-red-50"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
 
-                    {/* Membership Plan */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">{t('customer_modal.membership_plan')}</Label>
-                      <div className="flex items-center space-x-2">
-                        <Select
-                          value={formData.selectedMembershipPlan}
-                          onValueChange={(value) => {
-                            if (value === 'none') {
-                              clearMembershipPlanSelection();
-                            } else {
-                              handleInputChange('selectedMembershipPlan', value);
-                            }
-                          }}
+              {/* Right Column */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  {/* Date of Birth */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">{t('customer_modal.date_of_birth')}</Label>
+                    <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            'w-full justify-start text-left font-normal bg-white border-gray-200 hover:bg-gray-50 focus:border-orange-500',
+                            !dateOfBirth && 'text-muted-foreground',
+                            errors.dateOfBirth && 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                          )}
                         >
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder={t('customer_modal.select_membership_plan')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">
-                              <span className="text-gray-500">{t('customer_modal.deselect')}</span>
-                            </SelectItem>
-                            {membershipPlans && membershipPlans.length > 0 ? (
-                              membershipPlans.map((plan) => (
-                                <SelectItem key={`membership-${plan._id}`} value={`membership-${plan._id}`}>
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">{plan.name}</span>
-                                    <span className="text-xs text-gray-500">
-                                      {plan.price.toLocaleString()} {plan.currency} ({plan.durationInMonths} tháng)
-                                    </span>
-                                  </div>
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <SelectItem value="no-membership" disabled>
-                                {t('customer_modal.no_membership_plans')}
-                              </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
-                        {formData.selectedMembershipPlan && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={clearMembershipPlanSelection}
-                            className="text-red-600 border-red-300 hover:bg-red-50"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {dateOfBirth
+                            ? format(dateOfBirth, 'dd/MM/yyyy', { locale: vi })
+                            : t('customer_modal.select_birth_date')}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 bg-white border-gray-200 shadow-lg" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={dateOfBirth}
+                          onSelect={handleDateOfBirthSelect}
+                          autoFocus
+                          locale={vi}
+                          className="bg-white border-0"
+                          fromYear={1950}
+                          toYear={new Date().getFullYear()}
+                          captionLayout="dropdown"
+                          disabled={(date) => date > new Date()}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {errors.dateOfBirth && <p className="text-sm text-red-500 mt-1">{errors.dateOfBirth}</p>}
+                  </div>
 
-                    {/* Promotion */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">{t('customer_modal.promotion')}</Label>
-                      <div className="flex items-center space-x-2">
-                        <Select
-                          value={formData.promotionId}
-                          onValueChange={(value) => {
-                            if (value === 'none') {
-                              handleInputChange('promotionId', '');
-                            } else {
-                              handleInputChange('promotionId', value);
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder={t('customer_modal.select_promotion')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">
-                              <span className="text-gray-500">{t('customer_modal.deselect')}</span>
-                            </SelectItem>
-                            {promotions && promotions.length > 0 ? (
-                              promotions.map((promo) => (
-                                <SelectItem key={promo._id} value={promo._id}>
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">{(promo as PromotionWithDiscount).name}</span>
-                                    <span className="text-xs text-gray-500">
-                                      Giảm {(promo as PromotionWithDiscount).discountPercentage}%
-                                    </span>
-                                  </div>
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <SelectItem value="no-promotions" disabled>
-                                {t('customer_modal.no_promotions')}
-                              </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
-                        {formData.promotionId && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleInputChange('promotionId', '')}
-                            className="text-red-600 border-red-300 hover:bg-red-50"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        )}
+                  {/* Branch */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">{t('customer_modal.branch')}</Label>
+                    <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg border">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          {currentBranch?.branchName || t('customer_modal.no_branch_selected')}
+                        </p>
+                        <p className="text-xs text-gray-500">{(currentBranch as BranchWithAddress)?.address}</p>
                       </div>
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     </div>
+                  </div>
 
-                    {/* Duration */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">{t('customer_modal.duration')}</Label>
-                      <div className="flex items-center space-x-2">
-                        <Select
-                          value={formData.duration}
-                          onValueChange={(value) => {
-                            if (value === 'none') {
-                              handleInputChange('duration', '');
-                            } else {
-                              handleInputChange('duration', value);
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder={t('customer_modal.select_duration')} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">
-                              <span className="text-gray-500">{t('customer_modal.deselect')}</span>
-                            </SelectItem>
-                            {getDurationOptions(t).map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {formData.duration && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              handleInputChange('duration', '');
-                              handleInputChange('customDuration', '');
+                  {/* Card ID */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">
+                      {t('customer_modal.card_id')} <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      value={formData.cardId}
+                      onChange={(e) => handleInputChange('cardId', e.target.value)}
+                      placeholder={t('customer_modal.card_id_placeholder')}
+                      className={`w-full ${errors.cardId ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+                    />
+                    {errors.cardId && <p className="text-sm text-red-500 mt-1">{errors.cardId}</p>}
+                  </div>
+
+                  {/* Address */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">{t('customer_modal.address')}</Label>
+                    <Input
+                      value={formData.address}
+                      onChange={(e) => handleInputChange('address', e.target.value)}
+                      placeholder={t('customer_modal.address_placeholder')}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Notes */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">{t('customer_modal.notes')}</Label>
+                    <Textarea
+                      value={formData.notes}
+                      onChange={(e) => handleInputChange('notes', e.target.value)}
+                      placeholder={t('customer_modal.notes_placeholder')}
+                      className="w-full"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Service Registration Tab */}
+          {activeTab === 'service' && (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 p-6">
+              {dataLoading ? (
+                <div className="col-span-2 flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <Clock className="w-8 h-8 animate-spin mx-auto mb-4 text-orange-500" />
+                    <p className="text-gray-600">{t('customer_modal.loading_data')}</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Left Column */}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4">
+                      {/* Service Package */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">
+                          {t('customer_modal.service_package')}
+                        </Label>
+                        <div className="flex items-center space-x-2">
+                          <Select
+                            value={formData.selectedServicePackage}
+                            onValueChange={(value) => {
+                              if (value === 'none') {
+                                clearServicePackageSelection();
+                              } else {
+                                handleInputChange('selectedServicePackage', value);
+                              }
                             }}
-                            className="text-red-600 border-red-300 hover:bg-red-50"
                           >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        )}
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder={t('customer_modal.select_service_package')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">
+                                <span className="text-gray-500">{t('customer_modal.deselect')}</span>
+                              </SelectItem>
+                              {packages && packages.length > 0 ? (
+                                packages.map((pkg) => (
+                                  <SelectItem key={`package-${pkg._id}`} value={`package-${pkg._id}`}>
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">{pkg.name}</span>
+                                      <span className="text-xs text-gray-500">
+                                        {(
+                                          (pkg as PackageWithPricing).finalPrice ||
+                                          (pkg as PackageWithPricing).defaultPriceVND ||
+                                          0
+                                        ).toLocaleString()}{' '}
+                                        VNĐ
+                                        {(pkg as PackageWithPricing).finalPrice &&
+                                          (pkg as PackageWithPricing).finalPrice !==
+                                            (pkg as PackageWithPricing).defaultPriceVND && (
+                                            <span className="text-orange-500 ml-1">(Branch price)</span>
+                                          )}
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="no-packages" disabled>
+                                  {t('customer_modal.no_service_packages')}
+                                </SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          {formData.selectedServicePackage && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={clearServicePackageSelection}
+                              className="text-red-600 border-red-300 hover:bg-red-50"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      {formData.duration === 'custom' && (
-                        <div className="mt-2">
-                          <Input
-                            value={formData.customDuration}
-                            onChange={(e) => handleInputChange('customDuration', e.target.value)}
-                            placeholder={t('customer_modal.enter_months')}
-                            className={`w-full ${errors.customDuration ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-                          />
-                          {errors.customDuration && (
-                            <p className="text-sm text-red-500 mt-1">{errors.customDuration}</p>
+
+                      {/* Membership Plan */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">
+                          {t('customer_modal.membership_plan')}
+                        </Label>
+                        <div className="flex items-center space-x-2">
+                          <Select
+                            value={formData.selectedMembershipPlan}
+                            onValueChange={(value) => {
+                              if (value === 'none') {
+                                clearMembershipPlanSelection();
+                              } else {
+                                handleInputChange('selectedMembershipPlan', value);
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder={t('customer_modal.select_membership_plan')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">
+                                <span className="text-gray-500">{t('customer_modal.deselect')}</span>
+                              </SelectItem>
+                              {membershipPlans && membershipPlans.length > 0 ? (
+                                membershipPlans.map((plan) => (
+                                  <SelectItem key={`membership-${plan._id}`} value={`membership-${plan._id}`}>
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">{plan.name}</span>
+                                      <span className="text-xs text-gray-500">
+                                        {plan.price.toLocaleString()} {plan.currency} ({plan.durationInMonths} tháng)
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="no-membership" disabled>
+                                  {t('customer_modal.no_membership_plans')}
+                                </SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          {formData.selectedMembershipPlan && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={clearMembershipPlanSelection}
+                              className="text-red-600 border-red-300 hover:bg-red-50"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Promotion */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">{t('customer_modal.promotion')}</Label>
+                        <div className="flex items-center space-x-2">
+                          <Select
+                            value={formData.promotionId}
+                            onValueChange={(value) => {
+                              if (value === 'none') {
+                                handleInputChange('promotionId', '');
+                              } else {
+                                handleInputChange('promotionId', value);
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder={t('customer_modal.select_promotion')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">
+                                <span className="text-gray-500">{t('customer_modal.deselect')}</span>
+                              </SelectItem>
+                              {promotions && promotions.length > 0 ? (
+                                promotions.map((promo) => (
+                                  <SelectItem key={promo._id} value={promo._id}>
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">{(promo as PromotionWithDiscount).name}</span>
+                                      <span className="text-xs text-gray-500">
+                                        Giảm {(promo as PromotionWithDiscount).discountPercentage}%
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="no-promotions" disabled>
+                                  {t('customer_modal.no_promotions')}
+                                </SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          {formData.promotionId && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleInputChange('promotionId', '')}
+                              className="text-red-600 border-red-300 hover:bg-red-50"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Duration - Only for Service Packages */}
+                      {formData.selectedServicePackage && !formData.selectedMembershipPlan && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">{t('customer_modal.duration')}</Label>
+                          <div className="flex items-center space-x-2">
+                            <Select
+                              value={formData.duration}
+                              onValueChange={(value) => {
+                                if (value === 'none') {
+                                  handleInputChange('duration', '');
+                                } else {
+                                  handleInputChange('duration', value);
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="flex-1">
+                                <SelectValue placeholder={t('customer_modal.select_duration')} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">
+                                  <span className="text-gray-500">{t('customer_modal.deselect')}</span>
+                                </SelectItem>
+                                {getDurationOptions(t).map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {formData.duration && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  handleInputChange('duration', '');
+                                  handleInputChange('customDuration', '');
+                                }}
+                                className="text-red-600 border-red-300 hover:bg-red-50"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                          {formData.duration === 'custom' && (
+                            <div className="mt-2">
+                              <Input
+                                value={formData.customDuration}
+                                onChange={(e) => handleInputChange('customDuration', e.target.value)}
+                                placeholder={t('customer_modal.enter_months')}
+                                className={`w-full ${errors.customDuration ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+                              />
+                              {errors.customDuration && (
+                                <p className="text-sm text-red-500 mt-1">{errors.customDuration}</p>
+                              )}
+                            </div>
                           )}
                         </div>
                       )}
-                    </div>
 
-                    {/* Referrer Staff */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">
-                        {t('customer_modal.referrer_staff')}
-                        {formData.branchId && (
-                          <span className="text-xs text-gray-500 ml-2">
-                            (
-                            {branches.find((b) => b._id === formData.branchId)?.branchName ||
-                              t('customer_modal.branch')}
-                            )
-                          </span>
-                        )}
-                      </Label>
-                      <Select
-                        value={formData.referrerStaffId}
-                        onValueChange={(value) => handleInputChange('referrerStaffId', value)}
-                        disabled={!formData.branchId}
-                      >
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              !formData.branchId
-                                ? t('customer_modal.select_branch_first')
-                                : t('customer_modal.select_referrer_staff')
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {staffList && staffList.length > 0 ? (
-                            staffList.map((staff) => (
-                              <SelectItem key={staff._id} value={staff._id}>
-                                {(staff as StaffWithDetails).name} - {(staff as StaffWithDetails).jobTitle}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value="no-staff" disabled>
-                              {!formData.branchId
-                                ? t('customer_modal.select_branch_first')
-                                : t('customer_modal.no_staff')}
-                            </SelectItem>
+                      {/* Membership Info - Duration is fixed based on plan */}
+                      {formData.selectedMembershipPlan && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Thời hạn gói</Label>
+                          <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                            <p className="text-sm text-blue-800">
+                              Gói membership có thời hạn cố định theo gói đã chọn. Không thể thay đổi thời hạn.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Referrer Staff */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">
+                          {t('customer_modal.referrer_staff')}
+                          {formData.branchId && (
+                            <span className="text-xs text-gray-500 ml-2">
+                              (
+                              {branches.find((b) => b._id === formData.branchId)?.branchName ||
+                                t('customer_modal.branch')}
+                              )
+                            </span>
                           )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Activation Date */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">{t('customer_modal.activation_date')}</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              'w-full justify-start text-left font-normal',
-                              !activationDate && 'text-muted-foreground'
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {activationDate ? (
-                              formatDate(activationDate)
-                            ) : (
-                              <span>{t('customer_modal.select_activation_date')}</span>
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={activationDate}
-                            onSelect={setActivationDate}
-                            disabled={(date) => date < new Date()}
-                            autoFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-
-                    {/* Notes */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">{t('customer_modal.service_notes')}</Label>
-                      <Textarea
-                        value={formData.serviceNotes}
-                        onChange={(e) => handleInputChange('serviceNotes', e.target.value)}
-                        placeholder={t('customer_modal.service_notes_placeholder')}
-                        className="w-full"
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column */}
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-4">
-                    {/* Price */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">
-                        {t('customer_modal.price')}{' '}
-                        <span className="text-xs text-gray-500">{t('customer_modal.auto_calculated')}</span>
-                      </Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          type="text"
-                          value={formatCurrency(formData.price)}
-                          readOnly
-                          placeholder="0"
-                          className="flex-1 bg-gray-50 text-gray-700"
-                        />
-                        <span className="text-sm text-gray-600">VNĐ</span>
-                      </div>
-                      <p className="text-xs text-gray-500">{t('customer_modal.price_helper')}</p>
-                    </div>
-
-                    {/* Discount */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">
-                        {t('customer_modal.discount')}{' '}
-                        <span className="text-xs text-gray-500">{t('customer_modal.auto_calculated')}</span>
-                      </Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          type="text"
-                          value={formatCurrency(formData.discount)}
-                          readOnly
-                          placeholder="0"
-                          className="flex-1 bg-gray-50 text-gray-700"
-                        />
-                        <span className="text-sm text-gray-600">VNĐ</span>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="bg-green-500 text-white hover:bg-green-600"
+                        </Label>
+                        <Select
+                          value={formData.referrerStaffId}
+                          onValueChange={(value) => handleInputChange('referrerStaffId', value)}
+                          disabled={!formData.branchId}
                         >
-                          <Percent className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <p className="text-xs text-gray-500">{t('customer_modal.discount_helper')}</p>
-                    </div>
-
-                    {/* Total Amount */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">{t('customer_modal.total_amount')}</Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          type="text"
-                          value={formatCurrency(formData.totalAmount)}
-                          readOnly
-                          className="flex-1 bg-gray-50"
-                        />
-                        <span className="text-sm text-gray-600">VNĐ</span>
-                      </div>
-                    </div>
-
-                    {/* Amount Paid */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">{t('customer_modal.amount_paid')}</Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          type="text"
-                          value={formatCurrency(formData.amountPaid)}
-                          onChange={(e) => {
-                            const parsed = parseCurrency(e.target.value);
-                            handleInputChange('amountPaid', parsed);
-                          }}
-                          placeholder={t('customer_modal.enter_amount')}
-                          className={`w-32 ${errors.amountPaid ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-                        />
-                        <Select defaultValue="cash">
-                          <SelectTrigger className="w-40">
-                            <SelectValue />
+                          <SelectTrigger>
+                            <SelectValue
+                              placeholder={
+                                !formData.branchId
+                                  ? t('customer_modal.select_branch_first')
+                                  : t('customer_modal.select_referrer_staff')
+                              }
+                            />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="cash">{t('customer_modal.cash')}</SelectItem>
-                            <SelectItem value="card">{t('customer_modal.card')}</SelectItem>
-                            <SelectItem value="transfer">{t('customer_modal.transfer')}</SelectItem>
+                            {staffList && staffList.length > 0 ? (
+                              staffList.map((staff) => (
+                                <SelectItem key={staff._id} value={staff._id}>
+                                  {(staff as StaffWithDetails).name} - {(staff as StaffWithDetails).jobTitle}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="no-staff" disabled>
+                                {!formData.branchId
+                                  ? t('customer_modal.select_branch_first')
+                                  : t('customer_modal.no_staff')}
+                              </SelectItem>
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
-                      {errors.amountPaid && <p className="text-sm text-red-500 mt-1">{errors.amountPaid}</p>}
-                    </div>
 
-                    {/* Remaining Debt */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">{t('customer_modal.remaining_debt')}</Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          type="text"
-                          value={formatCurrency(formData.remainingDebt)}
-                          readOnly
-                          className="flex-1 bg-gray-50"
+                      {/* Activation Date */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">
+                          {t('customer_modal.activation_date')}
+                        </Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                'w-full justify-start text-left font-normal',
+                                !activationDate && 'text-muted-foreground'
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {activationDate ? (
+                                formatDate(activationDate)
+                              ) : (
+                                <span>{t('customer_modal.select_activation_date')}</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={activationDate}
+                              onSelect={setActivationDate}
+                              disabled={(date) => date < new Date()}
+                              autoFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      {/* Notes */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">{t('customer_modal.service_notes')}</Label>
+                        <Textarea
+                          value={formData.serviceNotes}
+                          onChange={(e) => handleInputChange('serviceNotes', e.target.value)}
+                          placeholder={t('customer_modal.service_notes_placeholder')}
+                          className="w-full"
+                          rows={3}
                         />
-                        <span className="text-sm text-gray-600">VNĐ</span>
                       </div>
                     </div>
                   </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
 
-        {/* Footer Actions */}
-        <div className="flex justify-end space-x-3 p-6 bg-gray-50 rounded-b-lg -m-6 mt-0">
-          <Button onClick={handleSubmit} disabled={loading} className="bg-orange-500 text-white hover:bg-orange-600">
-            {loading ? <Clock className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-            {isEditMode ? t('customer_modal.update') : t('customer_modal.create')}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="bg-gray-500 text-white hover:bg-gray-600 border-gray-500"
-          >
-            {t('customer_modal.close')}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+                  {/* Right Column */}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4">
+                      {/* Price */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">
+                          {t('customer_modal.price')}{' '}
+                          <span className="text-xs text-gray-500">{t('customer_modal.auto_calculated')}</span>
+                        </Label>
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            type="text"
+                            value={formatCurrency(formData.price)}
+                            readOnly
+                            placeholder="0"
+                            className="flex-1 bg-gray-50 text-gray-700"
+                          />
+                          <span className="text-sm text-gray-600">VNĐ</span>
+                        </div>
+                        <p className="text-xs text-gray-500">{t('customer_modal.price_helper')}</p>
+                      </div>
+
+                      {/* Discount */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">
+                          {t('customer_modal.discount')}{' '}
+                          <span className="text-xs text-gray-500">{t('customer_modal.auto_calculated')}</span>
+                        </Label>
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            type="text"
+                            value={formatCurrency(formData.discount)}
+                            readOnly
+                            placeholder="0"
+                            className="flex-1 bg-gray-50 text-gray-700"
+                          />
+                          <span className="text-sm text-gray-600">VNĐ</span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="bg-green-500 text-white hover:bg-green-600"
+                          >
+                            <Percent className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-500">{t('customer_modal.discount_helper')}</p>
+                      </div>
+
+                      {/* Total Amount */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">{t('customer_modal.total_amount')}</Label>
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            type="text"
+                            value={formatCurrency(formData.totalAmount)}
+                            readOnly
+                            className="flex-1 bg-gray-50"
+                          />
+                          <span className="text-sm text-gray-600">VNĐ</span>
+                        </div>
+                      </div>
+
+                      {/* Amount Paid */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">{t('customer_modal.amount_paid')}</Label>
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            type="text"
+                            value={formatCurrency(formData.amountPaid)}
+                            onChange={(e) => {
+                              const parsed = parseCurrency(e.target.value);
+                              handleInputChange('amountPaid', parsed);
+                            }}
+                            placeholder={t('customer_modal.enter_amount')}
+                            className={`w-32 ${errors.amountPaid ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''} ${formData.selectedMembershipPlan ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                            disabled={!!formData.selectedMembershipPlan}
+                            readOnly={!!formData.selectedMembershipPlan}
+                          />
+                          <Select
+                            value={formData.paymentMethod}
+                            onValueChange={(value) => handleInputChange('paymentMethod', value)}
+                          >
+                            <SelectTrigger className="w-40">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="CASH">{t('customer_modal.cash')}</SelectItem>
+                              <SelectItem value="CREDIT_CARD">{t('customer_modal.card')}</SelectItem>
+                              <SelectItem value="BANK_TRANSFER">{t('customer_modal.transfer')}</SelectItem>
+                              <SelectItem value="EWALLET">{t('customer_modal.ewallet')}</SelectItem>
+                              <SelectItem value="OTHER">{t('customer_modal.other')}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {formData.selectedMembershipPlan && (
+                          <div className="p-2 bg-blue-50 border border-blue-200 rounded-md">
+                            <p className="text-xs text-blue-800">
+                              Membership yêu cầu thanh toán đủ 100% tại thời điểm đăng ký. Số tiền trả tự động = Tổng
+                              tiền.
+                            </p>
+                          </div>
+                        )}
+                        {errors.amountPaid && <p className="text-sm text-red-500 mt-1">{errors.amountPaid}</p>}
+                      </div>
+
+                      {/* Remaining Debt */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">
+                          {t('customer_modal.remaining_debt')}
+                        </Label>
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            type="text"
+                            value={formatCurrency(formData.remainingDebt)}
+                            readOnly
+                            className="flex-1 bg-gray-50"
+                          />
+                          <span className="text-sm text-gray-600">VNĐ</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Footer Actions */}
+          <div className="flex justify-end space-x-3 p-6 bg-gray-50 rounded-b-lg -m-6 mt-0">
+            {/* Show different buttons based on active tab */}
+            {activeTab === 'basic' ? (
+              <Button
+                onClick={handleSubmitBasicInfo}
+                disabled={loading}
+                className="bg-orange-500 text-white hover:bg-orange-600"
+              >
+                {loading ? <Clock className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+                {isEditMode ? t('customer_modal.update_basic_info') : t('customer_modal.create')}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSubmitServiceRegistration}
+                disabled={loading || !isEditMode}
+                className="bg-orange-500 text-white hover:bg-orange-600 disabled:bg-gray-400"
+                title={!isEditMode ? 'Vui lòng tạo khách hàng trước' : ''}
+              >
+                {loading ? <Clock className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
+                {t('customer_modal.update_service_registration')}
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="bg-gray-500 text-white hover:bg-gray-600 border-gray-500"
+            >
+              {t('customer_modal.close')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* PayOS Payment Modal */}
+      {payosModal.isOpen && payosModal.paymentData && customer && payosModal.branchId && payosModal.contractId && (
+        <PayOSPaymentModal
+          isOpen={payosModal.isOpen}
+          onClose={() =>
+            setPayosModal({ isOpen: false, paymentData: null, branchId: undefined, contractId: undefined })
+          }
+          paymentData={payosModal.paymentData}
+          onPaymentSuccess={handlePaymentSuccess}
+          customerId={customer.id!}
+          branchId={payosModal.branchId}
+          contractId={payosModal.contractId}
+          contractType={formData.selectedServicePackage ? 'service' : 'membership'}
+        />
+      )}
+    </>
   );
 };

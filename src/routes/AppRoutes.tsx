@@ -49,6 +49,7 @@ import PTCalendarPage from '@/pages/pt/PTCalendarPage';
 import PTCustomerListPage from '@/pages/pt/PTCustomerListPage';
 import PTAttendanceHistoryPage from '@/pages/pt/PTAttendanceHistoryPage';
 import CustomerManagementPage from '@/pages/owner/CustomerManagementPage';
+import CustomerPaymentsPage from '@/pages/owner/CustomerPaymentsPage';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { SidebarProvider } from '@/contexts/SidebarContext';
@@ -255,6 +256,8 @@ const AppRoutes: React.FC = () => {
           <Route path="staff" element={<StaffPage />} />
           {/* Customer Management Route */}
           <Route path="customers" element={<CustomerManagementPage />} />
+          {/* Customer Payments Route */}
+          <Route path="payments" element={<CustomerPaymentsPage />} />
           {/* Branch Detail Route */}
           <Route path="branch/:branchId" element={<BranchDetailPage />} />
           {/* Add Branch Route */}

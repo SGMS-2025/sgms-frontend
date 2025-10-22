@@ -14,7 +14,8 @@ import {
   Target,
   CheckCircle,
   XCircle,
-  Shield
+  Shield,
+  CreditCard
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { userApi } from '@/services/api/userApi';
@@ -39,6 +40,7 @@ import { ServicePackageTab } from '@/components/profile/ServicePackageTab';
 import { TrainingProgressTab } from '@/components/profile/TrainingProgressTab';
 import { useAuthActions } from '@/hooks/useAuth';
 import { ChangePasswordForm } from '@/components/forms/ChangePasswordForm';
+import { PaymentHistoryTab } from '@/components/profile/PaymentHistoryTab';
 
 export function UserProfile() {
   const [isEditing, setIsEditing] = useState(false);
@@ -51,6 +53,8 @@ export function UserProfile() {
   const { state } = useAuth();
   const { updateUser } = useAuthActions();
   const isMobile = useIsMobile();
+  const [profileCustomerId, setProfileCustomerId] = useState<string | null>(null);
+  const customerId = state.user?.customerId ?? state.user?.customer?._id ?? profileCustomerId;
 
   // Helper functions to avoid nested ternary operators
   const getServiceTabText = (isMobile: boolean): string => {
@@ -110,7 +114,7 @@ export function UserProfile() {
 
         {/* Enhanced Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full gap-0">
-          <TabsList className="grid w-full grid-cols-4 bg-gray-50 border-b border-gray-200 h-auto p-1 rounded-none">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 bg-gray-50 border-b border-gray-200 h-auto p-1 rounded-none">
             <TabsTrigger
               value="personal"
               className="data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-md px-4 py-3 rounded-lg m-1 font-medium transition-all duration-200"
@@ -131,6 +135,15 @@ export function UserProfile() {
             >
               <TrendingUp className="w-4 h-4 mr-2" />
               <span className={isMobile ? 'text-sm' : 'text-base'}>{isMobile ? 'Tiến độ' : 'Tiến độ tập luyện'}</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="payment-history"
+              className="data-[state=active]:bg-white data-[state=active]:text-orange-600 data-[state=active]:shadow-md px-4 py-3 rounded-lg m-1 font-medium transition-all duration-200"
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              <span className={isMobile ? 'text-sm' : 'text-base'}>
+                {isMobile ? 'Thanh toán' : 'Lịch sử thanh toán'}
+              </span>
             </TabsTrigger>
             <TabsTrigger
               value="security"
@@ -174,6 +187,11 @@ export function UserProfile() {
               workoutSchedule={workoutSchedule}
               fitnessMetrics={fitnessMetrics}
             />
+          </TabsContent>
+
+          {/* Payment History Tab */}
+          <TabsContent value="payment-history" className="p-0 rounded-b-2xl" style={{ backgroundColor: '#F1F3F4' }}>
+            <PaymentHistoryTab customerId={customerId} />
           </TabsContent>
 
           {/* Security Tab */}
@@ -236,6 +254,8 @@ export function UserProfile() {
         : 'OTHER',
       bio: responseData.bio || ''
     });
+
+    setProfileCustomerId(responseData.customerId || responseData.customer?._id || null);
   };
 
   // Load user data from API
@@ -349,6 +369,7 @@ export function UserProfile() {
         bio: response.data.bio || '',
         avatar: response.data.avatar?.url || ''
       });
+      setProfileCustomerId(response.data.customerId || response.data.customer?._id || null);
 
       // Update AuthContext with new user data
       updateUser(response.data);
@@ -386,6 +407,7 @@ export function UserProfile() {
         ...userData,
         avatar: ''
       });
+      setProfileCustomerId(response.data.customerId || response.data.customer?._id || null);
 
       // Update AuthContext with new user data
       updateUser(response.data);
