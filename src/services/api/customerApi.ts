@@ -64,6 +64,22 @@ export const customerApi = {
     return response.data;
   },
 
+  updateBasicInfo: async (
+    customerId: string,
+    basicInfoData: Record<string, unknown>
+  ): Promise<ApiResponse<CustomerDisplay>> => {
+    const response = await api.put(`/customers/${customerId}/basic-info`, basicInfoData);
+    return response.data;
+  },
+
+  updateServiceRegistration: async (
+    customerId: string,
+    serviceData: Record<string, unknown>
+  ): Promise<ApiResponse<{ message: string; contract?: unknown }>> => {
+    const response = await api.put(`/customers/${customerId}/service-registration`, serviceData);
+    return response.data;
+  },
+
   importCustomers: async (
     customers: Record<string, unknown>[]
   ): Promise<

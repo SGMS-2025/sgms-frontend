@@ -188,6 +188,9 @@ export interface CustomerFormData {
   amountPaid: string | number;
   remainingDebt: string | number;
   serviceNotes: string;
+
+  // Payment Information
+  paymentMethod: 'CASH' | 'CREDIT_CARD' | 'BANK_TRANSFER' | 'EWALLET' | 'OTHER';
 }
 
 // Additional types for API responses
