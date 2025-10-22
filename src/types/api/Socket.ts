@@ -147,6 +147,7 @@ export interface SocketEvents {
   'workshift-notification': (data: WorkShiftNotificationData) => void;
   'timeoff-notification': (data: TimeOffNotificationData) => void;
   'reschedule-notification': (data: RescheduleNotificationData) => void;
+  'payment:updated': (data: PaymentUpdateEvent) => void;
 
   // Schedule events
   'schedule-created': (data: Record<string, unknown>) => void;
@@ -251,6 +252,20 @@ export interface SocketReconnectOptions {
   delay: number;
   backoff: boolean;
   exponentialBackoff: boolean;
+}
+
+export interface PaymentUpdateEvent {
+  orderCode?: number;
+  status?: 'PENDING' | 'PROCESSING' | 'PAID' | 'CANCELLED';
+  amount?: number;
+  amountPaid?: number;
+  amountRemaining?: number;
+  transactionId?: string;
+  paymentTime?: string;
+  customerId?: string;
+  contractId?: string;
+  contractType?: 'service' | 'membership';
+  metadata?: Record<string, unknown>;
 }
 
 // ===== ERROR TYPES =====
