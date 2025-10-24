@@ -38,7 +38,7 @@ export const usePermissionChecks = ({
       return false;
     })();
 
-    const isManager = userRole === 'MANAGER' || userRole === 'OWNER';
+    const isManager = userRole === 'MANAGER' || userRole === 'OWNER' || userRole === 'owner' || userRole === 'manager';
 
     return {
       // Reschedule permissions

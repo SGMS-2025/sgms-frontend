@@ -1,5 +1,38 @@
 import type { ScheduleType, TimeRange, PaginationResponse, SortOrder } from '../common/BaseTypes';
 
+// ===== SHIFT TYPES =====
+
+export type ShiftType = 'MORNING' | 'AFTERNOON' | 'EVENING' | 'CUSTOM' | `CUSTOM_${string}`;
+
+export interface ShiftTimeRange {
+  start: string; // HH:MM
+  end: string; // HH:MM
+}
+
+// Map shift → time
+export const SHIFT_TIMES: Record<ShiftType, ShiftTimeRange> = {
+  MORNING: { start: '08:00', end: '12:00' },
+  AFTERNOON: { start: '13:00', end: '17:00' },
+  EVENING: { start: '17:00', end: '21:00' },
+  CUSTOM: { start: '00:00', end: '00:00' } // Default for custom shifts
+};
+
+// Shift labels for UI
+export const SHIFT_LABELS: Record<ShiftType, string> = {
+  MORNING: 'Morning',
+  AFTERNOON: 'Afternoon',
+  EVENING: 'Evening',
+  CUSTOM: 'Custom'
+};
+
+// Helper to get shift display text
+export const getShiftDisplay = (shift: ShiftType): string => {
+  const time = SHIFT_TIMES[shift];
+  return `${SHIFT_LABELS[shift]} (${time.start}-${time.end})`;
+};
+
+// ===== MODAL & FORM PROPS =====
+
 export interface StaffScheduleModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -9,8 +42,43 @@ export interface StaffScheduleModalProps {
 
 export interface DayAvailability {
   enabled: boolean;
-  startTime: string;
-  endTime: string;
+  shifts?: ShiftType[]; // Array of selected shifts for this day (optional for backward compatibility)
+  // Keep startTime/endTime for backward compatibility with old forms
+  startTime?: string;
+  endTime?: string;
+}
+
+export interface CustomShiftTime {
+  start: string; // HH:MM
+  end: string; // HH:MM
+}
+
+export interface FixedShift {
+  dayOfWeek: string; // e.g., "MONDAY"
+  morning: boolean;
+  afternoon: boolean;
+  evening?: boolean; // For Technician and Manager
+  // Custom times - override default SHIFT_TIMES when provided
+  customTimes?: {
+    morning?: CustomShiftTime;
+    afternoon?: CustomShiftTime;
+    evening?: CustomShiftTime;
+    custom?: CustomShiftTime; // For simplified custom shift handling
+  };
+}
+
+export interface WeeklyFixedShifts {
+  staffId: string;
+  branchId: string;
+  workType: string;
+  weeklyShifts: Array<{
+    dayOfWeek: string;
+    shifts: Array<{
+      label: string;
+      start: string;
+      end: string;
+    }>;
+  }>;
 }
 
 export interface WeekAvailability {
@@ -23,13 +91,51 @@ export interface WeekAvailability {
   saturday: DayAvailability;
 }
 
+// Default week availability with shifts
+export const DEFAULT_WEEK_AVAILABILITY: WeekAvailability = {
+  sunday: { enabled: false, shifts: [] },
+  monday: { enabled: true, shifts: ['MORNING', 'AFTERNOON'] },
+  tuesday: { enabled: true, shifts: ['MORNING', 'AFTERNOON'] },
+  wednesday: { enabled: true, shifts: ['MORNING', 'AFTERNOON'] },
+  thursday: { enabled: true, shifts: ['MORNING', 'AFTERNOON'] },
+  friday: { enabled: true, shifts: ['MORNING', 'AFTERNOON'] },
+  saturday: { enabled: false, shifts: [] }
+};
+
+// Helper interface for converting shifts to schedules
+export interface ShiftSelection {
+  dayOfWeek: string;
+  shift: ShiftType;
+  startTime: string; // Auto-calculated from SHIFT_TIMES or customTimes
+  endTime: string; // Auto-calculated from SHIFT_TIMES or customTimes
+}
+
+// Helper function to get shift time (custom or default)
+export const getShiftTime = (shift: ShiftType, customTimes?: Record<string, CustomShiftTime>): ShiftTimeRange => {
+  // Handle standard shifts - check for specific shift custom time first
+  const shiftKey = shift.toLowerCase() as 'morning' | 'afternoon' | 'evening';
+
+  // Check if there's a custom time for this specific shift
+  if (customTimes?.[shiftKey]) {
+    return customTimes[shiftKey];
+  }
+
+  // Check if there's a general custom time (only for custom shifts)
+  if (shift === 'CUSTOM' && customTimes?.custom) {
+    return customTimes.custom;
+  }
+
+  // Return default shift time
+  return SHIFT_TIMES[shift];
+};
+
 export interface StaffScheduleFormData {
   title: string;
   staffId: string;
   branchId: string;
   scheduleDate: string;
   type: ScheduleType;
-  timeRange: TimeRange;
+  timeRange?: TimeRange; // Made optional as we now use shifts
   notes?: string;
   availability: WeekAvailability;
   timezone: string;
@@ -134,4 +240,5 @@ export interface StaffScheduleFiltersProps {
 export interface StaffScheduleCalendarProps {
   selectedStaffId?: string;
   onStaffSelect?: (staffId: string | undefined) => void;
+  userRole?: string;
 }

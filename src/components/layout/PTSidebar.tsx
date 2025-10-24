@@ -38,9 +38,6 @@ import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
 import { Sidebar, type SidebarItem as SidebarItemType } from '@/components/common/Sidebar';
 
-// TODO: DropdownSidebarItem và SubMenuItem có thể được extract ra common component sau này
-// nếu cần dùng ở nhiều sidebar khác
-
 interface DropdownSidebarItemProps {
   icon: React.ReactNode;
   label: string;
@@ -347,8 +344,8 @@ export const PTSidebar: React.FC = () => {
           }
           setHasInitiallyFetched(true);
         }
-      } catch (error) {
-        console.error('Failed to fetch user profile:', error);
+      } catch (_error) {
+        // Handle error silently
       } finally {
         if (!ignore) {
           setIsProfileLoading(false);
@@ -422,7 +419,7 @@ export const PTSidebar: React.FC = () => {
     },
     {
       icon: <AlertTriangle className="w-5 h-5" />,
-      label: 'Báo cáo lỗi thiết bị',
+      label: t('pt.sidebar.equipmentIssues', 'Equipment Issues'),
       href: '/manage/pt/equipment-issues',
       isActive: location.pathname.startsWith('/manage/pt/equipment-issues'),
       onClick: () => handleNavigation('/manage/pt/equipment-issues')
@@ -433,8 +430,8 @@ export const PTSidebar: React.FC = () => {
     try {
       logout();
       navigate('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
+    } catch (_error) {
+      // Handle error silently
     }
   };
 

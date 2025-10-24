@@ -29,6 +29,8 @@ export interface PhotoUploadSectionProps {
   onFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onRemovePhoto: (index: number) => void;
   onUploadClick: () => void;
+  isProcessing?: boolean;
+  processingProgress?: number;
 }
 
 export interface UsePhotoManagerOptions {

@@ -2,7 +2,8 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Camera, Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Camera, Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import type { PhotoUploadSectionProps } from '@/types/components/pt/Progress';
 
 export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({
@@ -14,7 +15,9 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({
   onOpenCamera,
   onFileUpload,
   onRemovePhoto,
-  onUploadClick
+  onUploadClick,
+  isProcessing = false,
+  processingProgress = 0
 }) => {
   const hasPhotos = existingPhotos.length > 0 || newPhotos.length > 0;
 
@@ -23,27 +26,40 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({
       <Label>Training Photos (max {maxPhotos})</Label>
 
       {/* Camera and Upload Buttons */}
-      <div className="flex gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onOpenCamera}
-          disabled={!canAddMore}
-          className="flex items-center gap-2"
-        >
-          <Camera className="h-4 w-4" />
-          Take Photo
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onUploadClick}
-          disabled={!canAddMore}
-          className="flex items-center gap-2"
-        >
-          <Upload className="h-4 w-4" />
-          Upload
-        </Button>
+      <div className="space-y-3">
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onOpenCamera}
+            disabled={!canAddMore || isProcessing}
+            className="flex items-center gap-2"
+          >
+            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+            Take Photo
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onUploadClick}
+            disabled={!canAddMore || isProcessing}
+            className="flex items-center gap-2"
+          >
+            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            Upload
+          </Button>
+        </div>
+
+        {/* Processing Progress */}
+        {isProcessing && processingProgress > 0 && (
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-600">Processing photos...</span>
+              <span className="text-gray-500">{Math.round(processingProgress)}%</span>
+            </div>
+            <Progress value={processingProgress} className="h-2" />
+          </div>
+        )}
       </div>
 
       {/* Photo Preview */}

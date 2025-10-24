@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { compressImageAdvanced, validateAndPrepareImages, TRAINING_PHOTO_OPTIONS } from '@/utils/imageUtils';
 import type { UsePhotoManagerOptions } from '@/types/components/pt/Progress';
 
 export const usePhotoManager = ({ maxPhotos, existingPhotos = [] }: UsePhotoManagerOptions) => {
@@ -9,6 +10,8 @@ export const usePhotoManager = ({ maxPhotos, existingPhotos = [] }: UsePhotoMana
   const [existingPhotosState, setExistingPhotosState] = useState<{ url: string; publicId: string }[]>(existingPhotos);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -38,23 +41,19 @@ export const usePhotoManager = ({ maxPhotos, existingPhotos = [] }: UsePhotoMana
   const getTotalPhotos = () => existingPhotosState.length + newPhotos.length;
 
   const openCamera = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      });
-      setStream(mediaStream);
-      setIsCameraOpen(true);
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
+    const mediaStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: 'environment',
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
       }
-    } catch (error) {
-      toast.error(t('toast.camera_permission_denied'));
-      console.error('Camera error:', error);
+    });
+
+    setStream(mediaStream);
+    setIsCameraOpen(true);
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = mediaStream;
     }
   };
 
@@ -66,12 +65,15 @@ export const usePhotoManager = ({ maxPhotos, existingPhotos = [] }: UsePhotoMana
     setIsCameraOpen(false);
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (videoRef.current && canvasRef.current) {
       if (getTotalPhotos() >= maxPhotos) {
         toast.error(t('toast.progress_max_photos'));
         return;
       }
+
+      setIsProcessing(true);
+      setProcessingProgress(30);
 
       const canvas = canvasRef.current;
       const video = videoRef.current;
@@ -82,53 +84,111 @@ export const usePhotoManager = ({ maxPhotos, existingPhotos = [] }: UsePhotoMana
         canvas.height = video.videoHeight;
         context.drawImage(video, 0, 0);
 
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              const url = URL.createObjectURL(blob);
-              setNewPhotos((prev) => [...prev, url]);
-              closeCamera();
-            } else {
-              toast.error(t('toast.progress_capture_photo_failed'));
-            }
-          },
-          'image/jpeg',
-          0.8
-        );
+        setProcessingProgress(50);
+
+        // Convert to blob with compression
+        const blob = await new Promise<Blob | null>((resolve) => {
+          canvas.toBlob(resolve, 'image/jpeg', 0.8);
+        });
+
+        if (blob) {
+          setProcessingProgress(60);
+
+          // Compress if needed
+          let finalBlob = blob;
+          if (blob.size > 500 * 1024) {
+            setProcessingProgress(75);
+            const compressedFile = await compressImageAdvanced(blob, 500, TRAINING_PHOTO_OPTIONS);
+            finalBlob = compressedFile;
+          }
+
+          const url = URL.createObjectURL(finalBlob);
+          setNewPhotos((prev) => [...prev, url]);
+          closeCamera();
+
+          toast.success(
+            t('toast.photo_captured', {
+              defaultValue: 'Photo captured successfully'
+            })
+          );
+        } else {
+          toast.error(t('toast.progress_capture_photo_failed'));
+        }
       }
+
+      setIsProcessing(false);
+      setProcessingProgress(100);
+      setTimeout(() => setProcessingProgress(0), 1000);
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files) {
-      const validFiles: File[] = [];
-      const invalidFiles: File[] = [];
+    if (!files || files.length === 0) return;
 
-      Array.from(files).forEach((file) => {
-        if (file.type.startsWith('image/')) {
-          validFiles.push(file);
-        } else {
-          invalidFiles.push(file);
-        }
-      });
+    // Reset progress
+    setProcessingProgress(0);
+    setIsProcessing(true);
 
-      const totalPhotos = getTotalPhotos();
-      if (totalPhotos + validFiles.length > maxPhotos) {
-        toast.error(t('toast.progress_max_photos_limit', { count: maxPhotos - totalPhotos }));
-        return;
-      }
+    // Validate files
+    const { validFiles, errors } = validateAndPrepareImages(files);
 
-      validFiles.forEach((file) => {
-        const url = URL.createObjectURL(file);
-        setNewPhotos((prev) => [...prev, url]);
-      });
-
-      if (invalidFiles.length > 0) {
-        toast.error(t('toast.progress_invalid_files', { count: invalidFiles.length }));
-      }
+    if (errors.length > 0) {
+      errors.forEach((error) => toast.error(error));
+      setIsProcessing(false);
+      return;
     }
 
+    // Check total photos limit
+    const totalPhotos = getTotalPhotos();
+    if (totalPhotos + validFiles.length > maxPhotos) {
+      toast.error(t('toast.progress_max_photos_limit', { count: maxPhotos - totalPhotos }));
+      setIsProcessing(false);
+      return;
+    }
+
+    setProcessingProgress(20);
+
+    // Process files with compression
+    const processedUrls: string[] = [];
+
+    for (let i = 0; i < validFiles.length; i++) {
+      const file = validFiles[i];
+      // Update progress
+      setProcessingProgress(20 + (i / validFiles.length) * 70);
+
+      // Compress image if it's larger than 500KB
+      let processedFile = file;
+      if (file.size > 500 * 1024) {
+        processedFile = await compressImageAdvanced(file, 500, TRAINING_PHOTO_OPTIONS);
+      }
+
+      const url = URL.createObjectURL(processedFile);
+      processedUrls.push(url);
+    }
+
+    setProcessingProgress(95);
+
+    // Update photos state
+    setNewPhotos((prev) => [...prev, ...processedUrls]);
+
+    // Show success message
+    if (processedUrls.length > 0) {
+      toast.success(
+        t('toast.photos_processed', {
+          count: processedUrls.length,
+          defaultValue: `${processedUrls.length} photo(s) processed successfully`
+        })
+      );
+    }
+
+    setIsProcessing(false);
+    setProcessingProgress(100);
+
+    // Clear progress after a delay
+    setTimeout(() => setProcessingProgress(0), 1000);
+
+    // Clear input
     if (event.target) {
       event.target.value = '';
     }
@@ -176,6 +236,8 @@ export const usePhotoManager = ({ maxPhotos, existingPhotos = [] }: UsePhotoMana
     existingPhotos: existingPhotosState,
     isCameraOpen,
     stream,
+    isProcessing,
+    processingProgress,
 
     // Refs
     fileInputRef,

@@ -42,9 +42,6 @@ import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
 import { Sidebar, type SidebarItem as SidebarItemType } from '@/components/common/Sidebar';
 
-// TODO: DropdownSidebarItem và SubMenuItem có thể được extract ra common component sau này
-// nếu cần dùng ở nhiều sidebar khác
-
 interface DropdownSidebarItemProps {
   icon: React.ReactNode;
   label: string;
@@ -547,7 +544,7 @@ export const OwnerSidebar: React.FC = () => {
             />
             <SubMenuItem
               icon={<Calendar className="w-5 h-5 stroke-[1.75]" />}
-              label="Schedule Templates"
+              label={t('sidebar.schedule_templates')}
               isActive={location.pathname === '/manage/schedule-templates'}
               onClick={() => navigate('/manage/schedule-templates')}
             />

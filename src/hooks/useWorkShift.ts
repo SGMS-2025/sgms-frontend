@@ -81,6 +81,28 @@ export const useWorkShiftList = (initialParams: WorkShiftListParams = {}): UseWo
     fetchWorkShifts();
   }, [fetchWorkShifts]);
 
+  useEffect(() => {
+    const handleRealtimeNotification = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const notification = customEvent.detail;
+
+      // Check if it's a WorkShift notification
+      if (notification.category === 'workshift' || notification.type?.includes('workshift')) {
+        // Refetch data after a short delay to ensure backend has processed
+        setTimeout(() => {
+          refetch();
+        }, 500);
+      }
+    };
+
+    // Listen to global realtime-notification event
+    globalThis.addEventListener('realtime-notification', handleRealtimeNotification);
+
+    return () => {
+      globalThis.removeEventListener('realtime-notification', handleRealtimeNotification);
+    };
+  }, [refetch]);
+
   return {
     workShifts,
     stats,

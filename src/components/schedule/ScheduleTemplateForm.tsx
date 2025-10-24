@@ -12,6 +12,7 @@ import { Calendar, Clock, User, Building, Brain } from 'lucide-react';
 import { useScheduleTemplate } from '@/hooks/useScheduleTemplate';
 import { useBranches } from '@/hooks/useBranches';
 import { useStaffList } from '@/hooks/useStaff';
+import { useTranslation } from 'react-i18next';
 import type {
   CreateScheduleTemplateRequest,
   ScheduleTemplate,
@@ -20,6 +21,7 @@ import type {
   DayOfWeek
 } from '@/types/api/ScheduleTemplate';
 import { SCHEDULE_TYPES, DAYS_OF_WEEK } from '@/types/api/ScheduleTemplate';
+import { getScheduleTypeLabel, getScheduleTypeDescription, getDayOfWeekLabel } from '@/utils/scheduleTypeHelpers';
 
 interface ScheduleTemplateFormProps {
   template?: ScheduleTemplate;
@@ -28,20 +30,11 @@ interface ScheduleTemplateFormProps {
 }
 
 // Use constants from types
-const DAYS_OF_WEEK_OPTIONS = Object.entries(DAYS_OF_WEEK).map(([value, label]) => ({
-  value: value as DayOfWeek,
-  label
-}));
-
-const SCHEDULE_TYPE_OPTIONS = Object.entries(SCHEDULE_TYPES).map(([value, config]) => ({
-  value: value as ScheduleType,
-  label: config.label,
-  description: config.description
-}));
 
 export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ template, onSuccess, onCancel }) => {
   const { createTemplate, updateTemplate, loading, error } = useScheduleTemplate();
   const { branches } = useBranches();
+  const { t } = useTranslation();
   // Note: Class API not yet implemented - using empty array for now
   const classes: never[] = [];
 
@@ -68,6 +61,19 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
   const { staffList: staff } = useStaffList();
 
   const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>([]);
+
+  const SCHEDULE_TYPE_OPTIONS = Object.entries(SCHEDULE_TYPES).map(([value]) => ({
+    value: value as ScheduleType,
+    label: getScheduleTypeLabel(value as ScheduleType, t),
+    description: getScheduleTypeDescription(value as ScheduleType, t)
+  }));
+
+  // Create days of week options with i18n
+  const DAYS_OF_WEEK_OPTIONS = Object.entries(DAYS_OF_WEEK).map(([value]) => ({
+    value: value as DayOfWeek,
+    label: getDayOfWeekLabel(value, t)
+  }));
+
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Data is already loaded by hooks
@@ -172,11 +178,11 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
     const errors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      errors.name = 'Schedule title is required';
+      errors.name = t('validation.schedule_title_required');
     }
 
     if (!formData.branchId) {
-      errors.branchId = 'Branch selection is required';
+      errors.branchId = t('validation.branch_selection_required');
     }
 
     if (formData.type === 'CLASS' && !formData.classId) {
@@ -308,28 +314,6 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
       }
     }
 
-    // Debug: Log the cleaned data before sending
-    console.log('=== SCHEDULE TEMPLATE FORM DEBUG ===');
-    console.log('Original formData:', {
-      branchId: formData.branchId,
-      ptId: formData.ptId,
-      classId: formData.classId,
-      type: formData.type
-    });
-    console.log('Cleaned data being sent to backend:', {
-      branchId: cleanedData.branchId,
-      ptId: cleanedData.ptId,
-      classId: cleanedData.classId,
-      type: cleanedData.type,
-      name: cleanedData.name
-    });
-    console.log('Data types:', {
-      branchIdType: typeof cleanedData.branchId,
-      ptIdType: typeof cleanedData.ptId,
-      classIdType: typeof cleanedData.classId
-    });
-    console.log('=== END DEBUG ===');
-
     // Final data sanitization - ensure all ID fields are strings
     const finalData = {
       ...cleanedData,
@@ -354,8 +338,6 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
       return;
     }
 
-    console.log('Final sanitized data:', finalData);
-
     try {
       if (template) {
         const updatedTemplate = await updateTemplate(template._id, finalData);
@@ -367,8 +349,6 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
         toast.success('Template created successfully!');
       }
     } catch (err: unknown) {
-      console.error('Failed to save template:', err);
-
       // Handle specific error messages
       if (err && typeof err === 'object' && 'response' in err) {
         const errorResponse = err as { response?: { data?: { message?: string } } };
@@ -390,18 +370,20 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{template ? 'Edit Schedule Template' : 'Create Schedule Template'}</h1>
+          <h1 className="text-3xl font-bold">
+            {template ? t('schedule_templates.edit_title') : t('schedule_templates.create_title')}
+          </h1>
           <p className="text-muted-foreground">
-            {template ? 'Update template configuration' : 'Configure work schedule and staff availability'}
+            {template ? t('schedule_templates.edit_description') : t('schedule_templates.create_description')}
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={onCancel}>
-            Cancel
+            {t('schedule_templates.cancel')}
           </Button>
           <Button variant="outline">
             <Brain className="w-4 h-4 mr-2" />
-            Help
+            {t('schedule_templates.help')}
           </Button>
         </div>
       </div>
@@ -412,25 +394,25 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="w-5 h-5" />
-              Basic Information
+              {t('schedule_templates.basic_information')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Schedule Title *</Label>
+                <Label htmlFor="name">{t('schedule.form.title')} *</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  placeholder="Enter schedule title"
+                  placeholder={t('schedule.form.title_placeholder')}
                   required
                   className={fieldErrors.name ? 'border-red-500 focus:border-red-500' : ''}
                 />
                 {fieldErrors.name && <p className="text-sm text-red-600">{fieldErrors.name}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="type">Schedule Type *</Label>
+                <Label htmlFor="type">{t('workshift.schedule_type')} *</Label>
                 <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
                   <SelectTrigger>
                     <SelectValue />
@@ -462,7 +444,7 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
                 id="description"
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="Enter description"
+                placeholder={t('schedule.form.description_placeholder')}
                 rows={3}
               />
             </div>
@@ -472,7 +454,7 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
                 <Label htmlFor="branch">Branch *</Label>
                 <Select value={formData.branchId} onValueChange={(value) => handleInputChange('branchId', value)}>
                   <SelectTrigger className={fieldErrors.branchId ? 'border-red-500 focus:border-red-500' : ''}>
-                    <SelectValue placeholder="Select Branch" />
+                    <SelectValue placeholder={t('schedule.form.select_branch')} />
                   </SelectTrigger>
                   <SelectContent>
                     {branches.map((branch) => (
@@ -493,7 +475,7 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
                   <Label htmlFor="class">Class *</Label>
                   <Select value={formData.classId} onValueChange={(value) => handleInputChange('classId', value)}>
                     <SelectTrigger className={fieldErrors.classId ? 'border-red-500 focus:border-red-500' : ''}>
-                      <SelectValue placeholder="Select Class" />
+                      <SelectValue placeholder={t('schedule.form.select_class')} />
                     </SelectTrigger>
                     <SelectContent>
                       <div className="px-2 py-1.5 text-sm text-muted-foreground">No classes available</div>
@@ -508,7 +490,7 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
                   <Label htmlFor="pt">Personal Trainer *</Label>
                   <Select value={formData.ptId} onValueChange={(value) => handleInputChange('ptId', value)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select PT" />
+                      <SelectValue placeholder={t('schedule.form.select_pt')} />
                     </SelectTrigger>
                     <SelectContent>
                       {staff.filter((s) => s.jobTitle === 'Personal Trainer').length > 0 ? (
@@ -535,7 +517,7 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
                   <Label htmlFor="pt">Technician *</Label>
                   <Select value={formData.ptId} onValueChange={(value) => handleInputChange('ptId', value)}>
                     <SelectTrigger className={fieldErrors.ptId ? 'border-red-500 focus:border-red-500' : ''}>
-                      <SelectValue placeholder="Select Technician" />
+                      <SelectValue placeholder={t('schedule.form.select_technician')} />
                     </SelectTrigger>
                     <SelectContent>
                       {staff.filter((s) => s.jobTitle === 'Technician').length > 0 ? (
@@ -573,7 +555,7 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="startTime">Start Time *</Label>
+                <Label htmlFor="startTime">{t('workshift.start_time')} *</Label>
                 <Input
                   id="startTime"
                   type="time"
@@ -583,7 +565,7 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="endTime">End Time *</Label>
+                <Label htmlFor="endTime">{t('workshift.end_time')} *</Label>
                 <Input
                   id="endTime"
                   type="time"
@@ -647,7 +629,7 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
               <div className="grid grid-cols-7 gap-2">
                 {DAYS_OF_WEEK_OPTIONS.map((day) => (
                   <div key={day.value} className="space-y-2">
-                    <div className="text-center text-sm font-medium">{day.label.slice(0, 3)}</div>
+                    <div className="text-center text-sm font-medium">{day.label}</div>
                     <Button
                       type="button"
                       variant={selectedDays.includes(day.value) ? 'default' : 'outline'}
@@ -690,7 +672,7 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
             {formData.autoGenerate?.enabled && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="advanceDays">Advance Days</Label>
+                  <Label htmlFor="advanceDays">{t('workshift.advance_days')}</Label>
                   <Input
                     id="advanceDays"
                     type="number"
@@ -699,12 +681,10 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
                     value={formData.autoGenerate?.advanceDays || 7}
                     onChange={(e) => handleAutoGenerateChange('advanceDays', parseInt(e.target.value))}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Number of days in advance to schedule (e.g., 7 = create schedule 7 days from now)
-                  </p>
+                  <p className="text-xs text-muted-foreground">{t('workshift.advance_days_example')}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="endDate">End Date</Label>
+                  <Label htmlFor="endDate">{t('workshift.end_date')}</Label>
                   <Input
                     id="endDate"
                     type="date"
@@ -727,7 +707,7 @@ export const ScheduleTemplateForm: React.FC<ScheduleTemplateFormProps> = ({ temp
             <Textarea
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
-              placeholder="Add any additional notes or instructions..."
+              placeholder={t('schedule.form.notes_placeholder')}
               rows={3}
             />
           </CardContent>

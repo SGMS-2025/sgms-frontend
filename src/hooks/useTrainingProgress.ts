@@ -18,14 +18,10 @@ const transformProgressToDisplay = (progress: TrainingProgress): TrainingProgres
   customerAvatar: progress.customerId?.userId?.avatar?.url,
   trainerName: progress.trainerId?.fullName || 'Unknown',
   date: (() => {
-    try {
-      if (!progress.trackingDate) return 'Invalid Date';
-      const date = new Date(progress.trackingDate);
-      if (isNaN(date.getTime())) return 'Invalid Date';
-      return date.toLocaleDateString('vi-VN');
-    } catch {
-      return 'Invalid Date';
-    }
+    if (!progress.trackingDate) return 'Invalid Date';
+    const date = new Date(progress.trackingDate);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    return date.toLocaleDateString('vi-VN');
   })(),
   weight: progress.weight,
   height: progress.height,
@@ -59,20 +55,15 @@ export const useTrainingProgress = (initialParams: TrainingProgressListParams = 
     setLoading(true);
     setError(null);
 
-    try {
-      const response = await trainingProgressApi.getTrainingProgressList(params);
+    const response = await trainingProgressApi.getTrainingProgressList(params);
 
-      if (response.success) {
-        const transformed = response.data.progressRecords.map(transformProgressToDisplay);
+    if (response.success) {
+      const transformed = response.data.progressRecords.map(transformProgressToDisplay);
 
-        setProgressList(transformed);
-        setPagination(response.data.pagination);
-      } else {
-        setError(response.message || 'Failed to fetch training progress');
-      }
-    } catch (err) {
-      console.error('❌ Error fetching progress list:', err);
-      setError('An error occurred while fetching training progress');
+      setProgressList(transformed);
+      setPagination(response.data.pagination);
+    } else {
+      setError(response.message || 'Failed to fetch training progress');
     }
 
     setLoading(false);
@@ -92,15 +83,12 @@ export const useTrainingProgress = (initialParams: TrainingProgressListParams = 
   const createProgress = useCallback(
     async (data: CreateTrainingProgressRequest) => {
       setCreateLoading(true);
-      try {
-        const response = await trainingProgressApi.createTrainingProgress(data);
-        if (response.success) {
-          await refetch(); // Refresh list after creation
-        }
-        return response;
-      } finally {
-        setCreateLoading(false);
+      const response = await trainingProgressApi.createTrainingProgress(data);
+      if (response.success) {
+        await refetch(); // Refresh list after creation
       }
+      setCreateLoading(false);
+      return response;
     },
     [refetch]
   );
@@ -109,15 +97,12 @@ export const useTrainingProgress = (initialParams: TrainingProgressListParams = 
   const updateProgress = useCallback(
     async (progressId: string, data: UpdateTrainingProgressRequest) => {
       setUpdateLoading(true);
-      try {
-        const response = await trainingProgressApi.updateTrainingProgress(progressId, data);
-        if (response.success) {
-          await refetch(); // Refresh list after update
-        }
-        return response;
-      } finally {
-        setUpdateLoading(false);
+      const response = await trainingProgressApi.updateTrainingProgress(progressId, data);
+      if (response.success) {
+        await refetch(); // Refresh list after update
       }
+      setUpdateLoading(false);
+      return response;
     },
     [refetch]
   );
@@ -126,15 +111,12 @@ export const useTrainingProgress = (initialParams: TrainingProgressListParams = 
   const deleteProgress = useCallback(
     async (progressId: string) => {
       setDeleteLoading(true);
-      try {
-        const response = await trainingProgressApi.deleteTrainingProgress(progressId);
-        if (response.success) {
-          await refetch(); // Refresh list after deletion
-        }
-        return response;
-      } finally {
-        setDeleteLoading(false);
+      const response = await trainingProgressApi.deleteTrainingProgress(progressId);
+      if (response.success) {
+        await refetch(); // Refresh list after deletion
       }
+      setDeleteLoading(false);
+      return response;
     },
     [refetch]
   );
@@ -153,15 +135,12 @@ export const useTrainingProgress = (initialParams: TrainingProgressListParams = 
   const addPhotos = useCallback(
     async (progressId: string, photos: TrainingProgressPhoto[]) => {
       setPhotoLoading(true);
-      try {
-        const response = await trainingProgressApi.addPhotosToProgress(progressId, photos);
-        if (response.success) {
-          await refetch();
-        }
-        return response;
-      } finally {
-        setPhotoLoading(false);
+      const response = await trainingProgressApi.addPhotosToProgress(progressId, photos);
+      if (response.success) {
+        await refetch();
       }
+      setPhotoLoading(false);
+      return response;
     },
     [refetch]
   );
@@ -170,20 +149,14 @@ export const useTrainingProgress = (initialParams: TrainingProgressListParams = 
   const uploadPhotos = useCallback(
     async (progressId: string, files: File[]) => {
       setPhotoLoading(true);
-      try {
-        const response = await trainingProgressApi.uploadPhotosToProgress(progressId, files);
-        if (response.success) {
-          await refetch();
-        } else {
-          console.error('❌ Photo upload failed:', response.message);
-        }
-        return response;
-      } catch (error) {
-        console.error('❌ Error in uploadPhotos:', error);
-        throw error;
-      } finally {
-        setPhotoLoading(false);
+      const response = await trainingProgressApi.uploadPhotosToProgress(progressId, files);
+      if (response.success) {
+        await refetch();
+      } else {
+        console.error('Photo upload failed:', response.message);
       }
+      setPhotoLoading(false);
+      return response;
     },
     [refetch]
   );
@@ -192,15 +165,12 @@ export const useTrainingProgress = (initialParams: TrainingProgressListParams = 
   const removePhoto = useCallback(
     async (progressId: string, photoIndex: number) => {
       setPhotoLoading(true);
-      try {
-        const response = await trainingProgressApi.removePhotoFromProgress(progressId, photoIndex);
-        if (response.success) {
-          await refetch();
-        }
-        return response;
-      } finally {
-        setPhotoLoading(false);
+      const response = await trainingProgressApi.removePhotoFromProgress(progressId, photoIndex);
+      if (response.success) {
+        await refetch();
       }
+      setPhotoLoading(false);
+      return response;
     },
     [refetch]
   );

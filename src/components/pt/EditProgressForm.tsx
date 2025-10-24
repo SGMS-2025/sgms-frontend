@@ -217,6 +217,8 @@ export const EditProgressForm: React.FC<EditProgressFormProps> = ({ progressId, 
         onFileUpload={photoManager.handleFileUpload}
         onRemovePhoto={photoManager.removePhoto}
         onUploadClick={() => photoManager.fileInputRef.current?.click()}
+        isProcessing={photoManager.isProcessing}
+        processingProgress={photoManager.processingProgress}
       />
 
       {/* Camera Modal */}

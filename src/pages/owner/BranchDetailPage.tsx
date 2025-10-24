@@ -29,6 +29,7 @@ import { mapManagersToStaffIds } from '@/utils/managerUtils';
 import type { BranchDisplay, BranchEditValues, CreateAndUpdateBranchRequest } from '@/types/api/Branch';
 import type { Staff } from '@/types/api/Staff';
 import { toast } from 'sonner';
+import DisableBranchModal from '@/components/modals/DisableBranchModal';
 
 const BranchDetailPage: React.FC = () => {
   const { t } = useTranslation();
@@ -45,6 +46,7 @@ const BranchDetailPage: React.FC = () => {
   const [branch, setBranch] = useState<BranchDisplay | null>(null);
   const [loading, setLoading] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState(false);
+  const [showDisableModal, setShowDisableModal] = useState(false);
 
   // Edit mode states
   const [isEditMode, setIsEditMode] = useState(false);
@@ -304,12 +306,42 @@ const BranchDetailPage: React.FC = () => {
   const handleToggleStatus = async () => {
     if (!branch || togglingStatus) return;
 
+    // If branch is active, show confirmation modal
+    if (branch.status === 'ACTIVE') {
+      setShowDisableModal(true);
+      return;
+    }
+
+    // If branch is inactive, directly enable it
     setTogglingStatus(true);
-    await toggleBranchStatus(branch._id);
-    // The branch will be updated in context, so we need to refresh local state
-    const updatedBranch = await fetchBranchDetail(branch._id);
-    if (updatedBranch) {
-      setBranch(updatedBranch);
+    try {
+      await toggleBranchStatus(branch._id);
+      // The branch will be updated in context, so we need to refresh local state
+      const updatedBranch = await fetchBranchDetail(branch._id);
+      if (updatedBranch) {
+        setBranch(updatedBranch);
+      }
+      toast.success(t('branch_detail.enable_success', { defaultValue: 'Chi nhánh đã được kích hoạt' }));
+    } catch (_error) {
+      toast.error(t('branch_detail.enable_failed', { defaultValue: 'Không thể kích hoạt chi nhánh' }));
+    }
+    setTogglingStatus(false);
+  };
+
+  const handleConfirmDisable = async () => {
+    if (!branch || togglingStatus) return;
+
+    setTogglingStatus(true);
+    try {
+      await toggleBranchStatus(branch._id);
+      // The branch will be updated in context, so we need to refresh local state
+      const updatedBranch = await fetchBranchDetail(branch._id);
+      if (updatedBranch) {
+        setBranch(updatedBranch);
+      }
+      toast.success(t('branch_detail.disable_success', { defaultValue: 'Chi nhánh đã được tắt' }));
+    } catch (_error) {
+      toast.error(t('branch_detail.disable_failed', { defaultValue: 'Không thể tắt chi nhánh' }));
     }
     setTogglingStatus(false);
   };
@@ -711,6 +743,15 @@ const BranchDetailPage: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Disable Branch Modal */}
+      <DisableBranchModal
+        isOpen={showDisableModal}
+        onClose={() => setShowDisableModal(false)}
+        branch={branch}
+        onConfirm={handleConfirmDisable}
+        isProcessing={togglingStatus}
+      />
     </div>
   );
 };

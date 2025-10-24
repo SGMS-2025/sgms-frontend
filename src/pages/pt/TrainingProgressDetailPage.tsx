@@ -78,31 +78,27 @@ export default function TrainingProgressDetailPage() {
         }
 
         setCustomerLoading(true);
-        try {
-          const response = await customerApi.getCustomerById(customerId);
+        const response = await customerApi.getCustomerById(customerId);
 
-          if (response.success) {
-            // Transform the customer data to match our expected format
-            setCustomer({
-              id: response.data.id,
-              name: response.data.name || 'Unknown',
-              phone: response.data.phone,
-              email: response.data.email,
-              avatar: '/avatars/customer-1.jpg', // Default avatar since CustomerDisplay doesn't have avatar
-              package: response.data.membershipType || 'Personal Training - Basic',
-              status: response.data.membershipStatus === 'ACTIVE' ? 'Active' : 'Inactive',
-              serviceContractId: serviceContractId || '', // Use from navigation state
-              trainerId: currentUser?._id || '' // Keep current user as trainer
-            });
-          } else {
-            toast.error(t('progress_detail.error.load_failed'));
-          }
-        } catch (error) {
-          console.error('Error loading customer data:', error);
-          toast.error(t('progress_detail.error.load_error'));
-        } finally {
-          setCustomerLoading(false);
+        if (response.success) {
+          // Transform the customer data to match our expected format
+          setCustomer({
+            id: response.data.id,
+            name: response.data.name || 'Unknown',
+            phone: response.data.phone,
+            email: response.data.email,
+            avatar: '/avatars/customer-1.jpg', // Default avatar since CustomerDisplay doesn't have avatar
+            package: response.data.membershipType || 'Personal Training - Basic',
+            status: response.data.membershipStatus === 'ACTIVE' ? 'Active' : 'Inactive',
+            serviceContractId: serviceContractId || '', // Use from navigation state
+            trainerId: currentUser?._id || '' // Keep current user as trainer
+          });
+        } else {
+          console.error('Failed to load customer data:', response.message);
+          toast.error(t('progress_detail.error.load_failed'));
         }
+
+        setCustomerLoading(false);
       }
     };
 
@@ -113,14 +109,13 @@ export default function TrainingProgressDetailPage() {
   useEffect(() => {
     const loadCustomerStats = async () => {
       if (customerId) {
-        try {
-          const statsResponse = await getCustomerStats(customerId, { days: 30 });
-
-          if (statsResponse.success) {
-            setCustomerStats(statsResponse.data);
-          }
-        } catch (error) {
-          console.error('Error loading customer stats:', error);
+        const statsResponse = await getCustomerStats(customerId, { days: 30 });
+        if (statsResponse.success) {
+          setCustomerStats(statsResponse.data);
+        } else {
+          console.warn('Failed to load customer stats:', statsResponse.message);
+          // Stats are not critical, continue without them
+          setCustomerStats(null);
         }
       }
     };

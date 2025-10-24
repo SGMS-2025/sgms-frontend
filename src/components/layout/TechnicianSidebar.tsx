@@ -9,8 +9,6 @@ import {
   Building,
   Users,
   LayoutDashboard,
-  Settings,
-  HelpCircle,
   ChevronUp,
   LogOut,
   UserCircle,
@@ -296,16 +294,6 @@ const UserProfile: React.FC<{
 
       <DropdownMenuItem
         onClick={() => {
-          navigate('/settings');
-        }}
-        className="cursor-pointer"
-      >
-        <Settings className="w-4 h-4 mr-3 stroke-[1.75]" />
-        {t('sidebar.account_settings')}
-      </DropdownMenuItem>
-
-      <DropdownMenuItem
-        onClick={() => {
           navigate('/security');
         }}
         className="cursor-pointer"
@@ -424,8 +412,8 @@ export const TechnicianSidebar: React.FC = () => {
           }
           setHasInitiallyFetched(true);
         }
-      } catch (error) {
-        console.error('Failed to fetch user profile:', error);
+      } catch (_error) {
+        // Handle error silently
       } finally {
         if (!ignore) {
           setIsProfileLoading(false);
@@ -554,19 +542,6 @@ export const TechnicianSidebar: React.FC = () => {
   // Add all additional items to main navigation
   mainNavItems.push(...roleSpecificItems, ...personalTrainerItems, ...equipmentItems, ...managementItems);
 
-  const secondaryNavItems = [
-    {
-      icon: <Settings className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.settings'),
-      onClick: () => console.log('Settings clicked')
-    },
-    {
-      icon: <HelpCircle className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.help'),
-      onClick: () => console.log('Help clicked')
-    }
-  ];
-
   return (
     <div
       className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out h-full ${
@@ -626,30 +601,6 @@ export const TechnicianSidebar: React.FC = () => {
             />
           </DropdownSidebarItem>
         </nav>
-
-        {/* Secondary Navigation */}
-        <div className="mt-8">
-          {!isCollapsed && (
-            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-3">
-              {t('sidebar.support')}
-            </div>
-          )}
-          <nav
-            className={`space-y-1 ${isCollapsed ? 'flex flex-col items-center' : ''}`}
-            role="navigation"
-            aria-label="Support"
-          >
-            {secondaryNavItems.map((item) => (
-              <SidebarItem
-                key={item.label}
-                icon={item.icon}
-                label={item.label}
-                onClick={item.onClick}
-                isCollapsed={isCollapsed}
-              />
-            ))}
-          </nav>
-        </div>
       </div>
 
       {/* User Profile */}

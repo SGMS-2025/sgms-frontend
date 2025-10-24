@@ -1,5 +1,4 @@
 import type React from 'react';
-import { toast } from 'sonner';
 
 export interface ImageUploadResult {
   imageUrl: string;
@@ -127,25 +126,14 @@ export const resizeImage = (
  */
 export const createImageUploadHandler = (
   onSuccess: (result: ImageUploadResult) => void,
-  onError?: (error: string) => void,
   options?: ImageUploadOptions
 ) => {
   return async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    try {
-      const result = await processImageFile(file, options);
-      onSuccess(result);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Upload thất bại';
-
-      if (onError) {
-        onError(errorMessage);
-      } else {
-        toast.error(`Lỗi upload ảnh: ${errorMessage}`);
-      }
-    }
+    const result = await processImageFile(file, options);
+    onSuccess(result);
   };
 };
 
@@ -196,4 +184,205 @@ export const FACILITY_IMAGE_OPTIONS: ImageUploadOptions = {
   maxWidth: 1200,
   maxHeight: 800,
   quality: 0.9
+};
+
+/**
+ * Default options for training progress photos
+ */
+export const TRAINING_PHOTO_OPTIONS: ImageUploadOptions = {
+  maxSizeInMB: 3,
+  allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+  maxWidth: 1920,
+  maxHeight: 1080,
+  quality: 0.8
+};
+
+/**
+ * Advanced image compression with progressive quality reduction
+ * @param file - File or Blob to compress
+ * @param targetSizeKB - Target file size in KB
+ * @param options - Compression options
+ * @returns Promise<File> - Compressed file
+ */
+export const compressImageAdvanced = async (
+  file: File | Blob,
+  targetSizeKB: number = 500,
+  options: ImageUploadOptions = {}
+): Promise<File> => {
+  const { maxWidth = 1920, maxHeight = 1080, quality = 0.8 } = options;
+
+  // Create image element
+  const img = new Image();
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d')!;
+
+  // Load image
+  const imageUrl = URL.createObjectURL(file);
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = imageUrl;
+  });
+
+  // Calculate new dimensions maintaining aspect ratio
+  let { width, height } = img;
+
+  if (width > maxWidth || height > maxHeight) {
+    const aspectRatio = width / height;
+
+    if (width > height) {
+      width = Math.min(maxWidth, width);
+      height = width / aspectRatio;
+    } else {
+      height = Math.min(maxHeight, height);
+      width = height * aspectRatio;
+    }
+  }
+
+  // Set canvas dimensions
+  canvas.width = width;
+  canvas.height = height;
+
+  // Draw image
+  ctx.drawImage(img, 0, 0, width, height);
+
+  // Clean up
+  URL.revokeObjectURL(imageUrl);
+
+  // Progressive compression - start with desired quality and reduce if needed
+  let currentQuality = quality;
+  let compressedBlob: Blob | null = null;
+  const targetSizeBytes = targetSizeKB * 1024;
+
+  do {
+    compressedBlob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', currentQuality);
+    });
+
+    if (!compressedBlob) {
+      throw new Error('Failed to compress image');
+    }
+
+    // If size is acceptable or quality too low, break
+    if (compressedBlob.size <= targetSizeBytes || currentQuality <= 0.1) {
+      break;
+    }
+
+    currentQuality -= 0.1;
+  } while (currentQuality > 0.1);
+
+  // Create File from compressed blob
+  const originalName = file instanceof File ? file.name : 'compressed-image';
+  const filename = originalName.replace(/\.[^/.]+$/, '') + '_optimized.jpg';
+
+  const compressedFile = new File([compressedBlob], filename, {
+    type: 'image/jpeg',
+    lastModified: Date.now()
+  });
+
+  return compressedFile;
+};
+
+/**
+ * Batch compress multiple images
+ * @param files - Array of files to compress
+ * @param targetSizeKB - Target size for each file
+ * @param onProgress - Progress callback
+ * @returns Promise<File[]> - Array of compressed files
+ */
+export const compressBatchImages = async (
+  files: File[],
+  targetSizeKB: number = 500,
+  onProgress?: (current: number, total: number) => void
+): Promise<File[]> => {
+  const compressedFiles: File[] = [];
+
+  for (let i = 0; i < files.length; i++) {
+    onProgress?.(i + 1, files.length);
+    const compressed = await compressImageAdvanced(files[i], targetSizeKB, TRAINING_PHOTO_OPTIONS);
+    compressedFiles.push(compressed);
+  }
+
+  return compressedFiles;
+};
+
+/**
+ * Validate and prepare image files for upload
+ * @param files - Files to validate
+ * @returns Object with valid files and errors
+ */
+export const validateAndPrepareImages = (
+  files: FileList | File[]
+): {
+  validFiles: File[];
+  errors: string[];
+  totalSize: number;
+} => {
+  const validFiles: File[] = [];
+  const errors: string[] = [];
+  let totalSize = 0;
+
+  const fileArray = Array.from(files);
+
+  fileArray.forEach((file, index) => {
+    // Validate file type
+    if (!isValidImageFile(file)) {
+      errors.push(`File ${index + 1}: Invalid image format`);
+      return;
+    }
+
+    // Validate file size (10MB individual limit)
+    if (file.size > 10 * 1024 * 1024) {
+      errors.push(`File ${index + 1}: File too large (max 10MB)`);
+      return;
+    }
+
+    validFiles.push(file);
+    totalSize += file.size;
+  });
+
+  // Check total size (50MB limit for batch)
+  if (totalSize > 50 * 1024 * 1024) {
+    errors.push('Total file size exceeds 50MB limit');
+  }
+
+  return { validFiles, errors, totalSize };
+};
+
+/**
+ * Get image metadata
+ * @param file - Image file
+ * @returns Promise with metadata
+ */
+export const getImageMetadata = async (
+  file: File
+): Promise<{
+  width: number;
+  height: number;
+  size: number;
+  type: string;
+  name: string;
+}> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({
+        width: img.width,
+        height: img.height,
+        size: file.size,
+        type: file.type,
+        name: file.name
+      });
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load image metadata'));
+    };
+
+    img.src = url;
+  });
 };

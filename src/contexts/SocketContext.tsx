@@ -76,11 +76,28 @@ function socketReducer(state: SocketState, action: SocketAction): SocketState {
         return state;
       }
 
-      return {
+      // Also check for duplicate based on content (same title, message, and data within 5 seconds)
+      const fiveSecondsAgo = new Date(Date.now() - 5000);
+      const duplicateByContent = state.notifications.find((notification) => {
+        const isSameTitle = notification.title === action.payload.title;
+        const isSameMessage = notification.message === action.payload.message;
+        const isRecent = new Date(notification.timestamp) > fiveSecondsAgo;
+        const isSameType = notification.type === action.payload.type;
+
+        return isSameTitle && isSameMessage && isRecent && isSameType;
+      });
+
+      if (duplicateByContent) {
+        return state;
+      }
+
+      const newState = {
         ...state,
         notifications: [action.payload, ...state.notifications],
         unreadCount: state.unreadCount + 1
       };
+
+      return newState;
     }
     case 'MARK_NOTIFICATION_READ':
       return {
@@ -306,11 +323,18 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [authState.isAuthenticated, authState.user]);
 
-  // Listen for work shift notifications
-  useEffect(() => {
-    const handleWorkShiftNotification = (data: Record<string, unknown>) => {
+  // Memoize notification handler to prevent stale closures
+  const handleWorkShiftNotification = useCallback(
+    (data: Record<string, unknown>) => {
+      // Use the actual MongoDB ObjectId from the database if available
+      const notificationId =
+        (data.id as string) ||
+        (data._id as string) ||
+        // Fallback to a simple timestamp-based ID if no database ID is available
+        `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
       const notification: Notification = {
-        id: (data.id as string) || `notification-${Date.now()}-${Math.random()}`, // Use backend ID if available
+        id: notificationId,
         type: data.type as string,
         title: data.title as string,
         message: data.message as string,
@@ -324,13 +348,20 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
       dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
 
-      // Toast notification is handled in socketService to avoid duplicates
-    };
+      globalThis.dispatchEvent(
+        new CustomEvent('realtime-notification', {
+          detail: notification
+        })
+      );
+    },
+    [dispatch]
+  );
 
-    // Removed handleCustomEvent to avoid duplicate notifications
+  useEffect(() => {}, [dispatch]);
 
-    // Listen for fetched notifications from socketService
-    const handleFetchedNotification = (event: CustomEvent) => {
+  // Memoize fetched notification handler
+  const handleFetchedNotification = useCallback(
+    (event: CustomEvent) => {
       const data = event.detail as Record<string, unknown>;
       const notification: Notification = {
         id: (data._id as string) || `notification-${Date.now()}-${Math.random()}`,
@@ -349,31 +380,65 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
       // Don't show toast for fetched notifications (already stored)
       // They will be displayed in the notification panel
-    };
+    },
+    [dispatch]
+  );
 
-    // Listen for socket events directly
-    const handleSocketNotification = (data: WorkShiftNotificationData) => {
+  // Memoize socket notification handlers
+  const handleSocketNotification = useCallback(
+    (data: WorkShiftNotificationData) => {
       handleWorkShiftNotification(data as unknown as Record<string, unknown>);
-    };
+    },
+    [handleWorkShiftNotification]
+  );
 
-    const handleTimeOffSocketNotification = (data: TimeOffNotificationData) => {
+  const handleTimeOffSocketNotification = useCallback(
+    (data: TimeOffNotificationData) => {
       handleWorkShiftNotification(data as unknown as Record<string, unknown>);
-    };
+    },
+    [handleWorkShiftNotification]
+  );
 
-    const handleRescheduleSocketNotification = (data: RescheduleNotificationData) => {
+  const handleRescheduleSocketNotification = useCallback(
+    (data: RescheduleNotificationData) => {
       handleWorkShiftNotification(data as unknown as Record<string, unknown>);
+    },
+    [handleWorkShiftNotification]
+  );
+
+  const handleTestNotification = useCallback(
+    (event: CustomEvent) => {
+      const notification: Notification = event.detail;
+      dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
+    },
+    [dispatch]
+  );
+
+  useEffect(() => {
+    const handleSocketAuthenticated = () => {
+      registerSocketListeners();
     };
 
-    // Register socket event listeners (only socket events, no custom events to avoid duplicates)
-    if (socketService.getSocket()) {
+    const registerSocketListeners = () => {
+      const socket = socketService.getSocket();
+      if (!socket || !socket.connected) {
+        return;
+      }
+
+      // WorkShift notifications
       socketService.on('notification:workshift:created', handleSocketNotification);
       socketService.on('notification:workshift:updated', handleSocketNotification);
       socketService.on('notification:workshift:branch_update', handleSocketNotification);
+      socketService.on('notification:workshift:batch_created', handleSocketNotification);
+      socketService.on('notification:workshift:batch_assigned', handleSocketNotification);
+
+      // TimeOff notifications
       socketService.on('notification:timeoff:created', handleTimeOffSocketNotification);
       socketService.on('notification:timeoff:approved', handleTimeOffSocketNotification);
       socketService.on('notification:timeoff:rejected', handleTimeOffSocketNotification);
       socketService.on('notification:timeoff:cancelled', handleTimeOffSocketNotification);
       socketService.on('notification:timeoff:branch_update', handleTimeOffSocketNotification);
+      socketService.on('notification:timeoff:owner_update', handleTimeOffSocketNotification);
 
       // Reschedule notifications
       socketService.on('notification:reschedule:created', handleRescheduleSocketNotification);
@@ -386,19 +451,24 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       socketService.on('notification:reschedule:branch_update', handleRescheduleSocketNotification);
       socketService.on('notification:reschedule:owner_update', handleRescheduleSocketNotification);
       socketService.on('notification:reschedule:manager_update', handleRescheduleSocketNotification);
+    };
+
+    if (!state.isConnected) {
+      return;
     }
 
-    // Only listen for fetched notifications (not real-time socket events to avoid duplicates)
+    globalThis.addEventListener('socket-authenticated', handleSocketAuthenticated);
+
+    registerSocketListeners();
+
     globalThis.addEventListener('notification-received', handleFetchedNotification as EventListener);
 
     // Listen for test notifications
-    const handleTestNotification = (event: CustomEvent) => {
-      const notification: Notification = event.detail;
-      dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
-    };
     globalThis.addEventListener('test-notification', handleTestNotification as EventListener);
 
     return () => {
+      globalThis.removeEventListener('socket-authenticated', handleSocketAuthenticated);
+
       // Clean up socket listeners
       if (socketService.getSocket()) {
         socketService.off('notification:workshift:created', handleSocketNotification);
@@ -409,6 +479,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
         socketService.off('notification:timeoff:rejected', handleTimeOffSocketNotification);
         socketService.off('notification:timeoff:cancelled', handleTimeOffSocketNotification);
         socketService.off('notification:timeoff:branch_update', handleTimeOffSocketNotification);
+        socketService.off('notification:timeoff:owner_update', handleTimeOffSocketNotification);
 
         // Reschedule notifications
         socketService.off('notification:reschedule:created', handleRescheduleSocketNotification);
@@ -427,10 +498,14 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       globalThis.removeEventListener('notification-received', handleFetchedNotification as EventListener);
       globalThis.removeEventListener('test-notification', handleTestNotification as EventListener);
     };
-  }, []);
-
-  // Socket listeners are registered in the main useEffect above
-  // No need for duplicate registration
+  }, [
+    state.isConnected, // Re-run when connection state changes
+    handleSocketNotification,
+    handleTimeOffSocketNotification,
+    handleRescheduleSocketNotification,
+    handleFetchedNotification,
+    handleTestNotification
+  ]);
 
   const value: SocketContextType = useMemo(
     () => ({

@@ -6,17 +6,11 @@ import type { UpdateProfileData } from '@/types/api/User';
  */
 export const formatDateToVietnamese = (dateString: string): string => {
   if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
 
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return '';
-
-    return date.toLocaleDateString('vi-VN');
-  } catch {
-    return '';
-  }
+  return date.toLocaleDateString('vi-VN');
 };
-
 /**
  * Format date from DD/MM/YYYY to YYYY-MM-DD
  */
@@ -91,24 +85,6 @@ export const formatPhoneForDisplay = (phone: string): string => {
 };
 
 /**
- * Get gender display text in Vietnamese
- */
-export const getGenderDisplayText = (gender: string): string => {
-  const normalizedGender = normalizeGenderForDisplay(gender);
-
-  switch (normalizedGender) {
-    case 'male':
-      return 'Nam';
-    case 'female':
-      return 'Nữ';
-    case 'other':
-      return 'Khác';
-    default:
-      return 'Chưa xác định';
-  }
-};
-
-/**
  * Prepare form data for API submission
  */
 export const prepareFormDataForApi = (formData: UpdateProfileData): UpdateProfileData => {
@@ -168,22 +144,18 @@ export const getUserInitials = (fullName: string): string => {
 export const calculateAge = (birthDate: string): number | null => {
   if (!birthDate) return null;
 
-  try {
-    const birth = new Date(birthDate);
-    if (isNaN(birth.getTime())) return null;
+  const birth = new Date(birthDate);
+  if (isNaN(birth.getTime())) return null;
 
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
 
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-
-    return age;
-  } catch {
-    return null;
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
   }
+
+  return age;
 };
 
 /**
@@ -201,22 +173,22 @@ export const getMembershipDurationText = (
   createdAt: string,
   t?: (key: string, options?: { count?: number }) => string
 ): string => {
-  if (!createdAt) return t ? t('customer.profile.member_new') : 'Mới tham gia';
+  if (!createdAt) return t ? t('customer.profile.member_new') : 'New member';
 
-  try {
-    const joinDate = new Date(createdAt);
-    const now = new Date();
-    const diffInMonths = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
+  const joinDate = new Date(createdAt);
+  if (isNaN(joinDate.getTime())) {
+    return t ? t('customer.profile.member') : 'Member';
+  }
 
-    if (diffInMonths < 1) {
-      return t ? t('customer.profile.member_new') : 'Mới tham gia';
-    } else if (diffInMonths < 12) {
-      return t ? t('customer.profile.member_months', { count: diffInMonths }) : `${diffInMonths} tháng`;
-    } else {
-      const years = Math.floor(diffInMonths / 12);
-      return t ? t('customer.profile.member_years', { count: years }) : `${years} năm`;
-    }
-  } catch {
-    return t ? t('customer.profile.member') : 'Thành viên';
+  const now = new Date();
+  const diffInMonths = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
+
+  if (diffInMonths < 1) {
+    return t ? t('customer.profile.member_new') : 'New member';
+  } else if (diffInMonths < 12) {
+    return t ? t('customer.profile.member_months', { count: diffInMonths }) : `${diffInMonths} month(s)`;
+  } else {
+    const years = Math.floor(diffInMonths / 12);
+    return t ? t('customer.profile.member_years', { count: years }) : `${years} year(s)`;
   }
 };

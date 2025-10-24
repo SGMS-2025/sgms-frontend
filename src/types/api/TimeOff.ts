@@ -146,6 +146,8 @@ export interface TimeOffCardProps {
   onReject?: (id: string) => void;
   onCancel?: (id: string) => void;
   showActions?: boolean;
+  userRole?: string;
+  currentUserId?: string;
 }
 
 export interface TimeOffListProps {
@@ -157,6 +159,8 @@ export interface TimeOffListProps {
   onApprove?: (id: string) => void;
   onReject?: (id: string) => void;
   onCancel?: (id: string) => void;
+  userRole?: string;
+  currentUserId?: string;
 }
 
 export interface TimeOffFiltersProps {

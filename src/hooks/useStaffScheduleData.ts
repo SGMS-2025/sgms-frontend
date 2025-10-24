@@ -53,7 +53,6 @@ export const useStaffScheduleData = (
 
           setStaffList(filteredStaff);
         } else {
-          console.error('Failed to fetch staff:', response.message);
           setStaffList([]);
         }
         setLoadingStaff(false);
@@ -70,7 +69,7 @@ export const useStaffScheduleData = (
       if (staffId && isAuthenticated) {
         setLoadingWorkShifts(true);
         setWorkShiftError(null);
-        const response = await workShiftApi.getWorkShiftsByStaff(staffId, { limit: 20 });
+        const response = await workShiftApi.getWorkShiftsByStaff(staffId);
         if (response.success) {
           setWorkShifts(response.data.data);
         } else {

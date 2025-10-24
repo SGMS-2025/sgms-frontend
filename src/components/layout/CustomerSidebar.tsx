@@ -28,12 +28,6 @@ import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
 import { Sidebar, type SidebarItem } from '@/components/common/Sidebar';
 
-// TODO: Consider migrating the following sidebars to use the common Sidebar component:
-// - TechnicianSidebar.tsx
-// - PTSidebar.tsx
-// - OwnerSidebar.tsx
-// This would further reduce code duplication across role-based sidebars.
-
 const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
   const { t } = useTranslation();
   const { toggle, setCollapsed } = useSidebar();

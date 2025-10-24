@@ -258,29 +258,25 @@ const CustomerProfile: React.FC = () => {
   const uploadAvatar = async (file: File) => {
     setIsUploading(true);
 
-    try {
-      const response = await userApi.uploadAvatar(file);
+    const response = await userApi.uploadAvatar(file);
 
-      if (response.success && response.data) {
-        // update local state with new avatar URL
-        setUserData((prev) => ({
-          ...prev,
-          avatar: response.data.avatar?.url || ''
-        }));
+    if (response.success && response.data) {
+      // update local state with new avatar URL
+      setUserData((prev) => ({
+        ...prev,
+        avatar: response.data.avatar?.url || ''
+      }));
 
-        // update AuthContext with new user data
-        updateUser(response.data);
+      // update AuthContext with new user data
+      updateUser(response.data);
 
-        toast.success(t('customer.profile.avatar_upload_success'));
-      } else {
-        toast.error(t('customer.profile.avatar_upload_error'));
-      }
-    } catch (error) {
-      console.error('Upload avatar error:', error);
-      toast.error(t('customer.profile.avatar_upload_error_generic'));
-    } finally {
-      setIsUploading(false); // end loading
+      toast.success(t('customer.profile.avatar_upload_success'));
+    } else {
+      console.error('Failed to upload avatar:', response.message);
+      toast.error(t('customer.profile.avatar_upload_error'));
     }
+
+    setIsUploading(false); // end loading
   };
 
   // Bước 3: Reset file input after upload
@@ -321,24 +317,22 @@ const CustomerProfile: React.FC = () => {
 
     setIsUploading(true);
 
-    try {
-      const response = await userApi.deleteAvatar();
+    const response = await userApi.deleteAvatar();
 
-      if (response.success && response.data) {
-        setUserData((prev) => ({
-          ...prev,
-          avatar: ''
-        }));
+    if (response.success && response.data) {
+      setUserData((prev) => ({
+        ...prev,
+        avatar: ''
+      }));
 
-        updateUser(response.data);
-        toast.success(t('customer.profile.avatar_delete_success'));
-      }
-    } catch (error) {
-      console.error('Delete avatar error:', error);
+      updateUser(response.data);
+      toast.success(t('customer.profile.avatar_delete_success'));
+    } else {
+      console.error('Failed to delete avatar:', response.message);
       toast.error(t('customer.profile.avatar_delete_error'));
-    } finally {
-      setIsUploading(false);
     }
+
+    setIsUploading(false);
   };
 
   // Loading screen component
