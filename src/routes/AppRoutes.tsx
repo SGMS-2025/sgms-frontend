@@ -55,6 +55,7 @@ import TimeOffPage from '@/pages/owner/TimeOffPage';
 import TimeOffManagementPage from '@/pages/owner/TimeOffManagementPage';
 import PTTimeOffPage from '@/pages/pt/TimeOffPage';
 import TechnicianTimeOffPage from '@/pages/technician/TimeOffPage';
+import CustomerPaymentsPage from '@/pages/owner/CustomerPaymentsPage';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { SidebarProvider } from '@/contexts/SidebarContext';
@@ -337,6 +338,8 @@ const AppRoutes: React.FC = () => {
           <Route path="staff" element={<StaffPage />} />
           {/* Customer Management Route */}
           <Route path="customers" element={<CustomerManagementPage />} />
+          {/* Customer Payments Route */}
+          <Route path="payments" element={<CustomerPaymentsPage />} />
           {/* Branch Detail Route */}
           <Route path="branch/:branchId" element={<BranchDetailPage />} />
           {/* Add Branch Route */}

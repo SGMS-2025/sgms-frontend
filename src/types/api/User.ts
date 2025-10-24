@@ -18,6 +18,12 @@ export interface User {
     publicId?: string;
     url?: string;
   };
+  customerId?: string;
+  customer?: {
+    _id: string;
+    branchId?: string | string[];
+    status?: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
