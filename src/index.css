@@ -504,8 +504,8 @@ select:focus {
 .calendar-grid-wrapper {
   display: flex;
   width: 100%;
-  height: 960px; /* Fixed height for 16 hours */
-  min-height: 960px;
+  height: 1080px; /* Fixed height for 18 hours (5 AM - 10 PM) */
+  min-height: 1080px;
   position: relative;
 }
 
@@ -518,8 +518,8 @@ select:focus {
   z-index: 20;
   flex-shrink: 0;
   box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
-  min-height: 960px; /* 16 hours × 60px = 960px */
-  height: 960px;
+  min-height: 1080px; /* 18 hours × 60px = 1080px */
+  height: 1080px;
 }
 
 /* Add horizontal lines on time sidebar to match grid lines */
@@ -545,8 +545,8 @@ select:focus {
   flex: 1;
   position: relative;
   overflow: hidden; /* Prevent content overflow */
-  height: 960px;
-  min-height: 960px;
+  height: 1080px;
+  min-height: 1080px;
 }
 
 /* Time labels positioned exactly on horizontal border lines */
@@ -567,12 +567,17 @@ select:focus {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
+/* Special positioning for the first time marker (5 AM) to ensure it's visible */
+.time-marker:first-child {
+  transform: translateY(4px); /* Move it down slightly to ensure it's not cut off at the top */
+}
+
 /* Grid cells for days and hours */
 .calendar-day-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   height: 100%;
-  min-height: 960px; /* 16 hours × 60px = 960px */
+  min-height: 1080px; /* 18 hours × 60px = 1080px */
   width: 100%;
 }
 
@@ -581,7 +586,7 @@ select:focus {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 960px; /* Ensure full height */
+  min-height: 1080px; /* Ensure full height */
   overflow: visible; /* Allow shift cards to overflow */
   isolation: isolate; /* Create stacking context for proper z-index */
 }

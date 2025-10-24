@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from 'i18next';
+import { vi } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Calendar } from '@/components/ui/calendar';
@@ -34,7 +36,7 @@ import WorkShiftDetailModalWithTimeOff from './WorkShiftDetailModalWithTimeOff';
 import CreateDropdown from './CreateDropdown';
 import CreateWorkShiftModal from './CreateWorkShiftModal';
 
-const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedStaffId, onStaffSelect }) => {
+const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedStaffId, onStaffSelect, userRole }) => {
   const { t } = useTranslation();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'week' | 'month' | 'day'>('week');
@@ -376,7 +378,6 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
 
     setLoadingWorkShifts(true);
     const response = await workShiftApi.getWorkShifts({
-      limit: 100,
       branchId: currentBranch._id
     });
     if (response.success) {
@@ -392,26 +393,58 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     fetchWorkShifts();
   }, [currentBranch?._id, fetchWorkShifts]);
 
-  // Listen for work shift notifications and refresh data
-  useEffect(() => {
-    const handleWorkShiftNotification = () => {
-      // Refresh work shifts when notification is received
-      fetchWorkShifts();
-    };
+  // Memoize the notification handler to prevent stale closures
+  const handleRealtimeNotification = useCallback(
+    (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const notification = customEvent.detail;
 
-    // Listen for work shift notifications
-    const handleNotification = (event: CustomEvent) => {
-      if (event.detail.type.includes('WORKSHIFT')) {
-        handleWorkShiftNotification();
+      // Check notification type and category
+      // Backend sends: type="WORKSHIFT_NOTIFICATION" or type includes "notification:workshift"
+      // Backend sends: category="schedule" (for workshift) or category="workshift"
+      const isWorkShiftNotification =
+        notification.type?.includes('WORKSHIFT') ||
+        notification.type?.includes('notification:workshift') ||
+        notification.category === 'workshift' ||
+        notification.category === 'schedule'; // Backend uses "schedule" for workshift notifications
+
+      const isTimeOffNotification =
+        notification.type?.includes('TIMEOFF') ||
+        notification.type?.includes('notification:timeoff') ||
+        notification.category === 'timeoff';
+
+      const isRescheduleNotification =
+        notification.type?.includes('RESCHEDULE') ||
+        notification.type?.includes('notification:reschedule') ||
+        notification.category === 'reschedule';
+
+      if (isWorkShiftNotification) {
+        fetchWorkShifts();
       }
-    };
 
-    window.addEventListener('workshift-notification', handleNotification as EventListener);
+      if (isTimeOffNotification) {
+        // When time off is approved/rejected/cancelled, workshifts may be affected
+        fetchWorkShifts();
+        refetchTimeOffs();
+      }
+
+      if (isRescheduleNotification) {
+        // When reschedule is approved/rejected/cancelled, workshifts may be affected
+        fetchWorkShifts();
+      }
+    },
+    [fetchWorkShifts, refetchTimeOffs]
+  );
+
+  // Listen for real-time notifications and refresh data
+  useEffect(() => {
+    // Listen for real-time notifications from SocketContext
+    globalThis.addEventListener('realtime-notification', handleRealtimeNotification);
 
     return () => {
-      window.removeEventListener('workshift-notification', handleNotification as EventListener);
+      globalThis.removeEventListener('realtime-notification', handleRealtimeNotification);
     };
-  }, [fetchWorkShifts]);
+  }, [handleRealtimeNotification]);
 
   // Filter workshifts by selected staff (if any) and disabled status
   const filteredWorkShifts = workShifts.filter((shift) => {
@@ -463,9 +496,9 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     setShowScheduleModal(true);
   };
 
-  // Generate time slots - only full hours from 6 AM to 9 PM (16 hours)
-  const timeSlots = Array.from({ length: 16 }, (_, i) => {
-    const hour = 6 + i; // Start from 6 AM to 9 PM
+  // Generate time slots - only full hours from 5 AM to 10 PM (18 hours)
+  const timeSlots = Array.from({ length: 18 }, (_, i) => {
+    const hour = 5 + i; // Start from 5 AM to 10 PM
 
     // Format display hour
     let displayHour;
@@ -495,13 +528,13 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     const currentMinute = now.getMinutes();
     const currentDay = now.getDay();
 
-    // Only show time indicator if current time is within our range (6 AM - 9 PM)
-    if (currentHour < 6 || currentHour > 21) {
+    // Only show time indicator if current time is within our range (5 AM - 10 PM)
+    if (currentHour < 5 || currentHour > 22) {
       return { position: 0, currentDay, isToday: false };
     }
 
     // Calculate position based on current time (60px per hour slot)
-    const hourFromStart = currentHour - 6; // Hours since 6 AM
+    const hourFromStart = currentHour - 5; // Hours since 5 AM
     const position = hourFromStart * 60 + (currentMinute / 60) * 60; // 60px per hour
 
     return {
@@ -569,6 +602,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                   }
                 }}
                 className="rounded-md border w-full"
+                locale={i18n.language === 'vi' ? vi : undefined}
               />
             </div>
           </div>
@@ -591,7 +625,9 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                 <h3 className="text-sm font-medium text-gray-700">{t('workshift.staff_schedules')}</h3>
                 <div className="flex items-center gap-2">
                   <div className="text-xs text-gray-500">
-                    {selectedStaffId ? `${filteredWorkShifts.length} shifts` : `${workShifts.length} total shifts`}
+                    {selectedStaffId
+                      ? t('workshift.shifts_count', { count: filteredWorkShifts.length })
+                      : t('workshift.total_shifts_count', { count: workShifts.length })}
                   </div>
                   {selectedStaffId && (
                     <button
@@ -626,7 +662,9 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                       onClick={() => setStaffListExpanded(!staffListExpanded)}
                       className="flex items-center justify-between w-full text-left hover:bg-gray-100 rounded px-2 py-1 transition-colors"
                     >
-                      <span className="text-sm font-medium text-gray-700">Staff ({staffList.length})</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        {t('workshift.staff_count', { count: staffList.length })}
+                      </span>
                       {staffListExpanded ? (
                         <ChevronUp className="h-4 w-4 text-gray-500" />
                       ) : (
@@ -742,7 +780,10 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                 </Button>
               </div>
               <h2 className="text-lg font-semibold text-gray-900">
-                {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                {currentDate.toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US', {
+                  month: 'long',
+                  year: 'numeric'
+                })}
               </h2>
             </div>
 
@@ -812,37 +853,43 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                 <div className="flex">
                   {/* Time column header */}
                   <div className="w-20 p-4 border-r border-gray-200 bg-gray-50 flex-shrink-0">
-                    <span className="text-sm font-semibold text-gray-700">GMT+07</span>
+                    <span className="text-sm font-semibold text-gray-700">{t('workshift.gmt_plus_07')}</span>
                   </div>
 
                   {/* Days header */}
                   <div className="flex-1">
                     <div className="grid grid-cols-7">
-                      {weekDates.map((date) => (
-                        <div
-                          key={`weekday-${date.getTime()}`}
-                          className="p-4 border-r border-gray-200 text-center bg-gray-50"
-                        >
+                      {weekDates.map((date) => {
+                        const dayOfWeek = date.getDay();
+                        const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+                        const dayKey = dayKeys[dayOfWeek];
+
+                        return (
                           <div
-                            className={cn(
-                              'text-sm font-semibold mb-1',
-                              isToday(date) ? 'text-orange-600' : 'text-gray-900'
-                            )}
+                            key={`weekday-${date.getTime()}`}
+                            className="p-4 border-r border-gray-200 text-center bg-gray-50"
                           >
-                            {date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}
+                            <div
+                              className={cn(
+                                'text-sm font-semibold mb-1',
+                                isToday(date) ? 'text-orange-600' : 'text-gray-900'
+                              )}
+                            >
+                              {t(`workshift.${dayKey}`)}
+                            </div>
+                            <div
+                              className={cn(
+                                'text-lg font-bold',
+                                isToday(date)
+                                  ? 'bg-orange-600 text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto'
+                                  : 'text-gray-900'
+                              )}
+                            >
+                              {date.getDate()}
+                            </div>
                           </div>
-                          <div
-                            className={cn(
-                              'text-lg font-bold',
-                              isToday(date)
-                                ? 'bg-orange-600 text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto'
-                                : 'text-gray-900'
-                            )}
-                          >
-                            {date.getDate()}
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -853,15 +900,19 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                 <div className="calendar-grid-wrapper">
                   {/* Time sidebar with fixed labels on lines */}
                   <div className="calendar-time-sidebar">
-                    {/* Add 6AM label at the very top (0px) */}
-                    <div key="time-marker-6" className="time-marker" style={{ top: '0px' }}>
-                      6 AM
+                    {/* Add 5AM label at the very top (0px) with special positioning */}
+                    <div
+                      key="time-marker-5"
+                      className="time-marker"
+                      style={{ top: '0px', transform: 'translateY(4px)' }}
+                    >
+                      5 AM
                     </div>
 
                     {timeSlots.slice(1).map((slot, index) => {
                       // Position labels exactly on the horizontal border lines
-                      // Start from 60px for 7AM, then 120px for 8AM, etc.
-                      const topPosition = (index + 1) * 60; // +1 because we skip the first slot (6AM)
+                      // Start from 60px for 6AM, then 120px for 7AM, etc.
+                      const topPosition = (index + 1) * 60; // +1 because we skip the first slot (5AM)
                       return (
                         <div
                           key={`time-marker-${slot.hour}`}
@@ -916,7 +967,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                               >
                                 {renderShiftsForSlot(date, { hour: slot.hour })}
                                 {/* Time Off indicator for the first hour slot of each day */}
-                                {slot.hour === 6 && renderTimeOffIndicator(date)}
+                                {slot.hour === 5 && renderTimeOffIndicator(date)}
                               </div>
                             ))}
                           </div>
@@ -958,6 +1009,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
           setSelectedWorkShift(updatedWorkShift);
         }}
         onTimeOffChange={refreshTimeOffs}
+        userRole={userRole}
       />
 
       {/* Create Work Shift Modal */}

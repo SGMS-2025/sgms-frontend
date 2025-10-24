@@ -15,6 +15,18 @@ class ScheduleApi {
     return response.data;
   }
 
+  // Create multiple schedules at once (batch creation)
+  async createBatchSchedules(schedulesData: CreateScheduleRequest[]): Promise<{
+    data: {
+      schedules: Schedule[];
+      totalCreated: number;
+    };
+    message: string;
+  }> {
+    const response = await api.post('/schedules/batch', { schedules: schedulesData });
+    return response.data;
+  }
+
   // Get all schedules with filters
   async getSchedules(params: GetSchedulesParams = {}): Promise<GetSchedulesResponse> {
     const response = await api.get('/schedules', { params });

@@ -42,7 +42,7 @@ const CreateDropdown: React.FC<CreateDropdownProps> = ({ onCreateWorkShift, onCr
           )}
         >
           <Plus className="h-4 w-4 mr-2 text-orange-600" />
-          Create
+          {t('workshift.create')}
           <ChevronDown className="h-4 w-4 ml-2 text-orange-600" />
         </Button>
       </DropdownMenuTrigger>

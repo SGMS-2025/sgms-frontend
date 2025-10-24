@@ -6,6 +6,7 @@ import { Calendar, Clock, User, MapPin, CheckCircle, Loader2, Ban } from 'lucide
 import type { UpdateWorkShiftRequest, WorkShiftStatus, WorkShiftDetailModalProps } from '@/types/api/WorkShift';
 import { workShiftApi } from '@/services/api/workShiftApi';
 import RescheduleTab from '@/components/reschedule/RescheduleTab';
+import { useWorkshiftPermissions } from '@/hooks/useWorkshiftPermissions';
 
 const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
   isOpen,
@@ -15,6 +16,7 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
   onUpdate
 }) => {
   const { t } = useTranslation();
+  const { canEditWorkshift, canDeleteWorkshift } = useWorkshiftPermissions();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isDisabling, setIsDisabling] = useState(false);
@@ -416,18 +418,21 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
               <button className="text-orange-600 hover:text-orange-800 text-sm font-medium">
                 {t('common.more_options')}
               </button>
-              {!isEditing && workShift.status !== 'CANCELLED' && workShift.status !== 'COMPLETED' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
-                  onClick={() => setShowConfirmDisable(true)}
-                  disabled={isDisabling}
-                >
-                  <Ban className="h-4 w-4 mr-1" />
-                  {t('workshift.disable')}
-                </Button>
-              )}
+              {!isEditing &&
+                workShift.status !== 'CANCELLED' &&
+                workShift.status !== 'COMPLETED' &&
+                canDeleteWorkshift() && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400"
+                    onClick={() => setShowConfirmDisable(true)}
+                    disabled={isDisabling}
+                  >
+                    <Ban className="h-4 w-4 mr-1" />
+                    {t('workshift.disable')}
+                  </Button>
+                )}
             </div>
             <div className="flex gap-2">
               {isEditing ? (
@@ -455,9 +460,11 @@ const WorkShiftDetailModal: React.FC<WorkShiftDetailModalProps> = ({
                   <Button variant="outline" onClick={onClose}>
                     Close
                   </Button>
-                  <Button className="bg-orange-600 hover:bg-orange-700 text-white" onClick={() => setIsEditing(true)}>
-                    {t('common.edit')}
-                  </Button>
+                  {canEditWorkshift() && (
+                    <Button className="bg-orange-600 hover:bg-orange-700 text-white" onClick={() => setIsEditing(true)}>
+                      {t('common.edit')}
+                    </Button>
+                  )}
                 </>
               )}
             </div>

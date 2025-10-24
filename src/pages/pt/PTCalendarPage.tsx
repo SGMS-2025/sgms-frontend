@@ -10,7 +10,7 @@ const PTCalendarPage: React.FC = () => {
 
   return (
     <div className="h-full">
-      <StaffScheduleCalendar selectedStaffId={selectedStaffId} onStaffSelect={handleStaffSelect} />
+      <StaffScheduleCalendar selectedStaffId={selectedStaffId} onStaffSelect={handleStaffSelect} userRole="staff" />
     </div>
   );
 };

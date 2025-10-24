@@ -8,10 +8,12 @@ import type { UpdateWorkShiftRequest, WorkShiftStatus, WorkShiftDetailModalProps
 import { workShiftApi } from '@/services/api/workShiftApi';
 import TimeOffRequestTab from '@/components/timeoff/TimeOffRequestTab';
 import RescheduleTab from '@/components/reschedule/RescheduleTab';
+import { useWorkshiftPermissions } from '@/hooks/useWorkshiftPermissions';
 
 interface WorkShiftDetailModalWithTimeOffProps extends WorkShiftDetailModalProps {
   selectedDate?: Date;
   onTimeOffChange?: () => void;
+  userRole?: string;
 }
 
 const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffProps> = ({
@@ -20,9 +22,11 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
   workShift,
   onUpdate,
   selectedDate,
-  onTimeOffChange
+  onTimeOffChange,
+  userRole
 }) => {
   const { t } = useTranslation();
+  const { canEditWorkshift, canDeleteWorkshift } = useWorkshiftPermissions();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isDisabling, setIsDisabling] = useState(false);
@@ -178,7 +182,7 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
         <Tabs defaultValue="workshift" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="workshift">{t('workshift.work_shift')}</TabsTrigger>
-            <TabsTrigger value="reschedule">Reschedule</TabsTrigger>
+            <TabsTrigger value="reschedule">{t('workshift.reschedule')}</TabsTrigger>
             <TabsTrigger value="timeoff">{t('timeoff.out_of_office')}</TabsTrigger>
           </TabsList>
 
@@ -324,7 +328,7 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                   </>
                 ) : (
                   <>
-                    {workShift.status === 'SCHEDULED' && (
+                    {workShift.status === 'SCHEDULED' && canDeleteWorkshift() && (
                       <Button
                         onClick={() => setShowConfirmDisable(true)}
                         variant="outline"
@@ -337,9 +341,14 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                     <Button variant="outline" onClick={onClose} className="border-gray-300 text-gray-700">
                       {t('common.close')}
                     </Button>
-                    <Button onClick={() => setIsEditing(true)} className="bg-orange-600 hover:bg-orange-700 text-white">
-                      {t('common.edit')}
-                    </Button>
+                    {canEditWorkshift() && (
+                      <Button
+                        onClick={() => setIsEditing(true)}
+                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                      >
+                        {t('common.edit')}
+                      </Button>
+                    )}
                   </>
                 )}
               </div>
@@ -361,6 +370,7 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                   staffId={workShift.staffId?._id || ''}
                   selectedDate={effectiveSelectedDate}
                   onTimeOffCreated={handleTimeOffCreated}
+                  userRole={userRole}
                 />
               );
             })()}

@@ -35,6 +35,7 @@ import { ScheduleTemplateForm } from './ScheduleTemplateForm';
 import { ScheduleTemplateStats } from './ScheduleTemplateStats';
 import type { ScheduleTemplate, ScheduleType, UpdateScheduleTemplateRequest } from '@/types/api/ScheduleTemplate';
 import { SCHEDULE_TYPES } from '@/types/api/ScheduleTemplate';
+import { getScheduleTypeLabel, formatDaysOfWeek } from '@/utils/scheduleTypeHelpers';
 
 interface ScheduleTemplateListProps {
   branchId?: string;
@@ -152,11 +153,11 @@ export const ScheduleTemplateList: React.FC<ScheduleTemplateListProps> = ({ bran
   };
 
   const formatDays = (days: string[]) => {
-    return days.map((day) => day.slice(0, 3)).join(', ');
+    return formatDaysOfWeek(days, t);
   };
 
   const getTypeLabel = (type: ScheduleType) => {
-    return SCHEDULE_TYPES[type]?.label || type;
+    return getScheduleTypeLabel(type, t);
   };
 
   if (showForm) {
@@ -217,17 +218,17 @@ export const ScheduleTemplateList: React.FC<ScheduleTemplateListProps> = ({ bran
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Schedule Templates</h1>
-          <p className="text-muted-foreground">Manage work schedule templates and auto-generation settings</p>
+          <h1 className="text-3xl font-bold">{t('schedule_templates.title')}</h1>
+          <p className="text-muted-foreground">{t('schedule_templates.description')}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setShowStats(true)}>
             <Brain className="w-4 h-4 mr-2" />
-            Statistics
+            {t('schedule_templates.statistics')}
           </Button>
           <Button onClick={() => setShowForm(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            Create Template
+            {t('schedule_templates.create_template')}
           </Button>
         </div>
       </div>
@@ -238,12 +239,12 @@ export const ScheduleTemplateList: React.FC<ScheduleTemplateListProps> = ({ bran
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <label htmlFor="search" className="text-sm font-medium">
-                Search
+                {t('schedule_templates.search')}
               </label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Search templates..."
+                  placeholder={t('schedule.form.search_placeholder')}
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
                   className="pl-10"
@@ -253,14 +254,14 @@ export const ScheduleTemplateList: React.FC<ScheduleTemplateListProps> = ({ bran
 
             <div className="space-y-2">
               <label htmlFor="branch" className="text-sm font-medium">
-                Branch
+                {t('schedule_templates.branch')}
               </label>
               <Select value={selectedBranch} onValueChange={setSelectedBranch}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All Branches" />
+                  <SelectValue placeholder={t('schedule.form.all_branches')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Branches</SelectItem>
+                  <SelectItem value="all">{t('schedule_templates.all_branches')}</SelectItem>
                   {branches.map((branch) => (
                     <SelectItem key={branch._id} value={branch._id}>
                       {branch.branchName}
@@ -272,14 +273,14 @@ export const ScheduleTemplateList: React.FC<ScheduleTemplateListProps> = ({ bran
 
             <div className="space-y-2">
               <label htmlFor="type" className="text-sm font-medium">
-                Type
+                {t('schedule_templates.type')}
               </label>
               <Select value={selectedType} onValueChange={(value) => setSelectedType(value as ScheduleType | 'all')}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All Types" />
+                  <SelectValue placeholder={t('schedule.form.all_types')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="all">{t('schedule_templates.all_types')}</SelectItem>
                   {Object.entries(SCHEDULE_TYPES).map(([value, config]) => (
                     <SelectItem key={value} value={value}>
                       {config.label}
@@ -291,12 +292,12 @@ export const ScheduleTemplateList: React.FC<ScheduleTemplateListProps> = ({ bran
 
             <div className="space-y-2">
               <label htmlFor="actions" className="text-sm font-medium">
-                Actions
+                {t('schedule_templates.actions')}
               </label>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm">
                   <Filter className="w-4 h-4 mr-2" />
-                  Filter
+                  {t('schedule_templates.filter')}
                 </Button>
                 <Button
                   variant="outline"
@@ -307,7 +308,7 @@ export const ScheduleTemplateList: React.FC<ScheduleTemplateListProps> = ({ bran
                     setSelectedBranch(branchId || 'all');
                   }}
                 >
-                  Clear
+                  {t('schedule_templates.clear')}
                 </Button>
               </div>
             </div>
@@ -318,28 +319,28 @@ export const ScheduleTemplateList: React.FC<ScheduleTemplateListProps> = ({ bran
       {/* Templates Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Schedule Templates ({templates?.length || 0})</CardTitle>
+          <CardTitle>{t('schedule_templates.templates_count', { count: templates?.length || 0 })}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading && (
             <div className="flex items-center justify-center py-8">
-              <div className="text-muted-foreground">Loading templates...</div>
+              <div className="text-muted-foreground">{t('schedule_templates.loading')}</div>
             </div>
           )}
           {!loading && error && (
             <div className="flex items-center justify-center py-8">
-              <div className="text-destructive">Error: {error}</div>
+              <div className="text-destructive">{t('schedule_templates.error', { error })}</div>
             </div>
           )}
           {!loading && !error && (!templates || templates.length === 0) && (
             <div className="flex items-center justify-center py-8">
               <div className="text-center">
                 <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium">No templates found</h3>
-                <p className="text-muted-foreground mb-4">Create your first schedule template to get started</p>
+                <h3 className="text-lg font-medium">{t('schedule_templates.no_templates')}</h3>
+                <p className="text-muted-foreground mb-4">{t('schedule_templates.create_first')}</p>
                 <Button onClick={() => setShowForm(true)}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Create Template
+                  {t('schedule_templates.create_template')}
                 </Button>
               </div>
             </div>
@@ -348,16 +349,16 @@ export const ScheduleTemplateList: React.FC<ScheduleTemplateListProps> = ({ bran
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Branch</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Days</TableHead>
-                  <TableHead>Capacity</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Auto Gen</TableHead>
-                  <TableHead>Usage</TableHead>
-                  <TableHead className="w-[50px]">Actions</TableHead>
+                  <TableHead>{t('schedule_templates.name')}</TableHead>
+                  <TableHead>{t('schedule_templates.type_column')}</TableHead>
+                  <TableHead>{t('schedule_templates.branch_column')}</TableHead>
+                  <TableHead>{t('schedule_templates.time')}</TableHead>
+                  <TableHead>{t('schedule_templates.days')}</TableHead>
+                  <TableHead>{t('schedule_templates.capacity')}</TableHead>
+                  <TableHead>{t('schedule_templates.status')}</TableHead>
+                  <TableHead>{t('schedule_templates.auto_gen')}</TableHead>
+                  <TableHead>{t('schedule_templates.usage')}</TableHead>
+                  <TableHead className="w-[50px]">{t('schedule_templates.actions_column')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -397,23 +398,25 @@ export const ScheduleTemplateList: React.FC<ScheduleTemplateListProps> = ({ bran
                     </TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(template.isActive)}>
-                        {template.isActive ? 'Active' : 'Inactive'}
+                        {template.isActive ? t('schedule_templates.active') : t('schedule_templates.inactive')}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       {template.autoGenerate.enabled ? (
                         <Badge variant="outline" className="bg-green-100 text-green-800">
                           <Brain className="w-3 h-3 mr-1" />
-                          Enabled
+                          {t('schedule_templates.enabled')}
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="bg-gray-100 text-gray-800">
-                          Disabled
+                          {t('schedule_templates.disabled')}
                         </Badge>
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm">{template.usageCount} times</div>
+                      <div className="text-sm">
+                        {t('schedule_templates.usage_times', { count: template.usageCount })}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -423,7 +426,7 @@ export const ScheduleTemplateList: React.FC<ScheduleTemplateListProps> = ({ bran
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuLabel>{t('schedule_templates.actions')}</DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => {
@@ -435,7 +438,7 @@ export const ScheduleTemplateList: React.FC<ScheduleTemplateListProps> = ({ bran
                             }}
                           >
                             <Edit className="w-4 h-4 mr-2" />
-                            Edit
+                            {t('schedule_templates.edit')}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleToggleActive(template)}>
                             {template.isActive ? (

@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { RefreshCw } from 'lucide-react';
 import { useTimeOffList, useTimeOffOperations } from '@/hooks/useTimeOff';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
+import { useAuthState } from '@/hooks/useAuth';
 import TimeOffList from '@/components/timeoff/TimeOffList';
 import CreateTimeOffModal from '@/components/timeoff/CreateTimeOffModal';
 import TimeOffDetailModal from '@/components/timeoff/TimeOffDetailModal';
@@ -22,6 +23,7 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const { currentStaff } = useCurrentUserStaff();
+  const { user } = useAuthState();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTimeOff, setSelectedTimeOff] = useState<TimeOff | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -223,7 +225,9 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
         onApprove={canApprove ? handleApproveTimeOff : undefined}
         onReject={canApprove ? handleRejectTimeOff : undefined}
         onCancel={handleCancelTimeOff}
-        onCreateNew={handleCreateNew}
+        userRole={userRole}
+        currentUserId={user?._id}
+        onCreateNew={userRole !== 'owner' ? handleCreateNew : undefined}
         onRefresh={handleRefresh}
         onExport={handleExport}
         searchValue={searchValue}
