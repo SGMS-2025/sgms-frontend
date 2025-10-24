@@ -144,6 +144,21 @@ const getTypeText = (type: RescheduleType, t: (key: string) => string) => {
   }
 };
 
+const getPriorityText = (priority: ReschedulePriority, t: (key: string) => string) => {
+  switch (priority) {
+    case 'LOW':
+      return t('common.low');
+    case 'MEDIUM':
+      return t('common.medium');
+    case 'HIGH':
+      return t('common.high');
+    case 'URGENT':
+      return t('common.urgent');
+    default:
+      return priority;
+  }
+};
+
 const getTypeIcon = (type: RescheduleType) => {
   switch (type) {
     case 'FIND_REPLACEMENT':
@@ -336,7 +351,9 @@ const RescheduleRequestDetailModal: React.FC<RescheduleRequestDetailModalProps> 
                   {getStatusIcon(request.status)}
                   <span className="ml-1">{getStatusText(request.status, t)}</span>
                 </Badge>
-                <Badge className={cn('text-xs', getPriorityColor(request.priority))}>{request.priority}</Badge>
+                <Badge className={cn('text-xs', getPriorityColor(request.priority))}>
+                  {getPriorityText(request.priority, t)}
+                </Badge>
               </div>
             </div>
           </div>

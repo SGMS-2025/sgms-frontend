@@ -611,7 +611,7 @@ export const OwnerSidebar: React.FC = () => {
             />
             <SubMenuItem
               icon={<Calendar className="w-5 h-5 stroke-[1.75]" />}
-              label="Schedule Templates"
+              label={t('sidebar.schedule_templates')}
               isActive={location.pathname === '/manage/schedule-templates'}
               onClick={() => navigate('/manage/schedule-templates')}
             />

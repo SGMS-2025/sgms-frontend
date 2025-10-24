@@ -7,12 +7,12 @@ import { useBranch } from '@/contexts/BranchContext';
 import { useAuthState } from '@/hooks/useAuth';
 import { useStaffScheduleForm } from '@/hooks/useStaffScheduleForm';
 import { useStaffScheduleData } from '@/hooks/useStaffScheduleData';
-import { TemplateSelector } from './TemplateSelector';
 import BasicInfoForm from './forms/BasicInfoForm';
-import AvailabilityForm from './forms/AvailabilityForm';
+import WeeklyFixedShiftSelector from './forms/WeeklyFixedShiftSelector';
 import TemplateCreationForm from './forms/TemplateCreationForm';
 import StaffScheduleView from './forms/StaffScheduleView';
 import type { StaffScheduleModalProps, StaffScheduleFormData } from '@/types/api/StaffSchedule';
+import type { CustomTime } from '@/types/schedule';
 
 const StaffScheduleModal: React.FC<StaffScheduleModalProps> = ({ isOpen, onClose, selectedStaffId, initialData }) => {
   const { t } = useTranslation();
@@ -25,8 +25,6 @@ const StaffScheduleModal: React.FC<StaffScheduleModalProps> = ({ isOpen, onClose
   // Use custom hooks for form logic
   const {
     form,
-    templates,
-    loadingTemplates,
     selectedTemplate,
     isStaffFieldDisabled,
     templateStaffInfo,
@@ -41,12 +39,16 @@ const StaffScheduleModal: React.FC<StaffScheduleModalProps> = ({ isOpen, onClose
     advanceDays,
     setAdvanceDays,
     endDate,
-    setEndDate,
-    handleTemplateSelect,
-    handleTemplateClear,
-    handleDayToggle,
-    handleTimeChange,
-    handleAvailabilityDayClick,
+    endDateError,
+    handleEndDateChange,
+    timeRangeError,
+    scheduleDateError,
+    handleScheduleDateChange,
+    handleShiftToggle,
+    handleCustomTimeChange,
+    handleAddCustomShift,
+    customShiftTimes,
+    isSubmitting,
     handleSubmit
   } = useStaffScheduleForm(selectedStaffId);
 
@@ -118,7 +120,6 @@ const StaffScheduleModal: React.FC<StaffScheduleModalProps> = ({ isOpen, onClose
 
   // Check authentication
   if (!isAuthenticated || !user) {
-    console.warn('User not authenticated or user data missing');
     return null;
   }
 
@@ -192,17 +193,6 @@ const StaffScheduleModal: React.FC<StaffScheduleModalProps> = ({ isOpen, onClose
         <div className="flex-1 overflow-hidden">
           <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col">
             <div className="flex-1 overflow-y-auto p-6 space-y-8">
-              {/* Template Selection */}
-              {watchedBranchId && (
-                <TemplateSelector
-                  templates={templates || []}
-                  loading={loadingTemplates}
-                  selectedTemplate={selectedTemplate}
-                  onTemplateSelect={handleTemplateSelect}
-                  onTemplateClear={handleTemplateClear}
-                />
-              )}
-
               {/* Basic Information */}
               <BasicInfoForm
                 form={form}
@@ -212,29 +202,51 @@ const StaffScheduleModal: React.FC<StaffScheduleModalProps> = ({ isOpen, onClose
                 templateStaffInfo={templateStaffInfo}
                 isStaffFieldDisabled={isStaffFieldDisabled}
                 loadingStaff={loadingStaff}
-                onStaffChange={(staffId) => form.setValue('staffId', staffId)}
-                onBranchChange={(branchId) => form.setValue('branchId', branchId)}
+                onStaffChange={(staffId) => {
+                  form.setValue('staffId', staffId);
+                  form.trigger('staffId'); // Trigger validation after setValue
+                }}
+                onBranchChange={(branchId) => {
+                  form.setValue('branchId', branchId);
+                  form.trigger('branchId'); // Trigger validation after setValue
+                }}
                 onStartEndTimeChange={(field, value) => {
                   form.setValue(`timeRange.${field}`, value);
                   // Sync to all enabled days in General Availability
                   const currentAvailability = form.watch('availability') || {};
-                  Object.keys(currentAvailability).forEach((dayKey) => {
+                  for (const dayKey of Object.keys(currentAvailability)) {
                     const dayData = currentAvailability[dayKey as keyof StaffScheduleFormData['availability']];
                     if (dayData?.enabled) {
                       form.setValue(`availability.${dayKey}.${field}` as keyof StaffScheduleFormData, value);
                     }
-                  });
-                  console.log(`🔄 Synced ${field} (${value}) to all enabled days in General Availability`);
+                  }
                 }}
+                timeRangeError={timeRangeError}
+                scheduleDateError={scheduleDateError}
+                onScheduleDateChange={handleScheduleDateChange}
               />
 
-              {/* General Availability */}
-              <AvailabilityForm
-                form={form}
-                onTimeChange={handleTimeChange}
-                onDayToggle={handleDayToggle}
-                onAvailabilityDayClick={handleAvailabilityDayClick}
-              />
+              {/* Weekly Fixed Shift Selection - Only show when branch and staff are selected */}
+              {watchedBranchId &&
+                watchedStaffId &&
+                (() => {
+                  const selectedStaff = staffList.find((staff) => staff._id === watchedStaffId);
+                  const jobTitle = selectedStaff?.jobTitle || 'Staff';
+
+                  return (
+                    <WeeklyFixedShiftSelector
+                      form={form}
+                      onShiftToggle={handleShiftToggle}
+                      onCustomTimeChange={handleCustomTimeChange}
+                      customShiftTimes={customShiftTimes}
+                      jobTitle={jobTitle}
+                      onAddCustomShift={(
+                        dayKey: keyof StaffScheduleFormData['availability'],
+                        customShift: CustomTime
+                      ) => handleAddCustomShift(dayKey, customShift)}
+                    />
+                  );
+                })()}
 
               {/* Save as Template */}
               <TemplateCreationForm
@@ -249,7 +261,8 @@ const StaffScheduleModal: React.FC<StaffScheduleModalProps> = ({ isOpen, onClose
                 advanceDays={advanceDays}
                 setAdvanceDays={setAdvanceDays}
                 endDate={endDate}
-                setEndDate={setEndDate}
+                endDateError={endDateError}
+                handleEndDateChange={handleEndDateChange}
                 watchedTitle={watchedTitle}
               />
 
@@ -271,8 +284,8 @@ const StaffScheduleModal: React.FC<StaffScheduleModalProps> = ({ isOpen, onClose
               <Button type="button" variant="outline" onClick={onClose}>
                 {t('common.cancel')}
               </Button>
-              <Button type="submit" className="bg-orange-600 hover:bg-orange-700">
-                {t('common.next')}
+              <Button type="submit" className="bg-orange-600 hover:bg-orange-700" disabled={isSubmitting}>
+                {isSubmitting ? t('common.creating') : t('common.submit')}
               </Button>
             </div>
           </form>

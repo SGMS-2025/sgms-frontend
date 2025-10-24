@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { rescheduleApi } from '@/services/api/rescheduleApi';
+import { useRescheduleRealtime } from './useRescheduleRealtime';
 import type { UseDataReturn, UseCreateReturn } from '@/types/hooks/HookTypes';
 import type {
   RescheduleRequest,
@@ -149,6 +150,9 @@ export const useMyRescheduleRequests = (filters: RescheduleRequestFilters = {}):
     fetchRequests();
   }, [fetchRequests]);
 
+  // Add realtime update
+  useRescheduleRealtime(refetch);
+
   return {
     data: requests,
     loading,
@@ -239,7 +243,6 @@ export const useAllRescheduleRequestsForApproval = (
       setRequests(response.data.data);
     } else {
       setError(response.message || 'Failed to fetch reschedule requests');
-      toast.error(t('reschedule.fetch_error'));
     }
     setLoading(false);
   }, [memoizedFilters, t, enabled]);
@@ -251,6 +254,9 @@ export const useAllRescheduleRequestsForApproval = (
   useEffect(() => {
     fetchRequests();
   }, [fetchRequests]);
+
+  // Add realtime update
+  useRescheduleRealtime(refetch);
 
   return {
     data: requests,

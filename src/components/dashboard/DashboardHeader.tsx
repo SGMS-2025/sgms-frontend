@@ -79,7 +79,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title }) => {
         <div className="hidden md:flex flex-1 max-w-md mx-4 lg:mx-8">
           <div className="relative w-full">
             <Input
-              placeholder="Type to search ..."
+              placeholder={t('dashboard.search_placeholder')}
               className="h-10 rounded-full border border-gray-200 bg-white pl-10 text-sm shadow-sm focus:border-orange-200 focus:ring-orange-200"
             />
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />

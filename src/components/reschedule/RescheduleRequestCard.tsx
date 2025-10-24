@@ -18,6 +18,20 @@ interface ShiftTimeData {
 }
 
 // Helper functions moved to shared utilities
+const getPriorityText = (priority: string, t: (key: string) => string) => {
+  switch (priority) {
+    case 'LOW':
+      return t('common.low');
+    case 'MEDIUM':
+      return t('common.medium');
+    case 'HIGH':
+      return t('common.high');
+    case 'URGENT':
+      return t('common.urgent');
+    default:
+      return priority;
+  }
+};
 
 const RescheduleRequestCard: React.FC<RescheduleRequestCardProps> = ({
   request,
@@ -133,7 +147,9 @@ const RescheduleRequestCard: React.FC<RescheduleRequestCardProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge className={cn('text-xs', getPriorityColor(request.priority))}>{request.priority}</Badge>
+            <Badge className={cn('text-xs', getPriorityColor(request.priority))}>
+              {getPriorityText(request.priority, t)}
+            </Badge>
             <StatusBadge status={request.status} type="reschedule" t={t} />
             {showActions && <ActionDropdown actions={actionItems} />}
           </div>

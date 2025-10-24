@@ -19,14 +19,16 @@ const TimeOffCard: React.FC<TimeOffCardProps> = ({
   onApprove,
   onReject,
   onCancel,
-  showActions = true
+  showActions = true,
+  userRole,
+  currentUserId
 }) => {
   const { t } = useTranslation();
 
   // Use permission checks hook
   const permissions = usePermissionChecks({
-    userRole: undefined, // TimeOff doesn't use role-based permissions
-    currentUserId: undefined,
+    userRole: userRole,
+    currentUserId: currentUserId,
     requesterId: timeOff.staffId,
     status: timeOff.status,
     isFinalStatus: timeOff.status === 'REJECTED' || timeOff.status === 'CANCELLED'

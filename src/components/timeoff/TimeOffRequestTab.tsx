@@ -14,9 +14,10 @@ interface TimeOffRequestTabProps {
   staffId: string;
   selectedDate: Date;
   onTimeOffCreated?: () => void;
+  userRole?: string;
 }
 
-const TimeOffRequestTab: React.FC<TimeOffRequestTabProps> = ({ staffId, selectedDate, onTimeOffCreated }) => {
+const TimeOffRequestTab: React.FC<TimeOffRequestTabProps> = ({ staffId, selectedDate, onTimeOffCreated, userRole }) => {
   const { t } = useTranslation();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTimeOff, setSelectedTimeOff] = useState<TimeOff | null>(null);
@@ -140,10 +141,12 @@ const TimeOffRequestTab: React.FC<TimeOffRequestTabProps> = ({ staffId, selected
             })}
           </p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)} className="bg-black hover:bg-gray-800">
-          <Calendar className="h-4 w-4 mr-2" />
-          {t('timeoff.request_time_off')}
-        </Button>
+        {userRole !== 'owner' && (
+          <Button onClick={() => setShowCreateModal(true)} className="bg-black hover:bg-gray-800">
+            <Calendar className="h-4 w-4 mr-2" />
+            {t('timeoff.request_time_off')}
+          </Button>
+        )}
       </div>
 
       {/* Time Off Requests for Selected Date */}

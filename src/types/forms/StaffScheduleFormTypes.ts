@@ -16,19 +16,29 @@ export interface BasicInfoFormProps {
   loadingStaff: boolean;
   onStaffChange: (staffId: string) => void;
   onBranchChange: (branchId: string) => void;
-  onStartEndTimeChange?: (field: 'startTime' | 'endTime', value: string) => void;
+  onStartEndTimeChange?: (field: 'startTime' | 'endTime', value: string) => void; // Kept for backward compatibility
+  timeRangeError?: string; // Kept for backward compatibility
+  scheduleDateError?: string;
+  onScheduleDateChange?: (value: string) => void;
 }
 
 // Availability Form Types
 export interface AvailabilityFormProps {
   form: UseFormReturn<StaffScheduleFormData, unknown, StaffScheduleFormData>;
-  onTimeChange: (
+  onShiftToggle: (
     dayKey: keyof StaffScheduleFormData['availability'],
-    timeType: 'startTime' | 'endTime',
-    value: string
+    shift: import('@/types/api/StaffSchedule').ShiftType
   ) => void;
-  onDayToggle: (dayKey: keyof StaffScheduleFormData['availability']) => void;
-  onAvailabilityDayClick: (dayKey: keyof StaffScheduleFormData['availability']) => void;
+  onDayToggle?: (dayKey: keyof StaffScheduleFormData['availability']) => void; // Optional for backward compatibility
+  onAvailabilityDayClick?: (dayKey: keyof StaffScheduleFormData['availability']) => void; // Optional for backward compatibility
+  onCustomTimeChange?: (
+    dayKey: string,
+    shiftKey: string,
+    customTime: import('@/types/api/StaffSchedule').CustomShiftTime | null
+  ) => void;
+  customShiftTimes?: Record<string, import('@/types/api/StaffSchedule').FixedShift['customTimes']>;
+  staffList?: Staff[];
+  selectedStaffId?: string;
 }
 
 // Template Creation Form Types
@@ -44,7 +54,8 @@ export interface TemplateCreationFormProps {
   advanceDays: number;
   setAdvanceDays: (value: number) => void;
   endDate: string;
-  setEndDate: (value: string) => void;
+  endDateError: string;
+  handleEndDateChange: (value: string) => void;
   watchedTitle: string;
 }
 

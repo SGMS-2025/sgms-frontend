@@ -121,11 +121,14 @@ export interface SocketEvents {
   'notification:workshift:created': (data: WorkShiftNotificationData) => void;
   'notification:workshift:updated': (data: WorkShiftNotificationData) => void;
   'notification:workshift:branch_update': (data: WorkShiftNotificationData) => void;
+  'notification:workshift:batch_created': (data: WorkShiftNotificationData) => void;
+  'notification:workshift:batch_assigned': (data: WorkShiftNotificationData) => void;
   'notification:timeoff:created': (data: TimeOffNotificationData) => void;
   'notification:timeoff:approved': (data: TimeOffNotificationData) => void;
   'notification:timeoff:rejected': (data: TimeOffNotificationData) => void;
   'notification:timeoff:cancelled': (data: TimeOffNotificationData) => void;
   'notification:timeoff:branch_update': (data: TimeOffNotificationData) => void;
+  'notification:timeoff:owner_update': (data: TimeOffNotificationData) => void;
   'notification:reschedule:created': (data: RescheduleNotificationData) => void;
   'notification:reschedule:accepted': (data: RescheduleNotificationData) => void;
   'notification:reschedule:approved': (data: RescheduleNotificationData) => void;

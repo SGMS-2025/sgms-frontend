@@ -6,6 +6,7 @@ import type {
   SocketConfig,
   WorkShiftNotificationData,
   TimeOffNotificationData,
+  RescheduleNotificationData,
   SocketEvents,
   SocketServiceInterface,
   SocketConnectionStatus,
@@ -84,21 +85,29 @@ class SocketService implements SocketServiceInterface {
       resolve(true);
     });
 
+    this.socket.on('connected', (_data: unknown) => {
+      // Emit event to signal SocketContext that socket is ready
+      globalThis.dispatchEvent(new CustomEvent('socket-authenticated'));
+    });
+
     this.socket.on('connect_error', (error) => {
-      console.error('❌ Socket connection error:', error);
+      console.error('❌ Socket connection error:', error.message);
+      console.error('❌ Error details:', error);
       this.connectionStatus = 'error';
       this.handleReconnect();
       reject(error);
     });
 
-    this.socket.on('disconnect', () => {
+    this.socket.on('disconnect', (reason) => {
+      console.warn('⚠️ Socket disconnected. Reason:', reason);
       this.isConnected = false;
       this.connectionStatus = 'disconnected';
       this.stopHealthCheck();
       this.handleReconnect();
     });
 
-    this.socket.on('reconnect', () => {
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log(`✅ Socket reconnected after ${attemptNumber} attempt(s)`);
       this.isConnected = true;
       this.connectionStatus = 'connected';
       this.reconnectAttempts = 0;
@@ -114,7 +123,7 @@ class SocketService implements SocketServiceInterface {
     });
 
     this.socket.on('reconnect_failed', () => {
-      console.error('❌ Socket reconnection failed');
+      console.error('❌ Socket reconnection failed after all attempts');
       this.connectionStatus = 'error';
       toast.error(i18n.t('socket.reconnect_failed'), {
         id: 'socket-reconnect-failed'
@@ -141,6 +150,15 @@ class SocketService implements SocketServiceInterface {
       this.handleWorkShiftNotification(data);
     });
 
+    // Batch work shift notifications
+    this.socket.on('notification:workshift:batch_created', (data: WorkShiftNotificationData) => {
+      this.handleWorkShiftNotification(data);
+    });
+
+    this.socket.on('notification:workshift:batch_assigned', (data: WorkShiftNotificationData) => {
+      this.handleWorkShiftNotification(data);
+    });
+
     // Time off notifications
     this.socket.on('notification:timeoff:created', (data: TimeOffNotificationData) => {
       this.handleTimeOffNotification(data);
@@ -162,10 +180,53 @@ class SocketService implements SocketServiceInterface {
       this.handleTimeOffNotification(data);
     });
 
-    // Ping/pong for connection health
-    this.socket.on('pong', () => {
-      // Pong received for health check
+    this.socket.on('notification:timeoff:owner_update', (data: TimeOffNotificationData) => {
+      this.handleTimeOffNotification(data);
     });
+
+    // Reschedule notifications
+    this.socket.on('notification:reschedule:created', (data: RescheduleNotificationData) => {
+      this.handleRescheduleNotification(data);
+    });
+
+    this.socket.on('notification:reschedule:accepted', (data: RescheduleNotificationData) => {
+      this.handleRescheduleNotification(data);
+    });
+
+    this.socket.on('notification:reschedule:approved', (data: RescheduleNotificationData) => {
+      this.handleRescheduleNotification(data);
+    });
+
+    this.socket.on('notification:reschedule:rejected', (data: RescheduleNotificationData) => {
+      this.handleRescheduleNotification(data);
+    });
+
+    this.socket.on('notification:reschedule:cancelled', (data: RescheduleNotificationData) => {
+      this.handleRescheduleNotification(data);
+    });
+
+    this.socket.on('notification:reschedule:expired', (data: RescheduleNotificationData) => {
+      this.handleRescheduleNotification(data);
+    });
+
+    this.socket.on('notification:reschedule:completed', (data: RescheduleNotificationData) => {
+      this.handleRescheduleNotification(data);
+    });
+
+    this.socket.on('notification:reschedule:branch_update', (data: RescheduleNotificationData) => {
+      this.handleRescheduleNotification(data);
+    });
+
+    this.socket.on('notification:reschedule:owner_update', (data: RescheduleNotificationData) => {
+      this.handleRescheduleNotification(data);
+    });
+
+    this.socket.on('notification:reschedule:manager_update', (data: RescheduleNotificationData) => {
+      this.handleRescheduleNotification(data);
+    });
+
+    // Ping/pong for connection health
+    this.socket.on('pong', () => {});
 
     // Set connection timeout
     setTimeout(() => {
@@ -225,6 +286,12 @@ class SocketService implements SocketServiceInterface {
     // Don't show toast here - let the notification panel handle display
     // SocketContext will handle the notification directly from socket events
     console.log('🔔 TimeOff notification received in socketService:', data);
+  }
+
+  private handleRescheduleNotification(data: RescheduleNotificationData) {
+    // Don't show toast here - let the notification panel handle display
+    // SocketContext will handle the notification directly from socket events
+    console.log('🔔 Reschedule notification received in socketService:', data);
   }
 
   // Removed emitCustomEvent to prevent duplicate notifications

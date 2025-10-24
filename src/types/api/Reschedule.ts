@@ -191,6 +191,7 @@ export interface RescheduleRequestListProps {
   priorityFilter?: string;
   onPriorityFilterChange?: (value: string) => void;
   showFilters?: boolean;
+  currentUserShifts?: WorkShift[];
   showStats?: boolean;
   showHeader?: boolean;
   stats?: RescheduleStats;

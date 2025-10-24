@@ -73,6 +73,25 @@ export const useTimeOffList = (initialParams: TimeOffListParams = {}): UseTimeOf
     fetchTimeOffs();
   }, [fetchTimeOffs]);
 
+  useEffect(() => {
+    const handleRealtimeNotification = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const notification = customEvent.detail;
+
+      if (notification.category === 'timeoff' || notification.type?.includes('timeoff')) {
+        setTimeout(() => {
+          refetch();
+        }, 500);
+      }
+    };
+
+    globalThis.addEventListener('realtime-notification', handleRealtimeNotification);
+
+    return () => {
+      globalThis.removeEventListener('realtime-notification', handleRealtimeNotification);
+    };
+  }, [refetch]);
+
   return {
     timeOffs,
     stats,

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/utils/utils';
+import { getScheduleTypeLabel } from '@/utils/scheduleTypeHelpers';
 import type { BasicInfoFormProps } from '@/types/forms/StaffScheduleFormTypes';
 
 const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
@@ -18,7 +19,8 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
   loadingStaff,
   onStaffChange,
   onBranchChange,
-  onStartEndTimeChange
+  scheduleDateError,
+  onScheduleDateChange
 }) => {
   const { t } = useTranslation();
   const {
@@ -44,7 +46,14 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
           <Input
             id="title"
             placeholder={t('workshift.schedule_title_placeholder')}
-            {...register('title')}
+            {...register('title', {
+              onChange: () => {
+                // Clear error when user starts typing
+                if (errors.title) {
+                  form.clearErrors('title');
+                }
+              }
+            })}
             className={cn('h-8 text-sm', errors.title && 'border-red-500')}
           />
           {errors.title && <p className="text-xs text-red-600">{errors.title.message}</p>}
@@ -53,68 +62,56 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
             <Label htmlFor="scheduleDate" className="text-xs font-medium">
-              Schedule Date *
+              {t('workshift.schedule_date')} *
             </Label>
             <Input
               id="scheduleDate"
               type="date"
               {...register('scheduleDate')}
-              className={cn('h-8 text-sm', errors.scheduleDate && 'border-red-500')}
+              onChange={(e) => {
+                register('scheduleDate').onChange(e);
+                onScheduleDateChange?.(e.target.value);
+              }}
+              className={cn('h-8 text-sm', (errors.scheduleDate || scheduleDateError) && 'border-red-500')}
             />
             {errors.scheduleDate && <p className="text-xs text-red-600">{errors.scheduleDate.message}</p>}
+            {scheduleDateError && <p className="text-xs text-red-600">{scheduleDateError}</p>}
           </div>
 
           <div className="space-y-1">
             <Label htmlFor="type" className="text-xs font-medium">
-              Schedule Type *
+              {t('workshift.schedule_type')} *
             </Label>
             <select
               id="type"
               {...register('type')}
               className={cn('h-8 text-sm border rounded-md px-3', errors.type && 'border-red-500')}
             >
-              <option value="FREE_TIME">Free Time</option>
-              <option value="PERSONAL_TRAINING">Personal Training</option>
-              <option value="CLASS">Class</option>
-              <option value="MAINTENANCE">Maintenance</option>
+              <option value="FREE_TIME">{getScheduleTypeLabel('FREE_TIME', t)}</option>
+              <option value="PERSONAL_TRAINING">{getScheduleTypeLabel('PERSONAL_TRAINING', t)}</option>
+              <option value="CLASS">{getScheduleTypeLabel('CLASS', t)}</option>
+              <option value="MAINTENANCE">{getScheduleTypeLabel('MAINTENANCE', t)}</option>
             </select>
             {errors.type && <p className="text-xs text-red-600">{errors.type.message}</p>}
           </div>
+        </div>
 
-          <div className="space-y-1">
-            <Label htmlFor="startTime" className="text-xs font-medium">
-              Start Time *
-            </Label>
-            <Input
-              id="startTime"
-              type="time"
-              {...register('timeRange.startTime')}
-              onChange={(e) => {
-                register('timeRange.startTime').onChange(e);
-                onStartEndTimeChange?.('startTime', e.target.value);
-              }}
-              className={cn('h-8 text-sm', errors.timeRange?.startTime && 'border-red-500')}
-            />
-            {errors.timeRange?.startTime && (
-              <p className="text-xs text-red-600">{errors.timeRange.startTime.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-1">
-            <Label htmlFor="endTime" className="text-xs font-medium">
-              End Time *
-            </Label>
-            <Input
-              id="endTime"
-              type="time"
-              {...register('timeRange.endTime')}
-              onChange={(e) => {
-                register('timeRange.endTime').onChange(e);
-                onStartEndTimeChange?.('endTime', e.target.value);
-              }}
-              className={cn('h-8 text-sm', errors.timeRange?.endTime && 'border-red-500')}
-            />
-            {errors.timeRange?.endTime && <p className="text-xs text-red-600">{errors.timeRange.endTime.message}</p>}
+        {/* Info note about shift-based scheduling */}
+        <div className="text-xs text-blue-600 bg-blue-50 p-3 rounded border border-blue-200">
+          <div className="flex items-center gap-2">
+            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span className="font-medium">
+              {t(
+                'workshift.shift_based_info',
+                'Shift times are automatically set based on your selections below (Morning: 08:00-12:00, Afternoon: 13:00-17:00, Evening: 17:00-21:00)'
+              )}
+            </span>
           </div>
         </div>
 
@@ -148,7 +145,14 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
                 </div>
               </div>
             ) : (
-              <Select onValueChange={onBranchChange}>
+              <Select
+                onValueChange={(value) => {
+                  onBranchChange(value);
+                  // Clear error and trigger validation after selection
+                  form.clearErrors('branchId');
+                  form.trigger('branchId');
+                }}
+              >
                 <SelectTrigger className={cn('h-8 text-sm', errors.branchId && 'border-red-500')}>
                   <SelectValue placeholder={t('workshift.select_branch')} />
                 </SelectTrigger>
@@ -183,7 +187,12 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
             ) : (
               <div className="space-y-2">
                 <Select
-                  onValueChange={onStaffChange}
+                  onValueChange={(value) => {
+                    onStaffChange(value);
+                    // Clear error and trigger validation after selection
+                    form.clearErrors('staffId');
+                    form.trigger('staffId');
+                  }}
                   disabled={!watchedBranchId || loadingStaff || isStaffFieldDisabled}
                 >
                   <SelectTrigger className={cn('h-8 text-sm', errors.staffId && 'border-red-500')}>

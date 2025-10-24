@@ -24,29 +24,33 @@ import type {
 import type { Staff } from '@/types/api/Staff';
 import type { WorkShift } from '@/types/api/WorkShift';
 
-const RESCHEDULE_TYPES: { value: RescheduleType; label: string; description: string }[] = [
+const getRescheduleTypes = (
+  t: (key: string) => string
+): { value: RescheduleType; label: string; description: string }[] => [
   {
     value: 'FIND_REPLACEMENT',
-    label: 'Find Replacement',
+    label: t('common.find_replacement'),
     description: 'Find someone to cover your shift'
   },
   {
     value: 'DIRECT_SWAP',
-    label: 'Direct Swap',
+    label: t('common.direct_swap'),
     description: 'Swap shifts with another staff member'
   },
   {
     value: 'MANAGER_ASSIGN',
-    label: 'Manager Assign',
+    label: t('common.manager_assign'),
     description: 'Let manager assign someone to cover'
   }
 ];
 
-const PRIORITY_OPTIONS: { value: ReschedulePriority; label: string; color: string }[] = [
-  { value: 'LOW', label: 'Low', color: 'bg-gray-100 text-gray-800' },
-  { value: 'MEDIUM', label: 'Medium', color: 'bg-blue-100 text-blue-800' },
-  { value: 'HIGH', label: 'High', color: 'bg-orange-100 text-orange-800' },
-  { value: 'URGENT', label: 'Urgent', color: 'bg-red-100 text-red-800' }
+const getPriorityOptions = (
+  t: (key: string) => string
+): { value: ReschedulePriority; label: string; color: string }[] => [
+  { value: 'LOW', label: t('common.low'), color: 'bg-gray-100 text-gray-800' },
+  { value: 'MEDIUM', label: t('common.medium'), color: 'bg-blue-100 text-blue-800' },
+  { value: 'HIGH', label: t('common.high'), color: 'bg-orange-100 text-orange-800' },
+  { value: 'URGENT', label: t('common.urgent'), color: 'bg-red-100 text-red-800' }
 ];
 
 const CreateRescheduleModal: React.FC<CreateRescheduleModalProps> = ({ isOpen, onClose, onSuccess, workShiftId }) => {
@@ -68,10 +72,10 @@ const CreateRescheduleModal: React.FC<CreateRescheduleModalProps> = ({ isOpen, o
   const getAvailableRescheduleTypes = () => {
     // If workShiftId is provided (from WorkShift Detail), hide Direct Swap
     if (workShiftId) {
-      return RESCHEDULE_TYPES.filter((type) => type.value !== 'DIRECT_SWAP');
+      return getRescheduleTypes(t).filter((type) => type.value !== 'DIRECT_SWAP');
     }
     // If no workShiftId (from Reschedule Management), show all types
-    return RESCHEDULE_TYPES;
+    return getRescheduleTypes(t);
   };
 
   const [formData, setFormData] = useState<CreateRescheduleRequestDto>({
@@ -454,7 +458,7 @@ const CreateRescheduleModal: React.FC<CreateRescheduleModalProps> = ({ isOpen, o
                   <SelectValue placeholder={t('reschedule.select_priority')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {PRIORITY_OPTIONS.map((priority) => (
+                  {getPriorityOptions(t).map((priority) => (
                     <SelectItem key={priority.value} value={priority.value}>
                       <div className="flex items-center gap-2">
                         <Badge className={cn('text-xs', priority.color)}>{priority.label}</Badge>
