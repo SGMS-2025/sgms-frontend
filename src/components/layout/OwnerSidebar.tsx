@@ -40,23 +40,7 @@ import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
-
-interface SidebarItemProps {
-  icon: React.ReactNode;
-  label: string;
-  isActive?: boolean;
-  onClick?: () => void;
-  isCollapsed?: boolean;
-  badge?: number;
-}
-
-interface MenuItemProps {
-  icon: React.ReactNode;
-  label: string;
-  isActive?: boolean;
-  onClick: () => void;
-  badge?: number;
-}
+import { Sidebar, type SidebarItem as SidebarItemType } from '@/components/common/Sidebar';
 
 interface DropdownSidebarItemProps {
   icon: React.ReactNode;
@@ -71,44 +55,6 @@ interface SubMenuItemProps {
   isActive?: boolean;
   onClick: () => void;
 }
-
-const SidebarItem: React.FC<SidebarItemProps> = ({
-  icon,
-  label,
-  isActive = false,
-  onClick,
-  isCollapsed = false,
-  badge
-}) => {
-  return (
-    <button
-      type="button"
-      className={`group relative flex items-center py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 ${
-        isActive ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-700 hover:bg-orange-50 hover:text-orange-500'
-      } ${isCollapsed ? 'justify-center px-1 w-12' : 'w-full gap-3 px-3'}`}
-      onClick={onClick}
-      aria-current={isActive ? 'page' : undefined}
-      title={isCollapsed ? label : undefined}
-    >
-      <span className="flex-shrink-0 w-5 h-5 relative">
-        {icon}
-        {badge && badge > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-            {badge > 99 ? '99+' : badge}
-          </span>
-        )}
-      </span>
-      {!isCollapsed && <span className="text-sm font-medium truncate">{label}</span>}
-
-      {/* Tooltip for collapsed state */}
-      {isCollapsed && (
-        <span className="pointer-events-none absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-          {label}
-        </span>
-      )}
-    </button>
-  );
-};
 
 const SubMenuItem: React.FC<SubMenuItemProps> = ({ icon, label, isActive = false, onClick }) => {
   return (
@@ -481,10 +427,11 @@ export const OwnerSidebar: React.FC = () => {
     };
   }, [isAuthenticated, hasInitiallyFetched, authUser, updateUser]);
 
-  const mainNavItems: MenuItemProps[] = [
+  const mainNavItems: SidebarItemType[] = [
     {
       icon: <LayoutDashboard className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.dashboard'),
+      href: '/manage/owner',
       isActive: location.pathname === '/manage/owner',
       onClick: () => {
         navigate('/manage/owner');
@@ -493,6 +440,7 @@ export const OwnerSidebar: React.FC = () => {
     {
       icon: <Users className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.staff'),
+      href: '/manage/staff',
       isActive: location.pathname === '/manage/staff',
       onClick: () => {
         navigate('/manage/staff');
@@ -501,6 +449,7 @@ export const OwnerSidebar: React.FC = () => {
     {
       icon: <User className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.customers'),
+      href: '/manage/customers',
       isActive: location.pathname === '/manage/customers',
       onClick: () => {
         navigate('/manage/customers');
@@ -517,6 +466,8 @@ export const OwnerSidebar: React.FC = () => {
     {
       icon: <Dumbbell className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.equipment'),
+      href: '/manage/equipment',
+      isActive: location.pathname === '/manage/equipment',
       onClick: () => {
         navigate('/manage/equipment');
       }
@@ -524,6 +475,7 @@ export const OwnerSidebar: React.FC = () => {
     {
       icon: <MessageSquare className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.testimonials'),
+      href: '/manage/testimonials',
       isActive: location.pathname === '/manage/testimonials',
       onClick: () => {
         navigate('/manage/testimonials');
@@ -543,28 +495,9 @@ export const OwnerSidebar: React.FC = () => {
 
       {/* Main Navigation */}
       <div className={`flex-1 py-2 overflow-y-auto ${isCollapsed ? 'px-1' : 'px-3'}`}>
-        {!isCollapsed && (
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-3">
-            {t('sidebar.main_menu')}
-          </div>
-        )}
-        <nav
-          className={`space-y-1 ${isCollapsed ? 'overflow-hidden' : ''}`}
-          role="navigation"
-          aria-label={t('sidebar.navigation.main')}
-        >
-          {mainNavItems.map((item) => (
-            <SidebarItem
-              key={item.label}
-              icon={item.icon}
-              label={item.label}
-              isActive={item.isActive}
-              onClick={item.onClick}
-              isCollapsed={isCollapsed}
-              badge={item.badge}
-            />
-          ))}
+        <Sidebar items={mainNavItems} isCollapsed={isCollapsed} title={t('sidebar.main_menu')} />
 
+        <div className="mt-1 space-y-1">
           {/* Services Dropdown */}
           <DropdownSidebarItem
             icon={<Briefcase className="w-5 h-5 stroke-[1.75]" />}
@@ -642,7 +575,7 @@ export const OwnerSidebar: React.FC = () => {
               onClick={() => navigate('/manage/expenses')}
             />
           </DropdownSidebarItem>
-        </nav>
+        </div>
       </div>
 
       {/* Upgrade prompt */}

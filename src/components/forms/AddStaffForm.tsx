@@ -345,17 +345,11 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
   };
 
   // Helper function to handle image upload using utility
-  const handleImageUpload = createImageUploadHandler(
-    (result) => {
-      setProfileImageFile(result.file);
-      setProfileImage(result.imageUrl);
-      setFormData((prev) => ({ ...prev, profileImage: result.imageUrl }));
-    },
-    (error) => {
-      toast.error(`${t('error.image_upload_failed') || 'Lỗi upload ảnh'}: ${error}`);
-    },
-    STAFF_IMAGE_OPTIONS
-  );
+  const handleImageUpload = createImageUploadHandler((result) => {
+    setProfileImageFile(result.file);
+    setProfileImage(result.imageUrl);
+    setFormData((prev) => ({ ...prev, profileImage: result.imageUrl }));
+  }, STAFF_IMAGE_OPTIONS);
 
   // Helper function to generate username from email
   const generateUsernameFromEmail = (email: string): string => {

@@ -29,6 +29,10 @@ export default function HomePage() {
       console.log('Redirecting owner to /manage/owner dashboard');
       console.log('User role:', user.role);
       navigate('/manage/owner');
+    } else if (user && user.role === 'CUSTOMER') {
+      console.log('Redirecting customer to /customer dashboard');
+      console.log('User role:', user.role);
+      navigate('/customer');
     } else if (user && user.role === 'STAFF' && currentStaff) {
       // Redirect STAFF based on job title
       console.log('Staff job title:', currentStaff.jobTitle);

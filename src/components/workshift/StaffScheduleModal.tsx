@@ -11,6 +11,7 @@ import BasicInfoForm from './forms/BasicInfoForm';
 import WeeklyFixedShiftSelector from './forms/WeeklyFixedShiftSelector';
 import TemplateCreationForm from './forms/TemplateCreationForm';
 import StaffScheduleView from './forms/StaffScheduleView';
+import { TemplateSelector } from './TemplateSelector';
 import type { StaffScheduleModalProps, StaffScheduleFormData } from '@/types/api/StaffSchedule';
 import type { CustomTime } from '@/types/schedule';
 
@@ -25,6 +26,8 @@ const StaffScheduleModal: React.FC<StaffScheduleModalProps> = ({ isOpen, onClose
   // Use custom hooks for form logic
   const {
     form,
+    templates,
+    loadingTemplates,
     selectedTemplate,
     isStaffFieldDisabled,
     templateStaffInfo,
@@ -44,6 +47,8 @@ const StaffScheduleModal: React.FC<StaffScheduleModalProps> = ({ isOpen, onClose
     timeRangeError,
     scheduleDateError,
     handleScheduleDateChange,
+    handleTemplateSelect,
+    handleTemplateClear,
     handleShiftToggle,
     handleCustomTimeChange,
     handleAddCustomShift,
@@ -224,6 +229,15 @@ const StaffScheduleModal: React.FC<StaffScheduleModalProps> = ({ isOpen, onClose
                 timeRangeError={timeRangeError}
                 scheduleDateError={scheduleDateError}
                 onScheduleDateChange={handleScheduleDateChange}
+              />
+
+              {/* Template Selection */}
+              <TemplateSelector
+                templates={templates}
+                loading={loadingTemplates}
+                selectedTemplate={selectedTemplate}
+                onTemplateSelect={handleTemplateSelect}
+                onTemplateClear={handleTemplateClear}
               />
 
               {/* Weekly Fixed Shift Selection - Only show when branch and staff are selected */}

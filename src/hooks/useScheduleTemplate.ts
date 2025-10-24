@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { scheduleTemplateApi } from '@/services/api/scheduleTemplateApi';
 import { socketService } from '@/services/socket/socketService';
+import { handleAsyncOperationWithOptions } from '@/utils/errorHandler';
 import type {
   ScheduleTemplate,
   ScheduleTemplateListParams,
@@ -11,6 +13,7 @@ import type {
 } from '@/types/api/ScheduleTemplate';
 
 export const useScheduleTemplate = () => {
+  const { t } = useTranslation();
   const [templates, setTemplates] = useState<ScheduleTemplate[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,10 +44,22 @@ export const useScheduleTemplate = () => {
     setLoading(true);
     setError(null);
 
-    const response = await scheduleTemplateApi.createScheduleTemplate(data);
-    setTemplates((prev) => [response.data, ...prev]);
+    const result = await handleAsyncOperationWithOptions(
+      async () => {
+        const response = await scheduleTemplateApi.createScheduleTemplate(data);
+        setTemplates((prev) => [response.data, ...prev]);
+        return { success: true, data: response.data };
+      },
+      {
+        showSuccess: true,
+        showError: true,
+        successMessage: t('schedule_templates.create_success'),
+        errorMessage: t('schedule_templates.create_error')
+      }
+    );
+
     setLoading(false);
-    return response.data;
+    return result;
   }, []);
 
   // Update template
@@ -52,10 +67,22 @@ export const useScheduleTemplate = () => {
     setLoading(true);
     setError(null);
 
-    const response = await scheduleTemplateApi.updateScheduleTemplate(id, data);
-    setTemplates((prev) => prev.map((template) => (template._id === id ? response.data : template)));
+    const result = await handleAsyncOperationWithOptions(
+      async () => {
+        const response = await scheduleTemplateApi.updateScheduleTemplate(id, data);
+        setTemplates((prev) => prev.map((template) => (template._id === id ? response.data : template)));
+        return { success: true, data: response.data };
+      },
+      {
+        showSuccess: true,
+        showError: true,
+        successMessage: t('schedule_templates.update_success'),
+        errorMessage: t('schedule_templates.update_error')
+      }
+    );
+
     setLoading(false);
-    return response.data;
+    return result;
   }, []);
 
   // Delete template
@@ -63,9 +90,26 @@ export const useScheduleTemplate = () => {
     setLoading(true);
     setError(null);
 
-    await scheduleTemplateApi.deleteScheduleTemplate(id);
-    setTemplates((prev) => prev.filter((template) => template._id !== id));
+    const result = await handleAsyncOperationWithOptions(
+      async () => {
+        const response = await scheduleTemplateApi.deleteScheduleTemplate(id);
+
+        setTemplates((prev) => {
+          const filtered = prev.filter((template) => template._id !== id);
+          return filtered;
+        });
+        return { success: true, data: response.data };
+      },
+      {
+        showSuccess: true,
+        showError: true,
+        successMessage: t('schedule_templates.delete_success'),
+        errorMessage: t('schedule_templates.delete_error')
+      }
+    );
+
     setLoading(false);
+    return result;
   }, []);
 
   // Activate template
@@ -73,10 +117,22 @@ export const useScheduleTemplate = () => {
     setLoading(true);
     setError(null);
 
-    const response = await scheduleTemplateApi.activateScheduleTemplate(id);
-    setTemplates((prev) => prev.map((template) => (template._id === id ? response.data : template)));
+    const result = await handleAsyncOperationWithOptions(
+      async () => {
+        const response = await scheduleTemplateApi.activateScheduleTemplate(id);
+        setTemplates((prev) => prev.map((template) => (template._id === id ? response.data : template)));
+        return { success: true, data: response.data };
+      },
+      {
+        showSuccess: true,
+        showError: true,
+        successMessage: t('schedule_templates.activate_success'),
+        errorMessage: t('schedule_templates.activate_error')
+      }
+    );
+
     setLoading(false);
-    return response.data;
+    return result;
   }, []);
 
   // Deactivate template
@@ -84,10 +140,22 @@ export const useScheduleTemplate = () => {
     setLoading(true);
     setError(null);
 
-    const response = await scheduleTemplateApi.deactivateScheduleTemplate(id);
-    setTemplates((prev) => prev.map((template) => (template._id === id ? response.data : template)));
+    const result = await handleAsyncOperationWithOptions(
+      async () => {
+        const response = await scheduleTemplateApi.deactivateScheduleTemplate(id);
+        setTemplates((prev) => prev.map((template) => (template._id === id ? response.data : template)));
+        return { success: true, data: response.data };
+      },
+      {
+        showSuccess: true,
+        showError: true,
+        successMessage: t('schedule_templates.deactivate_success'),
+        errorMessage: t('schedule_templates.deactivate_error')
+      }
+    );
+
     setLoading(false);
-    return response.data;
+    return result;
   }, []);
 
   // Update auto generate settings
@@ -147,6 +215,17 @@ export const useScheduleTemplate = () => {
     setError(null);
 
     const response = await scheduleTemplateApi.getTemplateStats(branchId);
+    setLoading(false);
+    return response.data;
+  }, []);
+
+  // Increment template usage
+  const incrementTemplateUsage = useCallback(async (id: string) => {
+    setLoading(true);
+    setError(null);
+
+    const response = await scheduleTemplateApi.incrementTemplateUsage(id);
+    setTemplates((prev) => prev.map((template) => (template._id === id ? response.data : template)));
     setLoading(false);
     return response.data;
   }, []);
@@ -214,6 +293,7 @@ export const useScheduleTemplate = () => {
     getTemplatesByBranch,
     getTemplatesByType,
     getAutoGenerateTemplates,
-    getTemplateStats
+    getTemplateStats,
+    incrementTemplateUsage
   };
 };

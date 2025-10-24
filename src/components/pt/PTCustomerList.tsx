@@ -13,12 +13,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PTCustomerDetailModal } from '@/components/modals/PTCustomerDetailModal';
 import { usePTCustomerList, usePTCustomerFilters, usePTCustomerUtils } from '@/hooks/usePTCustomer';
 import { useUser } from '@/hooks/useAuth';
+import { useBranch } from '@/contexts/BranchContext';
 import type { PTCustomer } from '@/types/api/Customer';
 import type { PTCustomerListProps } from '@/types/components/Customer';
 
 export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
   const { t } = useTranslation();
   const currentUser = useUser();
+  const { currentBranch } = useBranch();
   const [selectedCustomer, setSelectedCustomer] = useState<PTCustomer | null>(null);
 
   // Use the current user's ID as trainerId if not provided
@@ -28,7 +30,8 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
   const { customerList, loading, error, stats, pagination, refetch, goToPage } = usePTCustomerList({
     trainerId: actualTrainerId,
     limit: 6, // Show 6 customers per page
-    packageType: 'PT' // Only show PT packages
+    packageType: 'PT', // Only show PT packages
+    branchId: currentBranch?._id // Add branchId for permission validation
   });
 
   // Handle filtering and sorting

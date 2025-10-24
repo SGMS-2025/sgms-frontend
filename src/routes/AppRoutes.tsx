@@ -49,6 +49,7 @@ import PTDashboard from '@/pages/pt/PTDashboard';
 import PTCalendarPage from '@/pages/pt/PTCalendarPage';
 import PTCustomerListPage from '@/pages/pt/PTCustomerListPage';
 import PTAttendanceHistoryPage from '@/pages/pt/PTAttendanceHistoryPage';
+import TrainingProgressDetailPage from '@/pages/pt/TrainingProgressDetailPage';
 import CustomerManagementPage from '@/pages/owner/CustomerManagementPage';
 import TimeOffPage from '@/pages/owner/TimeOffPage';
 import TimeOffManagementPage from '@/pages/owner/TimeOffManagementPage';
@@ -63,6 +64,13 @@ import { TechnicianSidebar } from '@/components/layout/TechnicianSidebar';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import AttendancePage from '@/pages/attendance/AttendancePage';
 import RescheduleManagementPage from '@/pages/owner/RescheduleManagementPage';
+import CustomerSecurity from '@/pages/customer/CustomerSecurity';
+import CustomerProgress from '@/pages/customer/CustomerProgress';
+import CustomerSchedule from '@/pages/customer/CustomerSchedule';
+import CustomerMembership from '@/pages/customer/CustomerMembership';
+import CustomerProfile from '@/pages/customer/CustomerProfile';
+import CustomerDashboard from '@/pages/customer/CustomerDashboard';
+import { CustomerLayout } from '@/layouts/CustomerLayout';
 
 // WorkShift Calendar with Layout Component
 const WorkShiftCalendarPageWithLayout: React.FC = () => {
@@ -427,6 +435,10 @@ const AppRoutes: React.FC = () => {
 
           {/* Clients Route for PT */}
           <Route path="clients" element={<PTCustomerListPage />} />
+
+          {/* Training Progress Detail Route for PT */}
+          <Route path="clients/:id/progress" element={<TrainingProgressDetailPage />} />
+
           {/* Time Off Route for PT */}
           <Route path="timeoff" element={<PTTimeOffPage />} />
 
@@ -437,6 +449,31 @@ const AppRoutes: React.FC = () => {
           <Route path="equipment-issues" element={<EquipmentIssueReportPage />} />
 
           <Route path="*" element={<Navigate to="/manage/pt" replace />} />
+        </Route>
+      </Route>
+
+      {/* Customer Routes - for CUSTOMER role only */}
+      <Route path="/customer" element={<ProtectedRoute allowedRoles={['CUSTOMER']} fallbackPath="/home" />}>
+        <Route path="" element={<CustomerLayout />}>
+          {/* Dashboard Route */}
+          <Route path="" element={<CustomerDashboard />} />
+
+          {/* Profile Route */}
+          <Route path="profile" element={<CustomerProfile />} />
+
+          {/* Membership Route */}
+          <Route path="membership" element={<CustomerMembership />} />
+
+          {/* Schedule Route */}
+          <Route path="schedule" element={<CustomerSchedule />} />
+
+          {/* Progress Route */}
+          <Route path="progress" element={<CustomerProgress />} />
+
+          {/* Security Route */}
+          <Route path="security" element={<CustomerSecurity />} />
+
+          <Route path="*" element={<Navigate to="/customer" replace />} />
         </Route>
       </Route>
 
