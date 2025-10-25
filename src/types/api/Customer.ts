@@ -22,8 +22,10 @@ export interface CustomerDisplay {
   contractStartDate?: string; // Ngày bắt đầu hợp đồng
   contractEndDate?: string; // Ngày hết hạn hợp đồng
   referrerStaffName?: string; // Tên nhân viên giới thiệu
+  createdByStaffName?: string; // Tên nhân viên tạo hợp đồng
   lastPaymentDate?: string; // Ngày thanh toán gần nhất
   createdAt?: string; // Ngày tạo
+  updatedAt?: string; // Ngày cập nhật
 
   // Additional fields for detailed customer information
   gender?: string;
@@ -76,6 +78,8 @@ export interface CustomerDisplay {
     };
     startDate: string;
     endDate?: string;
+    activationDate?: string;
+    status?: string;
     initialPaidAmount?: number;
     totalAmount?: number;
     remainingDebt?: number;
@@ -190,7 +194,7 @@ export interface CustomerFormData {
   serviceNotes: string;
 
   // Payment Information
-  paymentMethod: 'CASH' | 'CREDIT_CARD' | 'BANK_TRANSFER' | 'EWALLET' | 'OTHER';
+  paymentMethod: 'CASH' | 'BANK_TRANSFER';
 }
 
 // Additional types for API responses

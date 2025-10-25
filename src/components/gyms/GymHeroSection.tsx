@@ -2,11 +2,12 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Star, MapPin, Sparkles } from 'lucide-react';
+import { Star, MapPin, Sparkles, Ban } from 'lucide-react';
 import type { GymHeroSectionProps } from '@/types/components/gym';
 
-export const GymHeroSection: React.FC<GymHeroSectionProps> = ({ branch, onJoinClick }) => {
+export const GymHeroSection: React.FC<GymHeroSectionProps> = ({ branch, onJoinClick, membershipState }) => {
   const { t } = useTranslation();
+  const hasJoined = membershipState?.isJoined;
 
   return (
     <section className="relative bg-white">
@@ -54,18 +55,44 @@ export const GymHeroSection: React.FC<GymHeroSectionProps> = ({ branch, onJoinCl
                 </div>
               </div>
 
-              {onJoinClick && (
-                <div className="flex justify-end pb-2">
-                  <Button
-                    type="button"
-                    onClick={onJoinClick}
-                    className="gap-2 rounded-full bg-white/90 text-slate-900 hover:bg-white"
-                  >
-                    <Sparkles className="h-4 w-4 text-orange-500" />
-                    {t('gymHero.joinMembership')}
-                  </Button>
-                </div>
-              )}
+              <div className="flex justify-end pb-2 gap-3">
+                {hasJoined ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="gap-2 rounded-full bg-white/90 text-slate-900 hover:bg-white"
+                      disabled
+                    >
+                      <Sparkles className="h-4 w-4 text-orange-500" />
+                      {membershipState?.manageLabel || t('gymHero.membershipJoined')}
+                    </Button>
+                    {membershipState?.onCancelClick && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        className="gap-2 rounded-full"
+                        onClick={membershipState.onCancelClick}
+                        disabled={membershipState.cancelDisabled}
+                      >
+                        <Ban className="h-4 w-4" />
+                        {t('gymHero.cancelMembership')}
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  onJoinClick && (
+                    <Button
+                      type="button"
+                      onClick={onJoinClick}
+                      className="gap-2 rounded-full bg-white/90 text-slate-900 hover:bg-white"
+                    >
+                      <Sparkles className="h-4 w-4 text-orange-500" />
+                      {t('gymHero.joinMembership')}
+                    </Button>
+                  )
+                )}
+              </div>
             </div>
           </div>
         </div>

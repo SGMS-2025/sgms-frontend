@@ -1753,10 +1753,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="CASH">{t('customer_modal.cash')}</SelectItem>
-                              <SelectItem value="CREDIT_CARD">{t('customer_modal.card')}</SelectItem>
                               <SelectItem value="BANK_TRANSFER">{t('customer_modal.transfer')}</SelectItem>
-                              <SelectItem value="EWALLET">{t('customer_modal.ewallet')}</SelectItem>
-                              <SelectItem value="OTHER">{t('customer_modal.other')}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>

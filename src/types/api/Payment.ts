@@ -67,8 +67,6 @@ export interface LastPaymentSummary {
 export interface PaymentSummaryByMethod {
   CASH: number;
   BANK_TRANSFER: number;
-  CARD: number;
-  QR_CODE: number;
 }
 
 export interface PaymentLedgerItem {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '@/components/layout/BaseHeader';
 import { Footer } from '@/components/layout/BaseFooter';
@@ -18,6 +18,18 @@ import { usePublicMembershipPlans } from '@/hooks/useMembershipPlans';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { MembershipPlanSelector } from '@/components/membership/MembershipPlanSelector';
+import { MembershipPurchaseDialog } from '@/components/membership/MembershipPurchaseDialog';
+import { MembershipCancelDialog } from '@/components/membership/MembershipCancelDialog';
+import { PayOSPaymentModal } from '@/components/membership/PayOSPaymentModal';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  useCreatePublicMembershipContract,
+  useCreatePublicMembershipContractPayOS
+} from '@/hooks/useMembershipContract';
+import { useCustomerMembershipContract } from '@/hooks/useCustomerMembershipContract';
+import { useSocket } from '@/hooks/useSocket';
+import { membershipApi } from '@/services/api/membershipApi';
+import type { MembershipPlan, PayOSPaymentInfo } from '@/types/api/Membership';
 
 // Mock data for features not yet available from API
 const mockServicePackages = [
@@ -139,9 +151,45 @@ const GymDetailPage: React.FC = () => {
     refetch: refetchMembership
   } = usePublicMembershipPlans(membershipQueryParams, { enabled: Boolean(branchIdForMembership) });
   const [isMembershipDialogOpen, setIsMembershipDialogOpen] = useState(false);
+  const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<MembershipPlan | null>(null);
+  const { state: authState } = useAuth();
+  const customerId = authState.user?.customerId ?? null;
+  const {
+    createContract,
+    loading: creatingContract,
+    error: createContractError,
+    reset: resetCreateError
+  } = useCreatePublicMembershipContract();
+  const {
+    createContractPayOS,
+    loading: creatingPayOSContract,
+    error: createPayOSError,
+    reset: resetPayOSError
+  } = useCreatePublicMembershipContractPayOS();
+  const {
+    contract: activeMembership,
+    loading: membershipContractLoading,
+    refetch: refetchCustomerMembership
+  } = useCustomerMembershipContract({
+    branchId: branchIdForMembership,
+    enabled: Boolean(branchIdForMembership && authState.user?.role === 'CUSTOMER')
+  });
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [isPayOSModalOpen, setIsPayOSModalOpen] = useState(false);
+  const [payOSPaymentInfo, setPayOSPaymentInfo] = useState<PayOSPaymentInfo | null>(null);
+  const { state: socketState } = useSocket();
 
   // Scroll to top when component mounts
   useScrollToTop();
+
+  // Connect to socket for realtime updates
+  useEffect(() => {
+    if (authState.user?.role === 'CUSTOMER' && !socketState.isConnected) {
+      // Socket will be connected automatically by SocketProvider
+    }
+  }, [authState.user?.role, socketState.isConnected]);
 
   const handleBackClick = () => {
     navigate(-1);
@@ -189,6 +237,13 @@ const GymDetailPage: React.FC = () => {
   }
 
   const handleJoinClick = () => {
+    if (membershipContractLoading) {
+      return;
+    }
+    if (activeMembership) {
+      toast.info(t('gymDetail.membership.toast.alreadyJoined'));
+      return;
+    }
     if (!membershipPlans.length) {
       toast.info(t('gymDetail.membership.toast.noPlans'));
       return;
@@ -196,8 +251,125 @@ const GymDetailPage: React.FC = () => {
     setIsMembershipDialogOpen(true);
   };
 
-  const handleJoinPlan = () => {
-    toast.info(t('gymDetail.membership.toast.onlineSignupComingSoon'));
+  const handleJoinPlan = (plan: MembershipPlan) => {
+    if (!authState.isAuthenticated || !authState.user) {
+      toast.error(t('gymDetail.membership.toast.loginRequired'));
+      navigate('/login');
+      return;
+    }
+
+    if (authState.user.role !== 'CUSTOMER') {
+      toast.error(t('gymDetail.membership.toast.permissionDenied'));
+      return;
+    }
+
+    setSelectedPlan(plan);
+    setIsMembershipDialogOpen(false);
+    setIsPurchaseDialogOpen(true);
+  };
+
+  const handleClosePurchaseDialog = () => {
+    if (creatingContract) return;
+    setIsPurchaseDialogOpen(false);
+    setSelectedPlan(null);
+    resetCreateError();
+  };
+
+  const handleCancelMembership = async (reason?: string) => {
+    if (!branch?._id || !activeMembership) return;
+
+    setCancelLoading(true);
+    try {
+      const response = await membershipApi.cancelPublicMembershipContract(activeMembership._id, { reason });
+      toast.success(t('gymDetail.membership.cancel.success'));
+      setIsCancelDialogOpen(false);
+      globalThis.dispatchEvent(
+        new CustomEvent('membership:cancelled', {
+          detail: {
+            branchId: branch._id,
+            contract: response.data,
+            customerId
+          }
+        })
+      );
+      await Promise.all([refetchMembership(), refetchCustomerMembership()]);
+    } catch (cancelError) {
+      console.error(cancelError);
+      toast.error(t('gymDetail.membership.cancel.error'));
+      throw new Error(t('gymDetail.membership.cancel.error'));
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+  const handleConfirmPurchase = async (payload: { transactionCode?: string; note?: string; startDate?: string }) => {
+    if (!branch?._id || !selectedPlan) return;
+
+    try {
+      const response = await createContract({
+        branchId: branch._id,
+        membershipPlanId: selectedPlan._id,
+        paymentMethod: 'BANK_TRANSFER',
+        ...payload
+      });
+
+      if (!response) {
+        return;
+      }
+
+      toast.success(t('gymDetail.membership.toast.purchaseSuccess'));
+      setIsPurchaseDialogOpen(false);
+      setSelectedPlan(null);
+      resetCreateError();
+      globalThis.dispatchEvent(
+        new CustomEvent('membership:created', {
+          detail: {
+            paymentMethod: 'BANK_TRANSFER',
+            branchId: branch._id,
+            contract: response.contract,
+            customer: response.customer
+          }
+        })
+      );
+      refetchMembership();
+      refetchCustomerMembership();
+    } catch (purchaseError) {
+      console.error(purchaseError);
+      toast.error(t('gymDetail.membership.toast.purchaseFailed'));
+    }
+  };
+
+  const handlePayOSPurchase = async (payload: { note?: string; startDate?: string }) => {
+    if (!branch?._id || !selectedPlan) return;
+
+    try {
+      const response = await createContractPayOS({
+        branchId: branch._id,
+        membershipPlanId: selectedPlan._id,
+        ...payload
+      });
+
+      if (!response) {
+        return;
+      }
+
+      setPayOSPaymentInfo(response.payment);
+      setIsPurchaseDialogOpen(false);
+      setIsPayOSModalOpen(true);
+      resetPayOSError();
+    } catch (payOSError) {
+      console.error(payOSError);
+      toast.error('Không thể tạo thanh toán PayOS');
+    }
+  };
+
+  const handlePayOSPaymentComplete = () => {
+    setIsPayOSModalOpen(false);
+    setPayOSPaymentInfo(null);
+    setSelectedPlan(null);
+    toast.success('Thanh toán thành công! Gói membership đã được kích hoạt.');
+    refetchMembership();
+    refetchCustomerMembership();
   };
 
   return (
@@ -206,7 +378,20 @@ const GymDetailPage: React.FC = () => {
       <Header />
 
       {/* Hero Section */}
-      <GymHeroSection branch={branch} onJoinClick={handleJoinClick} />
+      <GymHeroSection
+        branch={branch}
+        onJoinClick={activeMembership ? undefined : handleJoinClick}
+        membershipState={
+          activeMembership
+            ? {
+                isJoined: true,
+                onCancelClick: () => setIsCancelDialogOpen(true),
+                cancelDisabled: cancelLoading || membershipContractLoading,
+                manageLabel: t('gymHero.membershipJoined')
+              }
+            : undefined
+        }
+      />
 
       {/* Main Content with Tabs */}
       <main className="max-w-7xl mx-auto px-4 py-8">
@@ -268,6 +453,45 @@ const GymDetailPage: React.FC = () => {
         branchLocation={branch.location}
         branchImage={branch.images?.[0] || branch.coverImage}
       />
+
+      {selectedPlan && (
+        <MembershipPurchaseDialog
+          isOpen={isPurchaseDialogOpen}
+          onClose={handleClosePurchaseDialog}
+          branch={branch}
+          plan={selectedPlan}
+          loading={creatingContract}
+          error={createContractError}
+          onSubmit={handleConfirmPurchase}
+          onPayOSSubmit={handlePayOSPurchase}
+        />
+      )}
+
+      {activeMembership && (
+        <MembershipCancelDialog
+          isOpen={isCancelDialogOpen}
+          onClose={() => setIsCancelDialogOpen(false)}
+          onConfirm={handleCancelMembership}
+          loading={cancelLoading}
+        />
+      )}
+
+      {selectedPlan && payOSPaymentInfo && (
+        <PayOSPaymentModal
+          isOpen={isPayOSModalOpen}
+          onClose={() => {
+            setIsPayOSModalOpen(false);
+            setPayOSPaymentInfo(null);
+            setSelectedPlan(null);
+          }}
+          branch={branch}
+          plan={selectedPlan}
+          paymentInfo={payOSPaymentInfo}
+          loading={creatingPayOSContract}
+          error={createPayOSError}
+          onPaymentComplete={handlePayOSPaymentComplete}
+        />
+      )}
     </div>
   );
 };

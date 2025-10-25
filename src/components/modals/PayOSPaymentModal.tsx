@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Copy, CheckCircle, XCircle, Clock, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { paymentApi, type PayOSPaymentData } from '@/services/api/paymentApi';
 import { usePaymentSocket, type PaymentUpdateData } from '@/hooks/useSocket';
 import QRCode from 'qrcode';
+import { VIETQR_BANKS } from '@/constants/vietqrBanks';
 
 interface PayOSPaymentModalProps {
   isOpen: boolean;
@@ -33,6 +34,18 @@ const copyToClipboard = async (text: string, successMessage: string) => {
     .catch(() => toast.error('Không thể sao chép'));
 };
 
+const pickFirstString = (...values: unknown[]): string | null => {
+  for (const value of values) {
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed.length > 0) {
+        return trimmed;
+      }
+    }
+  }
+  return null;
+};
+
 export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
   isOpen,
   onClose,
@@ -53,45 +66,164 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [latestStatus, setLatestStatus] = useState<'PENDING' | 'PROCESSING' | 'PAID' | 'CANCELLED'>('PENDING');
+  const bankInfo = useMemo(() => {
+    const bin = paymentData.bin?.trim() || null;
+    const entry = bin ? VIETQR_BANKS[bin] : undefined;
+
+    const rawName =
+      typeof paymentData.bankName === 'string' && paymentData.bankName.trim().length > 0
+        ? paymentData.bankName.trim()
+        : null;
+
+    const rawShortName =
+      typeof paymentData.bankShortName === 'string' && paymentData.bankShortName.trim().length > 0
+        ? paymentData.bankShortName.trim()
+        : null;
+
+    return {
+      name: rawName ?? entry?.name ?? null,
+      shortName: rawShortName ?? entry?.shortName ?? null,
+      bin
+    };
+  }, [paymentData.bankName, paymentData.bankShortName, paymentData.bin]);
+
+  const transferContent = useMemo(() => {
+    const direct = pickFirstString(paymentData.transferContent);
+    if (direct) {
+      return direct;
+    }
+
+    const paymentObject = paymentData.payment;
+    const paymentMetadata =
+      paymentObject && typeof paymentObject === 'object'
+        ? (paymentObject as { metadata?: unknown }).metadata
+        : undefined;
+
+    const payosMeta =
+      paymentMetadata && typeof paymentMetadata === 'object'
+        ? ((paymentMetadata as Record<string, unknown>).payos as Record<string, unknown> | undefined)
+        : undefined;
+
+    const metadataTransfer = pickFirstString(
+      paymentMetadata && typeof paymentMetadata === 'object'
+        ? (paymentMetadata as Record<string, unknown>).transferContent
+        : undefined,
+      paymentMetadata && typeof paymentMetadata === 'object'
+        ? (paymentMetadata as Record<string, unknown>).transfer_content
+        : undefined,
+      payosMeta ? (payosMeta['transferContent'] as string | undefined) : undefined,
+      payosMeta ? (payosMeta['transfer_content'] as string | undefined) : undefined
+    );
+
+    if (metadataTransfer) {
+      return metadataTransfer;
+    }
+
+    const descriptionFallback =
+      paymentObject && typeof paymentObject === 'object'
+        ? pickFirstString((paymentObject as { description?: unknown }).description)
+        : null;
+
+    const resolved = pickFirstString(descriptionFallback, paymentData.description);
+
+    return resolved ?? (paymentData.orderCode ? String(paymentData.orderCode) : '');
+  }, [paymentData]);
 
   useEffect(() => {
     let isMounted = true;
 
-    const resolveQr = async () => {
-      const raw = paymentData.qrCode || null;
-      const qrString = paymentData.qrString || null;
+    const normalizeImageSource = (input: string | null): string | null => {
+      if (!input) return null;
+      const trimmed = input.trim();
+      if (!trimmed) return null;
 
-      if (raw?.startsWith('data:image')) {
-        if (isMounted) setQrImage(raw);
-        return;
+      if (trimmed.startsWith('data:image')) {
+        return trimmed;
       }
 
-      if (raw?.startsWith('http')) {
-        if (isMounted) setQrImage(raw);
-        return;
+      if (trimmed.startsWith('http://')) {
+        if (typeof window !== 'undefined' && window.location?.protocol === 'https:') {
+          return `https://${trimmed.slice('http://'.length)}`;
+        }
+        return trimmed;
       }
 
-      if (qrString) {
-        await QRCode.toDataURL(qrString, { width: 256, margin: 1 })
-          .then((dataUrl) => {
-            if (isMounted) setQrImage(dataUrl);
-          })
-          .catch((error) => {
-            console.error('Failed to generate QR data URL:', error);
-            if (isMounted) setQrImage(null);
-          });
-        return;
+      if (trimmed.startsWith('https://')) {
+        return trimmed;
       }
 
-      setQrImage(null);
+      const base64Pattern = /^[A-Za-z0-9+/]+={0,2}$/;
+      if (base64Pattern.test(trimmed) && trimmed.length > 200) {
+        return `data:image/png;base64,${trimmed}`;
+      }
+
+      return null;
     };
 
-    resolveQr();
+    const payosMeta = (() => {
+      const payment = paymentData?.payment;
+      if (!payment || typeof payment !== 'object') return null;
+      const metadata = (payment as { metadata?: unknown }).metadata;
+      if (!metadata || typeof metadata !== 'object') return null;
+      const payos = (metadata as { payos?: unknown }).payos;
+      if (!payos || typeof payos !== 'object') return null;
+      return payos as Record<string, unknown>;
+    })();
+
+    const loadQrImage = async () => {
+      const rawQrSource = pickFirstString(
+        paymentData.qrCode,
+        payosMeta?.['qrCode'],
+        payosMeta?.['qrImage'],
+        payosMeta?.['qrImageUrl'],
+        payosMeta?.['qrCodeUrl'],
+        payosMeta?.['qr_code_url'],
+        payosMeta?.['qrDataUrl'],
+        payosMeta?.['qr_data_url']
+      );
+
+      const normalizedSource = normalizeImageSource(rawQrSource);
+      if (normalizedSource) {
+        if (isMounted) setQrImage(normalizedSource);
+        return;
+      }
+
+      const rawQrPayload =
+        pickFirstString(
+          paymentData.qrString,
+          payosMeta?.['qrString'],
+          payosMeta?.['qrContent'],
+          payosMeta?.['qr_data'],
+          payosMeta?.['qrRaw'],
+          payosMeta?.['qr_raw']
+        ) ??
+        pickFirstString(
+          paymentData.checkoutUrl,
+          payosMeta?.['checkoutUrl'],
+          payosMeta?.['paymentUrl'],
+          payosMeta?.['paymentLink']
+        );
+
+      if (rawQrPayload) {
+        try {
+          const dataUrl = await QRCode.toDataURL(rawQrPayload, { width: 256, margin: 1 });
+          if (isMounted) setQrImage(dataUrl);
+        } catch (error) {
+          console.error('Failed to generate QR data URL:', error);
+          if (isMounted) setQrImage(null);
+        }
+        return;
+      }
+
+      if (isMounted) setQrImage(null);
+    };
+
+    void loadQrImage();
 
     return () => {
       isMounted = false;
     };
-  }, [paymentData.qrCode, paymentData.qrString]);
+  }, [paymentData]);
 
   const cancelPaymentLink = useCallback(
     async (reason: string, options: { closeModal?: boolean; showExpiryToast?: boolean } = {}) => {
@@ -431,15 +563,28 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
               <h3 className="font-semibold text-gray-800">{t('payment.bank_info')}</h3>
 
               <div className="space-y-2">
-                {paymentData.bin && (
+                {(bankInfo.name || bankInfo.shortName || bankInfo.bin) && (
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">{t('payment.bank_name')}:</span>
                     <div className="flex items-center space-x-2">
-                      <span className="font-medium">{paymentData.bin}</span>
+                      <div className="flex flex-col items-end">
+                        <span className="font-medium">{bankInfo.name || bankInfo.shortName || bankInfo.bin}</span>
+                        {bankInfo.shortName && bankInfo.name && (
+                          <span className="text-xs text-gray-500">{bankInfo.shortName}</span>
+                        )}
+                        {bankInfo.bin && (bankInfo.name || bankInfo.shortName) && (
+                          <span className="text-xs text-gray-400">{bankInfo.bin}</span>
+                        )}
+                      </div>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => copyToClipboard(paymentData.bin || '', t('payment.copied'))}
+                        onClick={() =>
+                          copyToClipboard(
+                            bankInfo.name || bankInfo.shortName || bankInfo.bin || '',
+                            t('payment.copied')
+                          )
+                        }
                         className="h-6 w-6"
                       >
                         <Copy className="h-3 w-3" />
@@ -497,20 +642,39 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-start">
                   <span className="text-sm text-gray-600">{t('payment.transfer_content')}:</span>
                   <div className="flex items-center space-x-2">
-                    <span className="font-medium">{paymentData.orderCode}</span>
+                    <span className="font-medium text-right whitespace-pre-wrap break-words max-w-[220px]">
+                      {transferContent}
+                    </span>
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => copyToClipboard(paymentData.orderCode.toString(), t('payment.copied'))}
+                      onClick={() => copyToClipboard(transferContent, t('payment.copied'))}
                       className="h-6 w-6"
                     >
                       <Copy className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>
+
+                {paymentData.orderCode && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">{t('payment.order_code')}:</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium">{paymentData.orderCode}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => copyToClipboard(paymentData.orderCode.toString(), t('payment.copied'))}
+                        className="h-6 w-6"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <p className="text-xs text-red-600 mt-3">{t('payment.transfer_content_warning')}</p>
