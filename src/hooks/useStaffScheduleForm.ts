@@ -6,10 +6,25 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useScheduleTemplate } from '@/hooks/useScheduleTemplate';
 import { scheduleApi } from '@/services/api/scheduleApi';
-import type { StaffScheduleFormData, DayAvailability, ShiftType, CustomShiftTime } from '@/types/api/StaffSchedule';
+import { handleAsyncOperationWithOptions } from '@/utils/errorHandler';
+import { safeJsonParse, safeJsonStringify } from '@/utils/jsonHelpers';
+import type { StaffScheduleFormData, ShiftType, CustomShiftTime } from '@/types/api/StaffSchedule';
 import { SHIFT_TIMES, getShiftTime } from '@/types/api/StaffSchedule';
 import type { ScheduleTemplate, DayOfWeek } from '@/types/api/ScheduleTemplate';
 import type { Schedule } from '@/types/api/Schedule';
+
+// Custom type for template notes with multiple shifts
+interface TemplateNotesData {
+  multipleShifts?: boolean;
+  shifts?: ShiftMetadata[];
+}
+
+interface ShiftMetadata {
+  shiftType: ShiftType;
+  startTime: string;
+  endTime: string;
+  daysOfWeek: DayOfWeek[];
+}
 
 const createScheduleSchema = (t: (key: string) => string) =>
   z.object({
@@ -145,7 +160,13 @@ const createScheduleSchema = (t: (key: string) => string) =>
 
 export const useStaffScheduleForm = (selectedStaffId?: string) => {
   const { t } = useTranslation();
-  const { templates, loading: loadingTemplates, createTemplate, getTemplatesByBranch } = useScheduleTemplate();
+  const {
+    templates,
+    loading: loadingTemplates,
+    createTemplate,
+    getTemplatesByBranch,
+    incrementTemplateUsage
+  } = useScheduleTemplate();
 
   // Template selection state
   const [selectedTemplate, setSelectedTemplate] = useState<ScheduleTemplate | null>(null);
@@ -204,16 +225,15 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
 
   // Fetch templates when branch is selected
   useEffect(() => {
-    if (watchedBranchId) {
+    if (watchedBranchId && watchedBranchId !== 'all') {
       getTemplatesByBranch(watchedBranchId, true);
     }
   }, [watchedBranchId, getTemplatesByBranch]);
 
-  // Auto-fill template name when title changes (if not from template)
   useEffect(() => {
     if (watchedTitle && !selectedTemplate && saveAsTemplate) {
       // Add timestamp to make template name unique
-      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      const timestamp = new Date().toISOString().slice(0, 19).replaceAll(':', '-');
       setTemplateName(`${watchedTitle} - ${timestamp}`);
     }
   }, [watchedTitle, selectedTemplate, saveAsTemplate]);
@@ -306,134 +326,163 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
   const handleTemplateSelect = (template: ScheduleTemplate) => {
     setSelectedTemplate(template);
 
-    // Auto-fill form with template data
-    setValue('title', template.name);
-    setValue('type', template.type);
-    setValue('scheduleDate', new Date().toISOString().split('T')[0]);
-    setValue('timeRange.startTime', template.startTime);
-    setValue('timeRange.endTime', template.endTime);
+    // ✅ Check if template has multiple shifts metadata
+    let hasMultipleShifts = false;
+    let shiftsMetadata: ShiftMetadata[] = [];
 
-    // Auto-fill template name for saving
+    const notesData = safeJsonParse<TemplateNotesData>(template.notes || '{}', {});
+    if (notesData?.multipleShifts && notesData.shifts && notesData.shifts.length > 0) {
+      hasMultipleShifts = true;
+      shiftsMetadata = notesData.shifts;
+    }
+
+    if (hasMultipleShifts) {
+      setValue('title', template.name);
+      setValue('type', template.type);
+      setValue('scheduleDate', new Date().toISOString().split('T')[0]);
+
+      // Set availability for all shifts
+      const availability = {
+        sunday: { enabled: false, shifts: [], startTime: '', endTime: '' },
+        monday: { enabled: false, shifts: [], startTime: '', endTime: '' },
+        tuesday: { enabled: false, shifts: [], startTime: '', endTime: '' },
+        wednesday: { enabled: false, shifts: [], startTime: '', endTime: '' },
+        thursday: { enabled: false, shifts: [], startTime: '', endTime: '' },
+        friday: { enabled: false, shifts: [], startTime: '', endTime: '' },
+        saturday: { enabled: false, shifts: [], startTime: '', endTime: '' }
+      };
+
+      // Apply all shifts to enabled days
+      for (const shift of shiftsMetadata) {
+        for (const day of shift.daysOfWeek) {
+          const dayKey = day.toLowerCase() as keyof typeof availability;
+          if (availability[dayKey]) {
+            availability[dayKey].enabled = true;
+            (availability[dayKey].shifts as ShiftType[]).push(shift.shiftType);
+            // Set custom time for this shift
+            if (!availability[dayKey].startTime || !availability[dayKey].endTime) {
+              availability[dayKey].startTime = shift.startTime;
+              availability[dayKey].endTime = shift.endTime;
+            }
+          }
+        }
+      }
+
+      // ✅ Apply availability to form with proper trigger
+      for (const [day, dayData] of Object.entries(availability)) {
+        const dayKey = day as keyof StaffScheduleFormData['availability'];
+        setValue(`availability.${dayKey}.enabled`, dayData.enabled);
+        setValue(`availability.${dayKey}.shifts`, dayData.shifts);
+        if (dayData.startTime) setValue(`availability.${dayKey}.startTime`, dayData.startTime);
+        if (dayData.endTime) setValue(`availability.${dayKey}.endTime`, dayData.endTime);
+      }
+
+      // Set custom shift times
+      const customTimes: Record<string, Record<string, CustomShiftTime>> = {};
+      for (const shift of shiftsMetadata) {
+        for (const day of shift.daysOfWeek) {
+          const dayKey = day.toLowerCase();
+          if (!customTimes[dayKey]) {
+            customTimes[dayKey] = {};
+          }
+          customTimes[dayKey][shift.shiftType.toLowerCase()] = {
+            start: shift.startTime,
+            end: shift.endTime
+          };
+        }
+      }
+      setCustomShiftTimes(customTimes);
+
+      form.trigger();
+    } else {
+      setValue('title', template.name);
+      setValue('type', template.type);
+      setValue('scheduleDate', new Date().toISOString().split('T')[0]);
+      setValue('timeRange.startTime', template.startTime);
+      setValue('timeRange.endTime', template.endTime);
+
+      // Set availability based on template days
+      const availability = {
+        sunday: { enabled: false, shifts: [], startTime: '', endTime: '' },
+        monday: { enabled: false, shifts: [], startTime: '', endTime: '' },
+        tuesday: { enabled: false, shifts: [], startTime: '', endTime: '' },
+        wednesday: { enabled: false, shifts: [], startTime: '', endTime: '' },
+        thursday: { enabled: false, shifts: [], startTime: '', endTime: '' },
+        friday: { enabled: false, shifts: [], startTime: '', endTime: '' },
+        saturday: { enabled: false, shifts: [], startTime: '', endTime: '' }
+      };
+
+      // Enable days and set default shifts
+      for (const day of template.daysOfWeek) {
+        const dayKey = day.toLowerCase() as keyof typeof availability;
+        if (availability[dayKey]) {
+          availability[dayKey].enabled = true;
+          (availability[dayKey].shifts as ShiftType[]) = ['MORNING', 'AFTERNOON']; // Default shifts
+          availability[dayKey].startTime = template.startTime;
+          availability[dayKey].endTime = template.endTime;
+        }
+      }
+
+      for (const [day, dayData] of Object.entries(availability)) {
+        const dayKey = day as keyof StaffScheduleFormData['availability'];
+        setValue(`availability.${dayKey}.enabled`, dayData.enabled);
+        setValue(`availability.${dayKey}.shifts`, dayData.shifts);
+        if (dayData.startTime) setValue(`availability.${dayKey}.startTime`, dayData.startTime);
+        if (dayData.endTime) setValue(`availability.${dayKey}.endTime`, dayData.endTime);
+      }
+
+      form.trigger();
+    }
+
     setTemplateName(template.name);
     setTemplateDescription(template.description || '');
 
-    // Auto-fill auto-generation settings
     setAutoGenerateEnabled(template.autoGenerate?.enabled || false);
     setAdvanceDays(template.autoGenerate?.advanceDays || 7);
     setEndDate(
       template.autoGenerate?.endDate ? new Date(template.autoGenerate.endDate).toISOString().split('T')[0] : ''
     );
 
-    // Auto-enable save as template when template is selected
     setSaveAsTemplate(true);
 
-    // Auto-fill branch if template has specific branch
     if (template.branchId?._id) {
       setValue('branchId', template.branchId._id);
     }
 
-    // Handle staff auto-fill based on template type
     if (template.ptId) {
-      // Template has specific PT assigned
       setValue('staffId', template.ptId._id);
       setIsStaffFieldDisabled(true);
       setTemplateStaffInfo({
         name: template.ptId.userId?.fullName || 'Personal Trainer',
         id: template.ptId._id
       });
+
+      setTimeout(() => {
+        form.trigger('staffId');
+      }, 100);
     } else if (template.classId) {
-      // Template has specific class assigned
-      // ClassReference doesn't include instructor info, allow staff selection
       setIsStaffFieldDisabled(false);
       setTemplateStaffInfo(null);
     } else {
-      // Template doesn't specify staff, but we can suggest based on template type
       setIsStaffFieldDisabled(false);
       setTemplateStaffInfo(null);
     }
-
-    // Set availability based on template days
-    // Default to MORNING and AFTERNOON shifts for templates
-    const availability = {
-      sunday: {
-        enabled: template.daysOfWeek.includes('SUNDAY'),
-        shifts: template.daysOfWeek.includes('SUNDAY') ? (['MORNING', 'AFTERNOON'] as ShiftType[]) : [],
-        startTime: template.startTime,
-        endTime: template.endTime
-      },
-      monday: {
-        enabled: template.daysOfWeek.includes('MONDAY'),
-        shifts: template.daysOfWeek.includes('MONDAY') ? (['MORNING', 'AFTERNOON'] as ShiftType[]) : [],
-        startTime: template.startTime,
-        endTime: template.endTime
-      },
-      tuesday: {
-        enabled: template.daysOfWeek.includes('TUESDAY'),
-        shifts: template.daysOfWeek.includes('TUESDAY') ? (['MORNING', 'AFTERNOON'] as ShiftType[]) : [],
-        startTime: template.startTime,
-        endTime: template.endTime
-      },
-      wednesday: {
-        enabled: template.daysOfWeek.includes('WEDNESDAY'),
-        shifts: template.daysOfWeek.includes('WEDNESDAY') ? (['MORNING', 'AFTERNOON'] as ShiftType[]) : [],
-        startTime: template.startTime,
-        endTime: template.endTime
-      },
-      thursday: {
-        enabled: template.daysOfWeek.includes('THURSDAY'),
-        shifts: template.daysOfWeek.includes('THURSDAY') ? (['MORNING', 'AFTERNOON'] as ShiftType[]) : [],
-        startTime: template.startTime,
-        endTime: template.endTime
-      },
-      friday: {
-        enabled: template.daysOfWeek.includes('FRIDAY'),
-        shifts: template.daysOfWeek.includes('FRIDAY') ? (['MORNING', 'AFTERNOON'] as ShiftType[]) : [],
-        startTime: template.startTime,
-        endTime: template.endTime
-      },
-      saturday: {
-        enabled: template.daysOfWeek.includes('SATURDAY'),
-        shifts: template.daysOfWeek.includes('SATURDAY') ? (['MORNING', 'AFTERNOON'] as ShiftType[]) : [],
-        startTime: template.startTime,
-        endTime: template.endTime
-      }
-    };
-
-    Object.keys(availability).forEach((day) => {
-      const dayKey = day as keyof typeof availability;
-      const dayData: DayAvailability = availability[dayKey];
-
-      if (dayData) {
-        setValue(`availability.${dayKey}.enabled` as keyof StaffScheduleFormData, dayData.enabled as never);
-        setValue(`availability.${dayKey}.startTime` as keyof StaffScheduleFormData, dayData.startTime as never);
-        setValue(`availability.${dayKey}.endTime` as keyof StaffScheduleFormData, dayData.endTime as never);
-      }
-    });
   };
 
   const handleTemplateClear = () => {
     setSelectedTemplate(null);
     setIsStaffFieldDisabled(false);
     setTemplateStaffInfo(null);
-    // Clear staff and branch selection when template is cleared
     setValue('staffId', '');
     setValue('branchId', '');
-    // Clear type and reset to default
     setValue('type', 'FREE_TIME');
-    // Reset startTime and endTime to default values
     setValue('timeRange.startTime', '09:00');
     setValue('timeRange.endTime', '17:00');
-    // Keep scheduleDate as today (don't clear it)
-    // Clear template name and description
     setTemplateName('');
     setTemplateDescription('');
-
-    // Clear auto-generation settings
     setAutoGenerateEnabled(false);
     setAdvanceDays(7);
     setEndDate('');
-
-    // Disable save as template when template is cleared
     setSaveAsTemplate(false);
   };
 
@@ -452,7 +501,6 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
   ) => {
     setValue(`availability.${dayKey}.${timeType}`, value);
 
-    // Auto-fill Start/End Time if this day is currently selected and enabled
     const currentAvailability = watchedAvailability || {};
     const dayData = currentAvailability[dayKey];
     if (dayData?.enabled) {
@@ -464,13 +512,11 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
     }
   };
 
-  // Auto-fill Start/End Time from General Availability when day is selected
   const handleAvailabilityDayClick = (dayKey: keyof StaffScheduleFormData['availability']) => {
     const currentAvailability = watchedAvailability || {};
     const dayData = currentAvailability[dayKey];
 
     if (dayData?.enabled && dayData.startTime && dayData.endTime) {
-      // Auto-fill Start/End Time from the selected day's availability (backward compatibility)
       setValue('timeRange.startTime', dayData.startTime);
       setValue('timeRange.endTime', dayData.endTime);
     }
@@ -480,19 +526,18 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
   const handleStartEndTimeChange = (field: 'startTime' | 'endTime', value: string) => {
     setValue(`timeRange.${field}`, value);
 
-    // Clear time range error when user changes
     if (timeRangeError) {
       setTimeRangeError('');
     }
 
     // Sync back to all enabled days in General Availability
     const currentAvailability = watchedAvailability || {};
-    Object.keys(currentAvailability).forEach((dayKey) => {
+    for (const dayKey of Object.keys(currentAvailability)) {
       const dayData = currentAvailability[dayKey as keyof StaffScheduleFormData['availability']];
       if (dayData?.enabled) {
         setValue(`availability.${dayKey}.${field}` as keyof StaffScheduleFormData, value);
       }
-    });
+    }
 
     // Force form to update and validate after a short delay
     setTimeout(() => {
@@ -506,7 +551,7 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
         if (timeRangeValidationError) {
           setTimeRangeError(timeRangeValidationError);
         } else {
-          setTimeRangeError(''); // Clear error if validation passes
+          setTimeRangeError('');
         }
       }
     }, 100);
@@ -516,7 +561,6 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
   const handleEndDateChange = (value: string) => {
     setEndDate(value);
 
-    // Clear error when user changes
     if (endDateError) {
       setEndDateError('');
     }
@@ -532,12 +576,10 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
 
   // Handle schedule date change with validation
   const handleScheduleDateChange = (value: string) => {
-    // Clear error when user changes
     if (scheduleDateError) {
       setScheduleDateError('');
     }
 
-    // Set value and trigger validation
     setValue('scheduleDate', value);
     form.trigger('scheduleDate');
 
@@ -550,7 +592,6 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
     }
   };
 
-  // Helper to convert shifts to schedules with auto-filled times
   const convertShiftsToSchedules = (
     data: StaffScheduleFormData
   ): Array<{
@@ -585,7 +626,7 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
     const baseDate = new Date(data.scheduleDate);
 
     // Iterate through each day
-    Object.keys(availability).forEach((dayKey) => {
+    for (const dayKey of Object.keys(availability)) {
       const dayData = availability[dayKey as keyof typeof availability];
 
       if (dayData?.enabled && dayData.shifts && dayData.shifts.length > 0) {
@@ -600,11 +641,11 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         if (targetDate < today) {
-          return;
+          continue;
         }
 
         // Create a schedule for each selected shift on this day
-        dayData.shifts.forEach((shift: ShiftType) => {
+        for (const shift of dayData.shifts) {
           // Get custom time or default shift time for this specific day
           const dayCustomTimes = customShiftTimes[dayKey] || {};
           let shiftTime: { start: string; end: string };
@@ -619,14 +660,25 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
               // Fallback to default if no custom time found
               shiftTime = { start: '00:00', end: '00:00' };
             }
+          } else if (shift.startsWith('CUSTOM_')) {
+            const timeMatch = shift.match(/CUSTOM_(\d{2}:\d{2})-(\d{2}:\d{2})/);
+            if (timeMatch) {
+              shiftTime = {
+                start: timeMatch[1],
+                end: timeMatch[2]
+              };
+            } else {
+              // Fallback if parsing fails
+              shiftTime = { start: '08:00', end: '17:00' };
+            }
           } else {
             // Check if there's a custom time for this specific shift on this day
-            const customTime = dayCustomTimes[shift.toLowerCase() as keyof typeof dayCustomTimes];
+            const customTime = dayCustomTimes[shift.toLowerCase()];
             if (customTime) {
               shiftTime = customTime;
             } else {
-              // Use standard shift time
-              shiftTime = getShiftTime(shift, dayCustomTimes);
+              // Use standard shift time with fallback
+              shiftTime = getShiftTime(shift, dayCustomTimes) || { start: '08:00', end: '17:00' };
             }
           }
 
@@ -646,9 +698,9 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
           };
 
           schedulesData.push(scheduleData);
-        });
+        }
       }
-    });
+    }
 
     return schedulesData;
   };
@@ -681,7 +733,6 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
       const dayCustomTimes = prev[dayKey] || {};
 
       if (customTime === null) {
-        // Remove custom time (reset to default)
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { [shiftKey]: _, ...rest } = dayCustomTimes;
         return {
@@ -711,62 +762,70 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
         custom: customShift // Store as 'custom' key for this day only
       }
     }));
+
+    const currentShifts = form.getValues(`availability.${dayKey}.shifts`) || [];
+    const customShiftKey: ShiftType = `CUSTOM_${customShift.start}-${customShift.end}`;
+
+    // Only add if not already present
+    if (!currentShifts.includes(customShiftKey)) {
+      form.setValue(`availability.${dayKey}.shifts`, [...currentShifts, customShiftKey]);
+      form.setValue(`availability.${dayKey}.enabled`, true); // Enable the day
+    }
   };
 
   // Handle form submission
   const handleSubmit = async (data: StaffScheduleFormData) => {
     setIsSubmitting(true);
-    try {
-      // Validate schedule date first
-      const scheduleDateValidationError = validateScheduleDate(data.scheduleDate);
-      if (scheduleDateValidationError) {
-        setScheduleDateError(scheduleDateValidationError);
-        return { success: false, error: scheduleDateValidationError };
-      }
 
-      // Validate time range (if using old time-based form)
-      if (data.timeRange?.startTime && data.timeRange?.endTime) {
-        const timeRangeValidationError = validateTimeRange(data.timeRange.startTime, data.timeRange.endTime);
-        if (timeRangeValidationError) {
-          setTimeRangeError(timeRangeValidationError);
-          return { success: false, error: timeRangeValidationError };
+    const result = await handleAsyncOperationWithOptions(
+      async () => {
+        // Validate schedule date first
+        const scheduleDateValidationError = validateScheduleDate(data.scheduleDate);
+        if (scheduleDateValidationError) {
+          setScheduleDateError(scheduleDateValidationError);
+          return { success: false, error: scheduleDateValidationError };
         }
-      }
 
-      // Validate template name if saving as template
-      if (saveAsTemplate && !templateName.trim()) {
-        alert('Please enter a template name');
-        return { success: false, error: 'Template name is required' };
-      }
-
-      // Validate auto-generation settings if enabled
-      if (saveAsTemplate && autoGenerateEnabled) {
-        const endDateValidationError = validateEndDate(endDate, data.scheduleDate);
-        if (endDateValidationError) {
-          setEndDateError(endDateValidationError);
-          return { success: false, error: endDateValidationError };
+        // Validate time range (if using old time-based form)
+        if (data.timeRange?.startTime && data.timeRange?.endTime) {
+          const timeRangeValidationError = validateTimeRange(data.timeRange.startTime, data.timeRange.endTime);
+          if (timeRangeValidationError) {
+            setTimeRangeError(timeRangeValidationError);
+            return { success: false, error: timeRangeValidationError };
+          }
         }
-        if (advanceDays < 1 || advanceDays > 30) {
-          alert('Advance days must be between 1 and 30');
-          return { success: false, error: 'Advance days must be between 1 and 30' };
+
+        // Validate template name if saving as template
+        if (saveAsTemplate && !templateName.trim()) {
+          return { success: false, error: 'Template name is required' };
         }
-      }
 
-      const schedulesData = convertShiftsToSchedules(data);
-
-      const enabledDays: string[] = [];
-      const availability = data.availability || {};
-      Object.keys(availability).forEach((dayKey) => {
-        const dayData = availability[dayKey as keyof StaffScheduleFormData['availability']];
-        if (dayData?.enabled) {
-          enabledDays.push(dayKey.toUpperCase());
+        // Validate auto-generation settings if enabled
+        if (saveAsTemplate && autoGenerateEnabled) {
+          const endDateValidationError = validateEndDate(endDate, data.scheduleDate);
+          if (endDateValidationError) {
+            setEndDateError(endDateValidationError);
+            return { success: false, error: endDateValidationError };
+          }
+          if (advanceDays < 1 || advanceDays > 30) {
+            return { success: false, error: 'Advance days must be between 1 and 30' };
+          }
         }
-      });
 
-      // Use batch API to create all schedules at once
-      let createdSchedules: Schedule[] = [];
-      if (schedulesData.length > 0) {
-        try {
+        const schedulesData = convertShiftsToSchedules(data);
+
+        const enabledDays: string[] = [];
+        const availability = data.availability || {};
+        for (const dayKey of Object.keys(availability)) {
+          const dayData = availability[dayKey as keyof StaffScheduleFormData['availability']];
+          if (dayData?.enabled) {
+            enabledDays.push(dayKey.toUpperCase());
+          }
+        }
+
+        // Use batch API to create all schedules at once
+        let createdSchedules: Schedule[] = [];
+        if (schedulesData.length > 0) {
           const batchResult = await scheduleApi.createBatchSchedules(schedulesData);
           // Check if response has the expected structure
           if (batchResult?.data?.schedules) {
@@ -774,135 +833,122 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
           } else {
             createdSchedules = [];
           }
-        } catch (scheduleError) {
-          console.error('❌ Error creating schedules:', scheduleError);
-          // Don't throw here, let the template creation continue
-          toast.error(t('toast.schedule_creation_failed'), {
-            description: t('toast.schedule_creation_failed_description'),
-            duration: 5000
-          });
         }
-      }
 
-      // Step 2: Create Template if user wants to save as template
-      if (saveAsTemplate && templateName.trim()) {
-        // Create separate templates for each shift type
-        const createdTemplates = [];
-
-        // Get all unique shift types from enabled days
-        const allShifts = new Set<ShiftType>();
-        Object.keys(availability).forEach((dayKey) => {
-          const dayData = availability[dayKey as keyof typeof availability];
-          if (dayData?.enabled && dayData.shifts) {
-            dayData.shifts.forEach((shift: ShiftType) => allShifts.add(shift));
+        // Step 2: Create Template if user wants to save as template
+        if (saveAsTemplate && templateName.trim()) {
+          // Get all unique shift types from enabled days
+          const allShifts = new Set<ShiftType>();
+          for (const dayKey of Object.keys(availability)) {
+            const dayData = availability[dayKey as keyof typeof availability];
+            if (dayData?.enabled && dayData.shifts) {
+              for (const shift of dayData.shifts) {
+                allShifts.add(shift);
+              }
+            }
           }
-        });
-        // Create a template for each shift type
-        for (const shiftType of Array.from(allShifts)) {
-          try {
-            const shiftTime = SHIFT_TIMES[shiftType];
 
-            // Get custom time for this shift if available
-            let templateStartTime = shiftTime.start;
-            let templateEndTime = shiftTime.end;
+          // Create shifts metadata with correct days for each shift
+          const shiftsMetadata = Array.from(allShifts).map((shiftType) => {
+            // Find days where this shift is enabled
+            const daysForThisShift: DayOfWeek[] = [];
+            let customTime = null;
 
-            // Check if there's a custom time for this shift type
             for (const dayKey of Object.keys(availability)) {
               const dayData = availability[dayKey as keyof typeof availability];
               if (dayData?.enabled && dayData.shifts?.includes(shiftType)) {
+                // Add this day to the shift's days
+                daysForThisShift.push(dayKey.toUpperCase() as DayOfWeek);
+
+                // Find custom time for this shift on this day
                 const dayCustomTimes = customShiftTimes[dayKey];
-                const customTime = dayCustomTimes?.[shiftType.toLowerCase() as keyof typeof dayCustomTimes];
-                if (customTime) {
-                  templateStartTime = customTime.start;
-                  templateEndTime = customTime.end;
-                  break;
+                const shiftCustomTime = dayCustomTimes?.[shiftType.toLowerCase()];
+                if (shiftCustomTime) {
+                  customTime = shiftCustomTime; // Keep the last custom time found
                 }
               }
             }
 
-            const templateData = {
-              name: `${templateName} - ${shiftType}`,
-              description: `${templateDescription} (${shiftType} shift)`,
-              type: data.type || 'FREE_TIME',
-              branchId: data.branchId,
-              ptId: data.staffId,
-              startTime: templateStartTime,
-              endTime: templateEndTime,
-              daysOfWeek: enabledDays as DayOfWeek[],
-              maxCapacity: 1,
-              priority: 1,
-              autoGenerate: {
-                enabled: autoGenerateEnabled,
-                advanceDays: autoGenerateEnabled ? advanceDays : 7,
-                endDate:
-                  autoGenerateEnabled && endDate
-                    ? new Date(endDate).toISOString()
-                    : new Date(data.scheduleDate).toISOString()
-              }
+            return {
+              shiftType,
+              startTime: customTime?.start || SHIFT_TIMES[shiftType]?.start || '08:00',
+              endTime: customTime?.end || SHIFT_TIMES[shiftType]?.end || '17:00',
+              daysOfWeek: daysForThisShift // Correct days for this specific shift
             };
+          });
 
-            try {
-              const createdTemplate = await createTemplate(templateData);
-              createdTemplates.push(createdTemplate);
-            } catch (_templateError) {
-              toast.error(t('toast.template_creation_failed'), {
-                description: `Failed to create template for ${shiftType}`,
-                duration: 3000
-              });
+          // Use first shift as default for template
+          const firstShift = shiftsMetadata[0];
+
+          const templateData = {
+            name: templateName,
+            description: `${templateDescription} (Multiple shifts: ${Array.from(allShifts).join(', ')})`,
+            type: data.type || 'FREE_TIME',
+            branchId: data.branchId,
+            ptId: data.staffId,
+            startTime: firstShift.startTime, // Default to first shift
+            endTime: firstShift.endTime, // Default to first shift
+            daysOfWeek: enabledDays as DayOfWeek[],
+            maxCapacity: 1,
+            priority: 1,
+            // Store multiple shifts in notes as JSON
+            notes: safeJsonStringify({
+              multipleShifts: true,
+              shifts: shiftsMetadata
+            }),
+            autoGenerate: {
+              enabled: autoGenerateEnabled,
+              advanceDays: autoGenerateEnabled ? advanceDays : 7,
+              endDate:
+                autoGenerateEnabled && endDate
+                  ? new Date(endDate).toISOString()
+                  : new Date(data.scheduleDate).toISOString()
             }
-          } catch (error) {
-            console.error(`❌ Debug: Error in template creation loop for ${shiftType}:`, error);
+          };
+
+          const template = await createTemplate(templateData);
+          if (template) {
+            // Increment usage count since template was created from existing schedule
+            if (createdSchedules.length > 0) {
+              await incrementTemplateUsage(template._id);
+            }
           }
         }
 
-        // Show template creation success toast
-        toast.success(t('toast.template_saved_success'), {
-          description: t('toast.template_saved_success_description', {
-            name: `${templateName} (${createdTemplates.length} templates)`
-          }),
-          duration: 4000
-        });
+        // Increment template usage if schedule was created from template
+        if (createdSchedules.length > 0 && selectedTemplate) {
+          await incrementTemplateUsage(selectedTemplate._id);
+        }
+
+        // Show success toast only if schedules were actually created
+        if (createdSchedules.length > 0) {
+          toast.success(t('toast.schedule_created_success'), {
+            description: t('toast.schedule_created_success_description', {
+              count: createdSchedules.length,
+              title: data.title
+            }),
+            duration: 4000
+          });
+        } else {
+          // Show warning if no schedules were created
+          toast.warning(t('toast.schedule_creation_warning'), {
+            description: t('toast.schedule_creation_warning_description'),
+            duration: 4000
+          });
+        }
+
+        return { success: true, data: createdSchedules };
+      },
+      {
+        showSuccess: false, // We handle success messages manually
+        showError: true,
+        successMessage: '', // Not used since showSuccess is false
+        errorMessage: t('toast.schedule_creation_failed')
       }
+    );
 
-      // Show success toast only if schedules were actually created
-      if (createdSchedules.length > 0) {
-        toast.success(t('toast.schedule_created_success'), {
-          description: t('toast.schedule_created_success_description', {
-            count: createdSchedules.length,
-            title: data.title
-          }),
-          duration: 4000
-        });
-      } else {
-        // Show warning if no schedules were created
-        toast.warning(t('toast.schedule_creation_warning'), {
-          description: t('toast.schedule_creation_warning_description'),
-          duration: 4000
-        });
-      }
-
-      return { success: true, createdSchedules };
-    } catch (error) {
-      console.error('❌ Error in handleSubmit:', error);
-
-      // Check if it's an authentication error
-      if (error instanceof Error && error.message.includes('401')) {
-        toast.error(t('toast.authentication_failed'), {
-          description: t('toast.authentication_failed_description'),
-          duration: 5000
-        });
-      } else {
-        // Show generic error toast
-        toast.error(t('toast.schedule_creation_failed'), {
-          description: t('toast.schedule_creation_failed_description'),
-          duration: 5000
-        });
-      }
-
-      return { success: false, error };
-    } finally {
-      setIsSubmitting(false);
-    }
+    setIsSubmitting(false);
+    return result ? { success: true, createdSchedules: result } : { success: false, error: 'SCHEDULE_CREATION_FAILED' };
   };
 
   return {

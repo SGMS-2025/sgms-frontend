@@ -97,9 +97,17 @@ const WeeklyFixedShiftSelector: React.FC<WeeklyFixedShiftSelectorProps> = ({
   };
 
   const getSelectedShiftsCount = () => {
-    return fixedShifts.reduce((count, shift) => {
-      return count + (shift.morning ? 1 : 0) + (shift.afternoon ? 1 : 0) + (shift.evening ? 1 : 0);
-    }, 0);
+    let totalCount = 0;
+
+    fixedShifts.forEach((shift) => {
+      const dayKey = shift.dayOfWeek.toLowerCase() as keyof StaffScheduleFormData['availability'];
+      const dayData = watchedAvailability[dayKey];
+      const shiftsForDay = dayData?.shifts?.length || 0;
+
+      totalCount += shiftsForDay;
+    });
+
+    return totalCount;
   };
 
   return (
