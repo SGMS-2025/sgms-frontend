@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
+import { handleAsyncOperationWithCallbacks } from '@/utils/errorHandler';
 
 interface MembershipCancelDialogProps {
   isOpen: boolean;
@@ -32,13 +33,20 @@ export const MembershipCancelDialog: React.FC<MembershipCancelDialogProps> = ({
 
   const handleConfirm = async () => {
     setError(null);
-    try {
-      await onConfirm(reason.trim() || undefined);
-      setReason('');
-    } catch (confirmError) {
-      const message = confirmError instanceof Error ? confirmError.message : t('gymDetail.membership.cancel.error');
-      setError(message);
-    }
+
+    await handleAsyncOperationWithCallbacks(
+      async () => {
+        await onConfirm(reason.trim() || undefined);
+        return { success: true, data: null };
+      },
+      () => {
+        setReason('');
+      },
+      (error) => {
+        const message = error instanceof Error ? error.message : t('gymDetail.membership.cancel.error');
+        setError(message);
+      }
+    );
   };
 
   return (

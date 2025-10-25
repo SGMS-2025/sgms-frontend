@@ -3055,6 +3055,7 @@
   "payment.no_transactions_found": "No transactions found",
   "payment.customer_payment_history": "Customer payment history",
   "payment.expires_at": "Expires at",
+  "sidebar.payments": "Payments",
   "customer_modal.membership_requires_full_payment": "Membership plans require full payment at registration",
   "error.membership_full_payment_required": "Membership plans require full payment at registration"
 }

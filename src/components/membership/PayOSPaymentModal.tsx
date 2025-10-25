@@ -9,6 +9,7 @@ import type { PayOSPaymentData } from '@/services/api/paymentApi';
 import type { Branch } from '@/types/api/Branch';
 import QRCode from 'qrcode';
 import { VIETQR_BANKS } from '@/constants/vietqrBanks';
+import { handleAsyncOperationWithOptions } from '@/utils/errorHandler';
 
 interface PayOSPaymentModalProps {
   isOpen: boolean;
@@ -47,12 +48,18 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
 
   // Copy to clipboard
   const copyToClipboard = async (text: string, label: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success(`${label} đã được sao chép`);
-    } catch {
-      toast.error('Không thể sao chép');
-    }
+    await handleAsyncOperationWithOptions(
+      async () => {
+        await navigator.clipboard.writeText(text);
+        return { success: true, data: text };
+      },
+      {
+        showSuccess: true,
+        showError: true,
+        successMessage: `${label} đã được sao chép`,
+        errorMessage: 'Không thể sao chép'
+      }
+    );
   };
 
   const pickFirstString = (...values: Array<unknown>): string | null => {
@@ -170,11 +177,21 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
         ) ?? pickFirstString(paymentInfo.checkoutUrl, payosMeta['checkoutUrl'], payosMeta['paymentUrl']);
 
       if (rawQrPayload) {
-        try {
-          const dataUrl = await QRCode.toDataURL(rawQrPayload, { width: 256, margin: 1 });
-          if (isMounted) setQrImage(dataUrl);
-        } catch (_error) {
-          if (isMounted) setQrImage(null);
+        const dataUrl = await handleAsyncOperationWithOptions(
+          async () => {
+            const result = await QRCode.toDataURL(rawQrPayload, { width: 256, margin: 1 });
+            return { success: true, data: result };
+          },
+          {
+            showSuccess: false,
+            showError: false,
+            successMessage: '',
+            errorMessage: ''
+          }
+        );
+
+        if (isMounted) {
+          setQrImage(dataUrl || null);
         }
         return;
       }

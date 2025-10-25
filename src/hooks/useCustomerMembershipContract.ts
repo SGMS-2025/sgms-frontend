@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { membershipApi } from '@/services/api/membershipApi';
 import type { MembershipContract } from '@/types/api/Membership';
+import { handleAsyncOperationWithCallbacks } from '@/utils/errorHandler';
 
 interface UseCustomerMembershipContractOptions {
   branchId?: string;
@@ -42,25 +43,30 @@ export const useCustomerMembershipContract = (
     setLoading(true);
     setError(null);
 
-    try {
-      const response = await membershipApi.getMyMembershipContracts({ branchId });
+    await handleAsyncOperationWithCallbacks(
+      async () => {
+        const response = await membershipApi.getMyMembershipContracts({ branchId });
+        return { success: true, data: response };
+      },
+      (data) => {
+        if (!isMountedRef.current) return;
 
-      if (!isMountedRef.current) return;
+        const matchingContract = (data || [])
+          ?.filter((item) => item.branchId === branchId)
+          .find((item) => VALID_STATUSES.includes(item.status));
 
-      const matchingContract = (response || [])
-        ?.filter((item) => item.branchId === branchId)
-        .find((item) => VALID_STATUSES.includes(item.status));
-
-      setContract(matchingContract || null);
-    } catch (fetchError) {
-      if (!isMountedRef.current) return;
-      const message = fetchError instanceof Error ? fetchError.message : 'Không thể tải hợp đồng thành viên';
-      setError(message);
-      setContract(null);
-    } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
+        setContract(matchingContract || null);
+      },
+      (error) => {
+        if (!isMountedRef.current) return;
+        const message = error instanceof Error ? error.message : 'Không thể tải hợp đồng thành viên';
+        setError(message);
+        setContract(null);
       }
+    );
+
+    if (isMountedRef.current) {
+      setLoading(false);
     }
   }, [branchId, enabled]);
 
