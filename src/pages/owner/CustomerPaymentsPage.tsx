@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, Loader2, CreditCard, RotateCcw } from 'lucide-react';
+import { format } from 'date-fns';
+import type { DateRange } from 'react-day-picker';
+import { Calendar as CalendarIcon, CreditCard, Loader2, RotateCcw, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,178 +14,611 @@ import {
   PaginationNext,
   PaginationPrevious
 } from '@/components/ui/pagination';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { useBranch } from '@/contexts/BranchContext';
-import { useCustomerPaymentLedger } from '@/hooks/useCustomerPayments';
-import { CustomerPaymentHistoryModal } from '@/components/modals/CustomerPaymentHistoryModal';
-import type { PaymentLedgerItem, PaymentContractType } from '@/types/api/Payment';
+import { useTransactions } from '@/hooks/useTransactions';
+import type {
+  Transaction,
+  TransactionBranch,
+  TransactionCustomer,
+  TransactionCustomerUser,
+  TransactionRecordedBy,
+  TransactionStatus,
+  TransactionSubjectType
+} from '@/types/api/Transaction';
 
-const contractTypeOptions: Array<{ value: PaymentContractType | 'ALL'; labelKey: string; defaultLabel: string }> = [
-  { value: 'ALL', labelKey: 'payment.contract_type_all', defaultLabel: 'All contracts' },
-  { value: 'MEMBERSHIP', labelKey: 'payment.contract_type_membership', defaultLabel: 'Membership' },
-  { value: 'SERVICE', labelKey: 'payment.contract_type_service', defaultLabel: 'Service package' }
+const getStatusOptions = (
+  t: (key: string, options?: Record<string, unknown>) => string
+): Array<{ value: TransactionStatus | 'ALL'; label: string }> => [
+  { value: 'ALL', label: t('payment.status.all', { defaultValue: 'Tất cả trạng thái' }) },
+  { value: 'SETTLED', label: t('payment.status.settled', { defaultValue: 'Hoàn tất' }) },
+  { value: 'PENDING', label: t('payment.status.pending', { defaultValue: 'Đang chờ' }) },
+  { value: 'FAILED', label: t('payment.status.failed', { defaultValue: 'Thất bại' }) },
+  { value: 'VOID', label: t('payment.status.void', { defaultValue: 'Đã hủy' }) }
 ];
 
-const paymentMethodOptions: Array<{ value: string; labelKey: string; defaultLabel: string }> = [
-  { value: 'ALL', labelKey: 'payment.method_all', defaultLabel: 'All methods' },
-  { value: 'CASH', labelKey: 'payment.method_cash', defaultLabel: 'Cash' },
-  { value: 'BANK_TRANSFER', labelKey: 'payment.method_bank_transfer', defaultLabel: 'Bank transfer' },
-  { value: 'CARD', labelKey: 'payment.method_card', defaultLabel: 'Card' },
-  { value: 'QR_CODE', labelKey: 'payment.method_qr', defaultLabel: 'QR' }
-];
+const statusClasses: Record<TransactionStatus, string> = {
+  SETTLED: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  PENDING: 'bg-amber-100 text-amber-700 border-amber-200',
+  FAILED: 'bg-red-100 text-red-700 border-red-200',
+  VOID: 'bg-gray-100 text-gray-600 border-gray-200'
+};
 
-const statusOptions = [
-  { value: 'ALL', labelKey: 'payment.status_all', defaultLabel: 'All status' },
-  { value: 'PENDING_ACTIVATION', labelKey: 'payment.status_pending_activation', defaultLabel: 'Pending activation' },
-  { value: 'ACTIVE', labelKey: 'payment.status_active', defaultLabel: 'Active' },
-  { value: 'PAST_DUE', labelKey: 'payment.status_past_due', defaultLabel: 'Past due' },
-  { value: 'CANCELED', labelKey: 'payment.status_canceled', defaultLabel: 'Canceled' },
-  { value: 'EXPIRED', labelKey: 'payment.status_expired', defaultLabel: 'Expired' }
-];
+const getStatusLabels = (
+  t: (key: string, options?: Record<string, unknown>) => string
+): Record<TransactionStatus, string> => ({
+  SETTLED: t('payment.status.settled', { defaultValue: 'Hoàn tất' }),
+  PENDING: t('payment.status.pending', { defaultValue: 'Đang chờ' }),
+  FAILED: t('payment.status.failed', { defaultValue: 'Thất bại' }),
+  VOID: t('payment.status.void', { defaultValue: 'Đã hủy' })
+});
 
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value || 0);
+const getMethodLabels = (t: (key: string, options?: Record<string, unknown>) => string): Record<string, string> => ({
+  BANK_TRANSFER: t('payment.method.bank_transfer', { defaultValue: 'Chuyển khoản' }),
+  CASH: t('payment.method.cash', { defaultValue: 'Tiền mặt' }),
+  CARD: t('payment.method.card', { defaultValue: 'Thẻ' }),
+  E_WALLET: t('payment.method.e_wallet', { defaultValue: 'Ví điện tử' }),
+  OTHER: t('payment.method.other', { defaultValue: 'Khác' })
+});
 
-const PaymentSummaryCell: React.FC<{ item: PaymentLedgerItem }> = ({ item }) => {
-  const pendingTransfers = item.paymentSummary.pendingTransfers;
+const getSubjectLabels = (
+  t: (key: string, options?: Record<string, unknown>) => string
+): Record<TransactionSubjectType | 'OTHER', string> => ({
+  MEMBERSHIP: t('payment.subject.membership', { defaultValue: 'Gói hội viên' }),
+  SERVICE: t('payment.subject.service', { defaultValue: 'Gói dịch vụ' }),
+  OTHER: t('payment.subject.other', { defaultValue: 'Khác' })
+});
+
+const dateTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
+  dateStyle: 'short',
+  timeStyle: 'short'
+});
+
+const currencyFormatter = new Intl.NumberFormat('vi-VN', {
+  style: 'currency',
+  currency: 'VND'
+});
+
+const formatDateTime = (value: string | null | undefined) => {
+  if (!value) return '-';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '-';
+  return dateTimeFormatter.format(parsed);
+};
+
+const formatCurrency = (value: number | null | undefined) => currencyFormatter.format(value ?? 0);
+
+const resolveUserInfo = (customer: TransactionCustomer | string): TransactionCustomerUser | null => {
+  if (!customer || typeof customer === 'string') {
+    return null;
+  }
+
+  const user = customer.userId;
+  if (!user || typeof user === 'string') {
+    return null;
+  }
+
+  return user;
+};
+
+const resolveBranchName = (
+  branch: TransactionBranch | string | undefined,
+  branchNameById: Map<string, string>
+): string | null => {
+  if (!branch) return null;
+
+  if (typeof branch === 'string') {
+    return branchNameById.get(branch) ?? null;
+  }
+
+  return branch.branchName || branchNameById.get(branch._id) || null;
+};
+
+const resolveSubjectName = (
+  transaction: Transaction,
+  t: (key: string, options?: Record<string, unknown>) => string
+): string => {
+  const subjectLabels = getSubjectLabels(t);
+
+  if (
+    transaction.subjectType === 'MEMBERSHIP' &&
+    transaction.membershipPlanId &&
+    typeof transaction.membershipPlanId !== 'string'
+  ) {
+    return transaction.membershipPlanId.name || subjectLabels.MEMBERSHIP;
+  }
+
+  if (
+    transaction.subjectType === 'SERVICE' &&
+    transaction.servicePackageId &&
+    typeof transaction.servicePackageId !== 'string'
+  ) {
+    return transaction.servicePackageId.name || subjectLabels.SERVICE;
+  }
+
+  return subjectLabels[transaction.subjectType] || subjectLabels.OTHER;
+};
+
+const resolvePerformerInfo = (
+  recordedBy: TransactionRecordedBy | string | null | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string
+): string => {
+  if (!recordedBy) {
+    return t('common.not_available', { defaultValue: 'N/A' });
+  }
+
+  if (typeof recordedBy === 'string') {
+    return recordedBy;
+  }
+
+  return recordedBy.fullName || recordedBy.email || t('common.not_available', { defaultValue: 'N/A' });
+};
+
+const resolvePerformerEmail = (recordedBy: TransactionRecordedBy | string | null | undefined): string | null => {
+  if (!recordedBy || typeof recordedBy === 'string') {
+    return null;
+  }
+
+  return recordedBy.email || null;
+};
+
+const SummaryCard: React.FC<{
+  title: string;
+  value: string;
+  caption?: string;
+  tone?: 'default' | 'success' | 'warning' | 'danger';
+}> = ({ title, value, caption, tone = 'default' }) => {
+  const toneClasses: Record<string, string> = {
+    default: 'border-gray-200 bg-white text-gray-900',
+    success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    warning: 'border-amber-200 bg-amber-50 text-amber-700',
+    danger: 'border-red-200 bg-red-50 text-red-700'
+  };
+
   return (
-    <div className="space-y-1">
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-gray-600">CASH:</span>
-        <span className="font-medium text-gray-900">{formatCurrency(item.paymentSummary.paidByMethod.CASH)}</span>
-      </div>
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-gray-600">BANK:</span>
-        <span className="font-medium text-gray-900">
-          {formatCurrency(item.paymentSummary.paidByMethod.BANK_TRANSFER)}
-        </span>
-      </div>
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-gray-600">CARD:</span>
-        <span className="font-medium text-gray-900">{formatCurrency(item.paymentSummary.paidByMethod.CARD)}</span>
-      </div>
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-gray-600">QR:</span>
-        <span className="font-medium text-gray-900">{formatCurrency(item.paymentSummary.paidByMethod.QR_CODE)}</span>
-      </div>
-      {pendingTransfers.length > 0 && (
-        <Badge variant="secondary" className="mt-1">
-          {pendingTransfers.length} pending / {formatCurrency(item.paymentSummary.pendingAmount)}
-        </Badge>
-      )}
+    <div className={`rounded-2xl border p-5 shadow-sm transition ${toneClasses[tone]}`}>
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</p>
+      <p className="mt-2 text-2xl font-semibold">{value}</p>
+      {caption ? <p className="mt-2 text-xs text-gray-500">{caption}</p> : null}
     </div>
   );
 };
 
+const StatusPill: React.FC<{ status: TransactionStatus; statusLabels: Record<TransactionStatus, string> }> = ({
+  status,
+  statusLabels
+}) => (
+  <Badge className={`${statusClasses[status] || 'bg-slate-100 text-slate-700 border-slate-200'} px-3 py-1 font-medium`}>
+    {statusLabels[status] || status}
+  </Badge>
+);
+
 const CustomerPaymentsPage: React.FC = () => {
   const { t } = useTranslation();
-  const { branches, currentBranch } = useBranch();
-
+  const { branches } = useBranch();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedItem, setSelectedItem] = useState<PaymentLedgerItem | null>(null);
-  const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
-  const { items, loading, error, pagination, query, setQuery, goToPage, refetch } = useCustomerPaymentLedger({
-    branchId: currentBranch?._id || undefined,
-    contractType: undefined,
-    paymentMethod: undefined,
-    status: undefined,
-    search: undefined
-  });
+  // Get translated labels
+  const statusOptions = getStatusOptions(t);
+  const statusLabels = getStatusLabels(t);
+  const methodLabels = getMethodLabels(t);
+  const subjectLabels = getSubjectLabels(t);
 
-  const handleOpenHistory = (item: PaymentLedgerItem) => {
-    setSelectedItem(item);
-    setHistoryModalOpen(true);
-  };
+  const { transactions, loading, error, pagination, query, setQuery, goToPage, refetch } = useTransactions();
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
-  const handleCloseHistory = () => {
-    setHistoryModalOpen(false);
-    setSelectedItem(null);
-  };
+  const branchNameById = useMemo(() => {
+    return new Map(branches.map((branch) => [branch._id, branch.branchName]));
+  }, [branches]);
 
-  const handleBranchChange = (value: string) => {
-    setQuery({ branchId: value === 'ALL' ? null : value, page: 1 });
-  };
-
-  const handleContractTypeChange = (value: string) => {
-    setQuery({ contractType: value === 'ALL' ? undefined : (value as PaymentContractType), page: 1 });
-  };
-
-  const handlePaymentMethodChange = (value: string) => {
-    if (value === 'ALL') {
-      setQuery({ paymentMethod: undefined, page: 1 });
-    } else {
-      setQuery({ paymentMethod: value, page: 1 });
+  const selectedRange = useMemo<DateRange | undefined>(() => {
+    if (!query.startDate && !query.endDate) {
+      return undefined;
     }
-  };
 
-  const handleStatusChange = (value: string) => {
-    if (value === 'ALL') {
-      setQuery({ status: undefined, page: 1 });
-    } else {
-      setQuery({ status: value, page: 1 });
+    const from = query.startDate ? new Date(query.startDate) : undefined;
+    const to = query.endDate ? new Date(query.endDate) : undefined;
+
+    if (from && Number.isNaN(from.getTime())) {
+      return undefined;
     }
-  };
 
-  const handleSearch = () => {
-    setQuery({ search: searchTerm.trim() || undefined, page: 1 });
-  };
+    if (to && Number.isNaN(to.getTime())) {
+      return { from };
+    }
 
-  const renderStatus = (status: string) => {
-    const statusClasses: Record<string, string> = {
-      ACTIVE: 'bg-green-100 text-green-700 border-green-200',
-      PENDING_ACTIVATION: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-      PAST_DUE: 'bg-red-100 text-red-700 border-red-200',
-      CANCELED: 'bg-gray-100 text-gray-600 border-gray-200',
-      EXPIRED: 'bg-gray-100 text-gray-600 border-gray-200'
-    };
+    if (from || to) {
+      return { from: from || to || undefined, to };
+    }
 
-    return <Badge className={statusClasses[status] || 'bg-gray-100 text-gray-600 border-gray-200'}>{status}</Badge>;
-  };
+    return undefined;
+  }, [query.startDate, query.endDate]);
 
-  const totalSummary = useMemo(() => {
-    const totals = items.reduce(
-      (acc, item) => {
-        acc.totalAmount += item.totalAmount || 0;
-        acc.paidAmount += item.paidAmount || 0;
-        acc.debtAmount += item.debtAmount || 0;
-        acc.pendingAmount += item.paymentSummary.pendingAmount || 0;
+  const rangeLabel = useMemo(() => {
+    if (!selectedRange?.from && !selectedRange?.to) {
+      return t('payment.date_range_placeholder', { defaultValue: 'All dates' });
+    }
+
+    const formatDisplay = (date: Date | undefined) =>
+      date ? format(date, 'dd/MM/yyyy') : t('payment.date_range_placeholder', { defaultValue: 'All dates' });
+
+    if (selectedRange?.from && selectedRange?.to) {
+      return `${formatDisplay(selectedRange.from)} - ${formatDisplay(selectedRange.to)}`;
+    }
+
+    return formatDisplay(selectedRange?.from || selectedRange?.to);
+  }, [selectedRange, t]);
+
+  const summary = useMemo(() => {
+    return transactions.reduce(
+      (acc, transaction) => {
+        const amount = transaction.amount || 0;
+
+        // For revenue calculation, we need to consider transaction type
+        // RECEIPT transactions are positive (money in)
+        // REFUND transactions should reduce total (subtract from total)
+        if (transaction.type === 'RECEIPT') {
+          acc.totalAmount += amount; // Positive amount for receipts
+          acc.totalCount += 1;
+
+          if (transaction.status === 'SETTLED') {
+            acc.settledAmount += amount;
+            acc.settledCount += 1;
+          } else if (transaction.status === 'PENDING') {
+            acc.pendingAmount += amount;
+            acc.pendingCount += 1;
+          } else if (transaction.status === 'FAILED') {
+            acc.failedAmount += amount;
+            acc.failedCount += 1;
+          }
+        } else if (transaction.type === 'REFUND') {
+          // Refunds reduce the total amount (subtract from total)
+          acc.totalAmount -= amount; // Subtract refund amount from total
+          acc.totalCount += 1;
+
+          if (transaction.status === 'SETTLED') {
+            acc.settledAmount -= amount; // Subtract from settled amount
+            acc.settledCount += 1;
+          } else if (transaction.status === 'PENDING') {
+            acc.pendingAmount -= amount;
+            acc.pendingCount += 1;
+          } else if (transaction.status === 'FAILED') {
+            acc.failedAmount -= amount;
+            acc.failedCount += 1;
+          }
+        }
+
         return acc;
       },
       {
         totalAmount: 0,
-        paidAmount: 0,
-        debtAmount: 0,
-        pendingAmount: 0
+        settledAmount: 0,
+        pendingAmount: 0,
+        failedAmount: 0,
+        totalCount: 0,
+        settledCount: 0,
+        pendingCount: 0,
+        failedCount: 0
       }
     );
+  }, [transactions]);
 
-    return totals;
-  }, [items]);
+  const handleBranchChange = (value: string) => {
+    setQuery({ branchId: value === 'ALL' ? undefined : value });
+  };
+
+  const handleStatusChange = (value: string) => {
+    if (value === 'ALL') {
+      setQuery({ status: 'ALL' });
+    } else {
+      setQuery({ status: value as TransactionStatus });
+    }
+  };
+
+  const handleSearch = () => {
+    setQuery({ search: searchTerm.trim() || undefined });
+  };
+
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    if (!range) {
+      setQuery({ startDate: undefined, endDate: undefined });
+      return;
+    }
+
+    const startValue = range.from ? format(range.from, 'yyyy-MM-dd') : undefined;
+    const endValue = range.to ? format(range.to, 'yyyy-MM-dd') : undefined;
+
+    setQuery({
+      startDate: startValue,
+      endDate: endValue
+    });
+
+    if (range.from && range.to) {
+      setDatePickerOpen(false);
+    }
+  };
+
+  const handleClearDateRange = () => {
+    setQuery({ startDate: undefined, endDate: undefined });
+    setDatePickerOpen(false);
+  };
+
+  const renderTableSection = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center py-12 text-gray-500">
+          <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+          {t('payment.loading_transactions', { defaultValue: 'Đang tải giao dịch...' })}
+        </div>
+      );
+    }
+
+    if (error) {
+      return <div className="py-12 text-center text-sm text-red-600">{error}</div>;
+    }
+
+    if (transactions.length === 0) {
+      return (
+        <div className="py-12 text-center text-sm text-gray-500">
+          {t('payment.no_transactions_found', { defaultValue: 'Không có giao dịch nào' })}
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <ScrollArea className="max-h-[520px] rounded-2xl border border-gray-100">
+          <Table>
+            <TableHeader className="bg-gray-50">
+              <TableRow className="border-b border-gray-100">
+                <TableHead className="w-40 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {t('payment.date', { defaultValue: 'Ngày' })}
+                </TableHead>
+                <TableHead className="w-52 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {t('payment.customer', { defaultValue: 'Khách hàng' })}
+                </TableHead>
+                <TableHead className="w-64 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {t('payment.contract', { defaultValue: 'Dịch vụ' })}
+                </TableHead>
+                <TableHead className="text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {t('payment.amount', { defaultValue: 'Số tiền' })}
+                </TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {t('payment.method', { defaultValue: 'Phương thức' })}
+                </TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {t('payment.status', { defaultValue: 'Trạng thái' })}
+                </TableHead>
+                <TableHead className="w-48 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {t('payment.performer', { defaultValue: 'Người thực hiện' })}
+                </TableHead>
+                <TableHead className="w-56 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {t('payment.reference_code', { defaultValue: 'Mã giao dịch' })}
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {transactions.map((transaction) => {
+                const userInfo = resolveUserInfo(transaction.customerId);
+                const branchName = resolveBranchName(transaction.branchId, branchNameById);
+                const subjectName = resolveSubjectName(transaction, t);
+                const methodLabel = methodLabels[transaction.method] || transaction.method;
+                const occurredAt = formatDateTime(transaction.occurredAt);
+                const reference =
+                  transaction.referenceCode ||
+                  (transaction.meta && typeof transaction.meta === 'object'
+                    ? (transaction.meta as { reference?: string }).reference
+                    : null);
+
+                return (
+                  <TableRow key={transaction._id} className="border-b border-gray-100 last:border-b-0">
+                    <TableCell className="align-top text-sm font-medium text-gray-900">{occurredAt}</TableCell>
+                    <TableCell className="align-top">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-semibold text-gray-900">
+                          {userInfo?.fullName || t('common.not_available', { defaultValue: 'N/A' })}
+                        </span>
+                        <span className="text-xs text-gray-500">{userInfo?.phoneNumber || userInfo?.email || '-'}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-semibold text-gray-900">{subjectName}</span>
+                        <span className="text-xs text-gray-500">
+                          {subjectLabels[transaction.subjectType] || subjectLabels.OTHER}
+                          {branchName ? ` • ${branchName}` : ''}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="align-top text-right text-sm font-semibold text-gray-900">
+                      {transaction.type === 'REFUND' ? (
+                        <span className="text-red-600">{formatCurrency(Math.abs(transaction.amount))}</span>
+                      ) : (
+                        <span className="text-green-600">{formatCurrency(transaction.amount)}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="align-top text-sm text-gray-700">{methodLabel}</TableCell>
+                    <TableCell className="align-top">
+                      <StatusPill status={transaction.status} statusLabels={statusLabels} />
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-semibold text-gray-900">
+                          {resolvePerformerInfo(transaction.recordedBy, t)}
+                        </span>
+                        {resolvePerformerEmail(transaction.recordedBy) ? (
+                          <span className="text-xs text-gray-500">{resolvePerformerEmail(transaction.recordedBy)}</span>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <div className="flex flex-col gap-1 text-sm text-gray-800">
+                        <span className="font-semibold">{reference || '-'}</span>
+                        {transaction.note ? <span className="text-xs text-gray-500">{transaction.note}</span> : null}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </ScrollArea>
+
+        {pagination && pagination.totalPages > 1 ? (
+          <div className="flex justify-center pt-4">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      if (pagination.hasPrev) {
+                        goToPage((pagination.page || 1) - 1);
+                      }
+                    }}
+                  />
+                </PaginationItem>
+                {Array.from({ length: pagination.totalPages }).map((_, index) => (
+                  <PaginationItem key={`page-${index + 1}`}>
+                    <PaginationLink
+                      href="#"
+                      isActive={pagination.page === index + 1}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        goToPage(index + 1);
+                      }}
+                    >
+                      {index + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      if (pagination.hasNext) {
+                        goToPage((pagination.page || 1) + 1);
+                      }
+                    }}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        ) : null}
+      </>
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 rounded-3xl overflow-hidden space-y-6">
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-xl font-semibold text-gray-900">
-            <CreditCard className="w-5 h-5 text-orange-500" />
-            {t('payment.customer_ledger_title', { defaultValue: 'Customer Payments Overview' })}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                {t('common.branch', { defaultValue: 'Branch' })}
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold text-gray-900">
+            <CreditCard className="h-6 w-6 text-orange-500" />
+            {t('payment.transaction_history_title', { defaultValue: 'Lịch sử giao dịch' })}
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            {t('payment.transaction_history_subtitle', {
+              defaultValue: 'Theo dõi tổng quan giao dịch và dòng tiền tại câu lạc bộ'
+            })}
+          </p>
+        </div>
+        <Button variant="outline" className="self-start" onClick={refetch}>
+          <RotateCcw className="mr-2 h-4 w-4" />
+          {t('common.refresh', { defaultValue: 'Làm mới' })}
+        </Button>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard
+          title={t('payment.summary_total_amount', { defaultValue: 'Tổng doanh thu' })}
+          value={formatCurrency(summary.totalAmount)}
+          caption={t('payment.summary_total_transactions', {
+            defaultValue: '{{count}} giao dịch',
+            count: summary.totalCount
+          })}
+        />
+        <SummaryCard
+          title={t('payment.summary_settled', { defaultValue: 'Đã thu' })}
+          value={formatCurrency(summary.settledAmount)}
+          caption={t('payment.summary_total_transactions', {
+            defaultValue: '{{count}} giao dịch',
+            count: summary.settledCount
+          })}
+          tone="success"
+        />
+        <SummaryCard
+          title={t('payment.summary_pending', { defaultValue: 'Đang chờ xử lý' })}
+          value={formatCurrency(summary.pendingAmount)}
+          caption={t('payment.summary_total_transactions', {
+            defaultValue: '{{count}} giao dịch',
+            count: summary.pendingCount
+          })}
+          tone="warning"
+        />
+        <SummaryCard
+          title={t('payment.summary_failed', { defaultValue: 'Thất bại' })}
+          value={formatCurrency(summary.failedAmount)}
+          caption={t('payment.summary_total_transactions', {
+            defaultValue: '{{count}} giao dịch',
+            count: summary.failedCount
+          })}
+          tone="danger"
+        />
+      </div>
+
+      <Card className="border-none bg-white shadow-sm">
+        <CardContent className="space-y-6 p-6">
+          <div className="grid items-end gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,2.3fr)_minmax(0,1.1fr)_minmax(0,1.1fr)_minmax(0,1.3fr)]">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {t('common.search', { defaultValue: 'Tìm kiếm' })}
+              </label>
+              <div className="relative">
+                <Input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      handleSearch();
+                    }
+                  }}
+                  placeholder={t('payment.search_transactions_placeholder', {
+                    defaultValue: 'Tìm theo khách hàng, mã giao dịch hoặc mô tả'
+                  })}
+                  className="h-11 pr-12"
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="absolute right-1 top-1/2 h-9 w-9 -translate-y-1/2 rounded-xl border border-gray-200 bg-white shadow-sm transition hover:bg-gray-50"
+                  onClick={handleSearch}
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {t('common.branch', { defaultValue: 'Chi nhánh' })}
               </label>
               <Select value={query.branchId || 'ALL'} onValueChange={handleBranchChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t('common.branch', { defaultValue: 'Branch' })} />
+                <SelectTrigger className="h-11 rounded-xl border-gray-200">
+                  <SelectValue placeholder={t('common.branch', { defaultValue: 'Chi nhánh' })} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">{t('common.all', { defaultValue: 'All' })}</SelectItem>
+                  <SelectItem value="ALL">{t('common.all', { defaultValue: 'Tất cả' })}</SelectItem>
                   {branches.map((branch) => (
                     <SelectItem key={branch._id} value={branch._id}>
                       {branch.branchName}
@@ -192,289 +627,80 @@ const CustomerPaymentsPage: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                {t('payment.contract_type', { defaultValue: 'Contract Type' })}
-              </label>
-              <Select value={query.contractType || 'ALL'} onValueChange={handleContractTypeChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t('payment.contract_type', { defaultValue: 'Contract type' })} />
-                </SelectTrigger>
-                <SelectContent>
-                  {contractTypeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {t(option.labelKey, { defaultValue: option.defaultLabel })}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                {t('payment.method', { defaultValue: 'Payment method' })}
-              </label>
-              <Select value={query.paymentMethod || 'ALL'} onValueChange={handlePaymentMethodChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t('payment.method', { defaultValue: 'Payment method' })} />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentMethodOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {t(option.labelKey, { defaultValue: option.defaultLabel })}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                {t('payment.status', { defaultValue: 'Status' })}
+
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {t('payment.status', { defaultValue: 'Trạng thái' })}
               </label>
               <Select value={query.status || 'ALL'} onValueChange={handleStatusChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t('payment.status', { defaultValue: 'Status' })} />
+                <SelectTrigger className="h-11 rounded-xl border-gray-200">
+                  <SelectValue placeholder={t('payment.status', { defaultValue: 'Trạng thái' })} />
                 </SelectTrigger>
                 <SelectContent>
                   {statusOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      {t(option.labelKey, { defaultValue: option.defaultLabel })}
+                      {option.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex flex-col gap-1 lg:col-span-1">
-              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                {t('common.search', { defaultValue: 'Search' })}
+
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {t('payment.date_range', { defaultValue: 'Khoảng thời gian' })}
               </label>
-              <div className="flex gap-2">
-                <Input
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder={t('payment.search_placeholder', {
-                    defaultValue: 'Search by customer, phone, contract…'
-                  })}
-                />
-                <Button variant="outline" onClick={handleSearch}>
-                  <Search className="w-4 h-4" />
-                </Button>
-              </div>
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="flex h-11 w-full items-center justify-start gap-2 rounded-xl border-gray-200 px-3 text-left font-medium text-gray-700"
+                  >
+                    <CalendarIcon className="h-4 w-4 text-gray-500" />
+                    <span className="truncate">
+                      {selectedRange?.from || selectedRange?.to
+                        ? rangeLabel
+                        : t('payment.date_range_placeholder', { defaultValue: 'Tất cả thời gian' })}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-auto p-0">
+                  <Calendar
+                    mode="range"
+                    numberOfMonths={1}
+                    selected={selectedRange}
+                    onSelect={handleDateRangeChange}
+                    defaultMonth={selectedRange?.from ?? selectedRange?.to ?? new Date()}
+                  />
+                  <div className="flex items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-4 py-2">
+                    <span className="text-xs text-gray-500">{rangeLabel}</span>
+                    {selectedRange ? (
+                      <Button variant="ghost" size="sm" onClick={handleClearDateRange}>
+                        {t('payment.clear_date_filter', { defaultValue: 'Xóa bộ lọc ngày' })}
+                      </Button>
+                    ) : null}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
-          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3">
-            <div className="flex items-center gap-6 text-sm text-gray-700">
-              <div>
-                <p className="text-xs uppercase text-gray-500">
-                  {t('payment.total_amount', { defaultValue: 'Total amount' })}
-                </p>
-                <p className="font-semibold text-gray-900">{formatCurrency(totalSummary.totalAmount)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">
-                  {t('payment.total_paid', { defaultValue: 'Total paid' })}
-                </p>
-                <p className="font-semibold text-gray-900">{formatCurrency(totalSummary.paidAmount)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">
-                  {t('payment.total_debt', { defaultValue: 'Total debt' })}
-                </p>
-                <p className="font-semibold text-orange-600">{formatCurrency(totalSummary.debtAmount)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase text-gray-500">
-                  {t('payment.pending_amount', { defaultValue: 'Pending amount' })}
-                </p>
-                <p className="font-semibold text-blue-600">{formatCurrency(totalSummary.pendingAmount)}</p>
-              </div>
+          <Separator />
+
+          <div className="flex flex-col gap-2">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                {t('payment.transactions', { defaultValue: 'Giao dịch' })}
+              </h2>
+              <p className="text-sm text-gray-500">
+                {t('payment.transactions_subtitle', { defaultValue: 'Danh sách giao dịch mới nhất' })}
+              </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={refetch}>
-                <RotateCcw className="w-4 h-4 mr-2" />
-                {t('common.refresh', { defaultValue: 'Refresh' })}
-              </Button>
-            </div>
+            {renderTableSection()}
           </div>
         </CardContent>
       </Card>
-
-      <Card className="shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle>{t('payment.contracts_overview', { defaultValue: 'Contracts' })}</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="py-12 flex justify-center items-center text-gray-500">
-              <Loader2 className="w-6 h-6 animate-spin mr-2" />
-              {t('payment.loading_data', { defaultValue: 'Loading payment data…' })}
-            </div>
-          ) : error ? (
-            <div className="p-6 text-center text-red-600 text-sm">{error}</div>
-          ) : items.length === 0 ? (
-            <div className="py-12 text-center text-sm text-gray-500">
-              {t('payment.no_data', { defaultValue: 'No payment data found for the selected filters.' })}
-            </div>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('payment.customer', { defaultValue: 'Customer' })}</TableHead>
-                    <TableHead>{t('common.branch', { defaultValue: 'Branch' })}</TableHead>
-                    <TableHead>{t('payment.contract', { defaultValue: 'Contract' })}</TableHead>
-                    <TableHead className="text-right">{t('payment.total_amount', { defaultValue: 'Total' })}</TableHead>
-                    <TableHead className="text-right">{t('payment.total_paid', { defaultValue: 'Paid' })}</TableHead>
-                    <TableHead className="text-right text-orange-600">
-                      {t('payment.total_debt', { defaultValue: 'Debt' })}
-                    </TableHead>
-                    <TableHead>{t('payment.method_breakdown', { defaultValue: 'Method breakdown' })}</TableHead>
-                    <TableHead>{t('payment.last_payment', { defaultValue: 'Last payment' })}</TableHead>
-                    <TableHead />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((item) => (
-                    <TableRow key={`${item.contractType}-${item.contractId}`}>
-                      <TableCell>
-                        {(() => {
-                          const name =
-                            item.customer.name?.trim() && item.customer.name !== item.customer.id
-                              ? item.customer.name
-                              : null;
-                          const phone =
-                            item.customer.phone?.trim() && item.customer.phone !== 'N/A' ? item.customer.phone : null;
-                          const email =
-                            item.customer.email?.trim() && item.customer.email !== 'N/A' ? item.customer.email : null;
-                          return (
-                            <div className="flex flex-col">
-                              <span className="text-sm font-semibold text-gray-900">
-                                {name || t('common.unknown', { defaultValue: 'Unknown' })}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                {phone || t('common.not_available', { defaultValue: 'N/A' })}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                {email || t('common.not_available', { defaultValue: 'N/A' })}
-                              </span>
-                            </div>
-                          );
-                        })()}
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm text-gray-800">{item.branch?.name || t('common.no_branch')}</div>
-                        <div className="text-xs text-gray-500">{renderStatus(item.status)}</div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-gray-900">{item.contractName}</span>
-                          <span className="text-xs uppercase text-gray-500">{item.contractType}</span>
-                          <span className="text-xs text-gray-400">
-                            {item.startDate ? new Date(item.startDate).toLocaleDateString() : '-'} →{' '}
-                            {item.endDate ? new Date(item.endDate).toLocaleDateString() : '-'}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-semibold text-gray-900">
-                        {formatCurrency(item.totalAmount)}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold text-gray-900">
-                        {formatCurrency(item.paidAmount)}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold text-orange-600">
-                        {formatCurrency(item.debtAmount)}
-                      </TableCell>
-                      <TableCell>
-                        <PaymentSummaryCell item={item} />
-                      </TableCell>
-                      <TableCell>
-                        {item.paymentSummary.lastPayment ? (
-                          <div className="flex flex-col text-sm text-gray-700">
-                            <span className="font-semibold text-gray-900">
-                              {formatCurrency(item.paymentSummary.lastPayment.amount)}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {item.paymentSummary.lastPayment.method} •{' '}
-                              {new Date(item.paymentSummary.lastPayment.occurredAt).toLocaleString()}
-                            </span>
-                            {item.paymentSummary.lastPayment.recordedBy && (
-                              <span className="text-xs text-gray-500">
-                                {item.paymentSummary.lastPayment.recordedBy.name}
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-400">
-                            {t('payment.no_transactions', { defaultValue: 'No transactions' })}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button size="sm" variant="outline" onClick={() => handleOpenHistory(item)}>
-                          {t('payment.view_history', { defaultValue: 'View history' })}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
-              {pagination && pagination.totalPages > 1 && (
-                <div className="py-4 flex justify-center">
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          href="#"
-                          onClick={(event) => {
-                            event.preventDefault();
-                            if (pagination.hasPrev) {
-                              goToPage((pagination.page || 1) - 1);
-                            }
-                          }}
-                        />
-                      </PaginationItem>
-                      {Array.from({ length: pagination.totalPages }).map((_, index) => (
-                        <PaginationItem key={`page-${index + 1}`}>
-                          <PaginationLink
-                            href="#"
-                            isActive={pagination.page === index + 1}
-                            onClick={(event) => {
-                              event.preventDefault();
-                              goToPage(index + 1);
-                            }}
-                          >
-                            {index + 1}
-                          </PaginationLink>
-                        </PaginationItem>
-                      ))}
-                      <PaginationItem>
-                        <PaginationNext
-                          href="#"
-                          onClick={(event) => {
-                            event.preventDefault();
-                            if (pagination.hasNext) {
-                              goToPage((pagination.page || 1) + 1);
-                            }
-                          }}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      <CustomerPaymentHistoryModal
-        open={historyModalOpen}
-        onClose={handleCloseHistory}
-        customerId={selectedItem?.customer.id || null}
-        ledgerItem={selectedItem}
-      />
     </div>
   );
 };

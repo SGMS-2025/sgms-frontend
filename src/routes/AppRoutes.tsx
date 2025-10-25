@@ -51,6 +51,7 @@ import PTCustomerListPage from '@/pages/pt/PTCustomerListPage';
 import PTAttendanceHistoryPage from '@/pages/pt/PTAttendanceHistoryPage';
 import TrainingProgressDetailPage from '@/pages/pt/TrainingProgressDetailPage';
 import CustomerManagementPage from '@/pages/owner/CustomerManagementPage';
+import CustomerDetailPage from '@/pages/owner/CustomerDetailPage';
 import TimeOffPage from '@/pages/owner/TimeOffPage';
 import TimeOffManagementPage from '@/pages/owner/TimeOffManagementPage';
 import PTTimeOffPage from '@/pages/pt/TimeOffPage';
@@ -338,6 +339,8 @@ const AppRoutes: React.FC = () => {
           <Route path="staff" element={<StaffPage />} />
           {/* Customer Management Route */}
           <Route path="customers" element={<CustomerManagementPage />} />
+          {/* Customer Detail Route */}
+          <Route path="customers/:id/detail" element={<CustomerDetailPage />} />
           {/* Customer Payments Route */}
           <Route path="payments" element={<CustomerPaymentsPage />} />
           {/* Branch Detail Route */}

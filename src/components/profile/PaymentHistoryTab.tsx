@@ -32,10 +32,7 @@ const METHOD_LABELS: Record<string, string> = {
   ALL: 'Tất cả phương thức',
   CASH: 'Tiền mặt',
   BANK_TRANSFER: 'Chuyển khoản',
-  CARD: 'Thẻ',
-  QR_CODE: 'Mã QR',
   PAYOS: 'PayOS',
-  EWALLET: 'Ví điện tử',
   DEBT: 'Công nợ'
 };
 

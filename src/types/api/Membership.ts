@@ -1,25 +1,48 @@
-export type MembershipPlanUpdateScope = 'template' | 'branches';
-
-export interface MembershipPlanBranchInfo {
-  _id: string;
-  branchName: string;
-  location?: string;
-  ownerId?: string;
-  isActive?: boolean;
+export interface RefundSuggestion {
+  suggestedAmount: number;
+  totalPaid: number;
+  daysUsed: number;
+  daysRemaining: number;
+  calculation: string;
 }
 
-export interface MembershipPlanOverride {
+export interface CancelMembershipPayload {
+  cancelReason: string;
+  refundAmount: number;
+  refundMethod: 'CASH' | 'BANK_TRANSFER' | 'E_WALLET';
+  notes?: string;
+  clearDebt?: boolean;
+}
+
+export interface MembershipContract {
   _id: string;
-  parentPlanId: string;
-  appliesToBranchId: string;
-  name: string;
-  description?: string;
+  customerId: string;
+  branchId: string;
+  membershipPlanId: string;
+  discountCampaignId?: string;
+  discountCampaignSnapshot?: {
+    _id: string;
+    campaignName: string;
+    discountPercentage: number;
+    startDate: string;
+    endDate: string;
+    status: string;
+  };
+  activationDate?: string;
+  startDate: string;
+  endDate: string;
   price: number;
-  currency: string;
-  durationInMonths: number;
-  benefits: string[];
-  isActive: boolean;
-  branchId: MembershipPlanBranchInfo[];
+  discountAmount: number;
+  total: number;
+  paidAmount: number;
+  debtAmount: number;
+  referrerStaffId?: string;
+  createdBy?: string;
+  status: 'PENDING_ACTIVATION' | 'ACTIVE' | 'EXPIRED' | 'SUSPENDED' | 'CANCELED' | 'PAST_DUE';
+  notes?: string;
+  canceledAt?: string;
+  canceledBy?: string;
+  cancelReason?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -27,27 +50,47 @@ export interface MembershipPlanOverride {
 export interface MembershipPlan {
   _id: string;
   name: string;
-  description?: string;
+  description: string;
   price: number;
-  currency: string;
   durationInMonths: number;
   benefits: string[];
+  status: 'ACTIVE' | 'INACTIVE';
+  currency: string;
   isActive: boolean;
   isTemplate: boolean;
-  branchId: MembershipPlanBranchInfo[];
-  parentPlanId?: string | null;
-  appliesToBranchId?: string | null;
+  branchId?: MembershipPlanBranchInfo[];
   overrides?: MembershipPlanOverride[];
   createdAt: string;
   updatedAt: string;
 }
 
+export interface MembershipPlanBranchInfo {
+  _id: string;
+  branchId: string;
+  branchName: string;
+  location: string;
+  price: number;
+  isActive: boolean;
+}
+
+export interface MembershipPlanOverride {
+  appliesToBranchId: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  durationInMonths: number;
+  benefits: string[];
+  isActive: boolean;
+}
+
 export interface MembershipPlanListParams {
-  branchId?: string;
-  search?: string;
-  isActive?: boolean;
   page?: number;
   limit?: number;
+  search?: string;
+  status?: string;
+  branchId?: string;
+  isActive?: boolean;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
@@ -55,56 +98,89 @@ export interface MembershipPlanListParams {
 export interface MembershipPlanListResponse {
   plans: MembershipPlan[];
   pagination: {
+    total: number;
     page: number;
     limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
   };
 }
 
-export interface CreateMembershipPlanPayload {
-  name: string;
-  description?: string;
-  price: number;
-  currency: string;
-  durationInMonths: number;
-  benefits: string[];
-  branchId: string[];
-  isActive?: boolean;
-}
-
-export interface MembershipPlanUpdateData {
-  name?: string;
-  description?: string;
-  price?: number;
-  currency?: string;
-  durationInMonths?: number;
-  benefits?: string[];
-  isActive?: boolean;
-}
-
-export interface ToggleMembershipPlanStatusPayload {
-  isActive: boolean;
-  branchId: string[];
-}
-
-export interface UpdateMembershipPlanPayload {
-  updateScope: MembershipPlanUpdateScope;
-  data?: MembershipPlanUpdateData;
-  branchId?: string[];
-  targetBranchIds?: string[];
-  revertBranchIds?: string[];
-}
-
 export interface PublicMembershipPlanParams {
-  branchId: string;
+  branchId?: string;
+  status?: string;
 }
 
-import type { BackendPaginationResponse } from './Branch';
+export interface Branch {
+  _id: string;
+  branchName: string;
+  address: string;
+  phoneNumber?: string;
+  email?: string;
+  status: 'ACTIVE' | 'INACTIVE';
+  createdAt: string;
+  updatedAt: string;
+}
 
-export interface PublicMembershipPlanResponse {
-  plans: MembershipPlan[];
-  pagination?: BackendPaginationResponse;
+export interface User {
+  _id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type MembershipPaymentMethod = 'BANK_TRANSFER' | 'CASH' | 'CARD' | 'ONLINE' | 'POS';
+
+export interface PublicMembershipCustomerSummary {
+  _id: string;
+  fullName: string;
+  email?: string;
+  phoneNumber?: string;
+}
+
+export interface CreatePublicMembershipContractPayload {
+  branchId: string;
+  membershipPlanId: string;
+  paymentMethod: MembershipPaymentMethod;
+  startDate?: string;
+  note?: string;
+  transactionCode?: string;
+  proofImageUrls?: string[];
+}
+
+export interface CreatePublicMembershipContractResponse {
+  contract: MembershipContract;
+  customer: PublicMembershipCustomerSummary;
+}
+
+export interface PayOSPaymentInfo {
+  orderCode: number;
+  amount: number;
+  description: string;
+  accountName?: string;
+  accountNumber?: string;
+  bin?: string;
+  transferContent?: string;
+  bankName?: string;
+  bankShortName?: string;
+  checkoutUrl: string;
+  qrCode: string | null;
+  qrString?: string | null;
+  paymentLinkId?: string;
+  payment?: Record<string, unknown> | null;
+}
+
+export interface CreatePublicMembershipContractPayOSPayload {
+  branchId: string;
+  membershipPlanId: string;
+  startDate?: string;
+  note?: string;
+  returnUrl?: string;
+  cancelUrl?: string;
+}
+
+export interface CreatePublicMembershipContractPayOSResponse {
+  contract: MembershipContract;
+  customer: PublicMembershipCustomerSummary;
+  payment: PayOSPaymentInfo;
 }

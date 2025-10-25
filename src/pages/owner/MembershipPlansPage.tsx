@@ -89,7 +89,7 @@ export default function MembershipPlansPage() {
   const branchMap = useMemo(() => {
     const map: Record<string, MembershipPlanBranchInfo> = {};
     plans.forEach((plan: MembershipPlan) => {
-      plan.branchId.forEach((branch: MembershipPlanBranchInfo) => {
+      plan.branchId?.forEach((branch: MembershipPlanBranchInfo) => {
         map[branch._id] = branch;
       });
     });
@@ -264,7 +264,14 @@ export default function MembershipPlansPage() {
         currency: data.currency.trim().toUpperCase(),
         durationInMonths: Number(data.durationInMonths),
         benefits: parseBenefits(data.benefits),
-        branchId: data.branchId,
+        branchId: data.branchId.map((id) => ({
+          _id: id,
+          branchId: id,
+          branchName: branchMap[id]?.branchName || '',
+          location: branchMap[id]?.location || '',
+          price: Number(data.price),
+          isActive: true
+        })),
         isActive: data.isActive
       };
 
@@ -287,17 +294,21 @@ export default function MembershipPlansPage() {
   const handleTemplateUpdate = useCallback(
     async (data: MembershipTemplateFormValues, planId: string) => {
       const updatePayload = {
-        updateScope: 'template' as const,
-        data: {
-          name: data.name.trim(),
-          description: data.description.trim() || undefined,
+        name: data.name.trim(),
+        description: data.description.trim() || undefined,
+        price: Number(data.price),
+        currency: data.currency.trim().toUpperCase(),
+        durationInMonths: Number(data.durationInMonths),
+        benefits: parseBenefits(data.benefits),
+        branchId: data.branchId.map((id) => ({
+          _id: id,
+          branchId: id,
+          branchName: branchMap[id]?.branchName || '',
+          location: branchMap[id]?.location || '',
           price: Number(data.price),
-          currency: data.currency.trim().toUpperCase(),
-          durationInMonths: Number(data.durationInMonths),
-          benefits: parseBenefits(data.benefits),
-          isActive: data.isActive
-        },
-        branchId: data.branchId
+          isActive: true
+        })),
+        isActive: data.isActive
       };
 
       const response = await membershipApi.updateMembershipPlan(planId, updatePayload, data.branchId);
@@ -345,8 +356,20 @@ export default function MembershipPlansPage() {
         updatePayload.revertBranchIds = data.revertBranchIds;
       }
 
-      const resourceBranchIds = plan.branchId.map((b) => b._id);
-      const response = await membershipApi.updateMembershipPlan(plan._id, updatePayload, resourceBranchIds);
+      const resourceBranchIds = plan.branchId?.map((b) => b._id) || [];
+      const response = await membershipApi.updateMembershipPlan(
+        plan._id,
+        {
+          name: data.name.trim(),
+          description: data.description.trim() || undefined,
+          price: Number(data.price),
+          currency: data.currency.trim().toUpperCase(),
+          durationInMonths: Number(data.durationInMonths),
+          benefits: parseBenefits(data.benefits),
+          isActive: data.isActive
+        },
+        resourceBranchIds
+      );
 
       if (response.success) {
         await refetch();
@@ -573,9 +596,11 @@ export default function MembershipPlansPage() {
         branchOptions={
           branches?.map((branch) => ({
             _id: branch._id,
+            branchId: branch._id,
             branchName: branch.branchName,
             location: branch.location,
-            ownerId: typeof branch.ownerId === 'string' ? branch.ownerId : branch.ownerId?._id || ''
+            price: 0,
+            isActive: true
           })) || []
         }
         branchMap={branchMap}

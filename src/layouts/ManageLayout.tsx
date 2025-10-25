@@ -10,8 +10,8 @@ const ManageLayout: React.FC = () => {
       <div className="h-screen bg-[#f1f3f4] flex overflow-hidden">
         <OwnerSidebar />
         <div className="flex-1 overflow-y-auto hide-scrollbar">
-          {/* Header */}
-          <div className="bg-white border-b border-gray-200">
+          {/* Header - Sticky */}
+          <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
             <div className="px-5 py-2 pb-3">
               <DashboardHeader />
             </div>

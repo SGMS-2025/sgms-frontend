@@ -246,6 +246,22 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ isOpen
                       </div>
                     </div>
                   </div>
+
+                  {/* Created By Staff */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-gray-700">
+                      {t('customer_detail.created_by_staff', { defaultValue: 'Nhân viên tạo hợp đồng' })}
+                    </h4>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-orange-500" />
+                        <span className="font-medium">
+                          {customer.createdByStaffName ||
+                            t('customer_detail.no_created_by', { defaultValue: 'Không có thông tin' })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

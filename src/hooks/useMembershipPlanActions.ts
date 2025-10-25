@@ -16,7 +16,7 @@ export const useMembershipPlanActions = ({ onSuccess, onError }: UseMembershipPl
     async (plan: MembershipPlan) => {
       const response = await membershipApi.toggleMembershipPlanStatus(plan._id, {
         isActive: !plan.isActive,
-        branchId: plan.branchId.map((branch) => branch._id)
+        branchId: plan.branchId?.map((branch) => branch._id) || []
       });
 
       if (response.success) {

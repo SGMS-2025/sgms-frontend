@@ -47,7 +47,7 @@ export default function PTServiceManagement() {
   // Services are already filtered by useMatrix('PT')
   const ptServices = services;
 
-  const [preview, setPreview] = useState(false);
+  const [preview, setPreview] = useState(true);
   const [serviceToDelete, setServiceToDelete] = useState<LegacyService | null>(null);
   const [featureToDelete, setFeatureToDelete] = useState<MatrixFeature | null>(null);
   const [serviceToEdit, setServiceToEdit] = useState<LegacyService | null>(null);

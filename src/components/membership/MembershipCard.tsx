@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import type { MembershipPlan, MembershipPlanBranchInfo, MembershipPlanOverride } from '@/types/api/Membership';
-import { formatCurrency } from '@/utils/membership';
+import { formatCurrency } from '@/utils/currency';
 
 interface PlanResolvedData {
   name: string;
@@ -63,7 +63,7 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({
     };
   };
 
-  const formattedPrice = formatCurrency(resolved.price, resolved.currency);
+  const formattedPrice = formatCurrency(resolved.price);
   const lastUpdated = new Date(plan.updatedAt).toLocaleDateString();
 
   const accentClass = resolved.isActive

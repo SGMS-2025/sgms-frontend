@@ -6,6 +6,7 @@ import type {
   CustomerPaymentHistoryQuery,
   CustomerPaymentHistoryResponse
 } from '@/types/api/Payment';
+import { VIETQR_BANKS } from '@/constants/vietqrBanks';
 
 export interface PayOSPaymentData {
   orderCode: number;
@@ -14,6 +15,9 @@ export interface PayOSPaymentData {
   accountName?: string;
   accountNumber?: string;
   bin?: string;
+  transferContent?: string;
+  bankName?: string;
+  bankShortName?: string;
   checkoutUrl: string;
   qrCode: string | null;
   qrString?: string | null;
@@ -86,6 +90,11 @@ export const paymentApi = {
         ? ((mergedMetadata as { payos?: unknown }).payos as Record<string, unknown>)
         : {};
 
+    const paymentMetadata =
+      paymentRecord && typeof paymentRecord === 'object'
+        ? (paymentRecord as { metadata?: unknown }).metadata
+        : undefined;
+
     const resolveString = (...values: unknown[]): string | undefined => {
       for (const value of values) {
         if (typeof value === 'string' && value.trim().length > 0) {
@@ -137,6 +146,76 @@ export const paymentApi = {
       payosMeta.paymentUrl
     );
 
+    const bankDetailsFromBin = (() => {
+      if (!bankCode) return undefined;
+      const normalizedBin = bankCode.trim();
+      return VIETQR_BANKS[normalizedBin] ?? undefined;
+    })();
+
+    const paymentDescription =
+      paymentRecord && typeof paymentRecord === 'object'
+        ? (paymentRecord as { description?: unknown }).description
+        : undefined;
+
+    const mergedTransferContent =
+      mergedMetadata && typeof mergedMetadata === 'object'
+        ? (mergedMetadata as Record<string, unknown>).transferContent
+        : undefined;
+
+    const mergedTransferContentSnake =
+      mergedMetadata && typeof mergedMetadata === 'object'
+        ? (mergedMetadata as Record<string, unknown>).transfer_content
+        : undefined;
+
+    const paymentMetadataTransfer =
+      paymentMetadata && typeof paymentMetadata === 'object'
+        ? (paymentMetadata as Record<string, unknown>).transferContent
+        : undefined;
+
+    const paymentMetadataTransferSnake =
+      paymentMetadata && typeof paymentMetadata === 'object'
+        ? (paymentMetadata as Record<string, unknown>).transfer_content
+        : undefined;
+
+    const payosTransferContent = payosMeta['transferContent'];
+
+    const payosTransferContentSnake = payosMeta['transfer_content'];
+
+    const transferContent =
+      resolveString(
+        backendData.transferContent,
+        backendData.transfer_content,
+        payosTransferContent,
+        payosTransferContentSnake,
+        paymentMetadataTransfer,
+        paymentMetadataTransferSnake,
+        mergedTransferContent,
+        mergedTransferContentSnake,
+        paymentDescription,
+        backendData.description,
+        params.description
+      ) ?? '';
+
+    const bankName = resolveString(
+      backendData.bankName,
+      backendData.bank_name,
+      payosMeta.bankName,
+      payosMeta.bank_name,
+      payosMeta.bank,
+      payosMeta.bankLabel,
+      payosMeta.bank_label
+    );
+
+    const bankShortName = resolveString(
+      backendData.bankShortName,
+      backendData.bank_short_name,
+      payosMeta.bankShortName,
+      payosMeta.bank_short_name,
+      payosMeta.bankShort,
+      payosMeta.bank_short,
+      bankDetailsFromBin?.shortName
+    );
+
     const qrCode =
       resolveString(backendData.qrCode, payosMeta.qrCode, payosMeta.qrImage, payosMeta.qr_code_url) ?? null;
     const qrString =
@@ -159,6 +238,9 @@ export const paymentApi = {
         accountName: accountName ?? '',
         accountNumber: accountNumber ?? '',
         bin: bankCode ?? '',
+        transferContent,
+        bankName: bankName ?? bankDetailsFromBin?.name ?? '',
+        bankShortName: bankShortName ?? bankDetailsFromBin?.shortName ?? '',
         checkoutUrl: checkoutUrl ?? '',
         qrCode,
         qrString,

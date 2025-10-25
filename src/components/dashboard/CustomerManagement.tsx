@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
   Plus,
@@ -84,6 +85,7 @@ const customerSortConfig = {
 
 export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCustomer }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const currentUser = useUser();
   const { currentStaff } = useCurrentUserStaff();
   const { currentBranch } = useBranch();
@@ -136,6 +138,28 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
     }
   }, [currentBranch?._id, goToPage]);
 
+  const branchId = currentBranch?._id;
+
+  React.useEffect(() => {
+    const handleRefresh = (event: Event) => {
+      const detail = (event as CustomEvent<{ branchId?: string }>).detail;
+
+      if (detail?.branchId && branchId && detail.branchId !== branchId) {
+        return;
+      }
+
+      refetch();
+    };
+
+    window.addEventListener('membership:created', handleRefresh as EventListener);
+    window.addEventListener('membership:cancelled', handleRefresh as EventListener);
+
+    return () => {
+      window.removeEventListener('membership:created', handleRefresh as EventListener);
+      window.removeEventListener('membership:cancelled', handleRefresh as EventListener);
+    };
+  }, [branchId, refetch]);
+
   // Filter customers by search and sort customer list using the utility function
   const sortedCustomerList = useMemo(() => {
     let filteredCustomerList = customerList;
@@ -163,11 +187,11 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
     });
   }, [customerList, sortState, filters.searchTerm]);
 
-  const handleSearch = (value: string) => {
+  const handleSearch = useCallback((value: string) => {
     setFilters((prev) => ({ ...prev, searchTerm: value }));
-  };
+  }, []);
 
-  const toggleColumnVisibility = (column: keyof CustomerFilters['visibleColumns']) => {
+  const toggleColumnVisibility = useCallback((column: keyof CustomerFilters['visibleColumns']) => {
     setFilters((prev) => ({
       ...prev,
       visibleColumns: {
@@ -175,7 +199,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
         [column]: !prev.visibleColumns[column]
       }
     }));
-  };
+  }, []);
 
   const handleSelectAll = () => {
     const allIds = sortedCustomerList.map((customer) => customer.id);
@@ -230,8 +254,18 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
       return;
     }
 
+    // Show modal preview
     setSelectedCustomerForDetail(customer);
     setIsDetailModalOpen(true);
+  };
+
+  const handleRowClick = (customer: CustomerDisplay) => {
+    if (!customer) {
+      return;
+    }
+
+    // Navigate to the new customer detail page
+    navigate(`/manage/customers/${customer.id}/detail`);
   };
 
   const handleEditCustomer = async (customer: CustomerDisplay) => {
@@ -368,7 +402,11 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
     const stt = startIndex + index + 1;
 
     return (
-      <tr key={customer.id} className={getTableRowClass(customer, index)}>
+      <tr
+        key={customer.id}
+        className={`${getTableRowClass(customer, index)} cursor-pointer hover:bg-orange-50 transition-colors`}
+        onClick={() => handleRowClick(customer)}
+      >
         <td className="px-4 py-3 text-sm text-gray-600">
           <div className="flex items-center space-x-3">
             <Checkbox
@@ -376,6 +414,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
               onCheckedChange={canManageCustomers() ? () => handleSelectCustomer(customer.id) : undefined}
               disabled={!canManageCustomers()}
               className={canManageCustomers() ? '' : 'opacity-50'}
+              onClick={(e) => e.stopPropagation()}
             />
             <span
               className={
@@ -426,7 +465,10 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
           <div className="flex items-center gap-0.5">
             <button
               className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-orange-200 hover:text-orange-500"
-              onClick={() => handleViewCustomer(customer)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewCustomer(customer);
+              }}
             >
               <Eye className="h-3 w-3" />
             </button>
@@ -436,7 +478,14 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
                   ? 'border-gray-200 bg-white text-gray-500 hover:border-orange-200 hover:text-orange-500'
                   : 'border-gray-200 bg-gray-100 text-gray-300 cursor-not-allowed'
               }`}
-              onClick={canManageCustomer(customer) ? () => handleEditCustomer(customer) : undefined}
+              onClick={
+                canManageCustomer(customer)
+                  ? (e) => {
+                      e.stopPropagation();
+                      handleEditCustomer(customer);
+                    }
+                  : undefined
+              }
               disabled={!canManageCustomer(customer)}
               title={canManageCustomer(customer) ? t('common.edit') : t('dashboard.no_permission')}
             >
@@ -448,7 +497,14 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
                   ? 'border-orange-100 bg-orange-50 text-orange-500 hover:bg-orange-100'
                   : 'border-gray-200 bg-gray-100 text-gray-300 cursor-not-allowed'
               }`}
-              onClick={canManageCustomer(customer) ? () => handleToggleCustomerStatus(customer) : undefined}
+              onClick={
+                canManageCustomer(customer)
+                  ? (e) => {
+                      e.stopPropagation();
+                      handleToggleCustomerStatus(customer);
+                    }
+                  : undefined
+              }
               title={getToggleStatusButtonTitle(customer)}
               disabled={!canManageCustomer(customer)}
             >

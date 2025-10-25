@@ -57,7 +57,7 @@ export const MembershipDetail: React.FC<MembershipDetailProps> = ({ isOpen, onCl
   // When viewing override, only show the specific branch
   // When viewing template, show all branches
   const branchesToDisplay =
-    isOverride && branchId ? plan.branchId.filter((branch) => branch._id === branchId) : plan.branchId;
+    isOverride && branchId ? plan.branchId?.filter((branch) => branch._id === branchId) : plan.branchId;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -160,7 +160,7 @@ export const MembershipDetail: React.FC<MembershipDetailProps> = ({ isOpen, onCl
             </CardHeader>
             <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
               <div className="space-y-3">
-                {branchesToDisplay.map((branch) => {
+                {branchesToDisplay?.map((branch) => {
                   const isCurrentBranch = branch._id === branchId;
                   const hasOverride = plan.overrides?.some((o) => o.appliesToBranchId === branch._id);
 

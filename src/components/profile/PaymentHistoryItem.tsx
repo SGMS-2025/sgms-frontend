@@ -24,10 +24,7 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
 const METHOD_LABELS: Record<string, string> = {
   CASH: 'Tiền mặt',
   BANK_TRANSFER: 'Chuyển khoản',
-  CARD: 'Thẻ',
-  QR_CODE: 'Mã QR',
-  PAYOS: 'PayOS',
-  EWALLET: 'Ví điện tử'
+  PAYOS: 'PayOS'
 };
 
 const CONTRACT_TYPE_LABELS: Record<string, string> = {
