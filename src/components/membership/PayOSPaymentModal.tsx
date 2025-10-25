@@ -314,7 +314,7 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
               <h4 className="font-semibold text-gray-900">Cách thanh toán:</h4>
 
               {/* QR Code */}
-              {(qrImage || paymentInfo.checkoutUrl) && (
+              {!!(qrImage || paymentInfo.checkoutUrl) && (
                 <div className="bg-white rounded-lg p-4 border">
                   <div className="flex items-center justify-between mb-3">
                     <span className="font-medium">Quét QR Code</span>
@@ -341,7 +341,7 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
               )}
 
               {/* Payment Link */}
-              {paymentInfo.checkoutUrl && (
+              {!!paymentInfo.checkoutUrl && (
                 <div className="bg-white rounded-lg p-4 border">
                   <div className="flex items-center justify-between mb-3">
                     <span className="font-medium">Thanh toán online</span>
@@ -354,23 +354,23 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
               )}
 
               {/* Bank Transfer Info */}
-              {paymentInfo.accountNumber && (
+              {!!paymentInfo.accountNumber && (
                 <div className="bg-white rounded-lg p-4 border">
                   <div className="flex items-center justify-between mb-3">
                     <span className="font-medium">Chuyển khoản ngân hàng</span>
                     <Copy className="h-5 w-5 text-blue-500" />
                   </div>
                   <div className="space-y-2">
-                    {(bankInfo.name || bankInfo.shortName || bankInfo.bin) && (
+                    {!!(bankInfo.name || bankInfo.shortName || bankInfo.bin) && (
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-500">Ngân hàng:</span>
                         <div className="flex items-center space-x-2">
                           <div className="flex flex-col items-end">
                             <span className="font-medium">{bankInfo.name || bankInfo.shortName || bankInfo.bin}</span>
-                            {bankInfo.shortName && bankInfo.name && (
+                            {!!(bankInfo.shortName && bankInfo.name) && (
                               <span className="text-xs text-gray-500">{bankInfo.shortName}</span>
                             )}
-                            {bankInfo.bin && (bankInfo.name || bankInfo.shortName) && (
+                            {!!(bankInfo.bin && (bankInfo.name || bankInfo.shortName)) && (
                               <span className="text-xs text-gray-400">{bankInfo.bin}</span>
                             )}
                           </div>
@@ -399,7 +399,7 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
                         </Button>
                       </div>
                     </div>
-                    {paymentInfo.accountName && (
+                    {!!paymentInfo.accountName && (
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-500">Tên tài khoản:</span>
                         <span className="font-medium">{paymentInfo.accountName}</span>
@@ -420,7 +420,7 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
                         </Button>
                       </div>
                     </div>
-                    {paymentInfo.orderCode && (
+                    {!!paymentInfo.orderCode && (
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-500">Mã đơn PayOS:</span>
                         <div className="flex items-center space-x-2">

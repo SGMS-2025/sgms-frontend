@@ -2,6 +2,7 @@ import React from 'react';
 import { Clock } from 'lucide-react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { formatCurrency } from '@/utils/currency';
 import type { CustomerPaymentHistoryPendingTransfer } from '@/types/api/Payment';
 
 interface PendingTransferRowProps {
@@ -18,24 +19,6 @@ const formatDateTime = (value: string) => {
     hour: '2-digit',
     minute: '2-digit'
   });
-};
-
-const formatCurrency = (value?: string | number) => {
-  if (value === undefined || value === null || value === '') {
-    return '—';
-  }
-
-  const amount = typeof value === 'number' ? value : Number(value);
-
-  if (Number.isNaN(amount)) {
-    return typeof value === 'string' ? value : '—';
-  }
-
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0
-  }).format(amount);
 };
 
 const getPaymentMethodLabel = (method: string) => {

@@ -8,6 +8,7 @@ import { paymentApi, type PayOSPaymentData } from '@/services/api/paymentApi';
 import { usePaymentSocket, type PaymentUpdateData } from '@/hooks/useSocket';
 import QRCode from 'qrcode';
 import { VIETQR_BANKS } from '@/constants/vietqrBanks';
+import { formatCurrency } from '@/utils/currency';
 
 interface PayOSPaymentModalProps {
   isOpen: boolean;
@@ -19,13 +20,6 @@ interface PayOSPaymentModalProps {
   contractId: string;
   contractType: 'service' | 'membership';
 }
-
-const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND'
-  }).format(amount);
-};
 
 const copyToClipboard = async (text: string, successMessage: string) => {
   await navigator.clipboard

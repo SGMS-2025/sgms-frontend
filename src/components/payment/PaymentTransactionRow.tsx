@@ -1,6 +1,7 @@
 import React from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import PaymentStatusBadge, { type PaymentStatus } from './PaymentStatusBadge';
+import { formatCurrency } from '@/utils/currency';
 import type { CustomerPaymentHistoryTransaction } from '@/types/api/Payment';
 
 interface PaymentTransactionRowProps {
@@ -17,24 +18,6 @@ const formatDateTime = (value: string) => {
     hour: '2-digit',
     minute: '2-digit'
   });
-};
-
-const formatCurrency = (value?: string | number) => {
-  if (value === undefined || value === null || value === '') {
-    return '—';
-  }
-
-  const amount = typeof value === 'number' ? value : Number(value);
-
-  if (Number.isNaN(amount)) {
-    return typeof value === 'string' ? value : '—';
-  }
-
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0
-  }).format(amount);
 };
 
 const getPaymentMethodLabel = (method: string) => {

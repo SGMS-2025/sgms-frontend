@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { PaymentSummaryCard } from './PaymentComponents';
 import PaymentTransactionRow from './PaymentTransactionRow';
 import PendingTransferRow from './PendingTransferRow';
+import { formatCurrency } from '@/utils/currency';
 import type { CustomerPaymentHistoryResponse } from '@/types/api/Payment';
 
 interface CustomerPaymentHistoryProps {
@@ -16,24 +17,6 @@ interface CustomerPaymentHistoryProps {
   error: string | null;
   onRefetch: () => void;
 }
-
-const formatCurrency = (value?: string | number) => {
-  if (value === undefined || value === null || value === '') {
-    return '—';
-  }
-
-  const amount = typeof value === 'number' ? value : Number(value);
-
-  if (Number.isNaN(amount)) {
-    return typeof value === 'string' ? value : '—';
-  }
-
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0
-  }).format(amount);
-};
 
 const CustomerPaymentHistory: React.FC<CustomerPaymentHistoryProps> = ({ data, loading, error, onRefetch }) => {
   if (loading) {
