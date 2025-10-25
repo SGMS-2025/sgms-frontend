@@ -58,7 +58,7 @@ export interface MembershipPlan {
   currency: string;
   isActive: boolean;
   isTemplate: boolean;
-  branchId?: string;
+  branchId?: MembershipPlanBranchInfo[];
   overrides?: MembershipPlanOverride[];
   createdAt: string;
   updatedAt: string;
@@ -92,6 +92,7 @@ export interface MembershipPlanListParams {
   branchId?: string;
   isActive?: boolean;
   sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface MembershipPlanListResponse {

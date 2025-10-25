@@ -1,6 +1,6 @@
 import React from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
-import PaymentStatusBadge from './PaymentStatusBadge';
+import PaymentStatusBadge, { type PaymentStatus } from './PaymentStatusBadge';
 import type { CustomerPaymentHistoryTransaction } from '@/types/api/Payment';
 
 interface PaymentTransactionRowProps {
@@ -65,6 +65,20 @@ const getContractTypeLabel = (type: string) => {
   }
 };
 
+const mapToPaymentStatus = (status: string): PaymentStatus => {
+  const statusMap: Record<string, PaymentStatus> = {
+    PENDING: 'PENDING',
+    SETTLED: 'SETTLED',
+    FAILED: 'FAILED',
+    VOID: 'VOID',
+    COMPLETED: 'COMPLETED',
+    CANCELLED: 'CANCELLED',
+    REFUNDED: 'REFUNDED',
+    PROCESSING: 'PROCESSING'
+  };
+  return statusMap[status] || 'PENDING';
+};
+
 const PaymentTransactionRow: React.FC<PaymentTransactionRowProps> = ({ transaction }) => {
   // Debug: Log transaction data to see what's available
   console.log('Transaction data:', transaction);
@@ -84,7 +98,7 @@ const PaymentTransactionRow: React.FC<PaymentTransactionRowProps> = ({ transacti
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">{getPaymentMethodLabel(transaction.method)}</TableCell>
       <TableCell>
-        <PaymentStatusBadge status={transaction.status} />
+        <PaymentStatusBadge status={mapToPaymentStatus(transaction.status)} />
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">{transaction.recordedBy?.name || '—'}</TableCell>
       <TableCell className="text-sm text-muted-foreground">{transaction.referenceCode || '—'}</TableCell>

@@ -119,9 +119,11 @@ export const membershipApi = {
    */
   updateMembershipPlan: async (
     id: string,
-    data: Partial<MembershipPlan>
+    data: Partial<MembershipPlan>,
+    branchIds?: string[]
   ): Promise<{ success: boolean; data: MembershipPlan; message?: string }> => {
-    const response = await api.put(`/membership-plans/${id}`, data);
+    const payload = branchIds ? { ...data, branchIds } : data;
+    const response = await api.put(`/membership-plans/${id}`, payload);
     return response.data;
   },
 
@@ -129,9 +131,10 @@ export const membershipApi = {
    * Toggle membership plan status
    */
   toggleMembershipPlanStatus: async (
-    id: string
+    id: string,
+    data: { isActive: boolean; branchId: string[] }
   ): Promise<{ success: boolean; data: MembershipPlan; message?: string }> => {
-    const response = await api.patch(`/membership-plans/${id}/toggle-status`);
+    const response = await api.patch(`/membership-plans/${id}/toggle-status`, data);
     return response.data;
   }
 };

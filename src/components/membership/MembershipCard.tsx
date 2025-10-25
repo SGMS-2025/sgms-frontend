@@ -63,7 +63,7 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({
     };
   };
 
-  const formattedPrice = formatCurrency(resolved.price, resolved.currency);
+  const formattedPrice = formatCurrency(resolved.price);
   const lastUpdated = new Date(plan.updatedAt).toLocaleDateString();
 
   const accentClass = resolved.isActive

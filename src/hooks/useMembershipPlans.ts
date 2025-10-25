@@ -127,8 +127,8 @@ export const usePublicMembershipPlans = (
 
       const response = await membershipApi.getPublicMembershipPlans({ ...memoizedParams, ...override });
       if (response.success) {
-        setPlans(response.data.plans);
-        setPagination(response.data.pagination ?? null);
+        setPlans(response.data);
+        setPagination(null);
       } else {
         setError(response.message ?? 'Không thể tải gói membership');
       }
