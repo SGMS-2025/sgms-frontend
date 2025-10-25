@@ -593,7 +593,7 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
                   </div>
                 )}
 
-                {paymentData.accountNumber && (
+                {!!paymentData.accountNumber && (
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">{t('payment.account_number')}:</span>
                     <div className="flex items-center space-x-2">
@@ -610,7 +610,7 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
                   </div>
                 )}
 
-                {paymentData.accountName && (
+                {!!paymentData.accountName && (
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">{t('payment.account_name')}:</span>
                     <div className="flex items-center space-x-2">
@@ -659,7 +659,7 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
                   </div>
                 </div>
 
-                {paymentData.orderCode && (
+                {!!paymentData.orderCode && (
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">{t('payment.order_code')}:</span>
                     <div className="flex items-center space-x-2">
