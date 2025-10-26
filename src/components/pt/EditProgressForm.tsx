@@ -84,15 +84,8 @@ export const EditProgressForm: React.FC<EditProgressFormProps> = ({ progressId, 
     if (response.success) {
       // Upload new photos if any
       if (photoManager.newPhotos.length > 0) {
-        // Convert blob URLs to files
         const files = await convertBlobUrlsToFiles(photoManager.newPhotos);
-
-        // Upload photos to the updated progress record
-        const photoUploadResult = await uploadPhotos(progressId, files);
-
-        if (!photoUploadResult.success) {
-          toast.warning(t('toast.progress_updated_photo_upload_failed'));
-        }
+        await uploadPhotos(progressId, files);
       }
 
       // Call parent onSubmit with the data for UI updates

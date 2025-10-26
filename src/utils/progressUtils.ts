@@ -50,6 +50,10 @@ export const convertBlobUrlsToFiles = async (blobUrls: string[], compress: boole
   const files: File[] = [];
 
   for (const [index, blobUrl] of blobUrls.entries()) {
+    if (!blobUrl || !blobUrl.startsWith('blob:')) {
+      continue;
+    }
+
     const fetchResponse = await fetch(blobUrl);
     const blob = await fetchResponse.blob();
 
