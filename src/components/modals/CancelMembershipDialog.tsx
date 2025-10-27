@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertTriangle, Info } from 'lucide-react';
+import { toast } from 'sonner';
 import { membershipApi } from '@/services/api/membershipApi';
 import { formatCurrency, getMembershipStatusLabel, getMembershipStatusColor } from '@/utils/membership';
 import type { MembershipContract, RefundSuggestion, CancelMembershipPayload } from '@/types/api/Membership';
@@ -159,22 +160,32 @@ export const CancelMembershipDialog: React.FC<CancelMembershipDialogProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!validateForm()) {
       return;
     }
 
-    try {
-      setLoading(true);
-      await membershipApi.cancelMembership(contract._id, formData);
-      onSuccess();
-      onClose();
-    } catch (error) {
-      console.error('Failed to cancel membership:', error);
-      // Handle error (show toast notification)
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true);
+
+    membershipApi
+      .cancelMembership(contract._id, formData)
+      .then(() => {
+        toast.success('Hủy gói membership thành công!', {
+          description:
+            formData.refundAmount > 0 ? `Sẽ hoàn trả ${formatCurrency(formData.refundAmount)}` : 'Không có hoàn trả'
+        });
+        onSuccess();
+        onClose();
+      })
+      .catch((error) => {
+        console.error('Failed to cancel membership:', error);
+        toast.error('Không thể hủy gói membership', {
+          description: error instanceof Error ? error.message : 'Vui lòng thử lại sau'
+        });
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   const hasDebt = contract.debtAmount > 0;
@@ -300,7 +311,6 @@ export const CancelMembershipDialog: React.FC<CancelMembershipDialogProps> = ({
                 <SelectContent>
                   <SelectItem value="CASH">Tiền mặt</SelectItem>
                   <SelectItem value="BANK_TRANSFER">Chuyển khoản</SelectItem>
-                  <SelectItem value="E_WALLET">Ví điện tử</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -122,3 +122,61 @@ export interface LegacyService {
 }
 
 // Conversion utilities will be needed to map between legacy and new types
+
+// ===== SERVICE CONTRACT REGISTRATION TYPES =====
+
+/**
+ * PT (Personal Training) Registration Form Data
+ */
+export interface PTRegistrationFormData {
+  servicePackageId: string;
+  sessionCount?: number;
+  primaryTrainerId?: string;
+  customMonths?: number;
+  startDate: string;
+  branchId: string;
+  discountCampaignId?: string;
+  initialPaidAmount: number;
+  paymentMethod: 'CASH' | 'BANK_TRANSFER';
+  referrerStaffId?: string;
+  notes?: string;
+}
+
+/**
+ * Class Package Registration Form Data
+ */
+export interface ClassRegistrationFormData {
+  servicePackageId: string;
+  customMonths?: number;
+  startDate: string;
+  branchId: string;
+  discountCampaignId?: string;
+  initialPaidAmount: number;
+  paymentMethod: 'CASH' | 'BANK_TRANSFER';
+  referrerStaffId?: string;
+  notes?: string;
+}
+
+/**
+ * Service Contract Response
+ */
+export interface ServiceContractResponse {
+  success: boolean;
+  data?: {
+    _id: string;
+    customerId: string;
+    servicePackageId: string;
+    branchId: string;
+    packageType: PackageType;
+    startDate: string;
+    endDate: string;
+    price: number;
+    discountAmount: number;
+    total: number;
+    paidAmount: number;
+    debtAmount: number;
+    status: string;
+    createdAt: string;
+  };
+  message?: string;
+}

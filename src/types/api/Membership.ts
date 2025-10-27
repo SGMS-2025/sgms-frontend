@@ -64,6 +64,28 @@ export interface MembershipPlan {
   updatedAt: string;
 }
 
+export interface CreateMembershipPlanRequest {
+  name: string;
+  description?: string;
+  price: number;
+  currency: string;
+  durationInMonths: number;
+  benefits: string[];
+  branchId: string[];
+  isActive: boolean;
+}
+
+export interface UpdateMembershipPlanRequest {
+  name?: string;
+  description?: string;
+  price?: number;
+  currency?: string;
+  durationInMonths?: number;
+  benefits?: string[];
+  branchId?: string[];
+  isActive?: boolean;
+}
+
 export interface MembershipPlanBranchInfo {
   _id: string;
   branchId: string;
@@ -129,7 +151,7 @@ export interface User {
   updatedAt: string;
 }
 
-export type MembershipPaymentMethod = 'BANK_TRANSFER' | 'CASH' | 'CARD' | 'ONLINE' | 'POS';
+export type MembershipPaymentMethod = 'CASH' | 'BANK_TRANSFER';
 
 export interface PublicMembershipCustomerSummary {
   _id: string;
