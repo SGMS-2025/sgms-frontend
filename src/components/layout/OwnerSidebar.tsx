@@ -24,7 +24,8 @@ import {
   DollarSign,
   CalendarDays,
   ArrowRightLeft,
-  CreditCard
+  CreditCard,
+  Building2
 } from 'lucide-react';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -41,6 +42,7 @@ import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
 import { Sidebar, type SidebarItem as SidebarItemType } from '@/components/common/Sidebar';
+import BusinessVerificationModal from '@/components/business/BusinessVerificationModal';
 
 interface DropdownSidebarItemProps {
   icon: React.ReactNode;
@@ -231,7 +233,8 @@ const UserProfile: React.FC<{
   user: ApiUser | null;
   isLoading: boolean;
   onLogout: () => void;
-}> = ({ isCollapsed, user, isLoading, onLogout }) => {
+  onOpenVerificationModal: () => void;
+}> = ({ isCollapsed, user, isLoading, onLogout, onOpenVerificationModal }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -300,6 +303,11 @@ const UserProfile: React.FC<{
       >
         <Shield className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.security')}
+      </DropdownMenuItem>
+
+      <DropdownMenuItem onClick={onOpenVerificationModal} className="cursor-pointer">
+        <Building2 className="w-4 h-4 mr-3 stroke-[1.75]" />
+        {t('sidebar.business_verification', 'Xác thực doanh nghiệp')}
       </DropdownMenuItem>
 
       <DropdownMenuSeparator />
@@ -384,6 +392,7 @@ export const OwnerSidebar: React.FC = () => {
   const [profile, setProfile] = React.useState<ApiUser | null>(authUser ?? null);
   const [isProfileLoading, setIsProfileLoading] = React.useState(false);
   const [hasInitiallyFetched, setHasInitiallyFetched] = React.useState(false);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = React.useState(false);
 
   React.useEffect(() => {
     setProfile(authUser ?? null);
@@ -582,9 +591,34 @@ export const OwnerSidebar: React.FC = () => {
       <UpgradeCard isCollapsed={isCollapsed} />
 
       {/* User Profile */}
-      <UserProfile isCollapsed={isCollapsed} user={profile} isLoading={isProfileLoading} onLogout={logout} />
+      <UserProfile
+        isCollapsed={isCollapsed}
+        user={profile}
+        isLoading={isProfileLoading}
+        onLogout={logout}
+        onOpenVerificationModal={() => setIsVerificationModalOpen(true)}
+      />
 
       {/* Collapse Toggle removed; controlled via header button */}
+
+      {/* Business Verification Modal */}
+      <BusinessVerificationModal
+        open={isVerificationModalOpen}
+        onOpenChange={setIsVerificationModalOpen}
+        onSuccess={() => {
+          // Refresh profile after successful verification
+          if (isAuthenticated) {
+            setIsProfileLoading(true);
+            userApi.getProfile().then((result) => {
+              if (result.success && result.data) {
+                setProfile(result.data);
+                updateUser(result.data);
+              }
+              setIsProfileLoading(false);
+            });
+          }
+        }}
+      />
     </div>
   );
 };
