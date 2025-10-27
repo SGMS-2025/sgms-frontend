@@ -28,61 +28,7 @@ import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
-
-interface SidebarItemProps {
-  icon: React.ReactNode;
-  label: string;
-  isActive?: boolean;
-  onClick?: () => void;
-  isCollapsed?: boolean;
-  badge?: number;
-}
-
-interface MenuItemProps {
-  icon: React.ReactNode;
-  label: string;
-  isActive?: boolean;
-  onClick: () => void;
-  badge?: number;
-}
-
-const SidebarItem: React.FC<SidebarItemProps> = ({
-  icon,
-  label,
-  isActive = false,
-  onClick,
-  isCollapsed = false,
-  badge
-}) => {
-  return (
-    <button
-      type="button"
-      className={`group relative flex items-center py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 ${
-        isActive ? 'bg-orange-600 text-white shadow-lg' : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600'
-      } ${isCollapsed ? 'justify-center px-1 w-12' : 'w-full gap-3 px-3'}`}
-      onClick={onClick}
-      aria-current={isActive ? 'page' : undefined}
-      title={isCollapsed ? label : undefined}
-    >
-      <span className="flex-shrink-0 w-5 h-5 relative">
-        {icon}
-        {badge && badge > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-semibold">
-            {badge > 99 ? '99+' : badge}
-          </span>
-        )}
-      </span>
-      {!isCollapsed && <span className="text-sm font-medium truncate">{label}</span>}
-
-      {/* Tooltip for collapsed state */}
-      {isCollapsed && (
-        <span className="pointer-events-none absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-          {label}
-        </span>
-      )}
-    </button>
-  );
-};
+import { Sidebar, type SidebarItem as SidebarItemType } from '@/components/common/Sidebar';
 
 const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
   const { toggle } = useSidebar();
@@ -270,53 +216,74 @@ export const AdminSidebar: React.FC = () => {
     navigate('/login');
   };
 
-  const mainNavItems: MenuItemProps[] = [
+  const mainNavItems: SidebarItemType[] = [
     {
       icon: <LayoutDashboard className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.dashboard', 'Dashboard'),
+      href: '/admin',
       isActive: location.pathname === '/admin' || location.pathname === '/admin/dashboard',
-      onClick: () => navigate('/admin')
+      onClick: () => {
+        navigate('/admin');
+      }
     },
     {
       icon: <Building2 className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.business_verification', 'Xác thực doanh nghiệp'),
+      href: '/admin/business-verifications',
       isActive: location.pathname === '/admin/business-verifications',
-      onClick: () => navigate('/admin/business-verifications')
+      onClick: () => {
+        navigate('/admin/business-verifications');
+      }
       // TODO: Add badge with pending count when API is ready
       // badge: pendingCount
     },
     {
       icon: <Users className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.users', 'Quản lý người dùng'),
+      href: '/admin/users',
       isActive: location.pathname === '/admin/users',
-      onClick: () => navigate('/admin/users')
+      onClick: () => {
+        navigate('/admin/users');
+      }
     },
     {
       icon: <ShieldCheck className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.roles_permissions', 'Phân quyền'),
+      href: '/admin/roles',
       isActive: location.pathname === '/admin/roles',
-      onClick: () => navigate('/admin/roles')
+      onClick: () => {
+        navigate('/admin/roles');
+      }
     },
     {
       icon: <BarChart3 className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.reports', 'Báo cáo & Thống kê'),
+      href: '/admin/reports',
       isActive: location.pathname === '/admin/reports',
-      onClick: () => navigate('/admin/reports')
+      onClick: () => {
+        navigate('/admin/reports');
+      }
     },
     {
       icon: <FileText className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.logs', 'Nhật ký hệ thống'),
+      href: '/admin/logs',
       isActive: location.pathname === '/admin/logs',
-      onClick: () => navigate('/admin/logs')
+      onClick: () => {
+        navigate('/admin/logs');
+      }
     }
   ];
 
-  const secondaryNavItems: MenuItemProps[] = [
+  const secondaryNavItems: SidebarItemType[] = [
     {
       icon: <Settings className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.system_settings', 'Cài đặt hệ thống'),
+      href: '/admin/settings',
       isActive: location.pathname === '/admin/settings',
-      onClick: () => navigate('/admin/settings')
+      onClick: () => {
+        navigate('/admin/settings');
+      }
     }
   ];
 
@@ -332,28 +299,7 @@ export const AdminSidebar: React.FC = () => {
 
       {/* Main Navigation */}
       <div className={`flex-1 py-2 overflow-y-auto ${isCollapsed ? 'px-1' : 'px-3'}`}>
-        {!isCollapsed && (
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-3">
-            {t('sidebar.main_menu', 'Menu chính')}
-          </div>
-        )}
-        <nav
-          className={`space-y-1 ${isCollapsed ? 'overflow-hidden' : ''}`}
-          role="navigation"
-          aria-label="Main navigation"
-        >
-          {mainNavItems.map((item) => (
-            <SidebarItem
-              key={item.label}
-              icon={item.icon}
-              label={item.label}
-              isActive={item.isActive}
-              onClick={item.onClick}
-              isCollapsed={isCollapsed}
-              badge={item.badge}
-            />
-          ))}
-        </nav>
+        <Sidebar items={mainNavItems} isCollapsed={isCollapsed} title={t('sidebar.main_menu', 'Menu chính')} />
 
         {/* Secondary Navigation */}
         {!isCollapsed && (
@@ -361,18 +307,12 @@ export const AdminSidebar: React.FC = () => {
             <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-3">
               {t('sidebar.settings', 'Cài đặt')}
             </div>
-            <nav className="space-y-1">
-              {secondaryNavItems.map((item) => (
-                <SidebarItem
-                  key={item.label}
-                  icon={item.icon}
-                  label={item.label}
-                  isActive={item.isActive}
-                  onClick={item.onClick}
-                  isCollapsed={isCollapsed}
-                />
-              ))}
-            </nav>
+            <Sidebar items={secondaryNavItems} isCollapsed={isCollapsed} />
+          </div>
+        )}
+        {isCollapsed && (
+          <div className="mt-1">
+            <Sidebar items={secondaryNavItems} isCollapsed={isCollapsed} />
           </div>
         )}
       </div>
