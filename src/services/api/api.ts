@@ -56,7 +56,12 @@ const logApiError = (error: AxiosError) => {
 };
 
 // Helper function to handle client errors (4xx)
-const handleClientError = (status: number, errorMessage: string) => {
+const handleClientError = (status: number, errorMessage: string, skipErrorToast = false) => {
+  // Skip toast if explicitly requested (e.g., for expected 404s)
+  if (skipErrorToast) {
+    return;
+  }
+
   switch (status) {
     case 403:
       handleSpecificError(errorMessage);
@@ -84,6 +89,8 @@ const createErrorResponse = (message: string, statusCode: number, code: string) 
 // Centralized error handling function
 const handleApiError = (error: AxiosError) => {
   const response = error.response;
+  // @ts-expect-error - Custom config property
+  const skipErrorToast = error.config?.skipErrorToast || false;
 
   // Log all errors for debugging
   logApiError(error);
@@ -108,10 +115,12 @@ const handleApiError = (error: AxiosError) => {
             error: errorData.error // Include full error object for component handling
           };
         } else {
-          handleClientError(response.status, errorMessage);
+          handleClientError(response.status, errorMessage, skipErrorToast);
         }
       } else {
-        toast.error(i18n.t('error.system_error'));
+        if (!skipErrorToast) {
+          toast.error(i18n.t('error.system_error'));
+        }
       }
 
       return createErrorResponse(errorMessage, response.status, errorCode || 'UNKNOWN_ERROR');
@@ -120,12 +129,16 @@ const handleApiError = (error: AxiosError) => {
 
   // Handle network errors or unexpected responses
   if (error.code === 'NETWORK_ERROR' || !error.response) {
-    toast.error(i18n.t('error.network_error'));
+    if (!skipErrorToast) {
+      toast.error(i18n.t('error.network_error'));
+    }
     return createErrorResponse(i18n.t('error.network_error'), 0, 'NETWORK_ERROR');
   }
 
   // Handle other unexpected errors
-  toast.error(i18n.t('error.unknown_error'));
+  if (!skipErrorToast) {
+    toast.error(i18n.t('error.unknown_error'));
+  }
   return createErrorResponse(i18n.t('error.unknown_error'), response?.status || 500, 'UNKNOWN_ERROR');
 };
 

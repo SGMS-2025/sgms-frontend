@@ -72,6 +72,10 @@ import CustomerMembership from '@/pages/customer/CustomerMembership';
 import CustomerProfile from '@/pages/customer/CustomerProfile';
 import CustomerDashboard from '@/pages/customer/CustomerDashboard';
 import { CustomerLayout } from '@/layouts/CustomerLayout';
+import BusinessVerificationPage from '@/pages/auth/BusinessVerificationPage';
+import BusinessVerificationManagementPage from '@/pages/admin/BusinessVerificationManagementPage';
+import AdminDashboard from '@/pages/admin/AdminDashboard';
+import { AdminLayout } from '@/layouts/AdminLayout';
 
 // WorkShift Calendar with Layout Component
 const WorkShiftCalendarPageWithLayout: React.FC = () => {
@@ -314,6 +318,9 @@ const AppRoutes: React.FC = () => {
       {/* Profile Route */}
       <Route path="/profile" element={isAuthenticated ? <UserProfile /> : <Navigate to="/login" replace />} />
 
+      {/* Business Verification Route - for owners to verify their business */}
+      <Route path="/business-verification" element={<BusinessVerificationPage />} />
+
       {/* Reschedule Management - accessible to authenticated users (OWNER or STAFF) */}
       <Route
         path="/reschedule"
@@ -477,6 +484,25 @@ const AppRoutes: React.FC = () => {
           <Route path="security" element={<CustomerSecurity />} />
 
           <Route path="*" element={<Navigate to="/customer" replace />} />
+        </Route>
+      </Route>
+
+      {/* Admin Routes - for ADMIN role only */}
+      <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']} fallbackPath="/home" />}>
+        <Route path="" element={<AdminLayout />}>
+          {/* Admin Dashboard */}
+          <Route path="" element={<AdminDashboard />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+
+          {/* Business Verification Management */}
+          <Route path="business-verifications" element={<BusinessVerificationManagementPage />} />
+
+          {/* TODO: Add more admin routes here */}
+          {/* <Route path="users" element={<UserManagementPage />} /> */}
+          {/* <Route path="roles" element={<RoleManagementPage />} /> */}
+          {/* <Route path="reports" element={<ReportsPage />} /> */}
+          {/* <Route path="logs" element={<SystemLogsPage />} /> */}
+          {/* <Route path="settings" element={<SystemSettingsPage />} /> */}
         </Route>
       </Route>
 
