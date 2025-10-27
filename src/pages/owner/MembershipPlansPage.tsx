@@ -264,14 +264,7 @@ export default function MembershipPlansPage() {
         currency: data.currency.trim().toUpperCase(),
         durationInMonths: Number(data.durationInMonths),
         benefits: parseBenefits(data.benefits),
-        branchId: data.branchId.map((id) => ({
-          _id: id,
-          branchId: id,
-          branchName: branchMap[id]?.branchName || '',
-          location: branchMap[id]?.location || '',
-          price: Number(data.price),
-          isActive: true
-        })),
+        branchId: data.branchId,
         isActive: data.isActive
       };
 
@@ -300,14 +293,7 @@ export default function MembershipPlansPage() {
         currency: data.currency.trim().toUpperCase(),
         durationInMonths: Number(data.durationInMonths),
         benefits: parseBenefits(data.benefits),
-        branchId: data.branchId.map((id) => ({
-          _id: id,
-          branchId: id,
-          branchName: branchMap[id]?.branchName || '',
-          location: branchMap[id]?.location || '',
-          price: Number(data.price),
-          isActive: true
-        })),
+        branchId: data.branchId,
         isActive: data.isActive
       };
 
