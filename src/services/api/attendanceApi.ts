@@ -1,7 +1,11 @@
 import { api } from './api';
-import type { StaffAttendance } from '@/types/api/StaffAttendance';
+import type {
+  StaffAttendance,
+  GetStaffAttendanceHistoryParams,
+  StaffAttendanceHistoryResponse,
+  GetAttendanceListParams
+} from '@/types/api/StaffAttendance';
 import type { ApiResponse } from '@/types/common/BaseTypes';
-import type { GetAttendanceListParams } from '@/types/api/StaffAttendance';
 
 export interface AttendanceRequest {
   username?: string;
@@ -25,6 +29,17 @@ export const attendanceApi = {
    */
   getAttendanceList: async (params?: Partial<GetAttendanceListParams>): Promise<ApiResponse<StaffAttendance[]>> => {
     const response = await api.get('/attendance/staff', { params });
+    return response.data;
+  },
+
+  /**
+   * Get attendance history for a specific staff by staffId (for admin/manager)
+   */
+  getStaffAttendanceHistory: async (
+    staffId: string,
+    params?: GetStaffAttendanceHistoryParams
+  ): Promise<StaffAttendanceHistoryResponse> => {
+    const response = await api.get(`/attendance/staff/${staffId}`, { params });
     return response.data;
   }
 };

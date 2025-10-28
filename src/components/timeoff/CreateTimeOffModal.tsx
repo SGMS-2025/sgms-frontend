@@ -23,38 +23,47 @@ import type {
   WorkShiftConflict
 } from '@/types/api/TimeOff';
 
-// Validation schema
-const createTimeOffSchema = z
-  .object({
-    type: z.string().min(1, 'Time off type is required'),
-    startDate: z.string().min(1, 'Start date is required'),
-    endDate: z.string().min(1, 'End date is required'),
-    reason: z.string().min(10, 'Reason must be at least 10 characters').max(500, 'Reason cannot exceed 500 characters')
-  })
-  .refine(
-    (data) => {
-      if (data.startDate && data.endDate) {
-        const startDate = new Date(data.startDate);
-        const endDate = new Date(data.endDate);
-        return endDate >= startDate;
+// Create validation schema with translations
+const createTimeOffSchema = (t: (key: string) => string) =>
+  z
+    .object({
+      type: z.string().min(1, t('timeoff.validation.type_required')),
+      startDate: z.string().min(1, t('timeoff.validation.start_date_required')),
+      endDate: z.string().min(1, t('timeoff.validation.end_date_required')),
+      reason: z.string().min(10, t('validation.reason_min_length')).max(500, t('validation.reason_max_length'))
+    })
+    .refine(
+      (data) => {
+        if (data.startDate && data.endDate) {
+          const startDate = new Date(data.startDate);
+          const endDate = new Date(data.endDate);
+          return endDate >= startDate;
+        }
+        return true;
+      },
+      {
+        message: t('timeoff.validation.end_date_after_start'),
+        path: ['endDate']
       }
-      return true;
-    },
-    {
-      message: 'End date must be after or equal to start date',
-      path: ['endDate']
-    }
-  );
+    );
 
-type CreateTimeOffFormData = z.infer<typeof createTimeOffSchema>;
+type CreateTimeOffFormData = z.infer<ReturnType<typeof createTimeOffSchema>>;
 
-const TIME_OFF_TYPES: { value: TimeOffType; label: string; description: string }[] = [
-  { value: 'VACATION', label: 'Vacation', description: 'Annual leave or holiday' },
-  { value: 'SICK_LEAVE', label: 'Sick Leave', description: 'Medical leave or illness' },
-  { value: 'PERSONAL_LEAVE', label: 'Personal Leave', description: 'Personal matters or appointments' },
-  { value: 'UNPAID_LEAVE', label: 'Unpaid Leave', description: 'Leave without pay' },
-  { value: 'EMERGENCY', label: 'Emergency', description: 'Urgent personal matters' },
-  { value: 'OTHER', label: 'Other', description: 'Other reasons' }
+const getTimeOffTypes = (t: (key: string) => string): { value: TimeOffType; label: string; description: string }[] => [
+  { value: 'VACATION', label: t('timeoff.type.vacation'), description: t('timeoff.type.vacation.description') },
+  { value: 'SICK_LEAVE', label: t('timeoff.type.sick_leave'), description: t('timeoff.type.sick_leave.description') },
+  {
+    value: 'PERSONAL_LEAVE',
+    label: t('timeoff.type.personal_leave'),
+    description: t('timeoff.type.personal_leave.description')
+  },
+  {
+    value: 'UNPAID_LEAVE',
+    label: t('timeoff.type.unpaid_leave'),
+    description: t('timeoff.type.unpaid_leave.description')
+  },
+  { value: 'EMERGENCY', label: t('timeoff.type.emergency'), description: t('timeoff.type.emergency.description') },
+  { value: 'OTHER', label: t('timeoff.type.other'), description: t('timeoff.type.other.description') }
 ];
 
 const CreateTimeOffModal: React.FC<CreateTimeOffModalProps> = ({
@@ -83,7 +92,7 @@ const CreateTimeOffModal: React.FC<CreateTimeOffModalProps> = ({
     reset,
     formState: { errors }
   } = useForm<CreateTimeOffFormData>({
-    resolver: zodResolver(createTimeOffSchema),
+    resolver: zodResolver(createTimeOffSchema(t)),
     defaultValues: {
       type: prefillData?.type || '',
       startDate: prefillData?.startDate || '',
@@ -178,7 +187,7 @@ const CreateTimeOffModal: React.FC<CreateTimeOffModalProps> = ({
   };
 
   const getTypeDescription = (type: string) => {
-    const typeInfo = TIME_OFF_TYPES.find((t) => t.value === type);
+    const typeInfo = getTimeOffTypes(t).find((t) => t.value === type);
     return typeInfo?.description || '';
   };
 
@@ -254,7 +263,7 @@ const CreateTimeOffModal: React.FC<CreateTimeOffModalProps> = ({
                         <SelectValue placeholder={t('timeoff.select_type')} />
                       </SelectTrigger>
                       <SelectContent>
-                        {TIME_OFF_TYPES.map((type) => (
+                        {getTimeOffTypes(t).map((type) => (
                           <SelectItem key={type.value} value={type.value}>
                             <div className="flex flex-col">
                               <span className="font-medium">{type.label}</span>
@@ -350,7 +359,7 @@ const CreateTimeOffModal: React.FC<CreateTimeOffModalProps> = ({
                         <SelectValue placeholder={t('timeoff.select_type')} />
                       </SelectTrigger>
                       <SelectContent>
-                        {TIME_OFF_TYPES.map((type) => (
+                        {getTimeOffTypes(t).map((type) => (
                           <SelectItem key={type.value} value={type.value}>
                             <div className="flex flex-col">
                               <span className="font-medium">{type.label}</span>

@@ -84,7 +84,7 @@ export const MembershipForm: React.FC<MembershipFormProps> = ({
           currency: plan.currency,
           durationInMonths: plan.durationInMonths.toString(),
           benefits: plan.benefits.join('\n'),
-          branchId: plan.branchId.map((b) => b._id),
+          branchId: plan.branchId?.map((b) => b._id) || [],
           isActive: plan.isActive
         });
 
@@ -212,9 +212,11 @@ export const MembershipForm: React.FC<MembershipFormProps> = ({
     if (!plan) {
       return [];
     }
-    return plan.branchId
-      .map((branch) => branchMap[branch._id] ?? branch)
-      .filter((branch): branch is MembershipPlanBranchInfo => Boolean(branch));
+    return (
+      plan.branchId
+        ?.map((branch) => branchMap[branch._id] ?? branch)
+        .filter((branch): branch is MembershipPlanBranchInfo => Boolean(branch)) || []
+    );
   };
 
   const getBranchesUsingOverride = () => {

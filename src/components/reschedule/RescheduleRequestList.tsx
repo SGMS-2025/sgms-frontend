@@ -48,35 +48,113 @@ import type {
   RescheduleRequestListProps,
   RescheduleState,
   RescheduleType,
-  ReschedulePriority
+  ReschedulePriority,
+  RescheduleRequest
 } from '@/types/api/Reschedule';
+import type { WorkShift } from '@/types/api/WorkShift';
 
-const STATUS_OPTIONS: { value: RescheduleState | 'ALL'; label: string }[] = [
-  { value: 'ALL', label: 'All Status' },
-  { value: 'PENDING_BROADCAST', label: 'Pending Broadcast' },
-  { value: 'PENDING_ACCEPTANCE', label: 'Pending Acceptance' },
-  { value: 'PENDING_APPROVAL', label: 'Pending Approval' },
-  { value: 'APPROVED', label: 'Approved' },
-  { value: 'REJECTED', label: 'Rejected' },
-  { value: 'CANCELLED', label: 'Cancelled' },
-  { value: 'EXPIRED', label: 'Expired' },
-  { value: 'COMPLETED', label: 'Completed' }
+const getStatusOptions = (t: (key: string) => string): { value: RescheduleState | 'ALL'; label: string }[] => [
+  { value: 'ALL', label: t('common.all_status') },
+  { value: 'PENDING_BROADCAST', label: t('common.pending_broadcast') },
+  { value: 'PENDING_ACCEPTANCE', label: t('common.pending_acceptance') },
+  { value: 'PENDING_APPROVAL', label: t('common.pending_approval') },
+  { value: 'APPROVED', label: t('common.approved') },
+  { value: 'REJECTED', label: t('common.rejected') },
+  { value: 'CANCELLED', label: t('common.cancelled') },
+  { value: 'EXPIRED', label: t('common.expired') },
+  { value: 'COMPLETED', label: t('common.completed') }
 ];
 
-const TYPE_OPTIONS: { value: RescheduleType | 'ALL'; label: string }[] = [
-  { value: 'ALL', label: 'All Types' },
-  { value: 'FIND_REPLACEMENT', label: 'Find Replacement' },
-  { value: 'DIRECT_SWAP', label: 'Direct Swap' },
-  { value: 'MANAGER_ASSIGN', label: 'Manager Assign' }
+const getTypeOptions = (t: (key: string) => string): { value: RescheduleType | 'ALL'; label: string }[] => [
+  { value: 'ALL', label: t('common.all_types') },
+  { value: 'FIND_REPLACEMENT', label: t('common.find_replacement') },
+  { value: 'DIRECT_SWAP', label: t('common.direct_swap') },
+  { value: 'MANAGER_ASSIGN', label: t('common.manager_assign') }
 ];
 
-const PRIORITY_OPTIONS: { value: ReschedulePriority | 'ALL'; label: string }[] = [
-  { value: 'ALL', label: 'All Priorities' },
-  { value: 'LOW', label: 'Low' },
-  { value: 'MEDIUM', label: 'Medium' },
-  { value: 'HIGH', label: 'High' },
-  { value: 'URGENT', label: 'Urgent' }
+const getPriorityOptions = (t: (key: string) => string): { value: ReschedulePriority | 'ALL'; label: string }[] => [
+  { value: 'ALL', label: t('common.all_priorities') },
+  { value: 'LOW', label: t('common.low') },
+  { value: 'MEDIUM', label: t('common.medium') },
+  { value: 'HIGH', label: t('common.high') },
+  { value: 'URGENT', label: t('common.urgent') }
 ];
+
+const getStatusText = (status: RescheduleState, t: (key: string) => string) => {
+  switch (status) {
+    case 'PENDING_BROADCAST':
+      return t('common.pending_broadcast');
+    case 'PENDING_ACCEPTANCE':
+      return t('common.pending_acceptance');
+    case 'PENDING_APPROVAL':
+      return t('common.pending_approval');
+    case 'APPROVED':
+      return t('common.approved');
+    case 'REJECTED':
+      return t('common.rejected');
+    case 'CANCELLED':
+      return t('common.cancelled');
+    case 'EXPIRED':
+      return t('common.expired');
+    case 'COMPLETED':
+      return t('common.completed');
+    default:
+      return status;
+  }
+};
+
+const getTypeText = (type: RescheduleType, t: (key: string) => string) => {
+  switch (type) {
+    case 'FIND_REPLACEMENT':
+      return t('common.find_replacement');
+    case 'DIRECT_SWAP':
+      return t('common.direct_swap');
+    case 'MANAGER_ASSIGN':
+      return t('common.manager_assign');
+    default:
+      return type;
+  }
+};
+
+const getPriorityText = (priority: ReschedulePriority, t: (key: string) => string) => {
+  switch (priority) {
+    case 'LOW':
+      return t('common.low');
+    case 'MEDIUM':
+      return t('common.medium');
+    case 'HIGH':
+      return t('common.high');
+    case 'URGENT':
+      return t('common.urgent');
+    default:
+      return priority;
+  }
+};
+
+// ✅ THÊM: Function kiểm tra xung đột lịch
+const hasScheduleConflict = (request: RescheduleRequest, currentUserShifts: WorkShift[] = []) => {
+  if (!request.originalShiftId || !currentUserShifts.length) {
+    return false;
+  }
+
+  const originalShift = request.originalShiftId;
+
+  // Kiểm tra nếu originalShift là string (chỉ có ID) thì không thể kiểm tra xung đột
+  if (typeof originalShift === 'string') {
+    return false;
+  }
+
+  return currentUserShifts.some((shift) => {
+    // Kiểm tra xung đột thời gian
+    const shiftStart = new Date(shift.startTime);
+    const shiftEnd = new Date(shift.endTime);
+    const originalStart = new Date((originalShift as WorkShift).startTime);
+    const originalEnd = new Date((originalShift as WorkShift).endTime);
+
+    // Kiểm tra xung đột: shift hiện tại chồng lấn với ca cần nhận
+    return shiftStart < originalEnd && shiftEnd > originalStart && shift.status === 'SCHEDULED';
+  });
+};
 
 const RescheduleRequestList: React.FC<RescheduleRequestListProps> = ({
   requests,
@@ -99,6 +177,8 @@ const RescheduleRequestList: React.FC<RescheduleRequestListProps> = ({
   priorityFilter = 'ALL',
   onPriorityFilterChange,
   showFilters = true,
+  // ✅ THÊM: Current user shifts để kiểm tra xung đột lịch
+  currentUserShifts = [],
   showStats = true,
   showHeader = true,
   stats,
@@ -258,7 +338,7 @@ const RescheduleRequestList: React.FC<RescheduleRequestListProps> = ({
                     <ArrowRightLeft className="w-6 h-6 text-blue-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Total</p>
+                    <p className="text-sm font-medium text-gray-600">{t('common.total')}</p>
                     <p className="text-2xl font-bold text-gray-900">{stats.totalRequests}</p>
                   </div>
                 </div>
@@ -272,7 +352,7 @@ const RescheduleRequestList: React.FC<RescheduleRequestListProps> = ({
                     <Clock className="w-6 h-6 text-yellow-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Pending</p>
+                    <p className="text-sm font-medium text-gray-600">{t('common.pending')}</p>
                     <p className="text-2xl font-bold text-gray-900">{stats.pendingApproval}</p>
                   </div>
                 </div>
@@ -286,7 +366,7 @@ const RescheduleRequestList: React.FC<RescheduleRequestListProps> = ({
                     <CheckCircle className="w-6 h-6 text-green-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Approved</p>
+                    <p className="text-sm font-medium text-gray-600">{t('common.approved')}</p>
                     <p className="text-2xl font-bold text-gray-900">{stats.approved}</p>
                   </div>
                 </div>
@@ -300,7 +380,7 @@ const RescheduleRequestList: React.FC<RescheduleRequestListProps> = ({
                     <XCircle className="w-6 h-6 text-red-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Rejected</p>
+                    <p className="text-sm font-medium text-gray-600">{t('common.rejected')}</p>
                     <p className="text-2xl font-bold text-gray-900">{stats.rejected || 0}</p>
                   </div>
                 </div>
@@ -311,75 +391,92 @@ const RescheduleRequestList: React.FC<RescheduleRequestListProps> = ({
 
         {/* Filters */}
         {showFilters && (
-          <div className="mb-8">
-            <Card>
-              <CardContent className="p-3 sm:p-4">
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                  <div className="flex-1">
+          <div className="mb-6">
+            <Card className="shadow-sm border-0 bg-white">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col lg:flex-row gap-4 lg:items-center">
+                  {/* Search Bar */}
+                  <div className="flex-1 min-w-0">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                       <Input
                         placeholder={t('reschedule.search_placeholder') || 'Search by staff name or reason...'}
                         value={searchValue}
                         onChange={(e) => onSearchChange?.(e.target.value)}
-                        className="pl-10 text-sm sm:text-base"
+                        className="pl-10 h-11 text-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
                       />
                     </div>
                   </div>
-                  <div className="w-full sm:w-27">
-                    <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('reschedule.filter_by_status') || 'All Status'} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {STATUS_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+
+                  {/* Filter Dropdowns */}
+                  <div className="flex flex-col sm:flex-row gap-3 lg:gap-4">
+                    <div className="w-full sm:w-32 lg:w-36">
+                      <Select value={statusFilter} onValueChange={onStatusFilterChange}>
+                        <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg">
+                          <SelectValue placeholder={t('reschedule.filter_by_status') || 'All Status'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getStatusOptions(t).map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="w-full sm:w-32 lg:w-36">
+                      <Select value={typeFilter} onValueChange={onTypeFilterChange}>
+                        <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg">
+                          <SelectValue placeholder={t('reschedule.filter_by_type') || 'All Types'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getTypeOptions(t).map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="w-full sm:w-32 lg:w-36">
+                      <Select value={priorityFilter} onValueChange={onPriorityFilterChange}>
+                        <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg">
+                          <SelectValue placeholder={t('reschedule.filter_by_priority') || 'All Priorities'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getPriorityOptions(t).map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="w-full sm:w-27">
-                    <Select value={typeFilter} onValueChange={onTypeFilterChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('reschedule.filter_by_type') || 'All Types'} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TYPE_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="w-full sm:w-27">
-                    <Select value={priorityFilter} onValueChange={onPriorityFilterChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('reschedule.filter_by_priority') || 'All Priorities'} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PRIORITY_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex gap-2">
+
+                  {/* View Toggle Buttons */}
+                  <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
                     <Button
-                      variant={viewMode === 'card' ? 'default' : 'outline'}
+                      variant={viewMode === 'card' ? 'default' : 'ghost'}
                       onClick={() => setViewMode('card')}
-                      className="h-9 px-3"
+                      className={`h-9 px-3 rounded-md transition-all ${
+                        viewMode === 'card'
+                          ? 'bg-white shadow-sm text-gray-900'
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                      }`}
                     >
                       <Grid3X3 className="w-4 h-4" />
                     </Button>
                     <Button
-                      variant={viewMode === 'table' ? 'default' : 'outline'}
+                      variant={viewMode === 'table' ? 'default' : 'ghost'}
                       onClick={() => setViewMode('table')}
-                      className="h-9 px-3"
+                      className={`h-9 px-3 rounded-md transition-all ${
+                        viewMode === 'table'
+                          ? 'bg-white shadow-sm text-gray-900'
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                      }`}
                     >
                       <List className="w-4 h-4" />
                     </Button>
@@ -488,7 +585,7 @@ const RescheduleRequestList: React.FC<RescheduleRequestListProps> = ({
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Badge className={cn('text-xs', getStatusColor(request.status))}>
-                          {request.status.replace('_', ' ')}
+                          {getStatusText(request.status, t)}
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -500,7 +597,7 @@ const RescheduleRequestList: React.FC<RescheduleRequestListProps> = ({
                             <ArrowRightLeft className="h-4 w-4 mr-2 text-green-500" />
                           )}
                           {request.swapType === 'MANAGER_ASSIGN' && <User className="h-4 w-4 mr-2 text-purple-500" />}
-                          <span className="text-sm text-gray-900">{request.swapType.replace('_', ' ')}</span>
+                          <span className="text-sm text-gray-900">{getTypeText(request.swapType, t)}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -514,7 +611,7 @@ const RescheduleRequestList: React.FC<RescheduleRequestListProps> = ({
                             request.priority === 'LOW' && 'border-green-500 text-green-700'
                           )}
                         >
-                          {request.priority}
+                          {getPriorityText(request.priority, t)}
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -545,10 +642,16 @@ const RescheduleRequestList: React.FC<RescheduleRequestListProps> = ({
                                 {t('common.edit')}
                               </DropdownMenuItem>
                             )}
-                            {!isFinalStatus && onAccept && (
+                            {!isFinalStatus && onAccept && !hasScheduleConflict(request, currentUserShifts) && (
                               <DropdownMenuItem onClick={() => onAccept(request._id)}>
                                 <CheckCircle className="mr-2 h-4 w-4" />
                                 {t('common.accept')}
+                              </DropdownMenuItem>
+                            )}
+                            {!isFinalStatus && onAccept && hasScheduleConflict(request, currentUserShifts) && (
+                              <DropdownMenuItem disabled className="text-gray-400 cursor-not-allowed">
+                                <XCircle className="mr-2 h-4 w-4" />
+                                {t('reschedule.schedule_conflict')}
                               </DropdownMenuItem>
                             )}
                             {!isFinalStatus && onApprove && (

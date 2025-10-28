@@ -43,6 +43,8 @@ export const useLogin = () => {
       if (userRole === 'OWNER') {
         console.log('Redirecting owner to /manage/owner');
         navigate('/manage/owner');
+      } else if (userRole === 'CUSTOMER') {
+        navigate('/customer');
       } else if (userRole === 'STAFF') {
         // For STAFF, we need to check job title to determine the correct dashboard
         // We'll redirect to /home first, then let HomePage handle the specific redirect
@@ -53,7 +55,6 @@ export const useLogin = () => {
         navigate('/home');
       }
     }
-
     setIsLoading(false);
   };
 

@@ -121,11 +121,14 @@ export interface SocketEvents {
   'notification:workshift:created': (data: WorkShiftNotificationData) => void;
   'notification:workshift:updated': (data: WorkShiftNotificationData) => void;
   'notification:workshift:branch_update': (data: WorkShiftNotificationData) => void;
+  'notification:workshift:batch_created': (data: WorkShiftNotificationData) => void;
+  'notification:workshift:batch_assigned': (data: WorkShiftNotificationData) => void;
   'notification:timeoff:created': (data: TimeOffNotificationData) => void;
   'notification:timeoff:approved': (data: TimeOffNotificationData) => void;
   'notification:timeoff:rejected': (data: TimeOffNotificationData) => void;
   'notification:timeoff:cancelled': (data: TimeOffNotificationData) => void;
   'notification:timeoff:branch_update': (data: TimeOffNotificationData) => void;
+  'notification:timeoff:owner_update': (data: TimeOffNotificationData) => void;
   'notification:reschedule:created': (data: RescheduleNotificationData) => void;
   'notification:reschedule:accepted': (data: RescheduleNotificationData) => void;
   'notification:reschedule:approved': (data: RescheduleNotificationData) => void;
@@ -147,6 +150,7 @@ export interface SocketEvents {
   'workshift-notification': (data: WorkShiftNotificationData) => void;
   'timeoff-notification': (data: TimeOffNotificationData) => void;
   'reschedule-notification': (data: RescheduleNotificationData) => void;
+  'payment:updated': (data: PaymentUpdateEvent) => void;
 
   // Schedule events
   'schedule-created': (data: Record<string, unknown>) => void;
@@ -251,6 +255,20 @@ export interface SocketReconnectOptions {
   delay: number;
   backoff: boolean;
   exponentialBackoff: boolean;
+}
+
+export interface PaymentUpdateEvent {
+  orderCode?: number;
+  status?: 'PENDING' | 'PROCESSING' | 'PAID' | 'CANCELLED';
+  amount?: number;
+  amountPaid?: number;
+  amountRemaining?: number;
+  transactionId?: string;
+  paymentTime?: string;
+  customerId?: string;
+  contractId?: string;
+  contractType?: 'service' | 'membership';
+  metadata?: Record<string, unknown>;
 }
 
 // ===== ERROR TYPES =====

@@ -18,7 +18,8 @@ const TemplateCreationForm: React.FC<TemplateCreationFormProps> = ({
   advanceDays,
   setAdvanceDays,
   endDate,
-  setEndDate
+  endDateError,
+  handleEndDateChange
 }) => {
   const { t } = useTranslation();
 
@@ -86,7 +87,7 @@ const TemplateCreationForm: React.FC<TemplateCreationFormProps> = ({
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
                 <Label htmlFor="enableAutoGenerate" className="text-sm font-medium">
-                  Enable Auto-Generation
+                  {t('workshift.enable_auto_generation')}
                 </Label>
               </div>
 
@@ -95,7 +96,7 @@ const TemplateCreationForm: React.FC<TemplateCreationFormProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label htmlFor="advanceDays" className="text-xs font-medium">
-                        Advance Days *
+                        {t('workshift.advance_days')} *
                       </Label>
                       <Input
                         id="advanceDays"
@@ -106,29 +107,28 @@ const TemplateCreationForm: React.FC<TemplateCreationFormProps> = ({
                         onChange={(e) => setAdvanceDays(parseInt(e.target.value) || 7)}
                         className="h-8 text-sm"
                       />
-                      <p className="text-xs text-gray-500">Days in advance to generate schedules</p>
+                      <p className="text-xs text-gray-500">{t('workshift.advance_days_description')}</p>
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="endDate" className="text-xs font-medium">
-                        End Date *
+                        {t('workshift.end_date')} *
                       </Label>
                       <Input
                         id="endDate"
                         type="date"
                         value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
+                        onChange={(e) => handleEndDateChange(e.target.value)}
                         min={new Date().toISOString().split('T')[0]}
-                        className="h-8 text-sm"
+                        className={`h-8 text-sm ${endDateError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
                       />
-                      <p className="text-xs text-gray-500">When to stop auto-generation</p>
+                      {endDateError && <p className="text-red-500 text-sm font-medium">{endDateError}</p>}
+                      <p className="text-xs text-gray-500">{t('workshift.end_date_description')}</p>
                     </div>
                   </div>
                   <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
                     <div className="flex items-center gap-1">
                       <Info className="h-3 w-3" />
-                      <span>
-                        Auto-generation will create schedules automatically based on this template's days and times
-                      </span>
+                      <span>{t('workshift.auto_generation_info')}</span>
                     </div>
                   </div>
                 </div>

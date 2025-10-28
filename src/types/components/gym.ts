@@ -60,6 +60,12 @@ export interface Trainer {
 export interface GymHeroSectionProps {
   branch: BranchHero;
   onJoinClick?: () => void;
+  membershipState?: {
+    isJoined: boolean;
+    onCancelClick?: () => void;
+    cancelDisabled?: boolean;
+    manageLabel?: string;
+  };
 }
 
 export interface GymReviewsProps {

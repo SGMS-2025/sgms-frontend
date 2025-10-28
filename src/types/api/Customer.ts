@@ -22,8 +22,10 @@ export interface CustomerDisplay {
   contractStartDate?: string; // Ngày bắt đầu hợp đồng
   contractEndDate?: string; // Ngày hết hạn hợp đồng
   referrerStaffName?: string; // Tên nhân viên giới thiệu
+  createdByStaffName?: string; // Tên nhân viên tạo hợp đồng
   lastPaymentDate?: string; // Ngày thanh toán gần nhất
   createdAt?: string; // Ngày tạo
+  updatedAt?: string; // Ngày cập nhật
 
   // Additional fields for detailed customer information
   gender?: string;
@@ -51,6 +53,7 @@ export interface CustomerDisplay {
     initialPaidAmount?: number;
     totalAmount?: number;
     remainingDebt?: number;
+    status?: 'ACTIVE' | 'EXPIRED' | 'CANCELED' | 'SUSPENDED';
     discountCampaignId?: {
       _id: string;
       name: string;
@@ -76,6 +79,8 @@ export interface CustomerDisplay {
     };
     startDate: string;
     endDate?: string;
+    activationDate?: string;
+    status?: string;
     initialPaidAmount?: number;
     totalAmount?: number;
     remainingDebt?: number;
@@ -166,28 +171,11 @@ export interface CustomerFormData {
   email: string;
   password: string;
   gender: 'male' | 'female' | 'other';
-  isLoyalCustomer: boolean;
-  cardId: string;
   address: string;
   notes: string;
   dateOfBirth: string;
   branchId: string;
   avatar?: File | null;
-
-  // Service Registration - Updated to support multiple selections
-  selectedServicePackage: string; // For service packages (PT/CLASS/etc)
-  selectedMembershipPlan: string; // For membership plans
-  promotionId: string;
-  duration: string;
-  customDuration: string;
-  referrerStaffId: string;
-  activationDate: string;
-  price: string | number;
-  discount: string | number;
-  totalAmount: string | number;
-  amountPaid: string | number;
-  remainingDebt: string | number;
-  serviceNotes: string;
 }
 
 // Additional types for API responses
@@ -280,6 +268,49 @@ export interface BranchWithAddress {
 
 // Gender type for form validation
 export type GenderType = 'male' | 'female' | 'other';
+
+// ===== MEMBERSHIP CONTRACT REGISTRATION TYPES =====
+
+/**
+ * Membership Registration Form Data
+ */
+export interface MembershipRegistrationFormData {
+  membershipPlanId: string;
+  branchId: string;
+  cardCode?: string;
+  startDate: string;
+  discountCampaignId?: string;
+  initialPaidAmount: number;
+  paymentMethod: 'CASH' | 'BANK_TRANSFER';
+  referrerStaffId?: string;
+  notes?: string;
+}
+
+/**
+ * Membership Contract Response
+ */
+export interface MembershipContractResponse {
+  success: boolean;
+  data?: {
+    contract: {
+      _id: string;
+      customerId: string;
+      membershipPlanId: string;
+      branchId: string;
+      startDate: string;
+      endDate: string;
+      price: number;
+      discountAmount: number;
+      total: number;
+      paidAmount: number;
+      debtAmount: number;
+      status: string;
+      activationDate?: string;
+      createdAt: string;
+    };
+  };
+  message?: string;
+}
 
 // Hook interfaces
 export interface UseCustomerListOptions {

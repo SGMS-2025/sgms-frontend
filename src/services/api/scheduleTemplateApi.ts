@@ -23,6 +23,14 @@ export const scheduleTemplateApi = {
     return response.data;
   },
 
+  // Check if template name exists
+  checkTemplateNameExists: async (name: string): Promise<ApiResponse<{ exists: boolean }>> => {
+    const response = await api.get(`/schedule-templates/check-name`, {
+      params: { name }
+    });
+    return response.data;
+  },
+
   // Create new schedule template
   createScheduleTemplate: async (data: CreateScheduleTemplateRequest): Promise<ApiResponse<ScheduleTemplate>> => {
     const response = await api.post('/schedule-templates', data);

@@ -33,6 +33,11 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ isOpen
 
   if (!customer) return null;
 
+  // Get membership dates from contract if available
+  const membershipContract = customer.latestMembershipContract;
+  const membershipJoinDate = membershipContract?.startDate || customer.joinDate;
+  const membershipExpiryDate = membershipContract?.endDate || customer.expiryDate;
+
   // Format currency
   const formatCurrency = (value: string | number): string => {
     if (!value || value === '') return '0';
@@ -123,7 +128,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ isOpen
                     <div className="flex items-center gap-2 text-gray-600">
                       <Calendar className="w-4 h-4 text-orange-500" />
                       <span>
-                        {t('customer_detail.join_date')}: {customer.joinDate || t('customer_detail.not_available')}
+                        {t('customer_detail.join_date')}: {membershipJoinDate || t('customer_detail.not_available')}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-gray-600">
@@ -136,7 +141,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ isOpen
                     <div className="flex items-center gap-2 text-gray-600">
                       <Clock className="w-4 h-4 text-orange-500" />
                       <span>
-                        {t('customer_detail.expiry_date')}: {customer.expiryDate || t('customer_detail.not_available')}
+                        {t('customer_detail.expiry_date')}: {membershipExpiryDate || t('customer_detail.not_available')}
                       </span>
                     </div>
                   </div>
@@ -242,6 +247,22 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ isOpen
                         <UserCheck className="w-4 h-4 text-orange-500" />
                         <span className="font-medium">
                           {customer.referrerStaffName || t('customer_detail.no_referrer')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Created By Staff */}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-gray-700">
+                      {t('customer_detail.created_by_staff', { defaultValue: 'Nhân viên tạo hợp đồng' })}
+                    </h4>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-orange-500" />
+                        <span className="font-medium">
+                          {customer.createdByStaffName ||
+                            t('customer_detail.no_created_by', { defaultValue: 'Không có thông tin' })}
                         </span>
                       </div>
                     </div>

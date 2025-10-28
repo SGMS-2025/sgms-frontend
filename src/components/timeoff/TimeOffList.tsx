@@ -44,23 +44,42 @@ import { sortArray } from '@/utils/sort';
 import TimeOffCard from './TimeOffCard';
 import type { TimeOffListProps, TimeOffStatus, TimeOffType } from '@/types/api/TimeOff';
 
-const STATUS_OPTIONS: { value: TimeOffStatus | 'ALL'; label: string }[] = [
-  { value: 'ALL', label: 'All Status' },
-  { value: 'PENDING', label: 'Pending' },
-  { value: 'APPROVED', label: 'Approved' },
-  { value: 'REJECTED', label: 'Rejected' },
-  { value: 'CANCELLED', label: 'Cancelled' }
+const getStatusOptions = (t: (key: string) => string): { value: TimeOffStatus | 'ALL'; label: string }[] => [
+  { value: 'ALL', label: t('common.all_status') },
+  { value: 'PENDING', label: t('common.pending') },
+  { value: 'APPROVED', label: t('common.approved') },
+  { value: 'REJECTED', label: t('common.rejected') },
+  { value: 'CANCELLED', label: t('common.cancelled') }
 ];
 
-const TYPE_OPTIONS: { value: TimeOffType | 'ALL'; label: string }[] = [
-  { value: 'ALL', label: 'All Types' },
-  { value: 'VACATION', label: 'Vacation' },
-  { value: 'SICK_LEAVE', label: 'Sick Leave' },
-  { value: 'PERSONAL_LEAVE', label: 'Personal Leave' },
-  { value: 'UNPAID_LEAVE', label: 'Unpaid Leave' },
-  { value: 'EMERGENCY', label: 'Emergency' },
-  { value: 'OTHER', label: 'Other' }
+const getTypeOptions = (t: (key: string) => string): { value: TimeOffType | 'ALL'; label: string }[] => [
+  { value: 'ALL', label: t('common.all_types') },
+  { value: 'VACATION', label: t('timeoff.type.vacation') },
+  { value: 'SICK_LEAVE', label: t('timeoff.type.sick_leave') },
+  { value: 'PERSONAL_LEAVE', label: t('timeoff.type.personal_leave') },
+  { value: 'UNPAID_LEAVE', label: t('timeoff.type.unpaid_leave') },
+  { value: 'EMERGENCY', label: t('timeoff.type.emergency') },
+  { value: 'OTHER', label: t('timeoff.type.other') }
 ];
+
+const getTypeText = (type: TimeOffType, t: (key: string) => string) => {
+  switch (type) {
+    case 'VACATION':
+      return t('timeoff.type.vacation');
+    case 'SICK_LEAVE':
+      return t('timeoff.type.sick_leave');
+    case 'PERSONAL_LEAVE':
+      return t('timeoff.type.personal_leave');
+    case 'UNPAID_LEAVE':
+      return t('timeoff.type.unpaid_leave');
+    case 'EMERGENCY':
+      return t('timeoff.type.emergency');
+    case 'OTHER':
+      return t('timeoff.type.other');
+    default:
+      return type;
+  }
+};
 
 const TimeOffList: React.FC<
   TimeOffListProps & {
@@ -93,6 +112,8 @@ const TimeOffList: React.FC<
   onApprove,
   onReject,
   onCancel,
+  userRole,
+  currentUserId,
   onCreateNew,
   onRefresh,
   onExport,
@@ -341,61 +362,77 @@ const TimeOffList: React.FC<
 
         {/* Filters */}
         {showFilters && (
-          <div className="mb-8">
-            <Card>
-              <CardContent className="p-3 sm:p-4">
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                  <div className="flex-1">
+          <div className="mb-6">
+            <Card className="shadow-sm border-0 bg-white">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col lg:flex-row gap-4 lg:items-center">
+                  {/* Search Bar */}
+                  <div className="flex-1 min-w-0">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                       <Input
                         placeholder={t('timeoff.search_placeholder') || 'Search requests...'}
                         value={searchValue}
                         onChange={(e) => onSearchChange?.(e.target.value)}
-                        className="pl-10 text-sm sm:text-base"
+                        className="pl-10 h-11 text-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
                       />
                     </div>
                   </div>
-                  <div className="w-full sm:w-27">
-                    <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('timeoff.filter_by_status') || 'Status'} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {STATUS_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+
+                  {/* Filter Dropdowns */}
+                  <div className="flex flex-col sm:flex-row gap-3 lg:gap-4">
+                    <div className="w-full sm:w-32 lg:w-36">
+                      <Select value={statusFilter} onValueChange={onStatusFilterChange}>
+                        <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg">
+                          <SelectValue placeholder={t('timeoff.filter_by_status') || 'Status'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getStatusOptions(t).map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="w-full sm:w-32 lg:w-36">
+                      <Select value={typeFilter} onValueChange={onTypeFilterChange}>
+                        <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg">
+                          <SelectValue placeholder={t('timeoff.filter_by_type') || 'Type'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getTypeOptions(t).map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="w-full sm:w-27">
-                    <Select value={typeFilter} onValueChange={onTypeFilterChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('timeoff.filter_by_type') || 'Type'} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TYPE_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex gap-2">
+
+                  {/* View Toggle Buttons */}
+                  <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
                     <Button
-                      variant={viewMode === 'card' ? 'default' : 'outline'}
+                      variant={viewMode === 'card' ? 'default' : 'ghost'}
                       onClick={() => setViewMode('card')}
-                      className="h-9 px-3"
+                      className={`h-9 px-3 rounded-md transition-all ${
+                        viewMode === 'card'
+                          ? 'bg-white shadow-sm text-gray-900'
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                      }`}
                     >
                       <Grid3X3 className="w-4 h-4" />
                     </Button>
                     <Button
-                      variant={viewMode === 'table' ? 'default' : 'outline'}
+                      variant={viewMode === 'table' ? 'default' : 'ghost'}
                       onClick={() => setViewMode('table')}
-                      className="h-9 px-3"
+                      className={`h-9 px-3 rounded-md transition-all ${
+                        viewMode === 'table'
+                          ? 'bg-white shadow-sm text-gray-900'
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                      }`}
                     >
                       <List className="w-4 h-4" />
                     </Button>
@@ -443,6 +480,8 @@ const TimeOffList: React.FC<
                   onReject={onReject}
                   onCancel={onCancel}
                   showActions={true}
+                  userRole={userRole}
+                  currentUserId={currentUserId}
                 />
               ))}
             </div>
@@ -547,7 +586,7 @@ const TimeOffList: React.FC<
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Badge className={cn('text-xs', getTypeColor(timeOff.type))}>
-                          {timeOff.type.replace('_', ' ')}
+                          {getTypeText(timeOff.type, t)}
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -557,7 +596,7 @@ const TimeOffList: React.FC<
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {timeOff.duration} {timeOff.duration === 1 ? 'day' : 'days'}
+                        {timeOff.duration} {timeOff.duration === 1 ? t('timeoff.day') : t('timeoff.days')}
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900 truncate max-w-xs">

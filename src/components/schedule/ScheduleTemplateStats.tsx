@@ -8,7 +8,7 @@ import { useScheduleTemplate } from '@/hooks/useScheduleTemplate';
 import { useBranches } from '@/hooks/useBranches';
 import type { ScheduleTemplateStats as ScheduleTemplateStatsType } from '@/types/api/ScheduleTemplate';
 import { SCHEDULE_TYPES } from '@/types/api/ScheduleTemplate';
-
+import { useTranslation } from 'react-i18next';
 interface ScheduleTemplateStatsComponentProps {
   branchId?: string;
   onBack: () => void;
@@ -17,7 +17,7 @@ interface ScheduleTemplateStatsComponentProps {
 export const ScheduleTemplateStats: React.FC<ScheduleTemplateStatsComponentProps> = ({ branchId, onBack }) => {
   const { getTemplateStats } = useScheduleTemplate();
   const { branches } = useBranches();
-
+  const { t } = useTranslation();
   const [stats, setStats] = useState<ScheduleTemplateStatsType | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedBranch, setSelectedBranch] = useState<string>(branchId || '');
@@ -115,7 +115,7 @@ export const ScheduleTemplateStats: React.FC<ScheduleTemplateStatsComponentProps
         <div className="flex gap-2">
           <Select value={selectedBranch} onValueChange={handleBranchChange}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select Branch" />
+              <SelectValue placeholder={t('schedule.form.select_branch')} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Branches</SelectItem>

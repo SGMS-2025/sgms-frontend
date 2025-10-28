@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { branchApi } from '@/services/api/branchApi';
 import { convertBranchToDisplay } from '@/utils/branchUtils';
 import type {
@@ -248,13 +248,17 @@ export const useBranchDetail = (branchId: string) => {
   const [branch, setBranch] = useState<Branch | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef(false);
 
   const fetchBranchDetail = useCallback(async () => {
     if (!branchId) {
+      if (!isMountedRef.current) return;
       setError('Branch ID is required');
       setLoading(false);
       return;
     }
+
+    if (!isMountedRef.current) return;
 
     setLoading(true);
     setError(null);
@@ -265,6 +269,8 @@ export const useBranchDetail = (branchId: string) => {
       data: null
     }));
 
+    if (!isMountedRef.current) return;
+
     if (response.success && response.data) {
       setBranch(response.data);
     } else {
@@ -273,6 +279,13 @@ export const useBranchDetail = (branchId: string) => {
 
     setLoading(false);
   }, [branchId]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     fetchBranchDetail();
