@@ -170,31 +170,11 @@ export interface CustomerFormData {
   email: string;
   password: string;
   gender: 'male' | 'female' | 'other';
-  isLoyalCustomer: boolean;
-  cardId: string;
   address: string;
   notes: string;
   dateOfBirth: string;
   branchId: string;
   avatar?: File | null;
-
-  // Service Registration - Updated to support multiple selections
-  selectedServicePackage: string; // For service packages (PT/CLASS/etc)
-  selectedMembershipPlan: string; // For membership plans
-  promotionId: string;
-  duration: string;
-  customDuration: string;
-  referrerStaffId: string;
-  activationDate: string;
-  price: string | number;
-  discount: string | number;
-  totalAmount: string | number;
-  amountPaid: string | number;
-  remainingDebt: string | number;
-  serviceNotes: string;
-
-  // Payment Information
-  paymentMethod: 'CASH' | 'BANK_TRANSFER';
 }
 
 // Additional types for API responses
@@ -207,6 +187,7 @@ export interface ApiResponse<T> {
   error?: {
     meta?: {
       field?: string;
+      details?: Array<{ field: string; message: string }>;
     };
   };
 }
@@ -385,6 +366,8 @@ export interface ImportResult {
     row: number;
     field: string;
     message: string;
+    errorKey?: string;
+    errorData?: Record<string, unknown>;
   }>;
 }
 

@@ -35,12 +35,10 @@ export const CustomerExcelImportModal: React.FC<CustomerExcelImportModalProps> =
 
     // Validate file type
     if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
-      toast.error(t('customer_excel_import.error_invalid_file'));
       return;
     }
 
     if (!currentBranch?._id) {
-      toast.error('Branch ID is required');
       return;
     }
 
@@ -58,9 +56,6 @@ export const CustomerExcelImportModal: React.FC<CustomerExcelImportModalProps> =
     if (result.successCount > 0) {
       toast.success(t('customer_excel_import.success_import', { count: result.successCount }));
       onImportSuccess();
-    }
-    if (result.failedCount > 0) {
-      toast.warning(t('customer_excel_import.warning_failed', { count: result.failedCount }));
     }
 
     // Reset file input to allow re-upload
@@ -215,7 +210,10 @@ export const CustomerExcelImportModal: React.FC<CustomerExcelImportModalProps> =
                           <div key={index} className="flex items-start space-x-2 text-xs text-red-600">
                             <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
                             <span>
-                              {t('customer_excel_import.row')} {error.row}: {error.message}
+                              {t('customer_excel_import.row')} {error.row}:{' '}
+                              {error.errorKey
+                                ? String(t(error.errorKey, (error.errorData || {}) as Record<string, unknown>))
+                                : error.message}
                             </span>
                           </div>
                         ))}

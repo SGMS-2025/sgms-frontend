@@ -19,7 +19,17 @@ export const useCustomerList = (options: UseCustomerListOptions = {}): UseCustom
 
   // Update params when options change
   useEffect(() => {
-    setParams(options);
+    setParams((prevParams) => {
+      // Only update if values actually changed
+      if (
+        prevParams.limit !== options.limit ||
+        prevParams.page !== options.page ||
+        prevParams.branchId !== options.branchId
+      ) {
+        return options;
+      }
+      return prevParams;
+    });
   }, [options.limit, options.page, options.branchId]);
 
   const fetchCustomers = useCallback(async () => {
@@ -147,6 +157,21 @@ export const useCustomerImport = (): UseCustomerImportReturn => {
         errors: response.data?.errors || []
       };
     } else {
+      // Check if error has meta.errors (validation errors with errorKey)
+      const validationErrors =
+        (response as { error?: { meta?: { errors?: Array<{ row: number; field: string; message: string }> } } }).error
+          ?.meta?.errors || [];
+
+      if (validationErrors.length > 0) {
+        // Return validation errors as ImportResult
+        setLoading(false);
+        return {
+          successCount: 0,
+          failedCount: validationErrors.length,
+          errors: validationErrors
+        };
+      }
+
       setError(response.message || 'Failed to import customers');
       setLoading(false);
       throw new Error(response.message || 'Failed to import customers');

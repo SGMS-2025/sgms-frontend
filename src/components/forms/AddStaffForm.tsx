@@ -20,6 +20,7 @@ import { useBranch } from '@/contexts/BranchContext';
 import type { AddStaffFormProps, CreateStaffRequest, FormData } from '@/types/api/Staff';
 import { toast } from 'sonner';
 import { createImageUploadHandler, STAFF_IMAGE_OPTIONS } from '@/utils/imageUtils';
+import { normalizeErrorKey } from '@/utils/errorHandler';
 import {
   validateEmail,
   validateUsername,
@@ -27,7 +28,7 @@ import {
   validatePasswordConfirmation,
   validateFullName,
   validateJobTitle,
-  validatePhoneNumber,
+  validatePhoneNumberStaff,
   validateSalary,
   validateBranchId,
   validateDateOfBirthStaff,
@@ -255,6 +256,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
 
   // Validation errors state
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [hasCheckedBranches, setHasCheckedBranches] = useState(false);
 
   // Reset error when form data changes
   useEffect(() => {
@@ -263,12 +265,21 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
     }
   }, [formData, resetError, createError]);
 
-  // Show warning if no branches available
+  // Track when branches have been checked at least once
   useEffect(() => {
-    if (!loadingBranches && branches.length === 0 && user?.role === 'OWNER') {
-      toast.warning(t('staff.no_branches_available'));
+    if (!loadingBranches) {
+      setHasCheckedBranches(true);
     }
-  }, [loadingBranches, branches, user?.role, t]);
+  }, [loadingBranches]);
+
+  // Show warning if no branches available (only after first check is complete)
+  useEffect(() => {
+    if (hasCheckedBranches && !loadingBranches && branches.length === 0 && user?.role === 'OWNER') {
+      toast.warning(t('staff.no_branches_available'), {
+        id: 'no-branches-warning' // Prevent duplicate toasts
+      });
+    }
+  }, [hasCheckedBranches, loadingBranches, branches.length, user?.role, t]);
 
   const isLoading = externalLoading || createLoading;
 
@@ -281,7 +292,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
       confirmPassword: () => validatePasswordConfirmation(formData.password || '', value),
       fullName: () => validateFullName(value),
       jobTitle: () => validateJobTitle(value),
-      phone: () => validatePhoneNumber(value),
+      phone: () => validatePhoneNumberStaff(value),
       salary: () => validateSalary(value),
       branchId: () => validateBranchId(value),
       birthDate: () => validateDateOfBirthStaff(value),
@@ -309,7 +320,8 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
       'password',
       'confirmPassword',
       'jobTitle',
-      'branchId'
+      'branchId',
+      'phone'
     ];
 
     requiredFields.forEach((field) => {
@@ -329,7 +341,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
     });
 
     // Optional fields validation (only if they have values)
-    const optionalFields: (keyof FormData)[] = ['phone', 'salary', 'birthDate', 'address'];
+    const optionalFields: (keyof FormData)[] = ['salary', 'birthDate', 'address'];
     optionalFields.forEach((field) => {
       const value = formData[field] || '';
       if (typeof value === 'string' && value.trim()) {
@@ -486,7 +498,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
       email: formData.email || '',
       password: formData.password || '',
       fullName: formData.fullName || '',
-      phoneNumber: formData.phone,
+      phoneNumber: formData.phone?.trim() || undefined,
       gender: formData.gender?.toUpperCase() as 'MALE' | 'FEMALE' | 'OTHER',
       dateOfBirth: formData.birthDate,
       address: formData.address,
@@ -517,15 +529,50 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
 
     // Validate all fields before submission
     if (!validateForm()) {
-      toast.error(t('common.please_fix_errors'));
       return;
     }
     const staffData = prepareStaffData();
-    const result = await createStaff(staffData, profileImageFile || undefined);
 
-    if (result) {
-      handleSuccessfulCreation();
-    }
+    await createStaff(staffData, profileImageFile || undefined)
+      .then((data) => {
+        if (data) {
+          handleSuccessfulCreation();
+        }
+      })
+      .catch(
+        (
+          error: Error & {
+            meta?: { details?: Array<{ field: string; message: string }>; field?: string };
+            code?: string;
+            statusCode?: number;
+          }
+        ) => {
+          // Handle errors with meta.details for inline messages
+          if (error?.meta?.details && Array.isArray(error.meta.details) && error.meta.details.length > 0) {
+            // Map details array to errors state
+            const fieldErrors: Record<string, string> = {};
+            error.meta.details.forEach((detail: { field: string; message: string }) => {
+              // Map backend field names to frontend field names if needed
+              let frontendField = detail.field;
+              if (detail.field === 'phoneNumber') {
+                frontendField = 'phone'; // Frontend uses 'phone' instead of 'phoneNumber'
+              } else if (detail.field === 'dateOfBirth') {
+                frontendField = 'birthDate'; // Frontend uses 'birthDate' instead of 'dateOfBirth'
+              }
+              fieldErrors[frontendField] = t(`error.${normalizeErrorKey(detail.message)}`);
+            });
+            setErrors(fieldErrors);
+          } else if (error?.meta?.field) {
+            let frontendField = error.meta.field;
+            if (error.meta.field === 'phoneNumber') {
+              frontendField = 'phone';
+            } else if (error.meta.field === 'dateOfBirth') {
+              frontendField = 'birthDate';
+            }
+            setErrors({ [frontendField]: t(`error.${normalizeErrorKey(error.message)}`) });
+          }
+        }
+      );
   };
 
   const handleCancel = () => {

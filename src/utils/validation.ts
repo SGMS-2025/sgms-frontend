@@ -35,6 +35,37 @@ export const validatePhoneNumber = (phone: string): ValidationResult => {
   return { isValid: true };
 };
 
+// Validate phone number for staff form (required field, 10-11 digits)
+export const validatePhoneNumberStaff = (phone: string): ValidationResult => {
+  if (!phone || !phone.trim()) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.phone_required')
+    };
+  }
+
+  // Remove spaces and special characters
+  const cleanPhone = phone.replace(/[\s\-()]/g, '');
+
+  // Check if contains only numbers
+  if (!/^\d+$/.test(cleanPhone)) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.phone_only_digits')
+    };
+  }
+
+  // Check length: 10-11 digits
+  if (cleanPhone.length < 10 || cleanPhone.length > 11) {
+    return {
+      isValid: false,
+      error: 'Phone number must be 10-11 digits'
+    };
+  }
+
+  return { isValid: true };
+};
+
 // Validate phone number for edit form (required field)
 export const validatePhoneNumberEdit = (phone: string): ValidationResult => {
   if (!phone.trim()) {
@@ -551,6 +582,63 @@ export const validateDateOfBirthStaff = (dateString: string): ValidationResult =
     return {
       isValid: false,
       error: i18n.t('validation.staff_age_maximum')
+    };
+  }
+
+  return { isValid: true };
+};
+
+// Enhanced date validation for customer form (accepts both DD/MM/YYYY and YYYY-MM-DD formats, minimum age 5)
+export const validateDateOfBirthCustomer = (dateString: string): ValidationResult => {
+  if (!dateString.trim()) {
+    return { isValid: true }; // Optional field
+  }
+
+  let date: Date;
+
+  // Check if it's YYYY-MM-DD format (from HTML date input)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    date = new Date(dateString);
+  } else {
+    // Use existing DD/MM/YYYY validation
+    return validateDateOfBirth(dateString);
+  }
+
+  const today = new Date();
+
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.date_not_valid')
+    };
+  }
+
+  // Check if date is not in the future
+  if (date > today) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.date_future')
+    };
+  }
+
+  // Check minimum age (must be at least 5 years old for customers)
+  const minDate = new Date();
+  minDate.setFullYear(minDate.getFullYear() - 5);
+  if (date > minDate) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.customer_age_minimum_5')
+    };
+  }
+
+  // Check maximum age (must be less than 150 years old)
+  const maxDate = new Date();
+  maxDate.setFullYear(maxDate.getFullYear() - 150);
+  if (date < maxDate) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.age_maximum')
     };
   }
 

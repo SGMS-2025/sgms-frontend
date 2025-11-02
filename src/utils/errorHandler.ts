@@ -2,6 +2,16 @@ import { toast } from 'sonner';
 import type { AsyncOperation, SuccessCallback, ErrorCallback, ErrorHandlerOptions } from '@/types/errorHandler';
 
 /**
+ * @param message - Error message string from backend
+ * @returns Normalized error key in uppercase with underscores
+ */
+export const normalizeErrorKey = (message: string): string => {
+  if (!message) return '';
+  // Convert to uppercase and replace spaces with underscores
+  return message.toUpperCase().replace(/\s+/g, '_');
+};
+
+/**
  * Handle async operations with automatic error handling and user feedback
  * @param operation - The async operation to execute
  * @param successMessage - Success message to show

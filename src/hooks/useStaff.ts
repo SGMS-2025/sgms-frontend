@@ -227,7 +227,23 @@ export const useUpdateStaff = () => {
     } else {
       setError(response.message || 'Failed to update staff');
       setLoading(false);
-      throw new Error(response.message || 'Failed to update staff');
+      // Return error object with meta for inline messages
+      const errorWithMeta = new Error(response.message || 'Failed to update staff') as Error & {
+        meta?: { details?: Array<{ field: string; message: string }>; field?: string };
+        code?: string;
+        statusCode?: number;
+      };
+      // Type guard: response may have error properties when success is false
+      const errorResponse = response as {
+        error?: { meta?: { details?: Array<{ field: string; message: string }>; field?: string } };
+        code?: string;
+        statusCode?: number;
+      };
+      errorWithMeta.meta = errorResponse.error?.meta || {};
+      errorWithMeta.code = errorResponse.code;
+      errorWithMeta.statusCode = errorResponse.statusCode;
+      // Return error object instead of throwing
+      return Promise.reject(errorWithMeta);
     }
   }, []);
 
@@ -246,6 +262,7 @@ export const useCreateStaff = () => {
   const createStaff = useCallback(async (staffData: CreateStaffRequest, avatar?: File) => {
     setLoading(true);
     setError(null);
+
     const response = await staffApi.createStaff(staffData, avatar);
     if (response.success) {
       setLoading(false);
@@ -253,7 +270,23 @@ export const useCreateStaff = () => {
     } else {
       setError(response.message || 'Failed to create staff');
       setLoading(false);
-      throw new Error(response.message || 'Failed to create staff');
+      // Return error object with meta for inline messages
+      const errorWithMeta = new Error(response.message || 'Failed to create staff') as Error & {
+        meta?: { details?: Array<{ field: string; message: string }>; field?: string };
+        code?: string;
+        statusCode?: number;
+      };
+      // Type guard: response may have error properties when success is false
+      const errorResponse = response as {
+        error?: { meta?: { details?: Array<{ field: string; message: string }>; field?: string } };
+        code?: string;
+        statusCode?: number;
+      };
+      errorWithMeta.meta = errorResponse.error?.meta || {};
+      errorWithMeta.code = errorResponse.code;
+      errorWithMeta.statusCode = errorResponse.statusCode;
+      // Return error object instead of throwing
+      return Promise.reject(errorWithMeta);
     }
   }, []);
 
@@ -294,5 +327,74 @@ export const useUpdateStaffStatus = () => {
     updateStaffStatus,
     loading,
     error
+  };
+};
+
+// Hook for staff Excel import
+export const useStaffImport = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const importStaffs = useCallback(async (file: File, branchId: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await staffApi.importStaffsFromFile(file, branchId);
+
+      if (response.success) {
+        setLoading(false);
+        return {
+          successCount: response.data?.successCount || 0,
+          failedCount: response.data?.failedCount || 0,
+          errors: response.data?.errors || [],
+          generatedPasswords: response.data?.generatedPasswords || []
+        };
+      } else {
+        const errorMsg = response.message || 'Failed to import staffs';
+        setError(errorMsg);
+        setLoading(false);
+        throw new Error(errorMsg);
+      }
+    } catch (err) {
+      setLoading(false);
+      throw err;
+    }
+  }, []);
+
+  const downloadTemplate = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const blob = await staffApi.downloadStaffTemplate();
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'staff-import-template.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      setLoading(false);
+    } catch (err) {
+      setLoading(false);
+      setError('Failed to download template');
+      throw err;
+    }
+  }, []);
+
+  const resetError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  return {
+    importStaffs,
+    downloadTemplate,
+    loading,
+    error,
+    resetError
   };
 };

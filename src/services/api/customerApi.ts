@@ -112,7 +112,9 @@ export const customerApi = {
     const response = await api.post('/customers/import', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      // @ts-expect-error - Custom config property
+      skipErrorToast: true
     });
     return response.data;
   },

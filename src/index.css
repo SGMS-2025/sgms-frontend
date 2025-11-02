@@ -351,6 +351,29 @@ select:focus {
       padding: 2rem;
     }
   }
+  
+  /* Fix for CustomerManagement scroll issue - prevent extra height */
+  .customer-management-wrapper {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: relative !important;
+    display: block !important;
+    /* Prevent container from expanding beyond viewport */
+    box-sizing: border-box !important;
+  }
+  
+  /* Ensure pagination section doesn't create extra space */
+  .customer-management-wrapper > div.mt-8:last-of-type {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  
+  /* Remove any extra spacing from last child element */
+  .customer-management-wrapper > *:last-child:not([data-slot*="alert"]):not([data-slot*="dialog"]) {
+    margin-bottom: 0 !important;
+  }
 }
 
 /* Scrolling banner animation */

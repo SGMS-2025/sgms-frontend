@@ -114,7 +114,14 @@ const handleApiError = (error: AxiosError) => {
         toast.error(i18n.t('error.system_error'));
       }
 
-      return createErrorResponse(errorMessage, response.status, errorCode || 'UNKNOWN_ERROR');
+      // Return full error object including meta for validation errors
+      return {
+        success: false,
+        message: errorMessage,
+        statusCode: response.status,
+        code: errorCode || 'UNKNOWN_ERROR',
+        error: errorData.error // Include full error object with meta
+      };
     }
   }
 

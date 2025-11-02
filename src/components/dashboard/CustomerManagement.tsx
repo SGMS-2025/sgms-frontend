@@ -572,7 +572,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
   }
 
   return (
-    <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-6 lg:p-8">
+    <div className="bg-white rounded-3xl border border-orange-100 shadow-sm p-6 lg:p-8 customer-management-wrapper">
       {/* Header */}
       <div className="flex flex-col gap-6 mb-8">
         <div className="flex items-center justify-between">
