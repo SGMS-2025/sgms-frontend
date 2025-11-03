@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Building2, Phone, MapPin, Calendar, Shield, DollarSign, Save, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,16 +21,19 @@ import {
   validateJobTitle,
   validateSalary,
   validateBranchId,
-  validateDateOfBirthStaff
+  validateDateOfBirthStaff,
+  type ValidationResult
 } from '@/utils/validation';
 
 interface EditStaffFormProps {
   formData: StaffFormData;
   onInputChange: (field: keyof StaffFormData, value: string | string[]) => void;
-  onSave: () => void;
+  onSave: () => void | Promise<void>;
   onCancel: () => void;
   t: (key: string) => string;
   loading?: boolean;
+  externalErrors?: Record<string, string>; // For inline messages from API errors
+  onErrorsUpdate?: (errors: Record<string, string>) => void; // Callback to update parent errors
 }
 
 export default function EditStaffForm({
@@ -39,11 +42,23 @@ export default function EditStaffForm({
   onSave,
   onCancel,
   t,
-  loading = false
+  loading = false,
+  externalErrors,
+  onErrorsUpdate
 }: EditStaffFormProps) {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { branches, loading: branchesLoading } = useBranch();
+
+  // Update errors when externalErrors prop changes (from API errors)
+  useEffect(() => {
+    if (externalErrors && Object.keys(externalErrors).length > 0) {
+      setErrors(externalErrors);
+      if (onErrorsUpdate) {
+        onErrorsUpdate(externalErrors);
+      }
+    }
+  }, [externalErrors, onErrorsUpdate]);
 
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
@@ -62,7 +77,7 @@ export default function EditStaffForm({
 
   // Validation functions
   const validateField = (fieldName: string, value: string) => {
-    let validation;
+    let validation: ValidationResult;
 
     switch (fieldName) {
       case 'fullName':

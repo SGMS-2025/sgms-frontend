@@ -1,3 +1,5 @@
+import type { BaseImportResult } from '../components/ExcelImport';
+
 export type StaffStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 export type StaffJobTitle = 'Manager' | 'Personal Trainer' | 'Technician';
 export type SortField = 'name' | 'jobTitle' | 'email' | 'phone' | 'salary' | 'status';
@@ -223,4 +225,15 @@ export interface StaffForPermissionModal {
       phoneNumber?: string;
     };
   }>;
+}
+
+// Staff Excel Import Modal interfaces
+export interface StaffExcelImportModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onImportSuccess: () => void;
+}
+
+export interface StaffImportResult extends BaseImportResult {
+  generatedPasswords: Array<{ email: string; username: string; password: string }>;
 }

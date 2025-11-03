@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { staffApi } from '@/services/api/staffApi';
+import { createErrorWithMeta } from './utils/apiErrorHandler';
+import type { FailedApiResponse } from './utils/apiErrorHandler';
 import type {
   Staff,
   StaffStats,
@@ -227,7 +229,7 @@ export const useUpdateStaff = () => {
     } else {
       setError(response.message || 'Failed to update staff');
       setLoading(false);
-      throw new Error(response.message || 'Failed to update staff');
+      return createErrorWithMeta(response as FailedApiResponse, 'Failed to update staff');
     }
   }, []);
 
@@ -246,6 +248,7 @@ export const useCreateStaff = () => {
   const createStaff = useCallback(async (staffData: CreateStaffRequest, avatar?: File) => {
     setLoading(true);
     setError(null);
+
     const response = await staffApi.createStaff(staffData, avatar);
     if (response.success) {
       setLoading(false);
@@ -253,7 +256,7 @@ export const useCreateStaff = () => {
     } else {
       setError(response.message || 'Failed to create staff');
       setLoading(false);
-      throw new Error(response.message || 'Failed to create staff');
+      return createErrorWithMeta(response as FailedApiResponse, 'Failed to create staff');
     }
   }, []);
 
@@ -294,5 +297,74 @@ export const useUpdateStaffStatus = () => {
     updateStaffStatus,
     loading,
     error
+  };
+};
+
+// Hook for staff Excel import
+export const useStaffImport = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const importStaffs = useCallback(async (file: File, branchId: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await staffApi.importStaffsFromFile(file, branchId);
+
+      if (response.success) {
+        setLoading(false);
+        return {
+          successCount: response.data?.successCount || 0,
+          failedCount: response.data?.failedCount || 0,
+          errors: response.data?.errors || [],
+          generatedPasswords: response.data?.generatedPasswords || []
+        };
+      } else {
+        const errorMsg = response.message || 'Failed to import staffs';
+        setError(errorMsg);
+        setLoading(false);
+        throw new Error(errorMsg);
+      }
+    } catch (err) {
+      setLoading(false);
+      throw err;
+    }
+  }, []);
+
+  const downloadTemplate = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const blob = await staffApi.downloadStaffTemplate();
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'staff-import-template.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      setLoading(false);
+    } catch (err) {
+      setLoading(false);
+      setError('Failed to download template');
+      throw err;
+    }
+  }, []);
+
+  const resetError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  return {
+    importStaffs,
+    downloadTemplate,
+    loading,
+    error,
+    resetError
   };
 };
