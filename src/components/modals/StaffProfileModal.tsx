@@ -8,6 +8,7 @@ import { useStaffDetails, useUpdateStaff } from '@/hooks/useStaff';
 import { useCanManageStaff } from '@/hooks/useCanManageStaff';
 import EditStaffForm from '@/components/forms/EditStaffForm';
 import type { StaffDisplay, Staff, StaffFormData, StaffJobTitle, StaffUpdateData } from '@/types/api/Staff';
+import { handleApiErrorForForm } from '@/utils/errorHandler';
 
 interface StaffProfileModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export default function StaffProfileModal({ isOpen, onClose, staff, initialEditM
   const { canManageStaff } = useCanManageStaff();
   const [activeTab, setActiveTab] = useState<'personal' | 'branch'>('personal');
   const [isEditMode, setIsEditMode] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState<StaffFormData>({
     fullName: '',
     dateOfBirth: '',
@@ -102,12 +104,34 @@ export default function StaffProfileModal({ isOpen, onClose, staff, initialEditM
     if (formData.salary) updateData.salary = parseInt(formData.salary);
     if (formData.status) updateData.status = formData.status;
 
-    await updateStaff(staff.id, updateData);
-    await refetch();
-    setIsEditMode(false);
+    await updateStaff(staff.id, updateData)
+      .then(async () => {
+        await refetch();
+        setIsEditMode(false);
+        setFormErrors({}); // Clear errors on success
+      })
+      .catch(
+        (
+          error: Error & {
+            meta?: { details?: Array<{ field: string; message: string }>; field?: string };
+            code?: string;
+            statusCode?: number;
+          }
+        ) => {
+          // Use centralized error handler
+          const fieldErrors = handleApiErrorForForm(error, {
+            context: 'staff',
+            // StaffProfileModal uses the same field names (no mapping needed)
+            t: (key: string) => t(key)
+          });
+          setFormErrors(fieldErrors);
+        }
+      );
   };
 
   const handleCancel = () => {
+    // Reset form errors
+    setFormErrors({});
     // Reset form data to original values
     if (staffDetails && staff) {
       setFormData({
@@ -241,6 +265,8 @@ export default function StaffProfileModal({ isOpen, onClose, staff, initialEditM
               onCancel={handleCancel}
               t={t}
               loading={updateLoading}
+              externalErrors={formErrors}
+              onErrorsUpdate={setFormErrors}
             />
           ) : activeTab === 'branch' ? (
             <BranchInfo

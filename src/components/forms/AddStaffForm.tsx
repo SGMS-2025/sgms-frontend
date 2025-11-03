@@ -20,6 +20,8 @@ import { useBranch } from '@/contexts/BranchContext';
 import type { AddStaffFormProps, CreateStaffRequest, FormData } from '@/types/api/Staff';
 import { toast } from 'sonner';
 import { createImageUploadHandler, STAFF_IMAGE_OPTIONS } from '@/utils/imageUtils';
+import { handleApiErrorForForm } from '@/utils/errorHandler';
+import { generateUsernameFromEmail } from '@/utils/usernameUtils';
 import {
   validateEmail,
   validateUsername,
@@ -27,7 +29,7 @@ import {
   validatePasswordConfirmation,
   validateFullName,
   validateJobTitle,
-  validatePhoneNumber,
+  validatePhoneNumberStaff,
   validateSalary,
   validateBranchId,
   validateDateOfBirthStaff,
@@ -255,6 +257,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
 
   // Validation errors state
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [hasCheckedBranches, setHasCheckedBranches] = useState(false);
 
   // Reset error when form data changes
   useEffect(() => {
@@ -263,12 +266,21 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
     }
   }, [formData, resetError, createError]);
 
-  // Show warning if no branches available
+  // Track when branches have been checked at least once
   useEffect(() => {
-    if (!loadingBranches && branches.length === 0 && user?.role === 'OWNER') {
-      toast.warning(t('staff.no_branches_available'));
+    if (!loadingBranches) {
+      setHasCheckedBranches(true);
     }
-  }, [loadingBranches, branches, user?.role, t]);
+  }, [loadingBranches]);
+
+  // Show warning if no branches available (only after first check is complete)
+  useEffect(() => {
+    if (hasCheckedBranches && !loadingBranches && branches.length === 0 && user?.role === 'OWNER') {
+      toast.warning(t('staff.no_branches_available'), {
+        id: 'no-branches-warning' // Prevent duplicate toasts
+      });
+    }
+  }, [hasCheckedBranches, loadingBranches, branches.length, user?.role, t]);
 
   const isLoading = externalLoading || createLoading;
 
@@ -281,7 +293,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
       confirmPassword: () => validatePasswordConfirmation(formData.password || '', value),
       fullName: () => validateFullName(value),
       jobTitle: () => validateJobTitle(value),
-      phone: () => validatePhoneNumber(value),
+      phone: () => validatePhoneNumberStaff(value),
       salary: () => validateSalary(value),
       branchId: () => validateBranchId(value),
       birthDate: () => validateDateOfBirthStaff(value),
@@ -309,7 +321,8 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
       'password',
       'confirmPassword',
       'jobTitle',
-      'branchId'
+      'branchId',
+      'phone'
     ];
 
     requiredFields.forEach((field) => {
@@ -329,7 +342,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
     });
 
     // Optional fields validation (only if they have values)
-    const optionalFields: (keyof FormData)[] = ['phone', 'salary', 'birthDate', 'address'];
+    const optionalFields: (keyof FormData)[] = ['salary', 'birthDate', 'address'];
     optionalFields.forEach((field) => {
       const value = formData[field] || '';
       if (typeof value === 'string' && value.trim()) {
@@ -350,22 +363,6 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
     setProfileImage(result.imageUrl);
     setFormData((prev) => ({ ...prev, profileImage: result.imageUrl }));
   }, STAFF_IMAGE_OPTIONS);
-
-  // Helper function to generate username from email
-  const generateUsernameFromEmail = (email: string): string => {
-    if (!email || !email.includes('@')) {
-      return '';
-    }
-
-    // Extract the part before @ symbol
-    const username = email.split('@')[0];
-
-    // Remove any special characters and keep only alphanumeric and underscore
-    const cleanedUsername = username.replace(/[^a-zA-Z0-9_]/g, '');
-
-    // Ensure username is not empty and has reasonable length
-    return cleanedUsername.substring(0, 20); // Limit to 20 characters
-  };
 
   // Handle date selection
   const handleDateSelect = (date: Date | undefined) => {
@@ -486,7 +483,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
       email: formData.email || '',
       password: formData.password || '',
       fullName: formData.fullName || '',
-      phoneNumber: formData.phone,
+      phoneNumber: formData.phone?.trim() || undefined,
       gender: formData.gender?.toUpperCase() as 'MALE' | 'FEMALE' | 'OTHER',
       dateOfBirth: formData.birthDate,
       address: formData.address,
@@ -517,15 +514,36 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
 
     // Validate all fields before submission
     if (!validateForm()) {
-      toast.error(t('common.please_fix_errors'));
       return;
     }
     const staffData = prepareStaffData();
-    const result = await createStaff(staffData, profileImageFile || undefined);
 
-    if (result) {
-      handleSuccessfulCreation();
-    }
+    await createStaff(staffData, profileImageFile || undefined)
+      .then((data) => {
+        if (data) {
+          handleSuccessfulCreation();
+        }
+      })
+      .catch(
+        (
+          error: Error & {
+            meta?: { details?: Array<{ field: string; message: string }>; field?: string };
+            code?: string;
+            statusCode?: number;
+          }
+        ) => {
+          // Use centralized error handler
+          const fieldErrors = handleApiErrorForForm(error, {
+            context: 'staff',
+            customFieldMappings: {
+              phoneNumber: 'phone',
+              dateOfBirth: 'birthDate'
+            },
+            t: (key: string) => t(key)
+          });
+          setErrors(fieldErrors);
+        }
+      );
   };
 
   const handleCancel = () => {
