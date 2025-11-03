@@ -25,7 +25,8 @@ import {
   CalendarDays,
   ArrowRightLeft,
   CreditCard,
-  Building2
+  Building2,
+  Crown
 } from 'lucide-react';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -462,6 +463,15 @@ export const OwnerSidebar: React.FC = () => {
       isActive: location.pathname === '/manage/customers',
       onClick: () => {
         navigate('/manage/customers');
+      }
+    },
+    {
+      icon: <Crown className="w-5 h-5 stroke-[1.75]" />,
+      label: t('sidebar.subscriptions', { defaultValue: 'Gói dịch vụ' }),
+      href: '/manage/subscriptions',
+      isActive: location.pathname === '/manage/subscriptions',
+      onClick: () => {
+        navigate('/manage/subscriptions');
       }
     },
     {

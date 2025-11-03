@@ -22,6 +22,7 @@ import OwnerDashboard from '@/pages/owner/OwnerDashboard';
 import StaffPage from '@/pages/owner/StaffPage';
 import BranchDetailPage from '@/pages/owner/BranchDetailPage';
 import AddBranchPage from '@/pages/owner/AddBranchPage';
+import { SubscriptionPackagesPage } from '@/pages/owner/SubscriptionPackagesPage';
 import AddNewStaff from '@/pages/owner/AddNewStaff';
 import DiscountPage from '@/pages/owner/DiscountPage';
 import TestimonialPage from '@/pages/owner/TestimonialPage';
@@ -76,6 +77,8 @@ import BusinessVerificationPage from '@/pages/auth/BusinessVerificationPage';
 import BusinessVerificationManagementPage from '@/pages/admin/BusinessVerificationManagementPage';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import { AdminLayout } from '@/layouts/AdminLayout';
+import OwnerSubscriptionGate from '@/components/guards/OwnerSubscriptionGate';
+import OwnerSubscriptionGateWithLayout from '@/components/guards/OwnerSubscriptionGateWithLayout';
 
 // WorkShift Calendar with Layout Component
 const WorkShiftCalendarPageWithLayout: React.FC = () => {
@@ -278,6 +281,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, allowedJo
 const AppRoutes: React.FC = () => {
   const { isAuthenticated } = useAuthState();
 
+  // Owner subscription gate will render a requirement page instead of redirect
+
   return (
     <Routes>
       {/* Root Route - redirect based on auth status */}
@@ -321,18 +326,22 @@ const AppRoutes: React.FC = () => {
       {/* Business Verification Route - for owners to verify their business */}
       <Route path="/business-verification" element={<BusinessVerificationPage />} />
 
-      {/* Reschedule Management - accessible to authenticated users (OWNER or STAFF) */}
-      <Route
-        path="/reschedule"
-        element={isAuthenticated ? <RescheduleManagementPageWithLayout /> : <Navigate to="/login" replace />}
-      />
+      {/* Reschedule - render requirement inside owner layout when OWNER has no subscription */}
+      <Route element={<OwnerSubscriptionGateWithLayout />}>
+        <Route
+          path="/reschedule"
+          element={isAuthenticated ? <RescheduleManagementPageWithLayout /> : <Navigate to="/login" replace />}
+        />
+      </Route>
 
       {/* Gym Routes - Public routes */}
       <Route path="/gyms" element={<GymListPage />} />
       <Route path="/gym/:id" element={<GymDetailPage />} />
 
-      {/* Work Shift Calendar Route - accessible to all STAFF (must be before /manage route) */}
-      <Route path="/manage/workshifts/calendar" element={<WorkShiftCalendarPageWithLayout />} />
+      {/* Work Shift Calendar Route - render requirement inside owner layout when blocked */}
+      <Route element={<OwnerSubscriptionGateWithLayout />}>
+        <Route path="/manage/workshifts/calendar" element={<WorkShiftCalendarPageWithLayout />} />
+      </Route>
 
       {/* Management Routes - for OWNER role and STAFF with Manager job title */}
       <Route
@@ -340,49 +349,53 @@ const AppRoutes: React.FC = () => {
         element={<ProtectedRoute allowedRoles={['OWNER', 'STAFF']} allowedJobTitles={['Manager']} />}
       >
         <Route path="" element={<ManageLayout />}>
-          {/* Owner Dashboard Route */}
-          <Route path="owner" element={<OwnerDashboard />} />
-          {/* Staff Management Route */}
-          <Route path="staff" element={<StaffPage />} />
-          {/* Customer Management Route */}
-          <Route path="customers" element={<CustomerManagementPage />} />
-          {/* Customer Detail Route */}
-          <Route path="customers/:id/detail" element={<CustomerDetailPage />} />
-          {/* Customer Payments Route */}
-          <Route path="payments" element={<CustomerPaymentsPage />} />
-          {/* Branch Detail Route */}
-          <Route path="branch/:branchId" element={<BranchDetailPage />} />
-          {/* Add Branch Route */}
-          <Route path="add-branch" element={<AddBranchPage />} />
-          {/* Add New Staff Route */}
-          <Route path="staff/add" element={<AddNewStaff />} />
-          {/* Personal Training Management Route */}
-          <Route path="pt-services" element={<PTServiceManagement />} />
-          {/* Class Service Management Route */}
-          <Route path="class-services" element={<ClassServiceManagement />} />
-          {/* Services Management Route */}
-          <Route path="discounts" element={<DiscountPage />} />
-          {/* Membership Management Route */}
-          <Route path="memberships" element={<MembershipPlansPage />} />
-          {/* Expenses Management Route */}
-          <Route path="expenses" element={<ExpensesPage />} />
-          {/* Testimonial Management Route */}
-          <Route path="testimonials" element={<TestimonialPage />} />
-          {/* Schedule Template Management Route */}
-          <Route path="schedule-templates" element={<ScheduleTemplatePage />} />
+          {/* Routes that require active subscription for OWNER */}
+          <Route element={<OwnerSubscriptionGate />}>
+            {/* Owner Dashboard Route */}
+            <Route path="owner" element={<OwnerDashboard />} />
+            {/* Staff Management Route */}
+            <Route path="staff" element={<StaffPage />} />
+            {/* Customer Management Route */}
+            <Route path="customers" element={<CustomerManagementPage />} />
+            {/* Customer Detail Route */}
+            <Route path="customers/:id/detail" element={<CustomerDetailPage />} />
+            {/* Customer Payments Route */}
+            <Route path="payments" element={<CustomerPaymentsPage />} />
+            {/* Branch Detail Route */}
+            <Route path="branch/:branchId" element={<BranchDetailPage />} />
+            {/* Add Branch Route */}
+            <Route path="add-branch" element={<AddBranchPage />} />
+            {/* Add New Staff Route */}
+            <Route path="staff/add" element={<AddNewStaff />} />
+            {/* Personal Training Management Route */}
+            <Route path="pt-services" element={<PTServiceManagement />} />
+            {/* Class Service Management Route */}
+            <Route path="class-services" element={<ClassServiceManagement />} />
+            {/* Services Management Route */}
+            <Route path="discounts" element={<DiscountPage />} />
+            {/* Membership Management Route */}
+            <Route path="memberships" element={<MembershipPlansPage />} />
+            {/* Expenses Management Route */}
+            <Route path="expenses" element={<ExpensesPage />} />
+            {/* Testimonial Management Route */}
+            <Route path="testimonials" element={<TestimonialPage />} />
+            {/* Schedule Template Management Route */}
+            <Route path="schedule-templates" element={<ScheduleTemplatePage />} />
+            {/* Shared Equipment Routes for Manager */}
+            <Route path="equipment" element={<EquipmentListPage />} />
+            <Route path="equipment/add" element={<AddEquipmentPage />} />
+            <Route path="equipment/:id/edit" element={<EditEquipmentPage />} />
 
-          {/* Shared Equipment Routes for Manager */}
-          <Route path="equipment" element={<EquipmentListPage />} />
-          <Route path="equipment/add" element={<AddEquipmentPage />} />
-          <Route path="equipment/:id/edit" element={<EditEquipmentPage />} />
+            {/* Work Shift Management Routes */}
+            <Route path="workshifts/add" element={<AddWorkShiftPage />} />
+            <Route path="workshifts/:id/edit" element={<EditWorkShiftPage />} />
 
-          {/* Work Shift Management Routes */}
-          <Route path="workshifts/add" element={<AddWorkShiftPage />} />
-          <Route path="workshifts/:id/edit" element={<EditWorkShiftPage />} />
-
-          {/* Time Off Management Routes */}
-          <Route path="timeoff" element={<TimeOffPage />} />
-          <Route path="timeoff/management" element={<TimeOffManagementPage />} />
+            {/* Time Off Management Routes */}
+            <Route path="timeoff" element={<TimeOffPage />} />
+            <Route path="timeoff/management" element={<TimeOffManagementPage />} />
+          </Route>
+          {/* Subscription Management Route (accessible without active subscription for OWNER) */}
+          <Route path="subscriptions" element={<SubscriptionPackagesPage />} />
         </Route>
       </Route>
 

@@ -145,6 +145,16 @@ const handleApiError = (error: AxiosError) => {
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
+    // Add language to query params for subscription endpoints
+    const currentLang = i18n.language || 'vi';
+    const validLang = ['en', 'vi'].includes(currentLang) ? currentLang : 'vi';
+
+    // Add language param to subscription-related endpoints
+    if (config.url?.includes('/subscriptions/packages')) {
+      const separator = config.url.includes('?') ? '&' : '?';
+      config.url = `${config.url}${separator}lang=${validLang}`;
+    }
+
     return config;
   },
   (error) => {

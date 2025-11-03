@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthState } from '@/hooks/useAuth';
 import { SectionCards } from '@/components/dashboard/SectionCards';
@@ -7,13 +7,10 @@ import { StatsSidebar } from '@/components/dashboard/StatsSidebar';
 import { BranchList } from '@/components/dashboard/BranchList';
 import { ServicesList } from '@/components/dashboard/ServicesList';
 import { EquipmentManagement } from '@/components/dashboard/EquipmentManagement';
-import { BusinessVerificationAlert } from '@/components/business/BusinessVerificationAlert';
-import BusinessVerificationModal from '@/components/business/BusinessVerificationModal';
 
 const OwnerDashboard: React.FC = () => {
   const { t } = useTranslation();
   const { isLoading } = useAuthState();
-  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
 
   // Display loading while fetching
   if (isLoading) {
@@ -29,12 +26,6 @@ const OwnerDashboard: React.FC = () => {
 
   return (
     <div>
-      {/* Business Verification Alert */}
-      <BusinessVerificationAlert onOpenVerificationModal={() => setIsVerificationModalOpen(true)} />
-
-      {/* Business Verification Modal */}
-      <BusinessVerificationModal open={isVerificationModalOpen} onOpenChange={setIsVerificationModalOpen} />
-
       {/* Top Section */}
       <div className="mb-6">
         <SectionCards />
