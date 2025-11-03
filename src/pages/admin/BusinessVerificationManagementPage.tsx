@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle2, XCircle, Clock, Eye, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,7 @@ import { BusinessVerificationStatus } from '@/types/api/BusinessVerification';
 import { format } from 'date-fns';
 
 const BusinessVerificationManagementPage = () => {
+  const { t } = useTranslation();
   const [verifications, setVerifications] = useState<BusinessVerification[]>([]);
   const [statistics, setStatistics] = useState<BusinessVerificationStatistics | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -87,7 +89,7 @@ const BusinessVerificationManagementPage = () => {
     setIsLoading(false);
 
     if (result.success) {
-      toast.success('Đã phê duyệt yêu cầu xác thực');
+      toast.success(t('admin.business_verification.toast.approve_success'));
       setShowApproveModal(false);
       setAdminNotes('');
       loadVerifications();
@@ -97,7 +99,7 @@ const BusinessVerificationManagementPage = () => {
 
   const handleReject = async () => {
     if (!selectedVerification || !rejectionReason) {
-      toast.error('Vui lòng nhập lý do từ chối');
+      toast.error(t('admin.business_verification.toast.reject_reason_required'));
       return;
     }
 
@@ -109,7 +111,7 @@ const BusinessVerificationManagementPage = () => {
     setIsLoading(false);
 
     if (result.success) {
-      toast.success('Đã từ chối yêu cầu xác thực');
+      toast.success(t('admin.business_verification.toast.reject_success'));
       setShowRejectModal(false);
       setRejectionReason('');
       setAdminNotes('');
@@ -124,21 +126,21 @@ const BusinessVerificationManagementPage = () => {
         return (
           <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
             <Clock className="w-3 h-3 mr-1" />
-            Chờ duyệt
+            {t('admin.business_verification.status.pending')}
           </Badge>
         );
       case BusinessVerificationStatus.APPROVED:
         return (
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
             <CheckCircle2 className="w-3 h-3 mr-1" />
-            Đã duyệt
+            {t('admin.business_verification.status.approved')}
           </Badge>
         );
       case BusinessVerificationStatus.REJECTED:
         return (
           <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
             <XCircle className="w-3 h-3 mr-1" />
-            Đã từ chối
+            {t('admin.business_verification.status.rejected')}
           </Badge>
         );
       default:
@@ -166,8 +168,8 @@ const BusinessVerificationManagementPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Quản lý xác thực doanh nghiệp</h1>
-          <p className="text-gray-600 mt-1">Xét duyệt yêu cầu xác thực từ người dùng</p>
+          <h1 className="text-3xl font-bold">{t('admin.business_verification.title')}</h1>
+          <p className="text-gray-600 mt-1">{t('admin.business_verification.subtitle')}</p>
         </div>
       </div>
 
@@ -176,7 +178,9 @@ const BusinessVerificationManagementPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Tổng số yêu cầu</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">
+                {t('admin.business_verification.stats.total')}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{statistics.total}</div>
@@ -184,7 +188,9 @@ const BusinessVerificationManagementPage = () => {
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-yellow-600">Chờ duyệt</CardTitle>
+              <CardTitle className="text-sm font-medium text-yellow-600">
+                {t('admin.business_verification.stats.pending')}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-600">{statistics.pending}</div>
@@ -192,7 +198,9 @@ const BusinessVerificationManagementPage = () => {
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-green-600">Đã duyệt</CardTitle>
+              <CardTitle className="text-sm font-medium text-green-600">
+                {t('admin.business_verification.stats.approved')}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">{statistics.approved}</div>
@@ -200,7 +208,9 @@ const BusinessVerificationManagementPage = () => {
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-red-600">Đã từ chối</CardTitle>
+              <CardTitle className="text-sm font-medium text-red-600">
+                {t('admin.business_verification.stats.rejected')}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">{statistics.rejected}</div>
@@ -212,12 +222,12 @@ const BusinessVerificationManagementPage = () => {
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Bộ lọc</CardTitle>
+          <CardTitle className="text-lg">{t('admin.business_verification.filters.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Trạng thái</Label>
+              <Label>{t('admin.business_verification.filters.status')}</Label>
               <Select
                 value={filters.status || 'all'}
                 onValueChange={(value) =>
@@ -228,18 +238,24 @@ const BusinessVerificationManagementPage = () => {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Tất cả trạng thái" />
+                  <SelectValue placeholder={t('admin.business_verification.filters.status_all_placeholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả</SelectItem>
-                  <SelectItem value={BusinessVerificationStatus.PENDING}>Chờ duyệt</SelectItem>
-                  <SelectItem value={BusinessVerificationStatus.APPROVED}>Đã duyệt</SelectItem>
-                  <SelectItem value={BusinessVerificationStatus.REJECTED}>Đã từ chối</SelectItem>
+                  <SelectItem value="all">{t('admin.business_verification.filters.status_all')}</SelectItem>
+                  <SelectItem value={BusinessVerificationStatus.PENDING}>
+                    {t('admin.business_verification.filters.status_pending')}
+                  </SelectItem>
+                  <SelectItem value={BusinessVerificationStatus.APPROVED}>
+                    {t('admin.business_verification.filters.status_approved')}
+                  </SelectItem>
+                  <SelectItem value={BusinessVerificationStatus.REJECTED}>
+                    {t('admin.business_verification.filters.status_rejected')}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Sắp xếp theo</Label>
+              <Label>{t('admin.business_verification.filters.sort_by')}</Label>
               <Select
                 value={filters.sortBy}
                 onValueChange={(value) =>
@@ -250,18 +266,20 @@ const BusinessVerificationManagementPage = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="submittedAt">Ngày gửi</SelectItem>
-                  <SelectItem value="reviewedAt">Ngày xét duyệt</SelectItem>
-                  <SelectItem value="businessName">Tên doanh nghiệp</SelectItem>
+                  <SelectItem value="submittedAt">{t('admin.business_verification.filters.sort_submitted')}</SelectItem>
+                  <SelectItem value="reviewedAt">{t('admin.business_verification.filters.sort_reviewed')}</SelectItem>
+                  <SelectItem value="businessName">
+                    {t('admin.business_verification.filters.sort_business_name')}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Tìm kiếm</Label>
+              <Label>{t('admin.business_verification.filters.search')}</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
-                  placeholder="Tìm theo tên, mã số..."
+                  placeholder={t('admin.business_verification.filters.search_placeholder')}
                   value={filters.search}
                   onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                   className="pl-9"
@@ -275,30 +293,35 @@ const BusinessVerificationManagementPage = () => {
       {/* Verifications Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Danh sách yêu cầu xác thực</CardTitle>
+          <CardTitle>{t('admin.business_verification.table.title')}</CardTitle>
           <CardDescription>
-            Hiển thị {verifications.length} / {pagination.total} yêu cầu
+            {t('admin.business_verification.table.showing', {
+              current: verifications.length,
+              total: pagination.total
+            })}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Đang tải...</p>
+              <p className="mt-4 text-gray-600">{t('admin.business_verification.table.loading')}</p>
             </div>
           ) : verifications.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">Không có yêu cầu nào</div>
+            <div className="text-center py-8 text-gray-500">{t('admin.business_verification.table.empty')}</div>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Doanh nghiệp</TableHead>
-                    <TableHead>Người gửi</TableHead>
-                    <TableHead>Mã số thuế</TableHead>
-                    <TableHead>Ngày gửi</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead className="text-right">Hành động</TableHead>
+                    <TableHead>{t('admin.business_verification.table.headers.business')}</TableHead>
+                    <TableHead>{t('admin.business_verification.table.headers.sender')}</TableHead>
+                    <TableHead>{t('admin.business_verification.table.headers.tax_code')}</TableHead>
+                    <TableHead>{t('admin.business_verification.table.headers.submitted_date')}</TableHead>
+                    <TableHead>{t('admin.business_verification.table.headers.status')}</TableHead>
+                    <TableHead className="text-right">
+                      {t('admin.business_verification.table.headers.actions')}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -366,7 +389,10 @@ const BusinessVerificationManagementPage = () => {
               {/* Pagination */}
               <div className="flex items-center justify-between mt-4">
                 <div className="text-sm text-gray-600">
-                  Trang {pagination.page} / {pagination.totalPages}
+                  {t('admin.business_verification.pagination.page', {
+                    page: pagination.page,
+                    total: pagination.totalPages
+                  })}
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -396,7 +422,7 @@ const BusinessVerificationManagementPage = () => {
       <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Chi tiết yêu cầu xác thực</DialogTitle>
+            <DialogTitle>{t('admin.business_verification.modal.detail_title')}</DialogTitle>
           </DialogHeader>
           {selectedVerification && (
             <div className="space-y-4">
@@ -414,40 +440,40 @@ const BusinessVerificationManagementPage = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-gray-600">Mã số thuế</Label>
+                  <Label className="text-gray-600">{t('admin.business_verification.modal.tax_code')}</Label>
                   <p className="font-medium">{selectedVerification.taxCode || 'N/A'}</p>
                 </div>
                 <div>
-                  <Label className="text-gray-600">Mã số doanh nghiệp</Label>
+                  <Label className="text-gray-600">{t('admin.business_verification.modal.business_code')}</Label>
                   <p className="font-medium">{selectedVerification.businessCode || 'N/A'}</p>
                 </div>
                 <div>
-                  <Label className="text-gray-600">Số điện thoại</Label>
+                  <Label className="text-gray-600">{t('admin.business_verification.modal.phone')}</Label>
                   <p className="font-medium">{selectedVerification.businessPhone}</p>
                 </div>
                 <div>
-                  <Label className="text-gray-600">Email</Label>
+                  <Label className="text-gray-600">{t('admin.business_verification.modal.email')}</Label>
                   <p className="font-medium">{selectedVerification.businessEmail}</p>
                 </div>
                 <div className="col-span-2">
-                  <Label className="text-gray-600">Địa chỉ</Label>
+                  <Label className="text-gray-600">{t('admin.business_verification.modal.address')}</Label>
                   <p className="font-medium">{selectedVerification.businessAddress}</p>
                 </div>
                 {selectedVerification.description && (
                   <div className="col-span-2">
-                    <Label className="text-gray-600">Mô tả</Label>
+                    <Label className="text-gray-600">{t('admin.business_verification.modal.description')}</Label>
                     <p className="font-medium">{selectedVerification.description}</p>
                   </div>
                 )}
                 <div>
-                  <Label className="text-gray-600">Ngày gửi</Label>
+                  <Label className="text-gray-600">{t('admin.business_verification.modal.submitted_date')}</Label>
                   <p className="font-medium">
                     {format(new Date(selectedVerification.submittedAt), 'dd/MM/yyyy HH:mm')}
                   </p>
                 </div>
                 {selectedVerification.reviewedAt && (
                   <div>
-                    <Label className="text-gray-600">Ngày xét duyệt</Label>
+                    <Label className="text-gray-600">{t('admin.business_verification.modal.reviewed_date')}</Label>
                     <p className="font-medium">
                       {format(new Date(selectedVerification.reviewedAt), 'dd/MM/yyyy HH:mm')}
                     </p>
@@ -455,7 +481,7 @@ const BusinessVerificationManagementPage = () => {
                 )}
                 {selectedVerification.rejectionReason && (
                   <div className="col-span-2">
-                    <Label className="text-gray-600">Lý do từ chối</Label>
+                    <Label className="text-gray-600">{t('admin.business_verification.modal.rejection_reason')}</Label>
                     <Alert variant="destructive" className="mt-2">
                       <AlertDescription>{selectedVerification.rejectionReason}</AlertDescription>
                     </Alert>
@@ -463,7 +489,7 @@ const BusinessVerificationManagementPage = () => {
                 )}
                 {selectedVerification.adminNotes && (
                   <div className="col-span-2">
-                    <Label className="text-gray-600">Ghi chú từ admin</Label>
+                    <Label className="text-gray-600">{t('admin.business_verification.modal.admin_notes')}</Label>
                     <p className="font-medium mt-1">{selectedVerification.adminNotes}</p>
                   </div>
                 )}
@@ -474,7 +500,9 @@ const BusinessVerificationManagementPage = () => {
                 <div className="space-y-3 pt-4 border-t">
                   <div className="flex items-center justify-between">
                     <Label className="text-gray-900 font-semibold text-base">
-                      Giấy tờ xác thực ({selectedVerification.documents.length})
+                      {t('admin.business_verification.modal.documents_title', {
+                        count: selectedVerification.documents.length
+                      })}
                     </Label>
                   </div>
                   <div className="grid grid-cols-4 gap-3">
@@ -505,7 +533,9 @@ const BusinessVerificationManagementPage = () => {
                       </a>
                     ))}
                   </div>
-                  <p className="text-sm text-gray-500 italic">Click vào ảnh để xem chi tiết trong tab mới</p>
+                  <p className="text-sm text-gray-500 italic">
+                    {t('admin.business_verification.modal.documents_hint')}
+                  </p>
                 </div>
               )}
             </div>
@@ -517,29 +547,32 @@ const BusinessVerificationManagementPage = () => {
       <Dialog open={showApproveModal} onOpenChange={setShowApproveModal}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Phê duyệt yêu cầu xác thực</DialogTitle>
+            <DialogTitle>{t('admin.business_verification.modal.approve_title')}</DialogTitle>
             <DialogDescription>
-              Bạn có chắc chắn muốn phê duyệt yêu cầu xác thực cho <strong>{selectedVerification?.businessName}</strong>
-              ?
+              {t('admin.business_verification.modal.approve_description', {
+                businessName: selectedVerification?.businessName
+              })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Ghi chú (không bắt buộc)</Label>
+              <Label>{t('admin.business_verification.modal.approve_notes')}</Label>
               <Textarea
                 value={adminNotes}
                 onChange={(e) => setAdminNotes(e.target.value)}
-                placeholder="Nhập ghi chú cho người dùng..."
+                placeholder={t('admin.business_verification.modal.approve_notes_placeholder')}
                 rows={3}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowApproveModal(false)}>
-              Hủy
+              {t('admin.business_verification.modal.cancel')}
             </Button>
             <Button onClick={handleApprove} disabled={isLoading} className="bg-green-600 hover:bg-green-700">
-              {isLoading ? 'Đang xử lý...' : 'Phê duyệt'}
+              {isLoading
+                ? t('admin.business_verification.modal.approve_processing')
+                : t('admin.business_verification.modal.approve_button')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -549,41 +582,49 @@ const BusinessVerificationManagementPage = () => {
       <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Từ chối yêu cầu xác thực</DialogTitle>
+            <DialogTitle>{t('admin.business_verification.modal.reject_title')}</DialogTitle>
             <DialogDescription>
-              Bạn có chắc chắn muốn từ chối yêu cầu xác thực cho <strong>{selectedVerification?.businessName}</strong>?
+              {t('admin.business_verification.modal.reject_description', {
+                businessName: selectedVerification?.businessName
+              })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>
-                Lý do từ chối <span className="text-red-500">*</span>
+                {t('admin.business_verification.modal.reject_reason')} <span className="text-red-500">*</span>
               </Label>
               <Textarea
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Nhập lý do từ chối..."
+                placeholder={t('admin.business_verification.modal.reject_reason_placeholder')}
                 rows={3}
                 className={!rejectionReason ? 'border-red-500' : ''}
               />
-              {!rejectionReason && <p className="text-sm text-red-500 mt-1">Vui lòng nhập lý do từ chối</p>}
+              {!rejectionReason && (
+                <p className="text-sm text-red-500 mt-1">
+                  {t('admin.business_verification.modal.reject_reason_required')}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label>Ghi chú bổ sung (không bắt buộc)</Label>
+              <Label>{t('admin.business_verification.modal.reject_notes')}</Label>
               <Textarea
                 value={adminNotes}
                 onChange={(e) => setAdminNotes(e.target.value)}
-                placeholder="Nhập ghi chú cho người dùng..."
+                placeholder={t('admin.business_verification.modal.reject_notes_placeholder')}
                 rows={2}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowRejectModal(false)}>
-              Hủy
+              {t('admin.business_verification.modal.cancel')}
             </Button>
             <Button onClick={handleReject} disabled={isLoading || !rejectionReason} variant="destructive">
-              {isLoading ? 'Đang xử lý...' : 'Từ chối'}
+              {isLoading
+                ? t('admin.business_verification.modal.reject_processing')
+                : t('admin.business_verification.modal.reject_button')}
             </Button>
           </DialogFooter>
         </DialogContent>

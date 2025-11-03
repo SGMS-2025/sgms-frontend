@@ -92,9 +92,6 @@ const BusinessVerificationModal = ({ open, onOpenChange, onSuccess }: BusinessVe
         if (result.data.logo?.url) {
           setLogoPreview(result.data.logo.url);
         }
-
-        // Note: Documents cũ sẽ hiển thị trực tiếp từ verification.documents
-        // Không set vào documentPreviews để tránh confusion
       }
     }
   };
