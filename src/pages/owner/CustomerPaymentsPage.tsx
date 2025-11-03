@@ -60,11 +60,8 @@ const getStatusLabels = (
 });
 
 const getMethodLabels = (t: (key: string, options?: Record<string, unknown>) => string): Record<string, string> => ({
-  BANK_TRANSFER: t('payment.method.bank_transfer', { defaultValue: 'Chuyển khoản' }),
   CASH: t('payment.method.cash', { defaultValue: 'Tiền mặt' }),
-  CARD: t('payment.method.card', { defaultValue: 'Thẻ' }),
-  E_WALLET: t('payment.method.e_wallet', { defaultValue: 'Ví điện tử' }),
-  OTHER: t('payment.method.other', { defaultValue: 'Khác' })
+  BANK_TRANSFER: t('payment.method.bank_transfer', { defaultValue: 'Chuyển khoản' })
 });
 
 const getSubjectLabels = (

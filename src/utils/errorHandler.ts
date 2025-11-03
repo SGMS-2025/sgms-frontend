@@ -168,19 +168,11 @@ export const handleApiErrorForForm = (
 
   const fieldErrors: Record<string, string> = {};
 
-  // Debug logging to help diagnose issues
-  console.log('[handleApiErrorForForm] Error object:', error);
-  console.log('[handleApiErrorForForm] Error meta:', error?.meta);
-  console.log('[handleApiErrorForForm] Error meta.details:', error?.meta?.details);
-
   // Check if this is a 409 conflict error
   const isConflictError = error.statusCode === 409 || error.code === 'MONGO_DUPLICATE_KEY' || error.code === 'CONFLICT';
 
-  console.log('[handleApiErrorForForm] Is conflict error:', isConflictError);
-
   // Handle errors with meta.details array (preferred format)
   if (error?.meta?.details && Array.isArray(error.meta.details) && error.meta.details.length > 0) {
-    console.log('[handleApiErrorForForm] Processing meta.details array with', error.meta.details.length, 'items');
     error.meta.details.forEach((detail: { field: string; message: string }) => {
       // Map backend field to frontend field
       let frontendField = mapBackendToFrontendField(detail.field, context, customFieldMappings);
@@ -210,14 +202,11 @@ export const handleApiErrorForForm = (
 
       // Translate and set error
       const translatedMessage = t(`error.${errorKey}`);
-      console.log(`[handleApiErrorForForm] Setting error for field "${frontendField}": ${translatedMessage}`);
       fieldErrors[frontendField] = translatedMessage;
     });
-    console.log('[handleApiErrorForForm] Final fieldErrors from details:', fieldErrors);
   }
   // Handle single field error (error.meta.field)
   else if (error?.meta?.field) {
-    console.log('[handleApiErrorForForm] Processing single field error:', error.meta.field);
     let frontendField = mapBackendToFrontendField(error.meta.field, context, customFieldMappings);
     let errorKey: string;
 
@@ -239,13 +228,10 @@ export const handleApiErrorForForm = (
     }
 
     const translatedMessage = t(`error.${errorKey}`);
-    console.log(`[handleApiErrorForForm] Setting error for field "${frontendField}": ${translatedMessage}`);
     fieldErrors[frontendField] = translatedMessage;
-    console.log('[handleApiErrorForForm] Final fieldErrors from single field:', fieldErrors);
   }
   // Fallback: Try to parse field from error message
   else if (isConflictError && handleConflictErrors) {
-    console.log('[handleApiErrorForForm] Trying fallback parsing from error message');
     const errorMsg = error.message || '';
     let frontendField: string | null = null;
     let errorKey = 'DUPLICATE_ENTRY';
@@ -268,13 +254,8 @@ export const handleApiErrorForForm = (
 
     if (frontendField) {
       const translatedMessage = t(`error.${errorKey}`);
-      console.log(
-        `[handleApiErrorForForm] Setting error for field "${frontendField}" from fallback: ${translatedMessage}`
-      );
       fieldErrors[frontendField] = translatedMessage;
     }
   }
-
-  console.log('[handleApiErrorForForm] Returning fieldErrors:', fieldErrors);
   return fieldErrors;
 };

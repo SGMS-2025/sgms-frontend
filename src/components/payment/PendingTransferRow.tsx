@@ -27,12 +27,6 @@ const getPaymentMethodLabel = (method: string) => {
       return 'Chuyển khoản';
     case 'CASH':
       return 'Tiền mặt';
-    case 'CARD':
-      return 'Thẻ';
-    case 'E_WALLET':
-      return 'Ví điện tử';
-    case 'OTHER':
-      return 'Khác';
     default:
       return method;
   }

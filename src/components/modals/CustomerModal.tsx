@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { Upload, Camera, CalendarIcon, Eye, EyeOff, User, Loader2 } from 'lucide-react';
+import { Upload, Camera, CalendarIcon, Eye, EyeOff, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,16 +15,6 @@ import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useBranch } from '@/contexts/BranchContext';
 import { customerApi } from '@/services/api/customerApi';
-import { handleApiErrorForForm } from '@/utils/errorHandler';
-import { generateUsernameFromEmail } from '@/utils/usernameUtils';
-import {
-  validateEmail,
-  validateFullName,
-  validatePassword,
-  validatePhoneNumberEdit,
-  validateDateOfBirthCustomer,
-  type ValidationResult
-} from '@/utils/validation';
 import type {
   CustomerModalProps,
   CustomerFormData,
@@ -62,8 +52,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
   const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>();
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [generatedUsername, setGeneratedUsername] = useState<string>('');
+  const [errors, setErrors] = useState<Partial<Record<keyof CustomerFormData, string>>>({});
 
   const resetFormData = (branchId?: string) => {
     setFormData(buildInitialForm(branchId));
@@ -71,7 +60,6 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
     setDatePickerOpen(false);
     setShowPassword(false);
     setErrors({});
-    setGeneratedUsername('');
   };
 
   const populateFormData = (customerDetail: CustomerDetail) => {
@@ -108,7 +96,6 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
     } else {
       resetFormData(currentBranchId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, customer, isEditMode, currentBranchId]);
 
   useEffect(() => {
@@ -119,33 +106,14 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
   }, [currentBranchId, isOpen, isEditMode]);
 
   const handleInputChange = (field: keyof CustomerFormData, value: string | File | null) => {
-    // Clear existing error for this field
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: '' }));
     }
 
-    setFormData((prev) => {
-      const newData = { ...prev, [field]: value };
-
-      // Auto-generate username from email when email changes (only if not in edit mode)
-      if (field === 'email' && typeof value === 'string' && value && !isEditMode) {
-        const generatedUsername = generateUsernameFromEmail(value);
-        if (generatedUsername) {
-          setGeneratedUsername(generatedUsername);
-        }
-      }
-
-      return newData;
-    });
-
-    // Real-time validation for string fields
-    if (typeof value === 'string' && field !== 'avatar') {
-      const error = validateField(field, value);
-      setErrors((prev) => ({
-        ...prev,
-        [field]: error || ''
-      }));
-    }
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,63 +123,90 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
     }
   };
 
-  // Validation helper functions using centralized utilities
-  const getValidationResult = (fieldName: keyof CustomerFormData, value: string): ValidationResult => {
-    switch (fieldName) {
+  const validateName = (value: string): string => {
+    if (!value.trim()) return t('customer_modal.validation.name_required');
+    return '';
+  };
+
+  const validatePhone = (value: string): string => {
+    if (!value.trim()) return t('customer_modal.validation.phone_required');
+    if (value.trim().length > 15) return t('customer_modal.validation.phone_length');
+    const phoneRegex = /^[0-9]{10,11}$/;
+    if (!phoneRegex.test(value.replace(/\s/g, ''))) return t('customer_modal.validation.phone_format');
+    return '';
+  };
+
+  const validateEmail = (value: string): string => {
+    if (!value.trim()) return t('customer_modal.validation.email_required');
+    if (value.trim().length > 100) return t('customer_modal.validation.email_length');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(value)) return t('customer_modal.validation.email_format');
+    return '';
+  };
+
+  const validatePassword = (value: string): string => {
+    if (isEditMode) return '';
+
+    if (!value.trim()) return t('customer_modal.validation.password_required');
+    if (value.length < 8) return t('customer_modal.validation.password_length');
+    if (!/[A-Z]/.test(value)) return t('customer_modal.validation.password_uppercase');
+    if (!/[0-9]/.test(value)) return t('customer_modal.validation.password_number');
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(value)) return t('customer_modal.validation.password_special');
+    return '';
+  };
+
+  const validateDateOfBirth = (value: string): string => {
+    if (!value) return '';
+    const birthDate = new Date(value);
+    const today = new Date();
+
+    if (birthDate > today) return t('customer_modal.validation.birth_date_future');
+
+    const age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
+
+    if (actualAge < 5) return t('customer_modal.validation.age_requirement');
+    return '';
+  };
+
+  const validateField = (field: keyof CustomerFormData, value: string | File | null): string => {
+    switch (field) {
       case 'name':
-        return validateFullName(value);
+        return validateName(String(value || ''));
       case 'phone':
-        return validatePhoneNumberEdit(value);
+        return validatePhone(String(value || ''));
       case 'email':
-        return validateEmail(value);
+        return validateEmail(String(value || ''));
       case 'password':
-        // Skip password validation in edit mode
-        if (isEditMode) return { isValid: true };
-        return validatePassword(value);
+        return validatePassword(String(value || ''));
       case 'dateOfBirth':
-        return validateDateOfBirthCustomer(value);
+        return validateDateOfBirth(String(value || ''));
       default:
-        return { isValid: true };
+        return '';
     }
   };
 
-  const validateField = (field: keyof CustomerFormData, value: string | File | null): string | null => {
-    const result = getValidationResult(field, String(value || ''));
-    return result.isValid ? null : result.error!;
-  };
-
-  // Validate all required fields
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    // Required fields validation
+  const validateBasicInfo = (): Partial<Record<keyof CustomerFormData, string>> => {
+    const newErrors: Partial<Record<keyof CustomerFormData, string>> = {};
     const requiredFields: (keyof CustomerFormData)[] = ['name', 'phone', 'email'];
     if (!isEditMode) requiredFields.push('password');
 
     requiredFields.forEach((field) => {
       const fieldValue = formData[field];
       if (fieldValue !== null && fieldValue !== undefined && !(fieldValue instanceof File)) {
-        const error = validateField(field, String(fieldValue));
-        if (error) newErrors[field] = error;
-      }
-    });
-
-    // Optional fields validation (only if they have values)
-    const optionalFields: (keyof CustomerFormData)[] = ['dateOfBirth'];
-    optionalFields.forEach((field) => {
-      const fieldValue = formData[field];
-      if (typeof fieldValue === 'string' && fieldValue.trim()) {
         const error = validateField(field, fieldValue);
         if (error) newErrors[field] = error;
       }
     });
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+    if (formData.dateOfBirth) {
+      const error = validateField('dateOfBirth', formData.dateOfBirth);
+      if (error) newErrors.dateOfBirth = error;
+    }
 
-  // Username generation is now imported from utils
-  // Error handling is now done inline using handleApiErrorForForm
+    return newErrors;
+  };
 
   const handleDateOfBirthSelect = (date: Date | undefined) => {
     if (!date) return;
@@ -232,14 +227,18 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
   const handleSubmit = () => {
     setLoading(true);
 
-    // Validate all fields before submission
-    if (!validateForm()) {
+    const newErrors = validateBasicInfo();
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast.error(t('customer_modal.validation.check_info'));
       setLoading(false);
       return;
     }
 
+    setErrors({});
+
     const payload = {
-      username: generatedUsername || formData.phone, // Use generated username from email, fallback to phone
+      username: formData.phone,
       email: formData.email,
       fullName: formData.name,
       phoneNumber: formData.phone,
@@ -262,34 +261,10 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
           onCustomerUpdate?.();
           onClose();
         })
-        .catch(
-          (
-            error: Error & {
-              meta?: { details?: Array<{ field: string; message: string }>; field?: string };
-              code?: string;
-              statusCode?: number;
-            }
-          ) => {
-            console.error('Error updating customer:', error);
-
-            // Use centralized error handler
-            const fieldErrors = handleApiErrorForForm(error, {
-              context: 'customer',
-              customFieldMappings: {
-                phoneNumber: 'phone',
-                fullName: 'name',
-                dateOfBirth: 'dateOfBirth'
-              },
-              errorKeyMappings: {
-                username: 'EMAIL_ALREADY_EXISTS',
-                email: 'EMAIL_ALREADY_EXISTS',
-                phoneNumber: 'PHONE_NUMBER_ALREADY_EXISTS'
-              },
-              t: (key: string) => t(key)
-            });
-            setErrors(fieldErrors);
-          }
-        )
+        .catch((error) => {
+          console.error('Error submitting basic info:', error);
+          toast.error('Có lỗi xảy ra khi lưu thông tin khách hàng');
+        })
         .finally(() => {
           setLoading(false);
         });
@@ -303,53 +278,27 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
             const statusCode = errorResponse.statusCode;
             const errorCode = errorResponse.code;
 
-            // Debug logging
-            console.log('Error response:', errorResponse);
-            console.log('Error object:', errorResponse.error);
-            console.log('Error meta:', errorResponse.error?.meta);
-            console.log('Status code:', statusCode);
-            console.log('Error code:', errorCode);
-            console.log('Full error structure:', JSON.stringify(errorResponse, null, 2));
+            if (statusCode === 409 || errorCode === 'MONGO_DUPLICATE_KEY' || errorCode === 'CONFLICT') {
+              const errorMeta = errorResponse.error?.meta;
+              if (errorMeta?.field) {
+                setErrors((prev) => ({ ...prev, [errorMeta.field as keyof CustomerFormData]: errorMessage }));
+                toast.error(errorMessage);
+              } else {
+                if (errorMessage.includes('email_1')) {
+                  setErrors((prev) => ({ ...prev, email: 'Email đã tồn tại' }));
+                  toast.error('Email đã tồn tại');
+                } else if (errorMessage.includes('phoneNumber_1')) {
+                  setErrors((prev) => ({ ...prev, phone: 'Số điện thoại đã tồn tại' }));
+                  toast.error('Số điện thoại đã tồn tại');
+                } else {
+                  toast.error('Dữ liệu đã tồn tại trong hệ thống');
+                }
+              }
+              setLoading(false);
+              return;
+            }
 
-            // Use centralized error handler
-            // Construct error object from errorResponse for compatibility
-            const errorObj = errorResponse.error as {
-              meta?: { details?: Array<{ field: string; message: string }>; field?: string };
-              code?: string;
-              statusCode?: number;
-              message?: string;
-            };
-            const errorForHandler = {
-              name: 'Error',
-              ...errorObj,
-              statusCode: statusCode || errorObj?.statusCode,
-              code: errorCode || errorObj?.code,
-              message: errorMessage || errorObj?.message
-            } as Error & {
-              meta?: { details?: Array<{ field: string; message: string }>; field?: string };
-              code?: string;
-              statusCode?: number;
-            };
-
-            console.log('[CustomerModal.then] errorForHandler:', errorForHandler);
-            console.log('[CustomerModal.then] errorForHandler.meta:', errorForHandler.meta);
-            console.log('[CustomerModal.then] errorForHandler.meta?.details:', errorForHandler.meta?.details);
-
-            const fieldErrors = handleApiErrorForForm(errorForHandler, {
-              context: 'customer',
-              customFieldMappings: {
-                phoneNumber: 'phone',
-                fullName: 'name',
-                dateOfBirth: 'dateOfBirth'
-              },
-              errorKeyMappings: {
-                username: 'EMAIL_ALREADY_EXISTS',
-                email: 'EMAIL_ALREADY_EXISTS',
-                phoneNumber: 'PHONE_NUMBER_ALREADY_EXISTS'
-              },
-              t: (key: string) => t(key)
-            });
-            setErrors(fieldErrors);
+            toast.error(errorMessage);
             setLoading(false);
             return;
           }
@@ -358,75 +307,9 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
           onCustomerUpdate?.();
           onClose();
         })
-        .catch((error: unknown) => {
-          console.error('Error creating customer:', error);
-
-          // Normalize error object from different sources (AxiosError, ApiResponse, etc.)
-          let normalizedError: Error & {
-            meta?: { details?: Array<{ field: string; message: string }>; field?: string };
-            code?: string;
-            statusCode?: number;
-          };
-
-          // Check if error has response.data structure (from Axios)
-          if (error && typeof error === 'object' && 'response' in error) {
-            const axiosError = error as {
-              response?: {
-                data?: {
-                  error?: {
-                    meta?: { details?: Array<{ field: string; message: string }>; field?: string };
-                    code?: string;
-                    statusCode?: number;
-                    message?: string;
-                  };
-                };
-              };
-            };
-            if (axiosError.response?.data?.error) {
-              normalizedError = {
-                name: 'Error',
-                ...axiosError.response.data.error,
-                message: axiosError.response.data.error.message || 'Unknown error',
-                statusCode: axiosError.response.data.error.statusCode,
-                code: axiosError.response.data.error.code
-              };
-            } else {
-              normalizedError = {
-                name: 'Error',
-                message: 'Network error',
-                statusCode: 0,
-                code: 'NETWORK_ERROR'
-              };
-            }
-          } else {
-            // Use error as-is if it already has the correct structure
-            normalizedError = error as Error & {
-              meta?: { details?: Array<{ field: string; message: string }>; field?: string };
-              code?: string;
-              statusCode?: number;
-            };
-          }
-
-          console.log('Catch block - Normalized error:', normalizedError);
-          console.log('Catch block - Error meta:', normalizedError?.meta);
-          console.log('Catch block - Error details:', normalizedError?.meta?.details);
-
-          // Use centralized error handler
-          const fieldErrors = handleApiErrorForForm(normalizedError, {
-            context: 'customer',
-            customFieldMappings: {
-              phoneNumber: 'phone',
-              fullName: 'name',
-              dateOfBirth: 'dateOfBirth'
-            },
-            errorKeyMappings: {
-              username: 'EMAIL_ALREADY_EXISTS',
-              email: 'EMAIL_ALREADY_EXISTS',
-              phoneNumber: 'PHONE_NUMBER_ALREADY_EXISTS'
-            },
-            t: (key: string) => t(key)
-          });
-          setErrors(fieldErrors);
+        .catch((error) => {
+          console.error('Error submitting basic info:', error);
+          toast.error('Có lỗi xảy ra khi lưu thông tin khách hàng');
         })
         .finally(() => {
           setLoading(false);
@@ -498,7 +381,6 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     placeholder={t('customer_modal.customer_name_placeholder')}
                     className={errors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
-                    disabled={loading}
                   />
                   {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name}</p>}
                 </div>
@@ -534,7 +416,6 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                     onChange={(e) => handleInputChange('phone', e.target.value)}
                     placeholder={t('customer_modal.phone_placeholder')}
                     className={errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
-                    disabled={loading}
                   />
                   {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone}</p>}
                 </div>
@@ -549,7 +430,6 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     placeholder={t('customer_modal.email_placeholder')}
                     className={errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
-                    disabled={loading}
                   />
                   {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email}</p>}
                 </div>
@@ -567,13 +447,11 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                       className={
                         errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500 pr-10' : 'pr-10'
                       }
-                      disabled={loading}
                     />
                     <button
                       type="button"
                       className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500"
                       onClick={() => setShowPassword((prev) => !prev)}
-                      disabled={loading}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -638,7 +516,6 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                   value={formData.address}
                   onChange={(e) => handleInputChange('address', e.target.value)}
                   placeholder={t('customer_modal.address_placeholder')}
-                  disabled={loading}
                 />
               </div>
 
@@ -649,7 +526,6 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                   onChange={(e) => handleInputChange('notes', e.target.value)}
                   placeholder={t('customer_modal.notes_placeholder')}
                   rows={4}
-                  disabled={loading}
                 />
               </div>
             </div>
@@ -660,16 +536,11 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
               {t('customer_modal.close')}
             </Button>
             <Button type="button" onClick={handleSubmit} disabled={loading}>
-              {loading ? (
-                <div className="flex items-center space-x-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>{t('customer_modal.loading_data')}</span>
-                </div>
-              ) : isEditMode ? (
-                t('customer_modal.update')
-              ) : (
-                t('customer_modal.create')
-              )}
+              {loading
+                ? t('customer_modal.loading_data')
+                : isEditMode
+                  ? t('customer_modal.update')
+                  : t('customer_modal.create')}
             </Button>
           </div>
         </div>

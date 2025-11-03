@@ -733,7 +733,6 @@ export const useStaffScheduleForm = (selectedStaffId?: string) => {
       const dayCustomTimes = prev[dayKey] || {};
 
       if (customTime === null) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { [shiftKey]: _, ...rest } = dayCustomTimes;
         return {
           ...prev,

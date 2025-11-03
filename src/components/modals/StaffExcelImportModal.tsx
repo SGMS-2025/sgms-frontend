@@ -3,18 +3,9 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { Key, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ExcelImportModalBase, type BaseImportResult } from './ExcelImportModalBase';
+import { ExcelImportModalBase } from './ExcelImportModalBase';
 import { useStaffImport } from '@/hooks/useStaff';
-
-interface StaffExcelImportModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onImportSuccess: () => void;
-}
-
-interface StaffImportResult extends BaseImportResult {
-  generatedPasswords: Array<{ email: string; username: string; password: string }>;
-}
+import type { StaffExcelImportModalProps, StaffImportResult } from '@/types/api/Staff';
 
 export const StaffExcelImportModal: React.FC<StaffExcelImportModalProps> = ({ isOpen, onClose, onImportSuccess }) => {
   const { t } = useTranslation();

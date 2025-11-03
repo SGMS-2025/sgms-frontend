@@ -4,7 +4,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Activity,
+  AlertTriangle,
   ArrowLeft,
+  Calendar,
   CalendarCheck,
   CalendarDays,
   CreditCard,
@@ -16,8 +18,18 @@ import {
   Mail,
   MapPin,
   Phone,
-  User
+  User,
+  Users,
+  XCircle
 } from 'lucide-react';
+import { PTRegistrationDialog } from '@/components/customer/registration/PTRegistrationDialog';
+import { ClassRegistrationDialog } from '@/components/customer/registration/ClassRegistrationDialog';
+import { MembershipRegistrationDialog } from '@/components/customer/registration/MembershipRegistrationDialog';
+import { PaymentHistoryTab } from '@/components/customer/PaymentHistoryTab';
+import { ExtendMembershipDialog } from '@/components/customer/ExtendMembershipDialog';
+import { CancelServiceContractDialog } from '@/components/customer/CancelServiceContractDialog';
+import { ExtendServiceContractDialog } from '@/components/customer/ExtendServiceContractDialog';
+import { CancelMembershipDialog } from '@/components/modals/CancelMembershipDialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +38,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { customerApi } from '@/services/api/customerApi';
 import { cn } from '@/utils/utils';
 import type { CustomerDisplay } from '@/types/api/Customer';
+import type { MembershipContract } from '@/types/api/Membership';
 import type { LucideIcon } from 'lucide-react';
 
 const formatDate = (value?: string) => {
@@ -123,6 +136,21 @@ const CustomerDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('general');
 
+  // Registration modals state
+  const [showPTModal, setShowPTModal] = useState(false);
+  const [showClassModal, setShowClassModal] = useState(false);
+  const [showMembershipModal, setShowMembershipModal] = useState(false);
+
+  // Cancel modals state
+  const [showCancelMembership, setShowCancelMembership] = useState(false);
+  const [showCancelPT, setShowCancelPT] = useState(false);
+  const [showCancelClass, setShowCancelClass] = useState(false);
+
+  // Extend modals state
+  const [showExtendMembership, setShowExtendMembership] = useState(false);
+  const [showExtendPT, setShowExtendPT] = useState(false);
+  const [showExtendClass, setShowExtendClass] = useState(false);
+
   useEffect(() => {
     if (id) {
       void fetchCustomerDetail();
@@ -200,18 +228,96 @@ const CustomerDetailPage: React.FC = () => {
       ?.map((branch) => branch.branchName)
       .filter(Boolean)
       .join(', ') || undefined;
-  const membershipPlanName =
-    customer.latestMembershipContract?.membershipPlanId?.name || customer.membershipType || 'Chưa cập nhật';
-  const servicePackageName = customer.latestServiceContract?.servicePackageId?.name || customer.serviceName || '—';
   const membershipContract = customer.latestMembershipContract;
-  const serviceContract = customer.latestServiceContract;
   const statusLabel = getStatusText(customer.status);
+
+  // Separate PT and Class contracts from allServiceContracts based on packageType
+  interface ServiceContractItem {
+    _id?: string;
+    packageType?: string;
+    status?: string;
+    servicePackageId?: { name?: string };
+    paidAmount?: number;
+    debtAmount?: number;
+    startDate?: string;
+    endDate?: string;
+  }
+
+  const allServiceContracts: ServiceContractItem[] =
+    (customer as CustomerDisplay & { allServiceContracts?: ServiceContractItem[] }).allServiceContracts || [];
+  const ptContract = allServiceContracts.find(
+    (contract) =>
+      contract.packageType === 'PT' &&
+      contract.status &&
+      !['CANCELED', 'EXPIRED', 'SUSPENDED', 'DELETED'].includes(contract.status)
+  );
+  const classContract = allServiceContracts.find(
+    (contract) =>
+      contract.packageType === 'CLASS' &&
+      contract.status &&
+      !['CANCELED', 'EXPIRED', 'SUSPENDED', 'DELETED'].includes(contract.status)
+  );
+
+  // Only show membership/service info if contract is active
+  const isActiveMembership =
+    membershipContract?.status && !['CANCELED', 'EXPIRED', 'SUSPENDED'].includes(membershipContract.status);
+  const isActivePT = ptContract?.status && !['CANCELED', 'EXPIRED', 'SUSPENDED'].includes(ptContract.status);
+  const isActiveClass = classContract?.status && !['CANCELED', 'EXPIRED', 'SUSPENDED'].includes(classContract.status);
+
+  const membershipPlanName = isActiveMembership
+    ? customer.latestMembershipContract?.membershipPlanId?.name || customer.membershipType || 'Chưa cập nhật'
+    : 'Chưa cập nhật';
+  const ptPackageName = isActivePT ? ptContract.servicePackageId?.name || '—' : '—';
+  const classPackageName = isActiveClass ? classContract.servicePackageId?.name || '—' : '—';
+
+  // Determine if customer has active PT or CLASS package (not canceled, expired, or suspended)
+  const hasPTPackage = ptContract && ptContract.status && ['ACTIVE', 'PAST_DUE'].includes(ptContract.status);
+  const hasClassPackage =
+    classContract && classContract.status && ['ACTIVE', 'PAST_DUE'].includes(classContract.status);
+
+  // Check if customer has active membership (not canceled, expired, or suspended)
+  const hasMembership =
+    membershipPlanName &&
+    membershipPlanName !== 'Chưa cập nhật' &&
+    membershipContract?.status &&
+    !['CANCELED', 'EXPIRED', 'SUSPENDED'].includes(membershipContract.status);
 
   const totalSpentDisplay = formatCurrency(customer.totalSpent);
   const totalSpentLabel = totalSpentDisplay === '—' ? 'Chưa cập nhật' : totalSpentDisplay;
   const lastPaymentDisplay = formatDate(customer.lastPaymentDate);
   const lastPaymentLabel = lastPaymentDisplay === '—' ? 'Chưa có giao dịch' : lastPaymentDisplay;
-  const membershipStatusDisplay = customer.membershipStatus || 'Chưa cập nhật';
+
+  // Get membership dates from contract if available and active, otherwise from customer
+  const membershipJoinDate =
+    isActiveMembership && membershipContract?.startDate ? membershipContract.startDate : customer.joinDate;
+  const membershipExpiryDate =
+    isActiveMembership && membershipContract?.endDate ? membershipContract.endDate : customer.expiryDate;
+
+  // Get membership status from contract if available
+  const getMembershipStatusLabel = (status?: string) => {
+    if (!status) return 'Chưa cập nhật';
+    switch (status) {
+      case 'ACTIVE':
+        return 'Đang hoạt động';
+      case 'PENDING_ACTIVATION':
+        return 'Chờ kích hoạt';
+      case 'EXPIRED':
+        return 'Đã hết hạn';
+      case 'SUSPENDED':
+        return 'Tạm ngưng';
+      case 'CANCELED':
+        return 'Đã hủy';
+      case 'PAST_DUE':
+        return 'Quá hạn';
+      default:
+        return status;
+    }
+  };
+
+  const membershipStatusDisplay =
+    isActiveMembership && membershipContract?.status
+      ? getMembershipStatusLabel(membershipContract.status)
+      : 'Chưa có gói';
   const branchDisplay = branchNames ?? 'Chưa gán chi nhánh';
 
   const contactChips: Array<{ icon: LucideIcon; label: string }> = [];
@@ -279,15 +385,15 @@ const CustomerDetailPage: React.FC = () => {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
               <span className="text-xs uppercase tracking-wide text-white/70">Gói hội viên</span>
-              <p className="mt-1 text-sm font-semibold">{membershipPlanName}</p>
+              <p className="mt-1 text-sm font-semibold">{isActiveMembership ? membershipPlanName : 'Chưa đăng ký'}</p>
             </div>
             <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
               <span className="text-xs uppercase tracking-wide text-white/70">Ngày tham gia</span>
-              <p className="mt-1 text-sm font-semibold">{formatDate(customer.joinDate)}</p>
+              <p className="mt-1 text-sm font-semibold">{formatDate(membershipJoinDate)}</p>
             </div>
             <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
               <span className="text-xs uppercase tracking-wide text-white/70">Ngày hết hạn</span>
-              <p className="mt-1 text-sm font-semibold">{formatDate(customer.expiryDate)}</p>
+              <p className="mt-1 text-sm font-semibold">{formatDate(membershipExpiryDate)}</p>
             </div>
           </div>
         </div>
@@ -343,68 +449,199 @@ const CustomerDetailPage: React.FC = () => {
           </div>
 
           <TabsContent value="general" className="space-y-6 pt-4">
-            <div className="grid gap-6 xl:grid-cols-2">
+            {/* Personal Info Card - Full Width */}
+            <Card className="rounded-3xl border border-border bg-card shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <IdCard className="h-5 w-5 text-primary" />
+                  Hồ sơ cá nhân
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">Thông tin nhận diện và trạng thái hội viên.</p>
+              </CardHeader>
+              <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <InfoField label="Mã hội viên" value={customer.id ? customer.id.slice(-8).toUpperCase() : '—'} />
+                <InfoField label="Giới tính" value={getGenderLabel(customer.gender)} />
+                <InfoField label="Ngày sinh" value={formatDate(customer.dateOfBirth)} />
+                <InfoField
+                  label="Tình trạng tài khoản"
+                  value={
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        'px-3 py-1 text-xs font-semibold uppercase tracking-wide',
+                        getStatusBadgeStyles(customer.status)
+                      )}
+                    >
+                      {statusLabel}
+                    </Badge>
+                  }
+                />
+                <InfoField label="Ngày tạo hồ sơ" value={formatDate(customer.createdAt)} />
+                <InfoField
+                  label="Phân loại"
+                  value={customer.isLoyal ? 'Khách hàng trung thành' : 'Khách hàng tiêu chuẩn'}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Service & Membership Cards - 3 Columns */}
+            <div className="grid gap-6 lg:grid-cols-3">
+              {/* Membership Card */}
               <Card className="rounded-3xl border border-border bg-card shadow-sm">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <IdCard className="h-5 w-5 text-primary" />
-                    Hồ sơ cá nhân
+                    <CreditCard className="h-5 w-5 text-primary" />
+                    Gói hội viên
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground">Thông tin nhận diện và trạng thái hội viên.</p>
+                  <p className="text-sm text-muted-foreground">Thông tin gói hội viên và quyền lợi của khách hàng.</p>
                 </CardHeader>
-                <CardContent className="grid gap-4 sm:grid-cols-2">
-                  <InfoField label="Mã hội viên" value={customer.id ? customer.id.slice(-8).toUpperCase() : '—'} />
-                  <InfoField label="Giới tính" value={getGenderLabel(customer.gender)} />
-                  <InfoField label="Ngày sinh" value={formatDate(customer.dateOfBirth)} />
-                  <InfoField
-                    label="Tình trạng tài khoản"
-                    value={
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          'px-3 py-1 text-xs font-semibold uppercase tracking-wide',
-                          getStatusBadgeStyles(customer.status)
-                        )}
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <InfoField label="Tên gói" value={hasMembership ? membershipPlanName : 'Chưa đăng ký'} />
+                    <InfoField label="Trạng thái" value={hasMembership ? membershipStatusDisplay : 'Chưa có gói'} />
+                    <InfoField label="Ngày tham gia" value={hasMembership ? formatDate(membershipJoinDate) : '—'} />
+                    <InfoField label="Ngày hết hạn" value={hasMembership ? formatDate(membershipExpiryDate) : '—'} />
+                  </div>
+
+                  {hasMembership ? (
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => setShowExtendMembership(true)}
+                        className="flex-1 rounded-full"
+                        variant="default"
                       >
-                        {statusLabel}
-                      </Badge>
-                    }
-                  />
-                  <InfoField label="Ngày tạo hồ sơ" value={formatDate(customer.createdAt)} />
-                  <InfoField
-                    label="Phân loại"
-                    value={customer.isLoyal ? 'Khách hàng trung thành' : 'Khách hàng tiêu chuẩn'}
-                  />
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Gia hạn
+                      </Button>
+                      <Button
+                        onClick={() => setShowCancelMembership(true)}
+                        className="flex-1 rounded-full"
+                        variant="destructive"
+                      >
+                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        Hủy gói
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={() => setShowMembershipModal(true)}
+                      className="w-full rounded-full"
+                      variant="outline"
+                    >
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Đăng ký gói hội viên
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
 
+              {/* PT Service Card */}
               <Card className="rounded-3xl border border-border bg-card shadow-sm">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <FileText className="h-5 w-5 text-primary" />
-                    Gói dịch vụ & hội viên
+                    <Dumbbell className="h-5 w-5 text-primary" />
+                    Gói PT 1-1
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Theo dõi hành trình gói tập và dịch vụ đi kèm của khách hàng.
-                  </p>
+                  <p className="text-sm text-muted-foreground">Thông tin gói Personal Training của khách hàng.</p>
                 </CardHeader>
-                <CardContent className="grid gap-4 sm:grid-cols-2">
-                  <InfoField label="Gói hội viên" value={membershipPlanName} />
-                  <InfoField label="Trạng thái gói" value={membershipStatusDisplay} />
-                  <InfoField label="Ngày tham gia" value={formatDate(customer.joinDate)} />
-                  <InfoField label="Ngày hết hạn" value={formatDate(customer.expiryDate)} />
-                  <InfoField label="Gói dịch vụ" value={servicePackageName} />
-                  <InfoField
-                    label="Thời hạn dịch vụ"
-                    value={
-                      serviceContract?.startDate || serviceContract?.endDate
-                        ? `${formatDate(serviceContract?.startDate)} → ${formatDate(serviceContract?.endDate)}`
-                        : 'Chưa cập nhật'
-                    }
-                  />
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <InfoField label="Gói PT" value={hasPTPackage ? ptPackageName : 'Chưa đăng ký'} />
+                    <InfoField
+                      label="Trạng thái"
+                      value={hasPTPackage ? getMembershipStatusLabel(ptContract?.status) : 'Chưa có gói'}
+                    />
+                    <InfoField
+                      label="Ngày bắt đầu"
+                      value={hasPTPackage && ptContract?.startDate ? formatDate(ptContract.startDate) : '—'}
+                    />
+                    <InfoField
+                      label="Ngày kết thúc"
+                      value={hasPTPackage && ptContract?.endDate ? formatDate(ptContract.endDate) : '—'}
+                    />
+                  </div>
+
+                  {hasPTPackage ? (
+                    <div className="flex gap-2">
+                      <Button onClick={() => setShowExtendPT(true)} className="flex-1 rounded-full" variant="default">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Gia hạn
+                      </Button>
+                      <Button
+                        onClick={() => setShowCancelPT(true)}
+                        className="flex-1 rounded-full"
+                        variant="destructive"
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Hủy gói
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button onClick={() => setShowPTModal(true)} className="w-full rounded-full" variant="outline">
+                      <Dumbbell className="h-4 w-4 mr-2" />
+                      Đăng ký gói PT
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
 
+              {/* Class Service Card */}
+              <Card className="rounded-3xl border border-border bg-card shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Users className="h-5 w-5 text-primary" />
+                    Gói lớp học
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">Thông tin gói lớp học nhóm của khách hàng.</p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <InfoField label="Gói lớp học" value={hasClassPackage ? classPackageName : 'Chưa đăng ký'} />
+                    <InfoField
+                      label="Trạng thái"
+                      value={hasClassPackage ? getMembershipStatusLabel(classContract?.status) : 'Chưa có gói'}
+                    />
+                    <InfoField
+                      label="Ngày bắt đầu"
+                      value={hasClassPackage && classContract?.startDate ? formatDate(classContract.startDate) : '—'}
+                    />
+                    <InfoField
+                      label="Ngày kết thúc"
+                      value={hasClassPackage && classContract?.endDate ? formatDate(classContract.endDate) : '—'}
+                    />
+                  </div>
+
+                  {hasClassPackage ? (
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => setShowExtendClass(true)}
+                        className="flex-1 rounded-full"
+                        variant="default"
+                      >
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Gia hạn
+                      </Button>
+                      <Button
+                        onClick={() => setShowCancelClass(true)}
+                        className="flex-1 rounded-full"
+                        variant="destructive"
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Hủy gói
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button onClick={() => setShowClassModal(true)} className="w-full rounded-full" variant="outline">
+                      <Users className="h-4 w-4 mr-2" />
+                      Đăng ký gói lớp học
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Contact and Payment Info - 2 Columns */}
+            <div className="grid gap-6 xl:grid-cols-2">
               <Card className="rounded-3xl border border-border bg-card shadow-sm">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
@@ -435,19 +672,35 @@ const CustomerDetailPage: React.FC = () => {
                   <InfoField label="Thanh toán gần nhất" value={lastPaymentLabel} />
                   <InfoField
                     label="Công nợ hội viên"
-                    value={membershipContract ? formatCurrency(membershipContract.remainingDebt) : 'Chưa cập nhật'}
+                    value={
+                      hasMembership && membershipContract
+                        ? formatCurrency(membershipContract.remainingDebt)
+                        : 'Chưa cập nhật'
+                    }
                   />
                   <InfoField
                     label="Đã thanh toán (hội viên)"
-                    value={membershipContract ? formatCurrency(membershipContract.initialPaidAmount) : 'Chưa cập nhật'}
+                    value={
+                      hasMembership && membershipContract
+                        ? formatCurrency(membershipContract.initialPaidAmount)
+                        : 'Chưa cập nhật'
+                    }
                   />
                   <InfoField
                     label="Công nợ dịch vụ"
-                    value={serviceContract ? formatCurrency(serviceContract.remainingDebt) : 'Chưa cập nhật'}
+                    value={
+                      ptContract || classContract
+                        ? formatCurrency((ptContract?.debtAmount || 0) + (classContract?.debtAmount || 0))
+                        : 'Chưa cập nhật'
+                    }
                   />
                   <InfoField
                     label="Đã thanh toán (dịch vụ)"
-                    value={serviceContract ? formatCurrency(serviceContract.initialPaidAmount) : 'Chưa cập nhật'}
+                    value={
+                      ptContract || classContract
+                        ? formatCurrency((ptContract?.paidAmount || 0) + (classContract?.paidAmount || 0))
+                        : 'Chưa cập nhật'
+                    }
                   />
                 </CardContent>
               </Card>
@@ -495,11 +748,7 @@ const CustomerDetailPage: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="payment" className="pt-4">
-            <PlaceholderCard
-              icon={CreditCard}
-              title="Lịch sử thanh toán"
-              description="Chi tiết giao dịch sẽ xuất hiện ngay khi kết nối với hệ thống kế toán."
-            />
+            {customer.id && <PaymentHistoryTab customerId={customer.id} />}
           </TabsContent>
 
           <TabsContent value="fitness-calculator" className="pt-4">
@@ -519,6 +768,124 @@ const CustomerDetailPage: React.FC = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Registration Dialogs */}
+      <PTRegistrationDialog
+        isOpen={showPTModal}
+        onClose={() => setShowPTModal(false)}
+        customerId={customer.id}
+        onSuccess={fetchCustomerDetail}
+      />
+
+      <ClassRegistrationDialog
+        isOpen={showClassModal}
+        onClose={() => setShowClassModal(false)}
+        customerId={customer.id}
+        onSuccess={fetchCustomerDetail}
+      />
+
+      <MembershipRegistrationDialog
+        isOpen={showMembershipModal}
+        onClose={() => setShowMembershipModal(false)}
+        customerId={customer.id}
+        onSuccess={fetchCustomerDetail}
+      />
+
+      {/* Cancel Dialogs */}
+      {membershipContract && (
+        <CancelMembershipDialog
+          isOpen={showCancelMembership}
+          onClose={() => setShowCancelMembership(false)}
+          onSuccess={fetchCustomerDetail}
+          contract={
+            {
+              _id: membershipContract._id,
+              customerId: customer.id,
+              branchId: customer.branches?.[0]?._id || '',
+              membershipPlanId:
+                typeof membershipContract.membershipPlanId === 'string'
+                  ? membershipContract.membershipPlanId
+                  : membershipContract.membershipPlanId?._id || '',
+              discountCampaignId: membershipContract.discountCampaignId?._id,
+              price: membershipContract.totalAmount || 0,
+              discountAmount: 0,
+              total: membershipContract.totalAmount || 0,
+              paidAmount: membershipContract.initialPaidAmount || 0,
+              debtAmount: membershipContract.remainingDebt || 0,
+              status: 'ACTIVE',
+              startDate: membershipContract.startDate,
+              endDate: membershipContract.endDate || customer.expiryDate || '',
+              notes: membershipContract.notes,
+              createdAt: customer.createdAt || new Date().toISOString(),
+              updatedAt: customer.updatedAt || new Date().toISOString()
+            } as MembershipContract
+          }
+        />
+      )}
+
+      {hasPTPackage && ptContract && (
+        <CancelServiceContractDialog
+          isOpen={showCancelPT}
+          onClose={() => setShowCancelPT(false)}
+          onSuccess={fetchCustomerDetail}
+          contractId={ptContract._id || ''}
+          contractType="PT"
+          serviceName={ptPackageName}
+          paidAmount={ptContract.paidAmount || 0}
+          startDate={ptContract.startDate}
+          endDate={ptContract.endDate}
+        />
+      )}
+
+      {hasClassPackage && classContract && (
+        <CancelServiceContractDialog
+          isOpen={showCancelClass}
+          onClose={() => setShowCancelClass(false)}
+          onSuccess={fetchCustomerDetail}
+          contractId={classContract._id || ''}
+          contractType="CLASS"
+          serviceName={classPackageName}
+          paidAmount={classContract.paidAmount || 0}
+          startDate={classContract.startDate}
+          endDate={classContract.endDate}
+        />
+      )}
+
+      {/* Extend Dialogs */}
+      {hasMembership && membershipContract && (
+        <ExtendMembershipDialog
+          isOpen={showExtendMembership}
+          onClose={() => setShowExtendMembership(false)}
+          onSuccess={fetchCustomerDetail}
+          contractId={membershipContract._id || ''}
+          currentEndDate={customer.expiryDate}
+          planName={membershipPlanName}
+        />
+      )}
+
+      {hasPTPackage && ptContract && (
+        <ExtendServiceContractDialog
+          isOpen={showExtendPT}
+          onClose={() => setShowExtendPT(false)}
+          onSuccess={fetchCustomerDetail}
+          contractId={ptContract._id || ''}
+          contractType="PT"
+          serviceName={ptPackageName}
+          currentEndDate={ptContract.endDate}
+        />
+      )}
+
+      {hasClassPackage && classContract && (
+        <ExtendServiceContractDialog
+          isOpen={showExtendClass}
+          onClose={() => setShowExtendClass(false)}
+          onSuccess={fetchCustomerDetail}
+          contractId={classContract._id || ''}
+          contractType="CLASS"
+          serviceName={classPackageName}
+          currentEndDate={classContract.endDate}
+        />
+      )}
     </div>
   );
 };

@@ -364,8 +364,6 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
     setFormData((prev) => ({ ...prev, profileImage: result.imageUrl }));
   }, STAFF_IMAGE_OPTIONS);
 
-  // Username generation is now imported from utils
-
   // Handle date selection
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {

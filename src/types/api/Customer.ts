@@ -53,6 +53,7 @@ export interface CustomerDisplay {
     initialPaidAmount?: number;
     totalAmount?: number;
     remainingDebt?: number;
+    status?: 'ACTIVE' | 'EXPIRED' | 'CANCELED' | 'SUSPENDED';
     discountCampaignId?: {
       _id: string;
       name: string;
@@ -268,6 +269,49 @@ export interface BranchWithAddress {
 
 // Gender type for form validation
 export type GenderType = 'male' | 'female' | 'other';
+
+// ===== MEMBERSHIP CONTRACT REGISTRATION TYPES =====
+
+/**
+ * Membership Registration Form Data
+ */
+export interface MembershipRegistrationFormData {
+  membershipPlanId: string;
+  branchId: string;
+  cardCode?: string;
+  startDate: string;
+  discountCampaignId?: string;
+  initialPaidAmount: number;
+  paymentMethod: 'CASH' | 'BANK_TRANSFER';
+  referrerStaffId?: string;
+  notes?: string;
+}
+
+/**
+ * Membership Contract Response
+ */
+export interface MembershipContractResponse {
+  success: boolean;
+  data?: {
+    contract: {
+      _id: string;
+      customerId: string;
+      membershipPlanId: string;
+      branchId: string;
+      startDate: string;
+      endDate: string;
+      price: number;
+      discountAmount: number;
+      total: number;
+      paidAmount: number;
+      debtAmount: number;
+      status: string;
+      activationDate?: string;
+      createdAt: string;
+    };
+  };
+  message?: string;
+}
 
 // Hook interfaces
 export interface UseCustomerListOptions {

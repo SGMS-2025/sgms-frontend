@@ -43,8 +43,6 @@ export const AddProgressForm: React.FC<AddProgressFormProps> = ({
     const validation = validateProgressForm(formData, photoManager.newPhotos.length);
 
     if (!validation.isValid) {
-      console.log('🔍 Validation failed:', validation.errors);
-      console.log('📋 Form data:', formData);
       toast.error(formatValidationErrors(validation.errors));
       return;
     }
@@ -79,17 +77,10 @@ export const AddProgressForm: React.FC<AddProgressFormProps> = ({
     if (response.success) {
       const createdProgressId = response.data._id;
 
-      // Upload photos if any (using EditForm logic)
+      // Upload photos if any
       if (photoManager.newPhotos.length > 0) {
-        // Convert blob URLs to files
         const files = await convertBlobUrlsToFiles(photoManager.newPhotos);
-
-        // Upload photos to the created progress record
-        const photoUploadResult = await uploadPhotos(createdProgressId, files);
-
-        if (!photoUploadResult.success) {
-          toast.warning(t('toast.progress_saved_photo_upload_failed'));
-        }
+        await uploadPhotos(createdProgressId, files);
       }
 
       // Call parent onSubmit with the data for UI updates
