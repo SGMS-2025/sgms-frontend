@@ -7,30 +7,166 @@ export interface ValidationResult {
   error?: string;
 }
 
-// Validate phone number (original - optional field)
-export const validatePhoneNumber = (phone: string): ValidationResult => {
-  if (!phone.trim()) {
-    return { isValid: true }; // Optional field
-  }
+// ==================== SHARED VALIDATION HELPERS ====================
 
-  // Remove spaces and special characters
-  const cleanPhone = phone.replace(/[\s\-()]/g, '');
+/**
+ * Clean phone number by removing spaces and special characters
+ */
+const cleanPhoneNumber = (phone: string): string => {
+  return phone.replace(/[\s\-()]/g, '');
+};
 
-  // Check if contains only numbers
+/**
+ * Validate phone number contains only digits
+ */
+const validatePhoneDigits = (cleanPhone: string): ValidationResult | null => {
   if (!/^\d+$/.test(cleanPhone)) {
     return {
       isValid: false,
       error: i18n.t('validation.phone_only_digits')
     };
   }
+  return null;
+};
 
-  // Check Vietnamese phone number format (10-11 digits, starts with 0)
+/**
+ * Validate phone number format (Vietnamese format: 10-11 digits starting with 0)
+ */
+const validatePhoneFormat = (cleanPhone: string): ValidationResult | null => {
   if (!/^0[3-9]\d{8,9}$/.test(cleanPhone)) {
     return {
       isValid: false,
       error: i18n.t('validation.phone_invalid_format')
     };
   }
+  return null;
+};
+
+/**
+ * Validate phone number length range
+ */
+const validatePhoneLength = (cleanPhone: string, minLength: number, maxLength: number): ValidationResult | null => {
+  if (cleanPhone.length < minLength || cleanPhone.length > maxLength) {
+    return {
+      isValid: false,
+      error: `Phone number must be ${minLength}-${maxLength} digits`
+    };
+  }
+  return null;
+};
+
+/**
+ * Parse salary string to number
+ */
+const parseSalary = (salaryStr: string): number | null => {
+  const salary = parseInt(salaryStr);
+  return isNaN(salary) ? null : salary;
+};
+
+/**
+ * Validate salary range
+ */
+const validateSalaryRange = (
+  salary: number,
+  min: number,
+  max: number,
+  minErrorKey: string,
+  maxErrorKey: string
+): ValidationResult | null => {
+  if (salary < min) {
+    return {
+      isValid: false,
+      error: i18n.t(minErrorKey)
+    };
+  }
+  if (salary > max) {
+    return {
+      isValid: false,
+      error: i18n.t(maxErrorKey)
+    };
+  }
+  return null;
+};
+
+/**
+ * Generic date of birth validator with configurable age limits
+ */
+const validateDateOfBirthGeneric = (
+  dateString: string,
+  minAge: number,
+  maxAge: number,
+  minAgeErrorKey: string,
+  maxAgeErrorKey: string
+): ValidationResult => {
+  if (!dateString.trim()) {
+    return { isValid: true }; // Optional field
+  }
+
+  let date: Date;
+
+  // Check if it's YYYY-MM-DD format (from HTML date input)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    date = new Date(dateString);
+  } else {
+    // Use existing DD/MM/YYYY validation
+    return validateDateOfBirth(dateString);
+  }
+
+  const today = new Date();
+
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.date_not_valid')
+    };
+  }
+
+  // Check if date is not in the future
+  if (date > today) {
+    return {
+      isValid: false,
+      error: i18n.t('validation.date_future')
+    };
+  }
+
+  // Check minimum age
+  const minDate = new Date();
+  minDate.setFullYear(minDate.getFullYear() - minAge);
+  if (date > minDate) {
+    return {
+      isValid: false,
+      error: i18n.t(minAgeErrorKey)
+    };
+  }
+
+  // Check maximum age
+  const maxDate = new Date();
+  maxDate.setFullYear(maxDate.getFullYear() - maxAge);
+  if (date < maxDate) {
+    return {
+      isValid: false,
+      error: i18n.t(maxAgeErrorKey)
+    };
+  }
+
+  return { isValid: true };
+};
+
+// ==================== VALIDATION FUNCTIONS ====================
+
+// Validate phone number (original - optional field)
+export const validatePhoneNumber = (phone: string): ValidationResult => {
+  if (!phone.trim()) {
+    return { isValid: true }; // Optional field
+  }
+
+  const cleanPhone = cleanPhoneNumber(phone);
+  const digitError = validatePhoneDigits(cleanPhone);
+  if (digitError) return digitError;
+
+  const formatError = validatePhoneFormat(cleanPhone);
+  if (formatError) return formatError;
 
   return { isValid: true };
 };
@@ -44,24 +180,12 @@ export const validatePhoneNumberStaff = (phone: string): ValidationResult => {
     };
   }
 
-  // Remove spaces and special characters
-  const cleanPhone = phone.replace(/[\s\-()]/g, '');
+  const cleanPhone = cleanPhoneNumber(phone);
+  const digitError = validatePhoneDigits(cleanPhone);
+  if (digitError) return digitError;
 
-  // Check if contains only numbers
-  if (!/^\d+$/.test(cleanPhone)) {
-    return {
-      isValid: false,
-      error: i18n.t('validation.phone_only_digits')
-    };
-  }
-
-  // Check length: 10-11 digits
-  if (cleanPhone.length < 10 || cleanPhone.length > 11) {
-    return {
-      isValid: false,
-      error: 'Phone number must be 10-11 digits'
-    };
-  }
+  const lengthError = validatePhoneLength(cleanPhone, 10, 11);
+  if (lengthError) return lengthError;
 
   return { isValid: true };
 };
@@ -75,24 +199,12 @@ export const validatePhoneNumberEdit = (phone: string): ValidationResult => {
     };
   }
 
-  // Remove spaces and special characters
-  const cleanPhone = phone.replace(/[\s\-()]/g, '');
+  const cleanPhone = cleanPhoneNumber(phone);
+  const digitError = validatePhoneDigits(cleanPhone);
+  if (digitError) return digitError;
 
-  // Check if contains only numbers
-  if (!/^\d+$/.test(cleanPhone)) {
-    return {
-      isValid: false,
-      error: i18n.t('validation.phone_only_digits')
-    };
-  }
-
-  // Check Vietnamese phone number format (10-11 digits, starts with 0)
-  if (!/^0[3-9]\d{8,9}$/.test(cleanPhone)) {
-    return {
-      isValid: false,
-      error: i18n.t('validation.phone_invalid_format')
-    };
-  }
+  const formatError = validatePhoneFormat(cleanPhone);
+  if (formatError) return formatError;
 
   return { isValid: true };
 };
@@ -452,31 +564,16 @@ export const validateSalary = (salaryStr: string): ValidationResult => {
     return { isValid: true }; // Optional field with default value
   }
 
-  const salary = parseInt(salaryStr);
-
-  // Check if it's a valid number
-  if (isNaN(salary)) {
+  const salary = parseSalary(salaryStr);
+  if (salary === null) {
     return {
       isValid: false,
       error: i18n.t('validation.salary_invalid')
     };
   }
 
-  // Check minimum salary (1 million VND)
-  if (salary < 1000000) {
-    return {
-      isValid: false,
-      error: i18n.t('validation.salary_min')
-    };
-  }
-
-  // Check maximum salary (1 billion VND)
-  if (salary > 1000000000) {
-    return {
-      isValid: false,
-      error: i18n.t('validation.salary_max')
-    };
-  }
+  const rangeError = validateSalaryRange(salary, 1000000, 1000000000, 'validation.salary_min', 'validation.salary_max');
+  if (rangeError) return rangeError;
 
   return { isValid: true };
 };
@@ -490,31 +587,22 @@ export const validateSalaryEdit = (salaryStr: string): ValidationResult => {
     };
   }
 
-  const salary = parseInt(salaryStr);
-
-  // Check if it's a valid number
-  if (isNaN(salary)) {
+  const salary = parseSalary(salaryStr);
+  if (salary === null) {
     return {
       isValid: false,
       error: i18n.t('validation.salary_invalid')
     };
   }
 
-  // Check minimum salary (1 million VND)
-  if (salary < 1000000) {
-    return {
-      isValid: false,
-      error: i18n.t('validation.salary_min')
-    };
-  }
-
-  // Check maximum salary (50 million VND)
-  if (salary > 50000000) {
-    return {
-      isValid: false,
-      error: i18n.t('validation.salary_max_50m')
-    };
-  }
+  const rangeError = validateSalaryRange(
+    salary,
+    1000000,
+    50000000,
+    'validation.salary_min',
+    'validation.salary_max_50m'
+  );
+  if (rangeError) return rangeError;
 
   return { isValid: true };
 };
@@ -533,114 +621,16 @@ export const validateBranchId = (branchId: string): ValidationResult => {
 
 // Enhanced date validation for staff form (accepts both DD/MM/YYYY and YYYY-MM-DD formats)
 export const validateDateOfBirthStaff = (dateString: string): ValidationResult => {
-  if (!dateString.trim()) {
-    return { isValid: true }; // Optional field
-  }
-
-  let date: Date;
-
-  // Check if it's YYYY-MM-DD format (from HTML date input)
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    date = new Date(dateString);
-  } else {
-    // Use existing DD/MM/YYYY validation
-    return validateDateOfBirth(dateString);
-  }
-
-  const today = new Date();
-
-  // Check if date is valid
-  if (isNaN(date.getTime())) {
-    return {
-      isValid: false,
-      error: i18n.t('validation.date_not_valid')
-    };
-  }
-
-  // Check if date is not in the future
-  if (date > today) {
-    return {
-      isValid: false,
-      error: i18n.t('validation.date_future')
-    };
-  }
-
-  // Check minimum age (must be at least 18 years old)
-  const minDate = new Date();
-  minDate.setFullYear(minDate.getFullYear() - 18);
-  if (date > minDate) {
-    return {
-      isValid: false,
-      error: i18n.t('validation.staff_age_minimum_18')
-    };
-  }
-
-  // Check maximum age (must be less than 80 years old for staff)
-  const maxDate = new Date();
-  maxDate.setFullYear(maxDate.getFullYear() - 80);
-  if (date < maxDate) {
-    return {
-      isValid: false,
-      error: i18n.t('validation.staff_age_maximum')
-    };
-  }
-
-  return { isValid: true };
+  return validateDateOfBirthGeneric(
+    dateString,
+    18,
+    80,
+    'validation.staff_age_minimum_18',
+    'validation.staff_age_maximum'
+  );
 };
 
 // Enhanced date validation for customer form (accepts both DD/MM/YYYY and YYYY-MM-DD formats, minimum age 5)
 export const validateDateOfBirthCustomer = (dateString: string): ValidationResult => {
-  if (!dateString.trim()) {
-    return { isValid: true }; // Optional field
-  }
-
-  let date: Date;
-
-  // Check if it's YYYY-MM-DD format (from HTML date input)
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    date = new Date(dateString);
-  } else {
-    // Use existing DD/MM/YYYY validation
-    return validateDateOfBirth(dateString);
-  }
-
-  const today = new Date();
-
-  // Check if date is valid
-  if (isNaN(date.getTime())) {
-    return {
-      isValid: false,
-      error: i18n.t('validation.date_not_valid')
-    };
-  }
-
-  // Check if date is not in the future
-  if (date > today) {
-    return {
-      isValid: false,
-      error: i18n.t('validation.date_future')
-    };
-  }
-
-  // Check minimum age (must be at least 5 years old for customers)
-  const minDate = new Date();
-  minDate.setFullYear(minDate.getFullYear() - 5);
-  if (date > minDate) {
-    return {
-      isValid: false,
-      error: i18n.t('validation.customer_age_minimum_5')
-    };
-  }
-
-  // Check maximum age (must be less than 150 years old)
-  const maxDate = new Date();
-  maxDate.setFullYear(maxDate.getFullYear() - 150);
-  if (date < maxDate) {
-    return {
-      isValid: false,
-      error: i18n.t('validation.age_maximum')
-    };
-  }
-
-  return { isValid: true };
+  return validateDateOfBirthGeneric(dateString, 5, 150, 'validation.customer_age_minimum_5', 'validation.age_maximum');
 };

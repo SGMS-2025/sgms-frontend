@@ -20,7 +20,8 @@ import { useBranch } from '@/contexts/BranchContext';
 import type { AddStaffFormProps, CreateStaffRequest, FormData } from '@/types/api/Staff';
 import { toast } from 'sonner';
 import { createImageUploadHandler, STAFF_IMAGE_OPTIONS } from '@/utils/imageUtils';
-import { normalizeErrorKey } from '@/utils/errorHandler';
+import { handleApiErrorForForm } from '@/utils/errorHandler';
+import { generateUsernameFromEmail } from '@/utils/usernameUtils';
 import {
   validateEmail,
   validateUsername,
@@ -363,21 +364,7 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
     setFormData((prev) => ({ ...prev, profileImage: result.imageUrl }));
   }, STAFF_IMAGE_OPTIONS);
 
-  // Helper function to generate username from email
-  const generateUsernameFromEmail = (email: string): string => {
-    if (!email || !email.includes('@')) {
-      return '';
-    }
-
-    // Extract the part before @ symbol
-    const username = email.split('@')[0];
-
-    // Remove any special characters and keep only alphanumeric and underscore
-    const cleanedUsername = username.replace(/[^a-zA-Z0-9_]/g, '');
-
-    // Ensure username is not empty and has reasonable length
-    return cleanedUsername.substring(0, 20); // Limit to 20 characters
-  };
+  // Username generation is now imported from utils
 
   // Handle date selection
   const handleDateSelect = (date: Date | undefined) => {
@@ -547,30 +534,16 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
             statusCode?: number;
           }
         ) => {
-          // Handle errors with meta.details for inline messages
-          if (error?.meta?.details && Array.isArray(error.meta.details) && error.meta.details.length > 0) {
-            // Map details array to errors state
-            const fieldErrors: Record<string, string> = {};
-            error.meta.details.forEach((detail: { field: string; message: string }) => {
-              // Map backend field names to frontend field names if needed
-              let frontendField = detail.field;
-              if (detail.field === 'phoneNumber') {
-                frontendField = 'phone'; // Frontend uses 'phone' instead of 'phoneNumber'
-              } else if (detail.field === 'dateOfBirth') {
-                frontendField = 'birthDate'; // Frontend uses 'birthDate' instead of 'dateOfBirth'
-              }
-              fieldErrors[frontendField] = t(`error.${normalizeErrorKey(detail.message)}`);
-            });
-            setErrors(fieldErrors);
-          } else if (error?.meta?.field) {
-            let frontendField = error.meta.field;
-            if (error.meta.field === 'phoneNumber') {
-              frontendField = 'phone';
-            } else if (error.meta.field === 'dateOfBirth') {
-              frontendField = 'birthDate';
-            }
-            setErrors({ [frontendField]: t(`error.${normalizeErrorKey(error.message)}`) });
-          }
+          // Use centralized error handler
+          const fieldErrors = handleApiErrorForForm(error, {
+            context: 'staff',
+            customFieldMappings: {
+              phoneNumber: 'phone',
+              dateOfBirth: 'birthDate'
+            },
+            t: (key: string) => t(key)
+          });
+          setErrors(fieldErrors);
         }
       );
   };

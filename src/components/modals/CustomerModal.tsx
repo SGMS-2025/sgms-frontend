@@ -15,7 +15,8 @@ import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useBranch } from '@/contexts/BranchContext';
 import { customerApi } from '@/services/api/customerApi';
-import { normalizeErrorKey } from '@/utils/errorHandler';
+import { handleApiErrorForForm } from '@/utils/errorHandler';
+import { generateUsernameFromEmail } from '@/utils/usernameUtils';
 import {
   validateEmail,
   validateFullName,
@@ -107,6 +108,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
     } else {
       resetFormData(currentBranchId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, customer, isEditMode, currentBranchId]);
 
   useEffect(() => {
@@ -208,100 +210,8 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Helper function to generate username from email
-  const generateUsernameFromEmail = (email: string): string => {
-    if (!email || !email.includes('@')) {
-      return '';
-    }
-
-    // Extract the part before @ symbol
-    const username = email.split('@')[0];
-
-    // Remove any special characters and keep only alphanumeric and underscore
-    const cleanedUsername = username.replace(/[^a-zA-Z0-9_]/g, '');
-
-    // Ensure username is not empty and has reasonable length
-    return cleanedUsername.substring(0, 20); // Limit to 20 characters
-  };
-
-  // Handle API errors with proper field mapping and translation
-  const handleApiError = (
-    error: Error & {
-      meta?: { details?: Array<{ field: string; message: string }>; field?: string };
-      code?: string;
-      statusCode?: number;
-      message?: string;
-    }
-  ) => {
-    // Handle duplicate errors (409 Conflict)
-    if (error.statusCode === 409 || error.code === 'MONGO_DUPLICATE_KEY' || error.code === 'CONFLICT') {
-      // Handle errors with meta.details for inline messages
-      if (error?.meta?.details && Array.isArray(error.meta.details) && error.meta.details.length > 0) {
-        const fieldErrors: Record<string, string> = {};
-        error.meta.details.forEach((detail: { field: string; message: string }) => {
-          // Map backend field names to frontend field names
-          let frontendField = detail.field;
-          if (detail.field === 'phoneNumber') {
-            frontendField = 'phone';
-          } else if (detail.field === 'fullName') {
-            frontendField = 'name';
-          } else if (detail.field === 'dateOfBirth') {
-            frontendField = 'dateOfBirth';
-          }
-          const errorKey = normalizeErrorKey(detail.message || error.message || '');
-          fieldErrors[frontendField] = t(`error.${errorKey}`);
-        });
-        setErrors(fieldErrors);
-      } else if (error?.meta?.field) {
-        // Single field error
-        let frontendField = error.meta.field;
-        if (error.meta.field === 'phoneNumber') {
-          frontendField = 'phone';
-        } else if (error.meta.field === 'fullName') {
-          frontendField = 'name';
-        }
-        const errorKey = normalizeErrorKey(error.message || '');
-        setErrors({ [frontendField]: t(`error.${errorKey}`) });
-      } else {
-        // Parse field from error message
-        const errorMsg = error.message || '';
-        let frontendField: string | null = null;
-        if (errorMsg.toLowerCase().includes('email')) {
-          frontendField = 'email';
-        } else if (errorMsg.toLowerCase().includes('phone')) {
-          frontendField = 'phone';
-        }
-
-        if (frontendField) {
-          const errorKey = errorMsg.toLowerCase().includes('email') ? 'EMAIL_ALREADY_EXISTS' : 'PHONE_ALREADY_EXISTS';
-          setErrors((prev) => ({ ...prev, [frontendField!]: t(`error.${errorKey}`) }));
-        }
-      }
-    } else {
-      // Handle other errors with meta.details for inline messages
-      if (error?.meta?.details && Array.isArray(error.meta.details) && error.meta.details.length > 0) {
-        const fieldErrors: Record<string, string> = {};
-        error.meta.details.forEach((detail: { field: string; message: string }) => {
-          let frontendField = detail.field;
-          if (detail.field === 'phoneNumber') {
-            frontendField = 'phone';
-          } else if (detail.field === 'fullName') {
-            frontendField = 'name';
-          }
-          fieldErrors[frontendField] = t(`error.${normalizeErrorKey(detail.message)}`);
-        });
-        setErrors(fieldErrors);
-      } else if (error?.meta?.field) {
-        let frontendField = error.meta.field;
-        if (error.meta.field === 'phoneNumber') {
-          frontendField = 'phone';
-        } else if (error.meta.field === 'fullName') {
-          frontendField = 'name';
-        }
-        setErrors({ [frontendField]: t(`error.${normalizeErrorKey(error.message || '')}`) });
-      }
-    }
-  };
+  // Username generation is now imported from utils
+  // Error handling is now done inline using handleApiErrorForForm
 
   const handleDateOfBirthSelect = (date: Date | undefined) => {
     if (!date) return;
@@ -362,45 +272,22 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
           ) => {
             console.error('Error updating customer:', error);
 
-            // Handle errors with meta.details for inline messages (same as AddStaffForm)
-            if (error?.meta?.details && Array.isArray(error.meta.details) && error.meta.details.length > 0) {
-              // Map details array to errors state
-              const fieldErrors: Record<string, string> = {};
-              error.meta.details.forEach((detail: { field: string; message: string }) => {
-                // Map backend field names to frontend field names if needed
-                let frontendField = detail.field;
-                let errorKey = normalizeErrorKey(detail.message);
-
-                if (detail.field === 'phoneNumber') {
-                  frontendField = 'phone'; // Frontend uses 'phone' instead of 'phoneNumber'
-                  errorKey = 'PHONE_NUMBER_ALREADY_EXISTS';
-                } else if (detail.field === 'fullName') {
-                  frontendField = 'name'; // Frontend uses 'name' instead of 'fullName'
-                } else if (detail.field === 'dateOfBirth') {
-                  frontendField = 'dateOfBirth'; // Keep as is
-                } else if (detail.field === 'username') {
-                  frontendField = 'email'; // Username duplicate means email duplicate
-                  errorKey = 'EMAIL_ALREADY_EXISTS';
-                } else if (detail.field === 'email') {
-                  frontendField = 'email';
-                  errorKey = 'EMAIL_ALREADY_EXISTS';
-                }
-
-                fieldErrors[frontendField] = t(`error.${errorKey}`);
-              });
-              setErrors(fieldErrors);
-            } else if (error?.meta?.field) {
-              let frontendField = error.meta.field;
-              if (error.meta.field === 'phoneNumber') {
-                frontendField = 'phone';
-              } else if (error.meta.field === 'fullName') {
-                frontendField = 'name';
-              }
-              setErrors({ [frontendField]: t(`error.${normalizeErrorKey(error.message)}`) });
-            } else {
-              // Fallback to generic error handling
-              handleApiError(error);
-            }
+            // Use centralized error handler
+            const fieldErrors = handleApiErrorForForm(error, {
+              context: 'customer',
+              customFieldMappings: {
+                phoneNumber: 'phone',
+                fullName: 'name',
+                dateOfBirth: 'dateOfBirth'
+              },
+              errorKeyMappings: {
+                username: 'EMAIL_ALREADY_EXISTS',
+                email: 'EMAIL_ALREADY_EXISTS',
+                phoneNumber: 'PHONE_NUMBER_ALREADY_EXISTS'
+              },
+              t: (key: string) => t(key)
+            });
+            setErrors(fieldErrors);
           }
         )
         .finally(() => {
@@ -424,97 +311,45 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
             console.log('Error code:', errorCode);
             console.log('Full error structure:', JSON.stringify(errorResponse, null, 2));
 
-            if (statusCode === 409 || errorCode === 'MONGO_DUPLICATE_KEY' || errorCode === 'CONFLICT') {
-              const errorMeta = errorResponse.error?.meta;
+            // Use centralized error handler
+            // Construct error object from errorResponse for compatibility
+            const errorObj = errorResponse.error as {
+              meta?: { details?: Array<{ field: string; message: string }>; field?: string };
+              code?: string;
+              statusCode?: number;
+              message?: string;
+            };
+            const errorForHandler = {
+              name: 'Error',
+              ...errorObj,
+              statusCode: statusCode || errorObj?.statusCode,
+              code: errorCode || errorObj?.code,
+              message: errorMessage || errorObj?.message
+            } as Error & {
+              meta?: { details?: Array<{ field: string; message: string }>; field?: string };
+              code?: string;
+              statusCode?: number;
+            };
 
-              // Check for details array first (backend sends duplicate errors in this format)
-              if (errorMeta?.details && Array.isArray(errorMeta.details) && errorMeta.details.length > 0) {
-                console.log('Processing details array:', errorMeta.details);
-                const fieldErrors: Record<string, string> = {};
-                errorMeta.details.forEach((detail: { field: string; message: string }) => {
-                  // Map backend field names to frontend field names
-                  let frontendField = detail.field;
-                  if (detail.field === 'phoneNumber') {
-                    frontendField = 'phone';
-                  } else if (detail.field === 'fullName') {
-                    frontendField = 'name';
-                  } else if (detail.field === 'dateOfBirth') {
-                    frontendField = 'dateOfBirth';
-                  } else if (detail.field === 'username') {
-                    // Username is generated from email, so show error on email field
-                    frontendField = 'email';
-                  }
+            console.log('[CustomerModal.then] errorForHandler:', errorForHandler);
+            console.log('[CustomerModal.then] errorForHandler.meta:', errorForHandler.meta);
+            console.log('[CustomerModal.then] errorForHandler.meta?.details:', errorForHandler.meta?.details);
 
-                  // Use appropriate error message based on field
-                  let errorKey = 'DUPLICATE_ENTRY';
-                  if (detail.field === 'username') {
-                    errorKey = 'EMAIL_ALREADY_EXISTS'; // Username duplicate means email duplicate
-                  } else if (detail.field === 'phoneNumber') {
-                    errorKey = 'PHONE_NUMBER_ALREADY_EXISTS';
-                  } else if (detail.field === 'email') {
-                    errorKey = 'EMAIL_ALREADY_EXISTS';
-                  } else {
-                    errorKey = normalizeErrorKey(detail.message || errorMessage);
-                  }
-
-                  const translatedMessage = t(`error.${errorKey}`);
-                  console.log(`Setting error for field ${frontendField}: ${translatedMessage}`);
-                  fieldErrors[frontendField] = translatedMessage;
-                });
-                setErrors(fieldErrors);
-                console.log('Set field errors:', fieldErrors);
-              } else if (errorMeta?.field) {
-                // Fallback to single field error
-                let frontendField = errorMeta.field;
-                let errorKey = normalizeErrorKey(errorMessage);
-
-                if (errorMeta.field === 'phoneNumber') {
-                  frontendField = 'phone';
-                  errorKey = 'PHONE_NUMBER_ALREADY_EXISTS';
-                } else if (errorMeta.field === 'fullName') {
-                  frontendField = 'name';
-                } else if (errorMeta.field === 'username') {
-                  frontendField = 'email';
-                  errorKey = 'EMAIL_ALREADY_EXISTS';
-                } else if (errorMeta.field === 'email') {
-                  frontendField = 'email';
-                  errorKey = 'EMAIL_ALREADY_EXISTS';
-                }
-
-                setErrors((prev) => ({ ...prev, [frontendField]: t(`error.${errorKey}`) }));
-              } else {
-                // Try to parse field from error message as last resort
-                console.log('No meta.details or meta.field, parsing from message:', errorMessage);
-                let frontendField: string | null = null;
-                let errorKey = 'DUPLICATE_ENTRY';
-
-                if (errorMessage.toLowerCase().includes('email') || errorMessage.includes('email_1')) {
-                  frontendField = 'email';
-                  errorKey = 'EMAIL_ALREADY_EXISTS';
-                } else if (errorMessage.toLowerCase().includes('phone') || errorMessage.includes('phoneNumber_1')) {
-                  frontendField = 'phone';
-                  errorKey = 'PHONE_ALREADY_EXISTS';
-                } else if (errorCode === 'MONGO_DUPLICATE_KEY') {
-                  // For MONGO_DUPLICATE_KEY without specific field info, try to detect from payload
-                  // Check which field might be duplicate based on the form data
-                  if (formData.email) {
-                    frontendField = 'email';
-                    errorKey = 'EMAIL_ALREADY_EXISTS';
-                  } else if (formData.phone) {
-                    frontendField = 'phone';
-                    errorKey = 'PHONE_ALREADY_EXISTS';
-                  }
-                }
-
-                if (frontendField) {
-                  console.log(`Setting error for ${frontendField} with key ${errorKey}`);
-                  setErrors((prev) => ({ ...prev, [frontendField!]: t(`error.${errorKey}`) }));
-                }
-              }
-              setLoading(false);
-              return;
-            }
-
+            const fieldErrors = handleApiErrorForForm(errorForHandler, {
+              context: 'customer',
+              customFieldMappings: {
+                phoneNumber: 'phone',
+                fullName: 'name',
+                dateOfBirth: 'dateOfBirth'
+              },
+              errorKeyMappings: {
+                username: 'EMAIL_ALREADY_EXISTS',
+                email: 'EMAIL_ALREADY_EXISTS',
+                phoneNumber: 'PHONE_NUMBER_ALREADY_EXISTS'
+              },
+              t: (key: string) => t(key)
+            });
+            setErrors(fieldErrors);
             setLoading(false);
             return;
           }
@@ -523,59 +358,76 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
           onCustomerUpdate?.();
           onClose();
         })
-        .catch(
-          (
-            error: Error & {
+        .catch((error: unknown) => {
+          console.error('Error creating customer:', error);
+
+          // Normalize error object from different sources (AxiosError, ApiResponse, etc.)
+          let normalizedError: Error & {
+            meta?: { details?: Array<{ field: string; message: string }>; field?: string };
+            code?: string;
+            statusCode?: number;
+          };
+
+          // Check if error has response.data structure (from Axios)
+          if (error && typeof error === 'object' && 'response' in error) {
+            const axiosError = error as {
+              response?: {
+                data?: {
+                  error?: {
+                    meta?: { details?: Array<{ field: string; message: string }>; field?: string };
+                    code?: string;
+                    statusCode?: number;
+                    message?: string;
+                  };
+                };
+              };
+            };
+            if (axiosError.response?.data?.error) {
+              normalizedError = {
+                name: 'Error',
+                ...axiosError.response.data.error,
+                message: axiosError.response.data.error.message || 'Unknown error',
+                statusCode: axiosError.response.data.error.statusCode,
+                code: axiosError.response.data.error.code
+              };
+            } else {
+              normalizedError = {
+                name: 'Error',
+                message: 'Network error',
+                statusCode: 0,
+                code: 'NETWORK_ERROR'
+              };
+            }
+          } else {
+            // Use error as-is if it already has the correct structure
+            normalizedError = error as Error & {
               meta?: { details?: Array<{ field: string; message: string }>; field?: string };
               code?: string;
               statusCode?: number;
-            }
-          ) => {
-            console.error('Error creating customer:', error);
-            console.log('Catch block - Error meta:', error?.meta);
-            console.log('Catch block - Error details:', error?.meta?.details);
-
-            // Handle errors with meta.details for inline messages (same as AddStaffForm)
-            if (error?.meta?.details && Array.isArray(error.meta.details) && error.meta.details.length > 0) {
-              // Map details array to errors state
-              const fieldErrors: Record<string, string> = {};
-              error.meta.details.forEach((detail: { field: string; message: string }) => {
-                // Map backend field names to frontend field names if needed
-                let frontendField = detail.field;
-                let errorKey = normalizeErrorKey(detail.message);
-
-                if (detail.field === 'phoneNumber') {
-                  frontendField = 'phone'; // Frontend uses 'phone' instead of 'phoneNumber'
-                  errorKey = 'PHONE_NUMBER_ALREADY_EXISTS';
-                } else if (detail.field === 'fullName') {
-                  frontendField = 'name'; // Frontend uses 'name' instead of 'fullName'
-                } else if (detail.field === 'dateOfBirth') {
-                  frontendField = 'dateOfBirth'; // Keep as is
-                } else if (detail.field === 'username') {
-                  frontendField = 'email'; // Username duplicate means email duplicate
-                  errorKey = 'EMAIL_ALREADY_EXISTS';
-                } else if (detail.field === 'email') {
-                  frontendField = 'email';
-                  errorKey = 'EMAIL_ALREADY_EXISTS';
-                }
-
-                fieldErrors[frontendField] = t(`error.${errorKey}`);
-              });
-              setErrors(fieldErrors);
-            } else if (error?.meta?.field) {
-              let frontendField = error.meta.field;
-              if (error.meta.field === 'phoneNumber') {
-                frontendField = 'phone';
-              } else if (error.meta.field === 'fullName') {
-                frontendField = 'name';
-              }
-              setErrors({ [frontendField]: t(`error.${normalizeErrorKey(error.message)}`) });
-            } else {
-              // Fallback to generic error handling
-              handleApiError(error);
-            }
+            };
           }
-        )
+
+          console.log('Catch block - Normalized error:', normalizedError);
+          console.log('Catch block - Error meta:', normalizedError?.meta);
+          console.log('Catch block - Error details:', normalizedError?.meta?.details);
+
+          // Use centralized error handler
+          const fieldErrors = handleApiErrorForForm(normalizedError, {
+            context: 'customer',
+            customFieldMappings: {
+              phoneNumber: 'phone',
+              fullName: 'name',
+              dateOfBirth: 'dateOfBirth'
+            },
+            errorKeyMappings: {
+              username: 'EMAIL_ALREADY_EXISTS',
+              email: 'EMAIL_ALREADY_EXISTS',
+              phoneNumber: 'PHONE_NUMBER_ALREADY_EXISTS'
+            },
+            t: (key: string) => t(key)
+          });
+          setErrors(fieldErrors);
+        })
         .finally(() => {
           setLoading(false);
         });

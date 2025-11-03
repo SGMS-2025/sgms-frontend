@@ -8,7 +8,7 @@ import { useStaffDetails, useUpdateStaff } from '@/hooks/useStaff';
 import { useCanManageStaff } from '@/hooks/useCanManageStaff';
 import EditStaffForm from '@/components/forms/EditStaffForm';
 import type { StaffDisplay, Staff, StaffFormData, StaffJobTitle, StaffUpdateData } from '@/types/api/Staff';
-import { normalizeErrorKey } from '@/utils/errorHandler';
+import { handleApiErrorForForm } from '@/utils/errorHandler';
 
 interface StaffProfileModalProps {
   isOpen: boolean;
@@ -118,30 +118,13 @@ export default function StaffProfileModal({ isOpen, onClose, staff, initialEditM
             statusCode?: number;
           }
         ) => {
-          // Handle errors with meta.details for inline messages
-          if (error?.meta?.details && Array.isArray(error.meta.details) && error.meta.details.length > 0) {
-            // Map details array to errors state
-            const fieldErrors: Record<string, string> = {};
-            error.meta.details.forEach((detail: { field: string; message: string }) => {
-              // Map backend field names to frontend field names if needed
-              let frontendField = detail.field;
-              if (detail.field === 'phoneNumber') {
-                frontendField = 'phoneNumber'; // EditStaffForm uses phoneNumber
-              } else if (detail.field === 'dateOfBirth') {
-                frontendField = 'dateOfBirth'; // EditStaffForm uses dateOfBirth
-              }
-              fieldErrors[frontendField] = t(`error.${normalizeErrorKey(detail.message)}`);
-            });
-            setFormErrors(fieldErrors);
-          } else if (error?.meta?.field) {
-            let frontendField = error.meta.field;
-            if (error.meta.field === 'phoneNumber') {
-              frontendField = 'phoneNumber';
-            } else if (error.meta.field === 'dateOfBirth') {
-              frontendField = 'dateOfBirth';
-            }
-            setFormErrors({ [frontendField]: t(`error.${normalizeErrorKey(error.message)}`) });
-          }
+          // Use centralized error handler
+          const fieldErrors = handleApiErrorForForm(error, {
+            context: 'staff',
+            // StaffProfileModal uses the same field names (no mapping needed)
+            t: (key: string) => t(key)
+          });
+          setFormErrors(fieldErrors);
         }
       );
   };

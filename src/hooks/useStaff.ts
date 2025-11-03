@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { staffApi } from '@/services/api/staffApi';
+import { createErrorWithMeta } from './utils/apiErrorHandler';
+import type { FailedApiResponse } from './utils/apiErrorHandler';
 import type {
   Staff,
   StaffStats,
@@ -227,23 +229,7 @@ export const useUpdateStaff = () => {
     } else {
       setError(response.message || 'Failed to update staff');
       setLoading(false);
-      // Return error object with meta for inline messages
-      const errorWithMeta = new Error(response.message || 'Failed to update staff') as Error & {
-        meta?: { details?: Array<{ field: string; message: string }>; field?: string };
-        code?: string;
-        statusCode?: number;
-      };
-      // Type guard: response may have error properties when success is false
-      const errorResponse = response as {
-        error?: { meta?: { details?: Array<{ field: string; message: string }>; field?: string } };
-        code?: string;
-        statusCode?: number;
-      };
-      errorWithMeta.meta = errorResponse.error?.meta || {};
-      errorWithMeta.code = errorResponse.code;
-      errorWithMeta.statusCode = errorResponse.statusCode;
-      // Return error object instead of throwing
-      return Promise.reject(errorWithMeta);
+      return createErrorWithMeta(response as FailedApiResponse, 'Failed to update staff');
     }
   }, []);
 
@@ -270,23 +256,7 @@ export const useCreateStaff = () => {
     } else {
       setError(response.message || 'Failed to create staff');
       setLoading(false);
-      // Return error object with meta for inline messages
-      const errorWithMeta = new Error(response.message || 'Failed to create staff') as Error & {
-        meta?: { details?: Array<{ field: string; message: string }>; field?: string };
-        code?: string;
-        statusCode?: number;
-      };
-      // Type guard: response may have error properties when success is false
-      const errorResponse = response as {
-        error?: { meta?: { details?: Array<{ field: string; message: string }>; field?: string } };
-        code?: string;
-        statusCode?: number;
-      };
-      errorWithMeta.meta = errorResponse.error?.meta || {};
-      errorWithMeta.code = errorResponse.code;
-      errorWithMeta.statusCode = errorResponse.statusCode;
-      // Return error object instead of throwing
-      return Promise.reject(errorWithMeta);
+      return createErrorWithMeta(response as FailedApiResponse, 'Failed to create staff');
     }
   }, []);
 
