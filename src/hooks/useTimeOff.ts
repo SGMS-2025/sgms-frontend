@@ -173,7 +173,6 @@ export const useTimeOffOperations = () => {
       } else {
         const errorMessage = localizeErrorMessage(response.message, t, 'timeoff.create_error');
         setError(errorMessage);
-        // Don't show toast here - already shown by API interceptor
         setLoading(false);
         return null;
       }
@@ -197,7 +196,6 @@ export const useTimeOffOperations = () => {
       } else {
         const errorMessage = localizeErrorMessage(response.message, t, 'timeoff.update_error');
         setError(errorMessage);
-        // Don't show toast here - already shown by API interceptor
         setLoading(false);
         return null;
       }
@@ -220,7 +218,6 @@ export const useTimeOffOperations = () => {
         return true;
       } else {
         setError(response.message || t('timeoff.delete_error'));
-        // Don't show toast here - already shown by API interceptor
         setLoading(false);
         return false;
       }
@@ -251,7 +248,6 @@ export const useTimeOffOperations = () => {
         }
 
         setError(errorMessage);
-        // Don't show toast here - already shown by API interceptor
         setLoading(false);
         return null;
       }
@@ -275,7 +271,6 @@ export const useTimeOffOperations = () => {
       } else {
         const errorMessage = localizeErrorMessage(response.message, t, 'timeoff.reject_error');
         setError(errorMessage);
-        // Don't show toast here - already shown by API interceptor
         setLoading(false);
         return null;
       }
@@ -299,7 +294,6 @@ export const useTimeOffOperations = () => {
       } else {
         const errorMessage = localizeErrorMessage(response.message, t, 'timeoff.cancel_error');
         setError(errorMessage);
-        // Don't show toast here - already shown by API interceptor
         setLoading(false);
         return null;
       }
