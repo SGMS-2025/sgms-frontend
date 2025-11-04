@@ -1,4 +1,4 @@
-export type WorkShiftStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+export type WorkShiftStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'PENDING_TIME_OFF';
 export type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
 
 export interface WorkShift {
@@ -90,6 +90,16 @@ export interface CreateWorkShiftRequest {
   branchId: string;
   startTime: string;
   endTime: string;
+  totalHours?: number; // Optional, will be calculated if not provided
+  dayOfTheWeek?: DayOfWeek; // Optional, will be calculated from startTime
+}
+
+/**
+ * Virtual WorkShift - displayed from config but not saved in DB
+ * Only created when user requests timeoff or reschedule
+ */
+export interface VirtualWorkShift extends WorkShift {
+  isVirtual: true;
 }
 
 export interface UpdateWorkShiftRequest {

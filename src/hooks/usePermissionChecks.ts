@@ -39,6 +39,7 @@ export const usePermissionChecks = ({
     })();
 
     const isManager = userRole === 'MANAGER' || userRole === 'OWNER' || userRole === 'owner' || userRole === 'manager';
+    const isStaff = userRole === 'STAFF' || userRole === 'staff';
 
     return {
       // Reschedule permissions
@@ -57,7 +58,8 @@ export const usePermissionChecks = ({
       canEditTimeOff: status === 'PENDING',
       canApproveTimeOff: status === 'PENDING' && isManager,
       canRejectTimeOff: status === 'PENDING' && isManager,
-      canCancelTimeOff: status === 'PENDING' || status === 'APPROVED',
+      // Only STAFF can cancel their own PENDING requests (owner doesn't have permission)
+      canCancelTimeOff: status === 'PENDING' && isStaff && isRequester,
 
       // Common permissions
       canView: true, // Always can view

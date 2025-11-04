@@ -123,6 +123,10 @@ const localizeErrorMessage = (message: string, t: (key: string) => string, fallb
     return t('error.CANNOT_APPROVE_OWN_REQUEST');
   } else if (message === 'TIME_OFF_ADVANCE_NOTICE_REQUIRED') {
     return t('error.TIME_OFF_ADVANCE_NOTICE_REQUIRED');
+  } else if (message === 'TIMEOFF_OVERLAPPING_REQUESTS') {
+    return t('timeoff.validation.duplicate_request');
+  } else if (message.includes('TIMEOFF_OVERLAPPING_REQUESTS')) {
+    return t('timeoff.validation.duplicate_request');
   }
 
   // Return the original message or fallback if no specific localization found
@@ -169,9 +173,7 @@ export const useTimeOffOperations = () => {
       } else {
         const errorMessage = localizeErrorMessage(response.message, t, 'timeoff.create_error');
         setError(errorMessage);
-        toast.error(errorMessage, {
-          id: 'timeoff-create-error'
-        });
+        // Don't show toast here - already shown by API interceptor
         setLoading(false);
         return null;
       }
@@ -195,9 +197,7 @@ export const useTimeOffOperations = () => {
       } else {
         const errorMessage = localizeErrorMessage(response.message, t, 'timeoff.update_error');
         setError(errorMessage);
-        toast.error(errorMessage, {
-          id: 'timeoff-update-error'
-        });
+        // Don't show toast here - already shown by API interceptor
         setLoading(false);
         return null;
       }
@@ -220,9 +220,7 @@ export const useTimeOffOperations = () => {
         return true;
       } else {
         setError(response.message || t('timeoff.delete_error'));
-        toast.error(response.message || t('timeoff.delete_error'), {
-          id: 'timeoff-delete-error'
-        });
+        // Don't show toast here - already shown by API interceptor
         setLoading(false);
         return false;
       }
@@ -253,9 +251,7 @@ export const useTimeOffOperations = () => {
         }
 
         setError(errorMessage);
-        toast.error(errorMessage, {
-          id: 'timeoff-approve-error'
-        });
+        // Don't show toast here - already shown by API interceptor
         setLoading(false);
         return null;
       }
@@ -279,9 +275,7 @@ export const useTimeOffOperations = () => {
       } else {
         const errorMessage = localizeErrorMessage(response.message, t, 'timeoff.reject_error');
         setError(errorMessage);
-        toast.error(errorMessage, {
-          id: 'timeoff-reject-error'
-        });
+        // Don't show toast here - already shown by API interceptor
         setLoading(false);
         return null;
       }
@@ -305,9 +299,7 @@ export const useTimeOffOperations = () => {
       } else {
         const errorMessage = localizeErrorMessage(response.message, t, 'timeoff.cancel_error');
         setError(errorMessage);
-        toast.error(errorMessage, {
-          id: 'timeoff-cancel-error'
-        });
+        // Don't show toast here - already shown by API interceptor
         setLoading(false);
         return null;
       }

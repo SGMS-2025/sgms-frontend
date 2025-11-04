@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Calendar, AlertCircle, Mail, Phone } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import type { TimeOffDetailModalProps, TimeOffStatus, TimeOffType } from '@/types/api/TimeOff';
+import usePermissionChecks from '@/hooks/usePermissionChecks';
+import { useUser } from '@/hooks/useAuth';
 
 const getStatusColor = (status: TimeOffStatus) => {
   switch (status) {
@@ -63,12 +65,22 @@ const getTypeText = (type: TimeOffType, t: (key: string) => string) => {
 
 const TimeOffDetailModal: React.FC<TimeOffDetailModalProps> = ({ isOpen, onClose, timeOff, onCancel }) => {
   const { t } = useTranslation();
+  const user = useUser();
+
+  // Đảm bảo hooks luôn được gọi với cùng thứ tự mỗi lần render
+  const permissions = usePermissionChecks({
+    userRole: user?.role,
+    currentUserId: user?._id,
+    requesterId: timeOff?.staffId, // Safe optional chaining
+    status: timeOff?.status || 'PENDING', // Default value để tránh undefined
+    isFinalStatus: timeOff?.status === 'REJECTED' || timeOff?.status === 'CANCELLED'
+  });
 
   if (!timeOff) {
     return null;
   }
 
-  const canCancel = timeOff.status === 'PENDING' || timeOff.status === 'APPROVED';
+  const canCancel = permissions.canCancelTimeOff;
 
   const handleCancel = () => {
     if (onCancel) {

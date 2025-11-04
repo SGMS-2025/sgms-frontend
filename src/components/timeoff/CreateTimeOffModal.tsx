@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CalendarIcon, Clock, User, AlertCircle, Loader2 } from 'lucide-react';
 import { cn, formatDate } from '@/utils/utils';
-import { localDateStringYMD, createUtcISOFromLocal } from '@/utils/datetime';
+import { localDateStringYMD, vnTimeToUtcISO } from '@/utils/datetime';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { useTimeOffOperations } from '@/hooks/useTimeOff';
 import type {
@@ -71,11 +71,14 @@ const CreateTimeOffModal: React.FC<CreateTimeOffModalProps> = ({
   onClose,
   onSuccess,
   prefillData,
-  hideDateSelection = false
+  hideDateSelection = false,
+  workShift,
+  onEnsureWorkshift: _onEnsureWorkshift
 }) => {
   const { t } = useTranslation();
   const { currentStaff } = useCurrentUserStaff();
   const { createTimeOff, loading } = useTimeOffOperations();
+
   const [selectedStartDate, setSelectedStartDate] = useState<Date | undefined>();
   const [selectedEndDate, setSelectedEndDate] = useState<Date | undefined>();
   const [conflictInfo, setConflictInfo] = useState<{
@@ -162,11 +165,63 @@ const CreateTimeOffModal: React.FC<CreateTimeOffModalProps> = ({
     }
 
     // Convert form data to API format
+    // Use workShift times if available, otherwise default to 00:00-23:59
+    // ✅ IMPORTANT: Ensure both dates use proper VN time to UTC conversion
+    const startTime = workShift?.startTimeLocal || '00:00';
+    const endTime = workShift?.endTimeLocal || '23:59';
+
+    // ✅ CRITICAL: If startDate and endDate are the same (single day time-off),
+    // use the SAME date string for both conversions
+    // This ensures proper UTC conversion without date drift
+    const actualEndDate = data.startDate === data.endDate ? data.startDate : data.endDate;
+
+    // ✅ CRITICAL: Convert VN time to UTC for both startDate and endDate
+    // Both dates are in YYYY-MM-DD format (VN timezone dates)
+    const startDateUTC = vnTimeToUtcISO(data.startDate, startTime);
+    let endDateUTC = vnTimeToUtcISO(actualEndDate, endTime);
+
+    // ✅ IMPORTANT: Ensure endDateUTC is always after startDateUTC
+    const startDateObj = new Date(startDateUTC);
+    const endDateObj = new Date(endDateUTC);
+
+    // If endDateUTC <= startDateUTC, something is wrong - adjust it
+    if (endDateObj <= startDateObj) {
+      // If same date, ensure endTime is after startTime
+      if (data.startDate === data.endDate) {
+        // Same date: use endTime from workShift (should be > startTime)
+        // If no workShift endTime, use 23:59 for end of day
+        const adjustedEndTime = workShift?.endTimeLocal || '23:59';
+        endDateUTC = vnTimeToUtcISO(data.startDate, adjustedEndTime);
+
+        // Double check after adjustment
+        const adjustedEndDateObj = new Date(endDateUTC);
+        if (adjustedEndDateObj <= startDateObj) {
+          console.error('⚠️ End date still <= start date after adjustment!', {
+            startDate: data.startDate,
+            startTime,
+            endTime: adjustedEndTime,
+            startDateUTC,
+            endDateUTC,
+            adjustedEndDateUTC: endDateUTC
+          });
+        }
+      } else {
+        // Different dates: ensure endDate is properly converted
+        const finalEndDateObj = new Date(endDateUTC);
+        if (finalEndDateObj <= startDateObj) {
+          // This shouldn't happen, but add 1 day if needed
+          const adjustedEndDate = new Date(finalEndDateObj);
+          adjustedEndDate.setUTCDate(adjustedEndDate.getUTCDate() + 1);
+          endDateUTC = adjustedEndDate.toISOString();
+        }
+      }
+    }
+
     const createData: CreateTimeOffRequest = {
       staffId: currentStaff._id,
       type: data.type as TimeOffType,
-      startDate: createUtcISOFromLocal(data.startDate, '00:00'),
-      endDate: createUtcISOFromLocal(data.endDate, '23:59'),
+      startDate: startDateUTC,
+      endDate: endDateUTC,
       reason: data.reason
     };
 
@@ -461,7 +516,7 @@ const CreateTimeOffModal: React.FC<CreateTimeOffModalProps> = ({
 
                   {/* Duration Display */}
                   {selectedStartDate && selectedEndDate && (
-                    <div className="text-xs text-gray-600 bg-blue-50 rounded p-2">
+                    <div className="text-xs text-gray-600 bg-green-50 rounded p-2">
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         <span className="font-medium">

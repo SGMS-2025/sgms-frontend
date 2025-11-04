@@ -7,12 +7,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Plus, ChevronDown, Calendar, Clock } from 'lucide-react';
+import { Plus, ChevronDown, Clock, Settings } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { useWorkshiftPermissions } from '@/hooks/useWorkshiftPermissions';
-import type { CreateDropdownProps } from '@/types/api/WorkShift';
 
-const CreateDropdown: React.FC<CreateDropdownProps> = ({ onCreateWorkShift, onCreateSchedule, className }) => {
+interface CreateDropdownProps {
+  onCreateWorkShift: () => void;
+  onBranchConfig: () => void;
+  className?: string;
+}
+
+const CreateDropdown: React.FC<CreateDropdownProps> = ({ onCreateWorkShift, onBranchConfig, className }) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const { canCreateWorkshift } = useWorkshiftPermissions();
@@ -22,9 +27,9 @@ const CreateDropdown: React.FC<CreateDropdownProps> = ({ onCreateWorkShift, onCr
     onCreateWorkShift();
   };
 
-  const handleCreateSchedule = () => {
+  const handleBranchConfig = () => {
     setIsOpen(false);
-    onCreateSchedule();
+    onBranchConfig();
   };
 
   // If user cannot create workshifts, don't render the dropdown
@@ -51,9 +56,14 @@ const CreateDropdown: React.FC<CreateDropdownProps> = ({ onCreateWorkShift, onCr
           <Clock className="mr-2 h-4 w-4" />
           <span>{t('workshift.create_workshift')}</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleCreateSchedule} className="cursor-pointer">
+        {/* Create Schedule option hidden - feature not needed */}
+        {/* <DropdownMenuItem onClick={handleCreateSchedule} className="cursor-pointer">
           <Calendar className="mr-2 h-4 w-4" />
           <span>{t('workshift.create_schedule')}</span>
+        </DropdownMenuItem> */}
+        <DropdownMenuItem onClick={handleBranchConfig} className="cursor-pointer">
+          <Settings className="mr-2 h-4 w-4" />
+          <span>Branch Working Config</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -19,6 +19,9 @@ import {
 import { cn } from '@/utils/utils';
 import type { TimeOffDetailSheetProps, TimeOffStatus, TimeOffType, TimeOff } from '@/types/api/TimeOff';
 import { timeOffApi } from '@/services/api/timeOffApi';
+import usePermissionChecks from '@/hooks/usePermissionChecks';
+import { useUser } from '@/hooks/useAuth';
+import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 
 const getStatusColor = (status: TimeOffStatus) => {
   switch (status) {
@@ -57,7 +60,7 @@ const getTypeColor = (type: TimeOffType) => {
     case 'SICK_LEAVE':
       return 'bg-red-100 text-red-800 border-red-200';
     case 'PERSONAL_LEAVE':
-      return 'bg-blue-100 text-blue-800 border-blue-200';
+      return 'bg-green-100 text-green-800 border-green-200';
     case 'UNPAID_LEAVE':
       return 'bg-gray-100 text-gray-800 border-gray-200';
     case 'EMERGENCY':
@@ -98,9 +101,20 @@ const TimeOffDetailSheet: React.FC<TimeOffDetailSheetProps> = ({
   onDelete
 }) => {
   const { t } = useTranslation();
+  const user = useUser();
+  const { currentStaff } = useCurrentUserStaff();
   const [showHistory, setShowHistory] = React.useState(false);
   const [historyData, setHistoryData] = React.useState<TimeOff[]>([]);
   const [loadingHistory, setLoadingHistory] = React.useState(false);
+
+  // Đảm bảo hooks luôn được gọi với cùng thứ tự mỗi lần render
+  const permissions = usePermissionChecks({
+    userRole: user?.role,
+    currentUserId: user?._id,
+    requesterId: timeOff?.staffId, // Safe optional chaining
+    status: timeOff?.status || 'PENDING', // Default value để tránh undefined
+    isFinalStatus: timeOff?.status === 'REJECTED' || timeOff?.status === 'CANCELLED'
+  });
 
   // Fetch history when showing history section
   React.useEffect(() => {
@@ -136,10 +150,15 @@ const TimeOffDetailSheet: React.FC<TimeOffDetailSheetProps> = ({
     return null;
   }
 
-  const canApprove = timeOff.status === 'PENDING';
-  const canReject = timeOff.status === 'PENDING';
-  const canCancel = timeOff.status === 'PENDING' || timeOff.status === 'APPROVED';
-  const canDelete = timeOff.status === 'PENDING' || timeOff.status === 'REJECTED';
+  // Owner có role 'OWNER', Manager có jobTitle 'Manager' (có thể có role 'STAFF')
+  const isOwner = user?.role === 'OWNER';
+  const isManagerByJobTitle = currentStaff?.jobTitle === 'Manager';
+  const isManager = isOwner || isManagerByJobTitle;
+
+  const canApprove = (permissions.canApproveTimeOff || isManager) && timeOff.status === 'PENDING';
+  const canReject = (permissions.canRejectTimeOff || isManager) && timeOff.status === 'PENDING';
+  const canCancel = permissions.canCancelTimeOff;
+  const canDelete = permissions.canDelete;
 
   const handleApprove = () => {
     if (onApprove) {
@@ -348,20 +367,20 @@ const TimeOffDetailSheet: React.FC<TimeOffDetailSheetProps> = ({
 
           {/* Action Buttons */}
           <div className="flex gap-3 pt-6 mt-6">
-            {canReject && (
+            {canReject && onReject && (
               <Button
                 variant="outline"
                 onClick={handleReject}
                 className="flex-1 h-10 text-gray-700 hover:text-gray-800 hover:bg-gray-50 border-gray-200"
               >
                 <XCircle className="h-4 w-4 mr-2" />
-                Decline
+                {t('timeoff.decline')}
               </Button>
             )}
-            {canApprove && (
-              <Button onClick={handleApprove} className="flex-1 h-10 bg-blue-600 hover:bg-blue-700 text-white">
+            {canApprove && onApprove && (
+              <Button onClick={handleApprove} className="flex-1 h-10 bg-green-600 hover:bg-green-700 text-white">
                 <CheckCircle className="h-4 w-4 mr-2" />
-                Approve
+                {t('timeoff.approve')}
               </Button>
             )}
             {canCancel && !canApprove && !canReject && (

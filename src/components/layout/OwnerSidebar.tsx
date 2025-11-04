@@ -23,7 +23,6 @@ import {
   Sparkles,
   DollarSign,
   CalendarDays,
-  ArrowRightLeft,
   CreditCard,
   Building2,
   Crown
@@ -561,23 +560,18 @@ export const OwnerSidebar: React.FC = () => {
               isActive={location.pathname === '/manage/workshifts/calendar'}
               onClick={() => navigate('/manage/workshifts/calendar')}
             />
-            <SubMenuItem
+            {/* Schedule Template menu item hidden - feature not needed */}
+            {/* <SubMenuItem
               icon={<Calendar className="w-5 h-5 stroke-[1.75]" />}
               label={t('sidebar.schedule_templates')}
               isActive={location.pathname === '/manage/schedule-templates'}
               onClick={() => navigate('/manage/schedule-templates')}
-            />
+            /> */}
             <SubMenuItem
               icon={<CalendarDays className="w-5 h-5 stroke-[1.75]" />}
               label={t('sidebar.time_off') || 'Time Off'}
               isActive={location.pathname.startsWith('/manage/timeoff')}
               onClick={() => navigate('/manage/timeoff')}
-            />
-            <SubMenuItem
-              icon={<ArrowRightLeft className="w-5 h-5 stroke-[1.75]" />}
-              label={t('sidebar.reschedule') || 'Reschedule'}
-              isActive={location.pathname.startsWith('/reschedule')}
-              onClick={() => navigate('/reschedule')}
             />
           </DropdownSidebarItem>
 

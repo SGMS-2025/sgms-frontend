@@ -188,6 +188,8 @@ export interface CreateTimeOffModalProps {
   onSuccess?: () => void;
   prefillData?: Partial<CreateTimeOffRequest>;
   hideDateSelection?: boolean;
+  workShift?: import('@/types/api/WorkShift').WorkShift | import('@/types/api/WorkShift').VirtualWorkShift;
+  onEnsureWorkshift?: () => Promise<import('@/types/api/WorkShift').WorkShift | null>;
 }
 
 export interface TimeOffApprovalModalProps {

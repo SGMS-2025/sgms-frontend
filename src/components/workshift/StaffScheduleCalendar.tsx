@@ -1,80 +1,152 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
-import { vi } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  ChevronDown,
-  Calendar as CalendarIcon,
-  Search,
-  Settings,
-  HelpCircle,
-  CheckCircle,
-  MoreHorizontal,
-  Grid3X3,
-  Building2,
-  Ban
-} from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { ChevronLeft, ChevronRight, Building2, User, Clock, Calendar, X, Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/utils/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useBranch } from '@/contexts/BranchContext';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
+import { useBranchWorkingConfig } from '@/hooks/useBranchWorkingConfig';
 import { staffApi } from '@/services/api/staffApi';
 import { workShiftApi } from '@/services/api/workShiftApi';
 import { useTimeOffList } from '@/hooks/useTimeOff';
 import type { Staff } from '@/types/api/Staff';
-import type { WorkShift } from '@/types/api/WorkShift';
+import type { WorkShift, VirtualWorkShift } from '@/types/api/WorkShift';
 import type { StaffScheduleCalendarProps } from '@/types/api/StaffSchedule';
+import { sortShiftsByStartTime, getDayOfWeekName, isVirtualWorkShift } from '@/utils/workshiftUtils';
+import { createUtcISOFromLocal, utcToVnTimeString, vnTimeToUtcISO } from '@/utils/datetime';
 import StaffScheduleModal from './StaffScheduleModal';
 import WorkShiftDetailModalWithTimeOff from './WorkShiftDetailModalWithTimeOff';
 import CreateDropdown from './CreateDropdown';
 import CreateWorkShiftModal from './CreateWorkShiftModal';
+import BranchWorkingConfigModal from './BranchWorkingConfigModal';
+
+// Custom type for realtime notification event
+interface RealtimeNotificationEvent extends Event {
+  detail: {
+    type?: string;
+    category?: string;
+    [key: string]: unknown;
+  };
+}
+
+// Helper functions to reduce code duplication
+const getStaffId = (staffId: string | { _id: string } | undefined): string | undefined => {
+  if (!staffId) return undefined;
+  return typeof staffId === 'object' ? staffId._id : staffId;
+};
+
+const formatDateString = (date: Date): string => {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+const utcToVnDateString = (utcDate: Date | string): string => {
+  const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
+  const vnDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+  return formatDateString(vnDate);
+};
+
+const getAvatarUrl = (name: string | undefined): string | undefined => {
+  return name ? `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=orange&color=fff` : undefined;
+};
+
+const getStaffName = (
+  staff: { userId?: { fullName?: string }; firstName?: string; lastName?: string } | undefined
+): string => {
+  if (!staff) return 'Unknown';
+  if (staff.userId?.fullName) return staff.userId.fullName;
+  if (staff.firstName && staff.lastName) return `${staff.firstName} ${staff.lastName}`;
+  return 'Unknown';
+};
+
+const getBranchIds = (branchId: unknown): string[] => {
+  if (!branchId) return [];
+  if (Array.isArray(branchId)) {
+    return branchId
+      .map((b) => {
+        if (typeof b === 'string') return b;
+        if (typeof b === 'object' && b !== null && '_id' in b) {
+          return b._id || '';
+        }
+        return '';
+      })
+      .filter((id) => id !== '');
+  }
+  return [];
+};
 
 const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedStaffId, onStaffSelect, userRole }) => {
   const { t } = useTranslation();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'week' | 'month' | 'day'>('week');
-  const [selectedDate, setSelectedDate] = useState(new Date());
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showCreateWorkShiftModal, setShowCreateWorkShiftModal] = useState(false);
-  const [loadingStaff, setLoadingStaff] = useState(true);
   const [workShifts, setWorkShifts] = useState<WorkShift[]>([]);
   const [loadingWorkShifts, setLoadingWorkShifts] = useState(false);
-  const [staffListExpanded, setStaffListExpanded] = useState(false);
-  const [visibleStaffCount, setVisibleStaffCount] = useState(5);
   const [selectedWorkShift, setSelectedWorkShift] = useState<WorkShift | null>(null);
   const [showWorkShiftDetail, setShowWorkShiftDetail] = useState(false);
-  const [showDisabledShifts, setShowDisabledShifts] = useState(true);
-  const [showTimeOffs, setShowTimeOffs] = useState(true);
+  const [showDisabledShifts] = useState(true);
+  const showTimeOffs = true; // Always show time offs
+  const [showBranchConfig, setShowBranchConfig] = useState(false);
+  // State for showing all staff in a shift (for Owner/Manager)
+  const [showStaffListModal, setShowStaffListModal] = useState(false);
+  // State for staff search popover
+  const [staffSearchOpen, setStaffSearchOpen] = useState(false);
+  const [staffSearchValue, setStaffSearchValue] = useState('');
+  const [selectedShiftData, setSelectedShiftData] = useState<{
+    shifts: (WorkShift | VirtualWorkShift)[];
+    date: Date;
+    slot: { type?: string; startTime?: string; endTime?: string; hour?: number; display?: string };
+    timeRange: string;
+  } | null>(null);
   const { currentBranch } = useBranch();
-  const { user } = useAuthState();
   const { currentStaff } = useCurrentUserStaff();
+  const { user } = useAuthState();
 
-  // Time Off functionality
-  const { timeOffs, refetch: refetchTimeOffs } = useTimeOffList({
-    staffId: selectedStaffId || currentStaff?._id
-  });
+  // Fetch branch working config
+  const { config: branchConfig } = useBranchWorkingConfig(currentBranch?._id);
 
-  // Check if user can view staff schedules (Owner and Manager only)
-  const canViewStaffSchedules = useCallback(() => {
-    if (!user) return false;
+  // Check if current user can view all staff schedules in the branch
+  const canViewAllStaffSchedules = useMemo(() => {
+    // Owner can always view all staff schedules
+    if (user?.role === 'OWNER' || user?.role === 'ADMIN') {
+      return true;
+    }
 
-    // Owner can always view
-    if (user.role === 'OWNER') return true;
+    // If user is not a staff member, they cannot view schedules
+    if (!currentStaff || !user) {
+      return false;
+    }
 
-    // Staff with Manager job title can view
-    if (user.role === 'STAFF' && currentStaff?.jobTitle === 'Manager') return true;
+    // Check if staff is Manager and assigned to manage the current branch
+    if (currentStaff.jobTitle === 'Manager' && currentBranch) {
+      // Check if current user is in the managerId array of the branch
+      const branchManagerIds = Array.isArray(currentBranch.managerId)
+        ? currentBranch.managerId.map((m) => m._id || m)
+        : currentBranch.managerId
+          ? [currentBranch.managerId._id || currentBranch.managerId]
+          : [];
 
-    // PT and Technician cannot view
+      // Check if current user ID is in the manager list
+      const isManagerOfBranch = branchManagerIds.some((managerId) => {
+        const managerIdStr = typeof managerId === 'string' ? managerId : managerId._id || '';
+        return managerIdStr === user._id;
+      });
+
+      return isManagerOfBranch;
+    }
+
+    // Regular staff (PT, Technician) can only view their own schedule
     return false;
-  }, [user, currentStaff]);
+  }, [user, currentStaff, currentBranch]);
 
   // Get current week dates
   const getWeekDates = (date: Date) => {
@@ -92,31 +164,229 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     return weekDates;
   };
 
+  // Generate virtual workshifts from branchWorkingConfig
+  // Logic: Tạo virtual shift cho TẤT CẢ shifts trong branch config cho mỗi staff
+  const generateVirtualWorkShifts = useMemo(() => {
+    if (!branchConfig || !currentBranch || !staffList.length) {
+      return [];
+    }
+
+    const virtualWorkShifts: VirtualWorkShift[] = [];
+    const weekDates = getWeekDates(currentDate);
+
+    // Map StaffJobTitle to role config role values
+    const jobTitleToRole: Record<string, 'PT' | 'TECHNICIAN' | 'MANAGER'> = {
+      Manager: 'MANAGER',
+      'Personal Trainer': 'PT',
+      Technician: 'TECHNICIAN'
+    };
+
+    // Filter staff list based on permissions for display
+    const visibleStaffList = (() => {
+      if (canViewAllStaffSchedules) {
+        return staffList.filter((staff) => {
+          const staffBranchIds = getBranchIds(staff.branchId);
+          return staffBranchIds.includes(currentBranch._id);
+        });
+      }
+      return currentStaff ? [currentStaff] : [];
+    })();
+
+    // Group visible staff by role for processing
+    const staffByRole = new Map<string, Staff[]>();
+    visibleStaffList.forEach((staff) => {
+      const staffRole = jobTitleToRole[staff.jobTitle] || 'OTHER';
+      if (!staffByRole.has(staffRole)) {
+        staffByRole.set(staffRole, []);
+      }
+      staffByRole.get(staffRole)!.push(staff);
+    });
+
+    // Process each role group
+    staffByRole.forEach((roleStaffList, role) => {
+      // Get role config
+      const roleConfig = role !== 'OTHER' ? branchConfig.roleConfigs?.find((rc) => rc.role === role) : null;
+      const workingDays = roleConfig?.workingDays || branchConfig.defaultWorkingDays || [1, 2, 3, 4, 5, 6];
+      const allowedShiftTypes = roleConfig?.shifts || branchConfig.defaultShifts?.map((s) => s.type) || [];
+
+      // Get available shifts for this role (sorted by startTime)
+      const availableShifts = sortShiftsByStartTime(
+        (branchConfig.defaultShifts || []).filter((shift) => allowedShiftTypes.includes(shift.type))
+      );
+
+      if (availableShifts.length === 0) return;
+
+      weekDates.forEach((date) => {
+        const dayOfWeek = date.getDay();
+        if (!workingDays.includes(dayOfWeek)) return;
+
+        roleStaffList.forEach((staff) => {
+          // Tạo virtual shift cho MỖI shift trong availableShifts
+          availableShifts.forEach((shiftConfig) => {
+            const virtualDateStr = formatDateString(date);
+
+            const existingShift = workShifts.find((ws) => {
+              // Check same staff first
+              const wsStaffId = getStaffId(ws.staffId);
+              if (wsStaffId !== staff._id) {
+                return false;
+              }
+              // Convert real shift UTC time to VN timezone for date comparison
+              const realDateStr = utcToVnDateString(ws.startTime);
+
+              // Compare dates - must be same date in VN timezone
+              if (realDateStr !== virtualDateStr) {
+                return false;
+              }
+
+              // Convert real shift UTC time to VN time string and compare
+              const realVnTime = utcToVnTimeString(ws.startTime);
+
+              // If times match, this is the same shift - don't create virtual
+              if (realVnTime === shiftConfig.startTime) {
+                return true;
+              }
+
+              return false;
+            });
+
+            if (existingShift) {
+              // Real shift exists for this staff/date/time - don't create virtual shift
+              return;
+            }
+            const shiftStartUTC = vnTimeToUtcISO(virtualDateStr, shiftConfig.startTime);
+            const shiftEndUTC = vnTimeToUtcISO(virtualDateStr, shiftConfig.endTime);
+
+            // Create Date objects from UTC strings for formatting
+            const shiftStart = new Date(shiftStartUTC);
+            const shiftEnd = new Date(shiftEndUTC);
+
+            const dayOfTheWeek = getDayOfWeekName(date);
+
+            const virtualShift: VirtualWorkShift = {
+              _id: `virtual-${staff._id}-${date.getTime()}-${shiftConfig.type}`,
+              staffId: {
+                _id: staff._id,
+                jobTitle: staff.jobTitle,
+                salary: staff.salary || 0,
+                status: staff.status || 'ACTIVE',
+                userId: {
+                  _id: staff.userId._id,
+                  fullName: getStaffName(staff),
+                  email: staff.userId.email || '',
+                  phoneNumber: staff.userId.phoneNumber
+                }
+              },
+              branchId: {
+                _id: currentBranch._id,
+                branchName: currentBranch.branchName || '',
+                location: currentBranch.location || '',
+                timezone: 'Asia/Ho_Chi_Minh'
+              },
+              dayOfTheWeek,
+              startTime: shiftStartUTC, // UTC ISO string (properly converted from VN time)
+              endTime: shiftEndUTC, // UTC ISO string (properly converted from VN time)
+              status: 'SCHEDULED' as const,
+              startTimeLocal: shiftConfig.startTime, // VN time from config (e.g., "05:00")
+              endTimeLocal: shiftConfig.endTime, // VN time from config (e.g., "10:00")
+              startTimeFmt: shiftStart.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+              endTimeFmt: shiftEnd.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+              branchTz: 'Asia/Ho_Chi_Minh',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              isVirtual: true
+            };
+
+            virtualWorkShifts.push(virtualShift);
+          });
+        });
+      });
+    });
+
+    return virtualWorkShifts;
+  }, [branchConfig, currentBranch, staffList, workShifts, currentDate, canViewAllStaffSchedules, currentStaff]);
+
+  // Time Off functionality
+  const { timeOffs, refetch: refetchTimeOffs } = useTimeOffList({
+    staffId: selectedStaffId || currentStaff?._id
+  });
+
   const weekDates = getWeekDates(currentDate);
   const isToday = (date: Date) => {
     const today = new Date();
     return date.toDateString() === today.toDateString();
   };
 
-  // Get workshifts that START in a specific hour (for rendering)
-  const getWorkShiftsForSlot = (date: Date, hour: number) => {
-    const filteredShifts = filteredWorkShifts.filter((shift) => {
-      // Use backend-provided local time instead of converting UTC
-      const startTimeLocalStr = shift.startTimeLocal || '07:00';
-      const [shiftStartHour] = startTimeLocalStr.split(':').map(Number);
+  // Get workshifts that match a specific shift config (for rendering)
+  const getWorkShiftsForShift = (
+    date: Date,
+    shiftConfig: { type?: string; startTime?: string; endTime?: string; hour?: number; display?: string }
+  ) => {
+    // Handle old format with hour property
+    if (shiftConfig.hour !== undefined) {
+      // Legacy support - convert hour to time range
+      const startTime = `${shiftConfig.hour.toString().padStart(2, '0')}:00`;
+      const endTime = `${(shiftConfig.hour + 1).toString().padStart(2, '0')}:00`;
+      shiftConfig = { ...shiftConfig, startTime, endTime };
+    }
 
+    if (!shiftConfig.startTime || !shiftConfig.endTime) {
+      return [];
+    }
+
+    const filteredShifts = filteredWorkShifts.filter((workShift) => {
       // Get the date from startTime (UTC) and convert to local timezone
-      const startTimeUTC = new Date(shift.startTime);
-      const shiftDate = new Date(startTimeUTC.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+      const shiftDateStr = utcToVnDateString(workShift.startTime);
+      const shiftDate = new Date(shiftDateStr);
+      const shiftDateOnly = new Date(shiftDate.getFullYear(), shiftDate.getMonth(), shiftDate.getDate());
 
-      // Check if shift starts on the same date and hour
-      const isSameDate = shiftDate.toDateString() === date.toDateString();
-      const isSameHour = shiftStartHour === hour;
+      // Check if shift is on the same date
+      const isSameDate = shiftDateOnly.toDateString() === date.toDateString();
 
-      return isSameDate && isSameHour;
+      if (!shiftConfig.startTime || !shiftConfig.endTime) {
+        return false;
+      }
+
+      const vnTimeFromUtc = utcToVnTimeString(workShift.startTime);
+
+      const startTimeLocalStr = vnTimeFromUtc;
+
+      if (!startTimeLocalStr) {
+        return false;
+      }
+
+      const [shiftStartHour, shiftStartMin] = startTimeLocalStr.split(':').map(Number);
+      const [configStartHour, configStartMin] = shiftConfig.startTime.split(':').map(Number);
+
+      // Check if workshift startTime matches shift config startTime exactly
+      const workShiftStartMinutes = shiftStartHour * 60 + shiftStartMin;
+      const configStartMinutes = configStartHour * 60 + configStartMin;
+
+      const exactStartTimeMatch = workShiftStartMinutes === configStartMinutes;
+
+      return isSameDate && exactStartTimeMatch;
     });
 
-    return filteredShifts;
+    const sortedShifts = [...filteredShifts].sort((a, b) => {
+      const aIsVirtual = isVirtualWorkShift(a);
+      const bIsVirtual = isVirtualWorkShift(b);
+
+      // Real shifts (non-virtual) first
+      if (!aIsVirtual && bIsVirtual) return -1;
+      if (aIsVirtual && !bIsVirtual) return 1;
+
+      // Among real shifts, prioritize CANCELLED (they represent timeoff)
+      if (!aIsVirtual && !bIsVirtual) {
+        const aIsCancelled = a.status === 'CANCELLED';
+        const bIsCancelled = b.status === 'CANCELLED';
+        if (aIsCancelled && !bIsCancelled) return -1;
+        if (!aIsCancelled && bIsCancelled) return 1;
+      }
+
+      return 0;
+    });
+
+    return sortedShifts;
   };
 
   // Get time off requests for a specific date
@@ -130,29 +400,6 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     });
   };
 
-  // Calculate position and width for overlapping shifts based on shifts that START in this time slot
-  const calculateShiftPosition = (shift: WorkShift, date: Date, currentHour: number) => {
-    // Get all shifts that START in this time slot (not all active shifts)
-    const shiftsForSlot = getWorkShiftsForSlot(date, currentHour);
-
-    // Find the index of current shift in the shifts that start in this slot
-    const shiftIndex = shiftsForSlot.findIndex((s) => s._id === shift._id);
-    const totalShiftsInSlot = shiftsForSlot.length;
-
-    // Calculate width and position based on shifts that start in this slot
-    const width = totalShiftsInSlot > 1 ? `${100 / totalShiftsInSlot}%` : '100%';
-    const left = totalShiftsInSlot > 1 ? `${(shiftIndex * 100) / totalShiftsInSlot}%` : '0%';
-
-    // Z-index based on start time (earlier shifts have lower z-index, so later shifts appear on top)
-    const zIndex = 10 + shiftIndex;
-
-    return {
-      width,
-      left,
-      zIndex
-    };
-  };
-
   // Format time for display
   const formatTime = (hour: number, min: number) => {
     const period = hour >= 12 ? 'pm' : 'am';
@@ -163,108 +410,6 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
       displayHour = hour - 12;
     }
     return min === 0 ? `${displayHour}${period}` : `${displayHour}:${min.toString().padStart(2, '0')}${period}`;
-  };
-
-  // Render shift card with correct positioning and height
-  const renderShiftCard = (shift: WorkShift, _index: number, _shiftsForSlot: WorkShift[], currentHour: number) => {
-    const baseStaffColor = getStaffColor(
-      typeof shift.staffId === 'string' ? shift.staffId : shift.staffId?._id || 'unknown'
-    );
-
-    // Apply different styling for cancelled/disabled shifts
-    const staffColor =
-      shift.status === 'CANCELLED'
-        ? 'bg-gray-400 text-gray-100' // Muted gray for cancelled shifts
-        : baseStaffColor;
-
-    const staffName =
-      shift.staffId?.userId?.fullName ||
-      (shift.staffId?.firstName && shift.staffId?.lastName
-        ? `${shift.staffId.firstName} ${shift.staffId.lastName}`
-        : 'Unknown Staff');
-
-    // Use backend-provided local time fields instead of converting UTC
-    // Backend already provides startTime_local and endTime_local in correct timezone
-
-    // Parse the local time from backend (format: "07:00")
-    const startTimeStr = shift.startTimeLocal || '07:00';
-    const endTimeStr = shift.endTimeLocal || '08:00';
-
-    const [startHour, startMin] = startTimeStr.split(':').map(Number);
-    const [endHour, endMin] = endTimeStr.split(':').map(Number);
-
-    const timeRange = `${formatTime(startHour, startMin)} - ${formatTime(endHour, endMin)}`;
-
-    // Calculate actual height and position based on shift duration using local time
-    const startTimeInMinutes = startHour * 60 + startMin;
-    const endTimeInMinutes = endHour * 60 + endMin;
-    const durationInMinutes = endTimeInMinutes - startTimeInMinutes;
-    const durationInHours = durationInMinutes / 60;
-    const heightInPixels = durationInHours * 60; // 60px per hour
-
-    // Calculate top offset within the current hour slot
-    const topOffsetInPixels = (startMin / 60) * 60;
-
-    // Get current date for this shift to calculate position (use local date)
-    // Get the date from startTime (UTC) and convert to local timezone
-    const startTimeUTC = new Date(shift.startTime);
-    const shiftDate = new Date(startTimeUTC.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-    const shiftDateOnly = new Date(shiftDate.getFullYear(), shiftDate.getMonth(), shiftDate.getDate());
-
-    // Calculate position for overlapping shifts
-    const position = calculateShiftPosition(shift, shiftDateOnly, currentHour);
-
-    return (
-      <button
-        key={shift._id}
-        className={`absolute ${staffColor} rounded-md shadow-sm hover:shadow-md transition-all cursor-pointer border border-white/20 ${
-          shift.status === 'CANCELLED' ? 'opacity-60' : ''
-        }`}
-        style={{
-          top: `${topOffsetInPixels + 2}px`,
-          left: position.left,
-          width: position.width,
-          height: `${heightInPixels - 4}px`,
-          zIndex: position.zIndex
-        }}
-        title={`${staffName} - ${timeRange} - ${shift.status}${shift.status === 'CANCELLED' ? ' (Disabled)' : ''}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedWorkShift(shift);
-          setShowWorkShiftDetail(true);
-          setShowCreateWorkShiftModal(false);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            e.stopPropagation();
-            setSelectedWorkShift(shift);
-            setShowWorkShiftDetail(true);
-            setShowCreateWorkShiftModal(false);
-          }
-        }}
-      >
-        <div className="p-1 text-white text-xs h-full flex flex-col justify-center">
-          <div
-            className={`font-medium text-center truncate leading-tight ${
-              shift.status === 'CANCELLED' ? 'line-through' : ''
-            }`}
-          >
-            {staffName}
-          </div>
-          <div
-            className={`text-xs text-center opacity-90 leading-tight ${
-              shift.status === 'CANCELLED' ? 'line-through' : ''
-            }`}
-          >
-            {timeRange}
-          </div>
-          {shift.status === 'CANCELLED' && (
-            <div className="text-xs text-center opacity-75 leading-tight">(Disabled)</div>
-          )}
-        </div>
-      </button>
-    );
   };
 
   // Render time off indicator for a date
@@ -293,8 +438,11 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     );
   };
 
-  // Render shifts for a time slot
-  const renderShiftsForSlot = (date: Date, slot: { hour: number }) => {
+  // Render shifts for a time slot - Group all shifts together and show staff avatars
+  const renderShiftsForSlot = (
+    date: Date,
+    slot: { type?: string; startTime?: string; endTime?: string; hour?: number; display?: string }
+  ) => {
     if (loadingWorkShifts) {
       return (
         <div className="flex items-center justify-center h-full">
@@ -303,56 +451,347 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
       );
     }
 
-    // Only render shifts that START in this time slot
-    const shiftsForSlot = getWorkShiftsForSlot(date, slot.hour);
-    return shiftsForSlot.map((shift, index) => renderShiftCard(shift, index, shiftsForSlot, slot.hour));
-  };
+    // Get all shifts that START in this time slot
+    const shiftsForSlot = getWorkShiftsForShift(date, slot);
 
-  // Generate color for staff based on their ID - diverse colors like in the image
-  const getStaffColor = (staffId: string) => {
-    // Handle undefined or null staffId
-    if (!staffId || typeof staffId !== 'string') {
-      return 'bg-gray-500'; // Default color for invalid staffId
+    const dateStr = formatDateString(date);
+    const shiftsOnSameDate = filteredWorkShifts.filter((workShift) => {
+      const shiftDateStr = utcToVnDateString(workShift.startTime);
+      return shiftDateStr === dateStr;
+    });
+
+    let hasPendingTimeOffOnDate = false;
+    const pendingTimeOffShiftsOnDate = shiftsOnSameDate.filter((s) => {
+      const status = String(s.status || '').toUpperCase();
+      return status === 'PENDING_TIME_OFF';
+    });
+
+    if (pendingTimeOffShiftsOnDate.length > 0 && shiftsForSlot.length > 0) {
+      // Check if any staff in this slot has a PENDING_TIME_OFF shift on the same date
+      const staffIdsInSlot = new Set(shiftsForSlot.map((s) => getStaffId(s.staffId)).filter(Boolean));
+
+      hasPendingTimeOffOnDate = pendingTimeOffShiftsOnDate.some((pendingShift) => {
+        const pendingStaffId = getStaffId(pendingShift.staffId);
+
+        if (!staffIdsInSlot.has(pendingStaffId)) {
+          return false; // Different staff, skip
+        }
+
+        if (slot.startTime && slot.endTime && pendingShift.startTimeLocal && pendingShift.endTimeLocal) {
+          const [slotStartHour, slotStartMin] = slot.startTime.split(':').map(Number);
+          const [slotEndHour, slotEndMin] = slot.endTime.split(':').map(Number);
+          const slotStartMinutes = slotStartHour * 60 + slotStartMin;
+          const slotEndMinutes = slotEndHour * 60 + slotEndMin;
+
+          const [shiftStartHour, shiftStartMin] = pendingShift.startTimeLocal.split(':').map(Number);
+          const [shiftEndHour, shiftEndMin] = pendingShift.endTimeLocal.split(':').map(Number);
+          const shiftStartMinutes = shiftStartHour * 60 + shiftStartMin;
+          const shiftEndMinutes = shiftEndHour * 60 + shiftEndMin;
+
+          return shiftStartMinutes < slotEndMinutes && shiftEndMinutes > slotStartMinutes;
+        }
+
+        return false;
+      });
     }
 
-    const colors = [
-      'bg-red-500',
-      'bg-orange-500',
-      'bg-yellow-500',
-      'bg-green-500',
-      'bg-purple-500',
-      'bg-pink-500',
-      'bg-indigo-500',
-      'bg-orange-500',
-      'bg-teal-500',
-      'bg-cyan-500',
-      'bg-lime-500',
-      'bg-amber-500'
-    ];
-    const hash = staffId.split('').reduce((a, b) => {
-      a = (a << 5) - a + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    return colors[Math.abs(hash) % colors.length];
+    // Filter out cancelled shifts for avatar display
+    const activeShifts = shiftsForSlot.filter((s) => s.status !== 'CANCELLED');
+    const hasCancelled = shiftsForSlot.some((s) => s.status === 'CANCELLED');
+    const allCancelled = shiftsForSlot.length > 0 && shiftsForSlot.every((s) => s.status === 'CANCELLED');
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const shiftDate = new Date(date);
+    shiftDate.setHours(0, 0, 0, 0);
+    const isPastDate = shiftDate < today;
+
+    // Collect unique staff from active shifts
+    const uniqueStaff = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        avatarUrl?: string;
+        email?: string;
+      }
+    >();
+
+    activeShifts.forEach((shift) => {
+      const staffId = getStaffId(shift.staffId);
+      if (staffId && !uniqueStaff.has(staffId)) {
+        const staffName = getStaffName(shift.staffId);
+        const email = shift.staffId?.userId?.email || shift.staffId?.email;
+        const avatarUrl = getAvatarUrl(staffName);
+
+        uniqueStaff.set(staffId, {
+          id: staffId,
+          name: staffName,
+          avatarUrl,
+          email
+        });
+      }
+    });
+
+    const staffList = Array.from(uniqueStaff.values());
+    const staffCount = staffList.length;
+    const maxVisibleAvatars = 1; // Show max 2 avatars, collapse if 3 or more
+    const visibleStaff = staffList.slice(0, maxVisibleAvatars);
+    const remainingCount = Math.max(0, staffCount - maxVisibleAvatars);
+
+    const firstShift = shiftsForSlot[0];
+    const startTimeStr = firstShift?.startTimeLocal || slot.startTime || '07:00';
+    const endTimeStr = firstShift?.endTimeLocal || slot.endTime || '08:00';
+    const [startHour, startMin] = startTimeStr.split(':').map(Number);
+    const [endHour, endMin] = endTimeStr.split(':').map(Number);
+    const timeRange = `${formatTime(startHour, startMin)} - ${formatTime(endHour, endMin)}`;
+
+    const hasPendingTimeOff =
+      shiftsForSlot.some((s) => {
+        const status = String(s.status || '').toUpperCase();
+        const isPending = status === 'PENDING_TIME_OFF';
+        return isPending;
+      }) || hasPendingTimeOffOnDate;
+
+    if (shiftsForSlot.length === 0) {
+      return (
+        <button
+          type="button"
+          className="absolute top-0 left-0 w-full h-full rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 opacity-75 cursor-pointer hover:bg-gray-100 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          <div className="p-3 h-full flex flex-col items-center justify-center">
+            <div className="text-xs text-gray-500 font-medium mb-1">{timeRange}</div>
+          </div>
+        </button>
+      );
+    }
+
+    const shouldHideCancelledForAllStaff = canViewAllStaffSchedules && selectedStaffId === undefined;
+    if (allCancelled && !shouldHideCancelledForAllStaff) {
+      return (
+        <div className="absolute top-0 left-0 w-full h-full rounded-lg bg-red-100 border-l-4 border-red-500 opacity-90">
+          <div className="p-3 h-full flex flex-col items-center justify-center">
+            <div className="text-xs text-gray-500 font-medium line-through mb-1">{timeRange}</div>
+            <div className="text-xs text-gray-400">{t('timeoff.status.cancelled') || 'Cancelled'}</div>
+          </div>
+        </div>
+      );
+    }
+
+    // Render aggregated shift card with avatars
+    const shouldHideCancelledColor = canViewAllStaffSchedules && selectedStaffId === undefined;
+    let cardClassName =
+      'absolute top-0 left-0 w-full h-full rounded-lg shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer text-left ';
+    if (hasCancelled && !shouldHideCancelledColor) {
+      // Show red for cancelled shifts (Staff always, Owner/Manager only when viewing single staff)
+      cardClassName += 'bg-red-50 border-l-4 border-red-900';
+    } else if (isPastDate) {
+      cardClassName += 'bg-gradient-to-br from-gray-50 to-gray-300 border-l-4 border-gray-300';
+    } else if (hasPendingTimeOff) {
+      cardClassName += 'bg-yellow-50 border-l-4 border-yellow-500';
+    } else {
+      cardClassName += 'bg-gradient-to-br from-green-50 to-emerald-50 border-l-4 border-green-500';
+    }
+
+    const shiftButton = (
+      <button
+        type="button"
+        className={cardClassName}
+        onClick={(e) => {
+          e.stopPropagation();
+
+          if (canViewAllStaffSchedules && staffCount > 0) {
+            // Show staff list modal for Owner/Manager
+            setSelectedShiftData({
+              shifts: shiftsForSlot,
+              date,
+              slot,
+              timeRange
+            });
+            setShowStaffListModal(true);
+            setShowCreateWorkShiftModal(false);
+          } else {
+            // Regular staff behavior: show detail of their own shift
+            let firstActiveShift = activeShifts.find((s) => {
+              if (!isVirtualWorkShift(s)) {
+                return workShifts.some((ws) => ws._id === s._id);
+              }
+              return false;
+            });
+
+            // Nếu không tìm thấy real shift, tìm virtual shift tương ứng với real shift trong DB
+            if (!firstActiveShift && activeShifts.length > 0) {
+              const virtualShift = activeShifts[0];
+              if (isVirtualWorkShift(virtualShift)) {
+                // Tìm real shift tương ứng trong workShifts
+                const matchingRealShift = workShifts.find((ws) => {
+                  const wsStaffId = getStaffId(ws.staffId);
+                  const virtualStaffId = getStaffId(virtualShift.staffId);
+
+                  if (wsStaffId !== virtualStaffId) return false;
+
+                  // So sánh date và time
+                  const wsDate = new Date(ws.startTime);
+                  const virtualDate = new Date(virtualShift.startTime);
+                  const wsDateInLocal = new Date(wsDate.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+                  const virtualDateInLocal = new Date(
+                    virtualDate.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' })
+                  );
+                  const wsDateStr = `${wsDateInLocal.getFullYear()}-${String(wsDateInLocal.getMonth() + 1).padStart(2, '0')}-${String(wsDateInLocal.getDate()).padStart(2, '0')}`;
+                  const virtualDateStr = `${virtualDateInLocal.getFullYear()}-${String(virtualDateInLocal.getMonth() + 1).padStart(2, '0')}-${String(virtualDateInLocal.getDate()).padStart(2, '0')}`;
+
+                  return wsDateStr === virtualDateStr && ws.startTimeLocal === virtualShift.startTimeLocal;
+                });
+
+                if (matchingRealShift) {
+                  firstActiveShift = matchingRealShift;
+                } else {
+                  firstActiveShift = virtualShift;
+                }
+              } else {
+                firstActiveShift = virtualShift;
+              }
+            }
+
+            // Fallback to first shift if still not found
+            if (!firstActiveShift) {
+              firstActiveShift = activeShifts[0];
+              if (!firstActiveShift) {
+                const cancelledShift = shiftsForSlot.find((s) => s.status === 'CANCELLED');
+                if (cancelledShift) {
+                  firstActiveShift = cancelledShift;
+                } else {
+                  firstActiveShift = shiftsForSlot[0];
+                }
+              }
+            }
+
+            if (firstActiveShift) {
+              setSelectedWorkShift(firstActiveShift);
+              setShowWorkShiftDetail(true);
+              setShowCreateWorkShiftModal(false);
+            }
+          }
+        }}
+        title={`${staffCount} staff${staffCount !== 1 ? 's' : ''} - ${timeRange}${hasCancelled ? ' (Some shifts cancelled)' : isPastDate ? ' (Past)' : hasPendingTimeOff ? ' (Pending Time Off)' : ''}`}
+      >
+        <div className="p-3 h-full flex flex-col relative">
+          {/* Time Range - Top */}
+          <div className={`text-xs font-medium text-left mb-2 ${isPastDate ? 'text-gray-600' : 'text-gray-900'}`}>
+            {timeRange}
+          </div>
+
+          {/* Staff Count - Bottom Left with padding to avoid overlap */}
+          {staffCount > 0 && (
+            <div
+              className={`absolute bottom-3 left-3 text-xs font-semibold ${isPastDate ? 'text-gray-700' : 'text-black'}`}
+              style={{ zIndex: 10 }}
+            >
+              {staffCount} staff{staffCount !== 1 ? 's' : ''}
+            </div>
+          )}
+
+          {/* Staff Avatars - Bottom Right */}
+          {staffCount > 0 && (
+            <div
+              className="absolute bottom-3 right-3 flex items-center justify-end flex-wrap-reverse gap-1.5"
+              style={{ maxWidth: 'calc(100% - 80px)' }}
+            >
+              {visibleStaff.map((staff, index) => (
+                <div
+                  key={staff.id}
+                  className="relative flex-shrink-0"
+                  style={{
+                    marginRight: index > 0 ? '-6px' : '0',
+                    zIndex: visibleStaff.length - index
+                  }}
+                >
+                  <Avatar className="h-8 w-8 border-2 border-white shadow-sm ring-1 ring-gray-200">
+                    <AvatarImage src={staff.avatarUrl} alt={staff.name} className="object-cover" />
+                    <AvatarFallback className="bg-orange-500 text-white text-xs font-semibold">
+                      {staff.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+              ))}
+              {remainingCount > 0 && (
+                <div
+                  className="h-8 w-8 rounded-full bg-gray-400 border-2 border-white shadow-sm ring-1 ring-gray-200 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0"
+                  style={{ marginRight: '-6px', zIndex: 1 }}
+                >
+                  +{remainingCount}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </button>
+    );
+
+    // Wrap with HoverCard to show staff list on hover (only if there are staff)
+    if (staffCount > 0) {
+      return (
+        <HoverCard openDelay={300} closeDelay={100}>
+          <HoverCardTrigger asChild>{shiftButton}</HoverCardTrigger>
+          <HoverCardContent className="w-80" align="start" side="right">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 border-b pb-2">
+                <User className="h-4 w-4 text-orange-600" />
+                <h4 className="font-semibold text-sm">
+                  {t('workshift.staff_in_shift') || 'Danh sách nhân viên có trong ca'}
+                </h4>
+              </div>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {staffList.map((staff) => {
+                  // Get job title from shift
+                  const shiftForStaff = shiftsForSlot.find((s) => {
+                    const staffId = getStaffId(s.staffId);
+                    return staffId === staff.id;
+                  });
+                  const jobTitle = shiftForStaff?.staffId?.jobTitle || 'Unknown';
+
+                  return (
+                    <div
+                      key={staff.id}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <Avatar className="h-10 w-10 border-2 border-orange-200">
+                        <AvatarImage src={staff.avatarUrl} alt={staff.name} />
+                        <AvatarFallback className="bg-orange-500 text-white font-semibold">
+                          {staff.name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm text-gray-900 truncate">{staff.name}</div>
+                        <div className="text-xs text-gray-500 truncate">{jobTitle}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="text-xs text-gray-500 text-center pt-2 border-t">
+                {t('workshift.total') || 'Tổng'}: {staffCount} {t('workshift.staff') || 'nhân viên'}
+              </div>
+            </div>
+          </HoverCardContent>
+        </HoverCard>
+      );
+    }
+
+    return shiftButton;
   };
 
-  // Fetch staff list - only for users with permission
+  // Fetch staff list for generating virtual workshifts
   useEffect(() => {
     const fetchStaff = async () => {
-      // Only fetch staff if user has permission to view staff schedules
-      if (!canViewStaffSchedules()) {
-        setStaffList([]);
-        setLoadingStaff(false);
-        return;
-      }
-
       if (!currentBranch?._id) {
         setStaffList([]);
-        setLoadingStaff(false);
         return;
       }
 
-      setLoadingStaff(true);
       const response = await staffApi.getStaffList({
         limit: 100,
         branchId: currentBranch._id
@@ -360,13 +799,17 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
 
       if (response.success) {
         setStaffList(response.data.staffList);
+        return;
+      }
+
+      if (!canViewAllStaffSchedules && currentStaff) {
+        setStaffList([currentStaff]);
       } else {
         setStaffList([]);
       }
-      setLoadingStaff(false);
     };
     fetchStaff();
-  }, [currentBranch?._id, canViewStaffSchedules]);
+  }, [currentBranch?._id, canViewAllStaffSchedules, currentStaff]);
 
   // Common function to fetch workshifts
   const fetchWorkShifts = useCallback(async () => {
@@ -396,12 +839,9 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   // Memoize the notification handler to prevent stale closures
   const handleRealtimeNotification = useCallback(
     (event: Event) => {
-      const customEvent = event as CustomEvent;
+      const customEvent = event as RealtimeNotificationEvent;
       const notification = customEvent.detail;
 
-      // Check notification type and category
-      // Backend sends: type="WORKSHIFT_NOTIFICATION" or type includes "notification:workshift"
-      // Backend sends: category="schedule" (for workshift) or category="workshift"
       const isWorkShiftNotification =
         notification.type?.includes('WORKSHIFT') ||
         notification.type?.includes('notification:workshift') ||
@@ -446,13 +886,110 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     };
   }, [handleRealtimeNotification]);
 
-  // Filter workshifts by selected staff (if any) and disabled status
-  const filteredWorkShifts = workShifts.filter((shift) => {
-    // Filter by selected staff - add null safety check
-    if (selectedStaffId && (!shift.staffId || shift.staffId._id !== selectedStaffId)) {
-      return false;
+  // Update selectedWorkShift when workShifts changes (e.g., after refetch)
+  useEffect(() => {
+    const currentSelected = selectedWorkShift;
+    if (currentSelected) {
+      // If current selected is not virtual, just update by ID
+      if (!isVirtualWorkShift(currentSelected)) {
+        const updatedShift = workShifts.find((shift) => shift._id === currentSelected._id);
+        if (updatedShift && JSON.stringify(updatedShift) !== JSON.stringify(currentSelected)) {
+          setSelectedWorkShift(updatedShift);
+        }
+      } else {
+        const currentStaffId = getStaffId(currentSelected.staffId);
+
+        const virtualStartDate = new Date(currentSelected.startTime);
+        virtualStartDate.setHours(0, 0, 0, 0); // Normalize to midnight
+        const virtualDateStr = formatDateString(virtualStartDate);
+
+        const virtualStartTimeUTC = createUtcISOFromLocal(virtualDateStr, currentSelected.startTimeLocal);
+        const virtualEndTimeUTC = createUtcISOFromLocal(virtualDateStr, currentSelected.endTimeLocal);
+        const virtualStartTimeMs = new Date(virtualStartTimeUTC).getTime();
+        const virtualEndTimeMs = new Date(virtualEndTimeUTC).getTime();
+
+        const matchingShift = workShifts.find((shift) => {
+          const shiftStaffId = getStaffId(shift.staffId);
+          const shiftStartTime = new Date(shift.startTime).getTime();
+          const shiftEndTime = new Date(shift.endTime).getTime();
+
+          return (
+            shiftStaffId === currentStaffId &&
+            Math.abs(shiftStartTime - virtualStartTimeMs) < 60000 && // Within 1 minute
+            Math.abs(shiftEndTime - virtualEndTimeMs) < 60000 // Within 1 minute
+          );
+        });
+
+        if (matchingShift) {
+          setSelectedWorkShift(matchingShift);
+        }
+      }
     }
-    // Filter by disabled status
+  }, [workShifts]);
+
+  const allWorkShifts = useMemo(() => {
+    const virtualShifts = generateVirtualWorkShifts.filter((shift) => {
+      // Filter by selected staff if needed
+      if (selectedStaffId && shift.staffId?._id !== selectedStaffId) {
+        return false;
+      }
+
+      const virtualStaffId = shift.staffId?._id;
+      if (!virtualStaffId || !shift.startTimeLocal) {
+        return false;
+      }
+
+      const virtualDateStr = utcToVnDateString(shift.startTime);
+
+      const hasRealShift = workShifts.some((realShift) => {
+        const realStaffId = getStaffId(realShift.staffId);
+
+        if (realStaffId !== virtualStaffId) {
+          return false;
+        }
+
+        const realDateStr = utcToVnDateString(realShift.startTime);
+
+        const realVnTime = utcToVnTimeString(realShift.startTime);
+
+        if (realDateStr !== virtualDateStr) {
+          return false;
+        }
+
+        if (!shift.startTimeLocal) {
+          return false;
+        }
+
+        if (realVnTime === shift.startTimeLocal) {
+          return true;
+        }
+
+        return false;
+      });
+
+      if (hasRealShift) {
+        return false;
+      }
+
+      return true;
+    });
+
+    return [...workShifts, ...virtualShifts];
+  }, [workShifts, generateVirtualWorkShifts, selectedStaffId]);
+
+  const filteredWorkShifts = allWorkShifts.filter((shift) => {
+    if (!canViewAllStaffSchedules && currentStaff) {
+      if (!shift.staffId || shift.staffId._id !== currentStaff._id) {
+        return false;
+      }
+    }
+
+    if (canViewAllStaffSchedules && selectedStaffId) {
+      if (!shift.staffId || shift.staffId._id !== selectedStaffId) {
+        return false;
+      }
+    }
+
     if (!showDisabledShifts && shift.status === 'CANCELLED') {
       return false;
     }
@@ -474,7 +1011,6 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   const handleToday = () => {
     const today = new Date();
     setCurrentDate(today);
-    setSelectedDate(today);
   };
 
   // Refresh workshifts after creating new one
@@ -482,9 +1018,9 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     await fetchWorkShifts();
   };
 
-  // Refresh time offs
+  // Refresh time offs and workshifts
   const refreshTimeOffs = async () => {
-    await refetchTimeOffs();
+    await Promise.all([refetchTimeOffs(), fetchWorkShifts()]);
   };
 
   // Handlers for dropdown actions
@@ -492,288 +1028,103 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     setShowCreateWorkShiftModal(true);
   };
 
-  const handleCreateSchedule = () => {
-    setShowScheduleModal(true);
-  };
-
-  // Generate time slots - only full hours from 5 AM to 10 PM (18 hours)
-  const timeSlots = Array.from({ length: 18 }, (_, i) => {
-    const hour = 5 + i; // Start from 5 AM to 10 PM
-
-    // Format display hour
-    let displayHour;
-    if (hour === 0) {
-      displayHour = 12;
-    } else if (hour > 12) {
-      displayHour = hour - 12;
-    } else {
-      displayHour = hour;
+  // Generate time slots - now returns shifts instead of hours
+  const generateTimeSlots = () => {
+    if (!branchConfig || !branchConfig.defaultShifts || branchConfig.defaultShifts.length === 0) {
+      return [
+        {
+          type: 'MORNING',
+          startTime: '06:00',
+          endTime: '12:00',
+          display: t('branch_working_config.shift_type.morning_simple'),
+          customName: undefined
+        },
+        {
+          type: 'AFTERNOON',
+          startTime: '12:00',
+          endTime: '18:00',
+          display: t('branch_working_config.shift_type.afternoon_simple'),
+          customName: undefined
+        },
+        {
+          type: 'EVENING',
+          startTime: '18:00',
+          endTime: '22:00',
+          display: t('branch_working_config.shift_type.evening_simple'),
+          customName: undefined
+        }
+      ];
     }
 
-    const period = hour >= 12 ? 'PM' : 'AM';
+    return branchConfig.defaultShifts.map((shift) => {
+      let display = shift.customName || shift.type;
 
-    return {
-      hour,
-      minute: 0,
-      time: `${hour.toString().padStart(2, '0')}:00`,
-      display: `${displayHour} ${period}`,
-      isHourMark: true
-    };
-  });
+      if (!shift.customName) {
+        const shiftNames: Record<string, string> = {
+          MORNING: t('branch_working_config.shift_type.morning_simple'),
+          AFTERNOON: t('branch_working_config.shift_type.afternoon_simple'),
+          EVENING: t('branch_working_config.shift_type.evening_simple'),
+          CUSTOM: shift.customName || t('branch_working_config.custom')
+        };
+        display = shiftNames[shift.type] || shift.type;
+      }
 
-  // Get current time for indicator
-  const getCurrentTimePosition = () => {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentDay = now.getDay();
-
-    // Only show time indicator if current time is within our range (5 AM - 10 PM)
-    if (currentHour < 5 || currentHour > 22) {
-      return { position: 0, currentDay, isToday: false };
-    }
-
-    // Calculate position based on current time (60px per hour slot)
-    const hourFromStart = currentHour - 5; // Hours since 5 AM
-    const position = hourFromStart * 60 + (currentMinute / 60) * 60; // 60px per hour
-
-    return {
-      position,
-      currentDay,
-      isToday: currentDay === currentDate.getDay()
-    };
+      return {
+        ...shift,
+        display
+      };
+    });
   };
 
-  const currentTimeInfo = getCurrentTimePosition();
+  const timeSlots = useMemo(() => generateTimeSlots(), [branchConfig, t]);
+
+  const filteredStaffList = useMemo(() => {
+    if (!currentBranch) return [];
+
+    return staffList.filter((staff) => {
+      const staffBranchIds = getBranchIds(staff.branchId);
+
+      if (!staffBranchIds.includes(currentBranch._id)) {
+        return false;
+      }
+
+      // Filter by search value
+      if (staffSearchValue.trim()) {
+        const searchTerm = staffSearchValue.toLowerCase().trim();
+        const staffName = (staff.userId?.fullName || 'Unknown').toLowerCase();
+        const jobTitle = (staff.jobTitle || '').toLowerCase();
+        return staffName.includes(searchTerm) || jobTitle.includes(searchTerm);
+      }
+
+      return true;
+    });
+  }, [staffList, currentBranch, staffSearchValue]);
+
+  const getSelectedStaffDisplay = () => {
+    if (!selectedStaffId) {
+      return t('workshift.all_staff') || 'All Staff';
+    }
+    const selectedStaff = staffList.find((s) => s._id === selectedStaffId);
+    if (selectedStaff) {
+      return `${selectedStaff.userId?.fullName || 'Unknown'} (${selectedStaff.jobTitle})`;
+    }
+    return t('workshift.select_staff') || 'Select Staff';
+  };
 
   return (
     <div className="calendar-main-container flex h-full bg-gray-50 overflow-hidden">
-      {/* Left Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-        {/* Create Actions - Fixed */}
-        <div className="p-4 border-b border-gray-200 flex-shrink-0">
-          <CreateDropdown
-            onCreateWorkShift={handleCreateWorkShift}
-            onCreateSchedule={handleCreateSchedule}
-            className="w-full"
-          />
-        </div>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto">
-          {/* Mini Calendar */}
-          <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-700">{t('workshift.mini_calendar')}</h3>
-              <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const newDate = new Date(currentDate);
-                    newDate.setMonth(newDate.getMonth() - 1);
-                    setCurrentDate(newDate);
-                  }}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const newDate = new Date(currentDate);
-                    newDate.setMonth(newDate.getMonth() + 1);
-                    setCurrentDate(newDate);
-                  }}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="mini-calendar-wrapper w-full">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => {
-                  if (date) {
-                    setSelectedDate(date);
-                    setCurrentDate(date);
-                  }
-                }}
-                className="rounded-md border w-full"
-                locale={i18n.language === 'vi' ? vi : undefined}
-              />
-            </div>
-          </div>
-
-          {/* Staff Search - Only show for Owner and Manager */}
-          {canViewStaffSchedules() && (
-            <div className="p-4 border-b border-gray-200">
-              <div className="mb-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder={t('workshift.search_staff')}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-gray-700">{t('workshift.staff_schedules')}</h3>
-                <div className="flex items-center gap-2">
-                  <div className="text-xs text-gray-500">
-                    {selectedStaffId
-                      ? t('workshift.shifts_count', { count: filteredWorkShifts.length })
-                      : t('workshift.total_shifts_count', { count: workShifts.length })}
-                  </div>
-                  {selectedStaffId && (
-                    <button
-                      onClick={() => {
-                        onStaffSelect?.(undefined);
-                      }}
-                      className="text-xs text-orange-600 hover:text-orange-800 underline"
-                    >
-                      {t('common.show_all')}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Staff List with Expand/Collapse - Only show for Owner and Manager */}
-          {canViewStaffSchedules() && (
-            <div>
-              {loadingStaff ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600 mx-auto"></div>
-                    <p className="text-sm text-gray-500 mt-2">{t('common.loading')}</p>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* Staff List Header with Expand/Collapse */}
-                  <div className="px-4 py-2 border-b border-gray-200 bg-gray-50">
-                    <button
-                      onClick={() => setStaffListExpanded(!staffListExpanded)}
-                      className="flex items-center justify-between w-full text-left hover:bg-gray-100 rounded px-2 py-1 transition-colors"
-                    >
-                      <span className="text-sm font-medium text-gray-700">
-                        {t('workshift.staff_count', { count: staffList.length })}
-                      </span>
-                      {staffListExpanded ? (
-                        <ChevronUp className="h-4 w-4 text-gray-500" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-gray-500" />
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Staff List Content - No individual scroll */}
-                  {staffListExpanded && (
-                    <div className="p-4 space-y-2 bg-white">
-                      {(() => {
-                        if (!currentBranch) {
-                          return (
-                            <div className="text-center py-4">
-                              <Building2 className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                              <p className="text-sm text-gray-500">Select a branch to view staff</p>
-                            </div>
-                          );
-                        }
-
-                        if (staffList.length === 0) {
-                          return (
-                            <div className="text-center py-4">
-                              <p className="text-sm text-gray-500">{t('workshift.no_staff_found')}</p>
-                            </div>
-                          );
-                        }
-
-                        return (
-                          <>
-                            {staffList.slice(0, visibleStaffCount).map((staff) => {
-                              return (
-                                <button
-                                  key={staff._id}
-                                  className={cn(
-                                    'flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors w-full text-left',
-                                    selectedStaffId === staff._id
-                                      ? 'bg-orange-50 border border-orange-200'
-                                      : 'hover:bg-gray-50'
-                                  )}
-                                  onClick={() => {
-                                    onStaffSelect?.(staff._id);
-                                  }}
-                                >
-                                  <Avatar className="h-9 w-9">
-                                    <AvatarImage
-                                      src={`https://ui-avatars.com/api/?name=${staff.userId?.fullName || 'Unknown'}&background=orange&color=fff`}
-                                      alt={staff.userId?.fullName || 'Unknown'}
-                                    />
-                                    <AvatarFallback className="bg-orange-500 text-white text-xs">
-                                      {(staff.userId?.fullName || 'U').charAt(0)}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div className="flex-1 min-w-0 space-y-1">
-                                    <p className="text-sm font-medium text-gray-900 truncate">
-                                      {staff.userId?.fullName || 'Unknown'}
-                                    </p>
-                                    <p className="text-xs text-gray-500 truncate">{staff.jobTitle}</p>
-                                  </div>
-                                </button>
-                              );
-                            })}
-
-                            {/* Show More/Less Button */}
-                            {staffList.length > visibleStaffCount && (
-                              <button
-                                onClick={() => {
-                                  const newCount = visibleStaffCount === 5 ? staffList.length : 5;
-                                  setVisibleStaffCount(newCount);
-                                }}
-                                className="w-full text-center py-2 text-sm text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded-lg transition-colors"
-                              >
-                                {visibleStaffCount === 5
-                                  ? t('workshift.show_all_staff', { count: staffList.length })
-                                  : t('common.show_less')}
-                              </button>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Navigation */}
         <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-              <div className="flex items-center gap-2">
-                <CalendarIcon className="h-5 w-5 text-orange-600" />
-                <span className="text-lg font-semibold text-gray-900">{t('workshift.calendar')}</span>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleToday}>
-                {t('workshift.today')}
-              </Button>
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="sm" onClick={handlePrevWeek}>
                   <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleToday}>
+                  {t('workshift.today')}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={handleNextWeek}>
                   <ChevronRight className="h-4 w-4" />
@@ -787,16 +1138,98 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
               </h2>
             </div>
 
+            {/* Color Legend */}
+            <div className="flex items-center gap-3 text-xs flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded bg-gradient-to-br from-green-50 to-emerald-50 border-l-4 border-green-500 shadow-sm"></div>
+                <span className="text-gray-700">{t('workshift.legend.scheduled') || 'Scheduled'}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded bg-yellow-50 border-l-4 border-yellow-500 shadow-sm"></div>
+                <span className="text-gray-700">{t('workshift.legend.pending') || 'Pending'}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded bg-red-50 border-l-4 border-red-900 shadow-sm"></div>
+                <span className="text-gray-700">{t('workshift.legend.cancelled') || 'Cancelled'}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded bg-gradient-to-br from-gray-50 to-gray-300 border-l-4 border-gray-300 shadow-sm"></div>
+                <span className="text-gray-700">{t('workshift.legend.past') || 'Past'}</span>
+              </div>
+            </div>
+
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm">
-                <Search className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <HelpCircle className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Settings className="h-4 w-4" />
-              </Button>
+              {/* Staff List Selector with Search - Only show if user can view all staff schedules */}
+              {canViewAllStaffSchedules && (
+                <Popover
+                  open={staffSearchOpen}
+                  onOpenChange={(open) => {
+                    setStaffSearchOpen(open);
+                    if (!open) {
+                      setStaffSearchValue('');
+                    }
+                  }}
+                >
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" aria-expanded={staffSearchOpen} className="w-[200px] justify-between">
+                      <div className="flex items-center gap-2 truncate">
+                        <User className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{getSelectedStaffDisplay()}</span>
+                      </div>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0" align="start">
+                    <Command shouldFilter={false}>
+                      <CommandInput
+                        placeholder={t('workshift.search_staff') || 'Search staff...'}
+                        value={staffSearchValue}
+                        onValueChange={setStaffSearchValue}
+                      />
+                      <CommandList>
+                        <CommandEmpty>{t('workshift.no_staff_found') || 'No staff found.'}</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="all"
+                            onSelect={() => {
+                              onStaffSelect?.(undefined);
+                              setStaffSearchOpen(false);
+                              setStaffSearchValue('');
+                            }}
+                          >
+                            <Check className={cn('mr-2 h-4 w-4', !selectedStaffId ? 'opacity-100' : 'opacity-0')} />
+                            <User className="h-4 w-4 mr-2" />
+                            <span>{t('workshift.all_staff') || 'All Staff'}</span>
+                          </CommandItem>
+                          {filteredStaffList.map((staff) => (
+                            <CommandItem
+                              key={staff._id}
+                              value={staff._id}
+                              onSelect={() => {
+                                onStaffSelect?.(staff._id);
+                                setStaffSearchOpen(false);
+                                setStaffSearchValue('');
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  'mr-2 h-4 w-4',
+                                  selectedStaffId === staff._id ? 'opacity-100' : 'opacity-0'
+                                )}
+                              />
+                              <User className="h-4 w-4 mr-2" />
+                              <span>
+                                {staff.userId?.fullName || 'Unknown'} ({staff.jobTitle})
+                              </span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              )}
+
               <Select value={viewMode} onValueChange={(value: 'week' | 'month' | 'day') => setViewMode(value)}>
                 <SelectTrigger className="w-24">
                   <SelectValue />
@@ -808,38 +1241,12 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                 </SelectContent>
               </Select>
 
-              {/* Toggle for showing disabled shifts */}
-              <Button
-                variant={showDisabledShifts ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setShowDisabledShifts(!showDisabledShifts)}
-                className={showDisabledShifts ? 'bg-orange-600 hover:bg-orange-700 text-white' : ''}
-                title={showDisabledShifts ? t('workshift.hide_disabled_shifts') : t('workshift.show_disabled_shifts')}
-              >
-                <Ban className="h-4 w-4 mr-1" />
-                {showDisabledShifts ? t('workshift.disabled') : t('workshift.hidden')}
-              </Button>
-
-              {/* Toggle for showing time off indicators */}
-              <Button
-                variant={showTimeOffs ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setShowTimeOffs(!showTimeOffs)}
-                className={showTimeOffs ? 'bg-black hover:bg-gray-800 text-white' : ''}
-                title={showTimeOffs ? t('timeoff.hide_time_off') : t('timeoff.show_time_off')}
-              >
-                <CalendarIcon className="h-4 w-4 mr-1" />
-                {showTimeOffs ? t('timeoff.time_off') : t('timeoff.hidden')}
-              </Button>
-              <Button variant="ghost" size="sm">
-                <CalendarIcon className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <CheckCircle className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Grid3X3 className="h-4 w-4" />
-              </Button>
+              {/* Create Dropdown - Replacing Time Off button */}
+              <CreateDropdown
+                onCreateWorkShift={handleCreateWorkShift}
+                onBranchConfig={() => setShowBranchConfig(true)}
+                className="w-auto"
+              />
             </div>
           </div>
         </div>
@@ -851,9 +1258,9 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
               {/* Week Header - Fixed */}
               <div className="flex-shrink-0 bg-white border-b-2 border-gray-300 z-10">
                 <div className="flex">
-                  {/* Time column header */}
-                  <div className="w-20 p-4 border-r border-gray-200 bg-gray-50 flex-shrink-0">
-                    <span className="text-sm font-semibold text-gray-700">{t('workshift.gmt_plus_07')}</span>
+                  {/* Time column header - Match sidebar width */}
+                  <div className="w-[90px] p-4 border-r border-gray-200 bg-gray-50 flex-shrink-0">
+                    {/* Empty header for time column */}
                   </div>
 
                   {/* Days header */}
@@ -900,26 +1307,13 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                 <div className="calendar-grid-wrapper">
                   {/* Time sidebar with fixed labels on lines */}
                   <div className="calendar-time-sidebar">
-                    {/* Add 5AM label at the very top (0px) with special positioning */}
-                    <div
-                      key="time-marker-5"
-                      className="time-marker"
-                      style={{ top: '0px', transform: 'translateY(4px)' }}
-                    >
-                      5 AM
-                    </div>
-
-                    {timeSlots.slice(1).map((slot, index) => {
-                      // Position labels exactly on the horizontal border lines
-                      // Start from 60px for 6AM, then 120px for 7AM, etc.
-                      const topPosition = (index + 1) * 60; // +1 because we skip the first slot (5AM)
+                    {/* Show shift times for each shift column - auto distributed with flex */}
+                    {timeSlots.map((slot, index) => {
+                      const shiftTime = `${slot.startTime} - ${slot.endTime}`;
                       return (
-                        <div
-                          key={`time-marker-${slot.hour}`}
-                          className="time-marker"
-                          style={{ top: `${topPosition}px` }}
-                        >
-                          {slot.display}
+                        <div key={`time-marker-${slot.type}-${index}`} className="time-marker">
+                          <div className="text-xl font-bold text-gray-900">{slot.display}</div>
+                          <div className="text-gray-600 text-sm font-semibold mt-2">{shiftTime}</div>
                         </div>
                       );
                     })}
@@ -941,33 +1335,25 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                       <div className="calendar-day-grid">
                         {weekDates.map((date) => (
                           <div key={`day-${date.getTime()}`} className="calendar-day-column-new">
-                            {/* Current time indicator */}
-                            {isToday(date) && (
-                              <div className="current-time-line" style={{ top: `${currentTimeInfo.position}px` }} />
-                            )}
-
                             {/* Time cells for this day */}
-                            {timeSlots.map((slot) => (
+                            {timeSlots.map((slot, slotIndex) => (
                               <div
-                                key={`cell-${date.getTime()}-${slot.hour}`}
+                                key={`cell-${date.getTime()}-${slot.type}-${slotIndex}`}
                                 className="calendar-time-cell relative"
                                 onClick={() => {
-                                  const clickedDateTime = new Date(date);
-                                  clickedDateTime.setHours(slot.hour, 0, 0, 0);
+                                  // Click handler for shift cell
                                 }}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault();
-                                    const clickedDateTime = new Date(date);
-                                    clickedDateTime.setHours(slot.hour, 0, 0, 0);
                                   }
                                 }}
                                 role="button"
                                 tabIndex={0}
                               >
-                                {renderShiftsForSlot(date, { hour: slot.hour })}
-                                {/* Time Off indicator for the first hour slot of each day */}
-                                {slot.hour === 5 && renderTimeOffIndicator(date)}
+                                {renderShiftsForSlot(date, slot)}
+                                {/* Time Off indicator for the first shift of each day */}
+                                {slotIndex === 0 && renderTimeOffIndicator(date)}
                               </div>
                             ))}
                           </div>
@@ -990,6 +1376,136 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
           selectedStaffId={selectedStaffId}
         />
       )}
+
+      {/* Staff List Modal - For Owner/Manager to view all staff in a shift */}
+      <Dialog open={showStaffListModal} onOpenChange={setShowStaffListModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+              <User className="h-5 w-5" />
+              {t('workshift.shift_staff_list') || 'Staff in Shift'}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedShiftData && (
+            <div className="space-y-4">
+              {/* Shift Information */}
+              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                <div className="flex items-center gap-2 text-sm text-gray-700">
+                  <Calendar className="h-4 w-4" />
+                  <span>
+                    {selectedShiftData.date.toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-700">
+                  <Clock className="h-4 w-4" />
+                  <span>{selectedShiftData.timeRange}</span>
+                </div>
+                {selectedShiftData.slot.display && (
+                  <div className="text-sm font-medium text-gray-900">{selectedShiftData.slot.display}</div>
+                )}
+              </div>
+
+              {/* Staff List */}
+              <div className="space-y-2">
+                <div className="text-sm font-semibold text-gray-700 mb-3">
+                  {(() => {
+                    // Count unique staff
+                    const uniqueStaffIds = new Set(
+                      selectedShiftData.shifts.map((s) => getStaffId(s.staffId)).filter(Boolean)
+                    );
+                    return `${t('workshift.total_staff') || 'Total Staff'}: ${uniqueStaffIds.size}`;
+                  })()}
+                </div>
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  {(() => {
+                    // Collect unique staff with their shifts
+                    const staffShiftMap = new Map<
+                      string,
+                      {
+                        staffId: string;
+                        staffName: string;
+                        jobTitle: string;
+                        avatarUrl: string;
+                        shifts: (WorkShift | VirtualWorkShift)[];
+                      }
+                    >();
+
+                    selectedShiftData.shifts.forEach((shift) => {
+                      const staffId = getStaffId(shift.staffId);
+                      if (!staffId) return;
+
+                      const staffName = getStaffName(shift.staffId);
+                      const jobTitle = shift.staffId?.jobTitle || 'Unknown';
+                      const avatarUrl = getAvatarUrl(staffName) || '';
+
+                      if (!staffShiftMap.has(staffId)) {
+                        staffShiftMap.set(staffId, {
+                          staffId,
+                          staffName,
+                          jobTitle,
+                          avatarUrl,
+                          shifts: []
+                        });
+                      }
+                      staffShiftMap.get(staffId)!.shifts.push(shift);
+                    });
+
+                    return Array.from(staffShiftMap.values()).map((staffInfo) => (
+                      <div
+                        key={staffInfo.staffId}
+                        role="button"
+                        tabIndex={0}
+                        className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:border-orange-300 hover:shadow-sm transition-all cursor-pointer"
+                        onClick={() => {
+                          // When clicking on a staff member, show their shift detail
+                          const firstShift = staffInfo.shifts[0];
+                          if (firstShift) {
+                            setSelectedWorkShift(firstShift);
+                            setShowWorkShiftDetail(true);
+                            setShowStaffListModal(false);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            const firstShift = staffInfo.shifts[0];
+                            if (firstShift) {
+                              setSelectedWorkShift(firstShift);
+                              setShowWorkShiftDetail(true);
+                              setShowStaffListModal(false);
+                            }
+                          }
+                        }}
+                      >
+                        <Avatar className="h-10 w-10 border-2 border-orange-200">
+                          <AvatarImage src={staffInfo.avatarUrl} alt={staffInfo.staffName} />
+                          <AvatarFallback className="bg-orange-500 text-white font-semibold">
+                            {staffInfo.staffName.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="font-semibold text-gray-900">{staffInfo.staffName}</div>
+                          <div className="text-sm text-gray-600">{staffInfo.jobTitle}</div>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {staffInfo.shifts.length} shift{staffInfo.shifts.length !== 1 ? 's' : ''}
+                        </div>
+                        <X className="h-4 w-4 text-gray-400" />
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Work Shift Detail Modal with Time Off */}
       <WorkShiftDetailModalWithTimeOff
@@ -1018,6 +1534,10 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
         onClose={() => setShowCreateWorkShiftModal(false)}
         onSuccess={refreshWorkShifts}
       />
+
+      {showBranchConfig && (
+        <BranchWorkingConfigModal isOpen={showBranchConfig} onClose={() => setShowBranchConfig(false)} />
+      )}
     </div>
   );
 };
