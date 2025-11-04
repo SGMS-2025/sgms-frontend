@@ -10,6 +10,7 @@ import ManagerSelector from '@/components/ui/ManagerSelector';
 import { Camera, Plus } from 'lucide-react';
 import { useBranch } from '@/contexts/BranchContext';
 import { staffApi } from '@/services/api/staffApi';
+import { businessVerificationApi } from '@/services/api/businessVerificationApi';
 import type { BranchFormData, CreateAndUpdateBranchRequest } from '@/types/api/Branch';
 import type { Staff } from '@/types/api/Staff';
 import { toast } from 'sonner';
@@ -77,6 +78,49 @@ const AddBranchPage: React.FC = () => {
 
     fetchManagers();
   }, [t]);
+
+  // Fetch business verification data and auto-populate form
+  useEffect(() => {
+    const fetchBusinessVerification = async () => {
+      const response = await businessVerificationApi.getMyVerification();
+
+      if (response.success && response.data) {
+        const verification = response.data;
+
+        // Auto-populate branch name from business name
+        if (verification.businessName) {
+          setValue('branchName', verification.businessName);
+        }
+
+        // Auto-populate address from business address
+        if (verification.businessAddress) {
+          // Try to split address by comma - last part is city, rest is address
+          const addressParts = verification.businessAddress.split(',').map((part) => part.trim());
+          if (addressParts.length > 1) {
+            const city = addressParts[addressParts.length - 1];
+            const address = addressParts.slice(0, -1).join(', ');
+            setValue('address', address);
+            setValue('city', city);
+          } else {
+            // If no comma, put entire address in address field
+            setValue('address', verification.businessAddress);
+          }
+        }
+
+        // Auto-populate hotline from business phone
+        if (verification.businessPhone) {
+          setValue('hotline', verification.businessPhone);
+        }
+
+        // Auto-populate email from business email
+        if (verification.businessEmail) {
+          setValue('email', verification.businessEmail);
+        }
+      }
+    };
+
+    fetchBusinessVerification();
+  }, [setValue]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

@@ -17,6 +17,7 @@ import { localDateStringYMD, localDateTimeToUtcISO } from '@/utils/datetime';
 import { useBranch } from '@/contexts/BranchContext';
 import { staffApi } from '@/services/api/staffApi';
 import { useWorkShiftOperations } from '@/hooks/useWorkShift';
+import { useBranchWorkingConfig } from '@/hooks/useBranchWorkingConfig';
 import type { Staff } from '@/types/api/Staff';
 import type { CreateWorkShiftRequest, CreateWorkShiftModalProps } from '@/types/api/WorkShift';
 
@@ -73,6 +74,10 @@ const CreateWorkShiftModal: React.FC<CreateWorkShiftModalProps> = ({ isOpen, onC
   });
 
   const selectedBranchId = watch('branchId');
+  const startTime = watch('startTime');
+
+  // Get branch working config to find matching default shift
+  const { config: branchConfig } = useBranchWorkingConfig(selectedBranchId);
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -111,6 +116,23 @@ const CreateWorkShiftModal: React.FC<CreateWorkShiftModalProps> = ({ isOpen, onC
       setValue('date', localDateStringYMD(selectedDate));
     }
   }, [selectedDate, setValue]);
+
+  // Auto-adjust endTime based on default shift when startTime changes
+  useEffect(() => {
+    if (!startTime || !branchConfig?.defaultShifts || !selectedBranchId) {
+      return;
+    }
+
+    // Find matching default shift based on startTime
+    const matchingShift = branchConfig.defaultShifts.find((shift) => {
+      return shift.startTime === startTime;
+    });
+
+    // If found, set endTime to match default shift endTime
+    if (matchingShift?.endTime) {
+      setValue('endTime', matchingShift.endTime, { shouldValidate: true });
+    }
+  }, [startTime, branchConfig, selectedBranchId, setValue]);
 
   const onSubmit = async (data: CreateWorkShiftFormData) => {
     // Prevent double submission
@@ -298,7 +320,13 @@ const CreateWorkShiftModal: React.FC<CreateWorkShiftModalProps> = ({ isOpen, onC
                   <Input
                     id="startTime"
                     type="time"
-                    {...register('startTime')}
+                    {...register('startTime', {
+                      onChange: (e) => {
+                        // Trigger validation and auto-adjust endTime
+                        const value = e.target.value;
+                        setValue('startTime', value);
+                      }
+                    })}
                     className={cn(errors.startTime && 'border-red-500')}
                   />
                   {errors.startTime && (

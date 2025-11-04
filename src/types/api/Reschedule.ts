@@ -226,6 +226,8 @@ export interface CreateRescheduleModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   workShiftId?: string; // Pre-select a work shift
+  workShift?: import('./WorkShift').WorkShift | import('./WorkShift').VirtualWorkShift;
+  onEnsureWorkshift?: () => Promise<import('./WorkShift').WorkShift | null>;
 }
 
 export interface RescheduleManagementLayoutProps {

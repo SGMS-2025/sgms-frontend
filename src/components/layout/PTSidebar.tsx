@@ -17,7 +17,6 @@ import {
   X,
   CalendarDays,
   ChevronDown,
-  ArrowRightLeft,
   ShieldCheck as Shield,
   User
 } from 'lucide-react';
@@ -465,12 +464,6 @@ export const PTSidebar: React.FC = () => {
               label={t('sidebar.time_off', 'Time Off')}
               isActive={location.pathname.startsWith('/manage/pt/timeoff')}
               onClick={() => handleNavigation('/manage/pt/timeoff')}
-            />
-            <SubMenuItem
-              icon={<ArrowRightLeft className="w-5 h-5" />}
-              label={t('sidebar.reschedule') || 'Reschedule'}
-              isActive={location.pathname.startsWith('/reschedule')}
-              onClick={() => handleNavigation('/reschedule')}
             />
           </DropdownSidebarItem>
         </div>

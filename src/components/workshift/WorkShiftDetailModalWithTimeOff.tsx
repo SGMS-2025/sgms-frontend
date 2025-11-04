@@ -3,12 +3,21 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Clock, User, MapPin, CheckCircle, Loader2, Ban } from 'lucide-react';
-import type { UpdateWorkShiftRequest, WorkShiftStatus, WorkShiftDetailModalProps } from '@/types/api/WorkShift';
+import { Calendar, Clock, User, MapPin, CheckCircle, Loader2, Ban, AlertCircle } from 'lucide-react';
+import type {
+  UpdateWorkShiftRequest,
+  WorkShiftStatus,
+  WorkShiftDetailModalProps,
+  WorkShift,
+  VirtualWorkShift
+} from '@/types/api/WorkShift';
 import { workShiftApi } from '@/services/api/workShiftApi';
 import TimeOffRequestTab from '@/components/timeoff/TimeOffRequestTab';
-import RescheduleTab from '@/components/reschedule/RescheduleTab';
 import { useWorkshiftPermissions } from '@/hooks/useWorkshiftPermissions';
+import { useEnsureWorkShift } from '@/hooks/useEnsureWorkShift';
+import { useBranchWorkingConfig } from '@/hooks/useBranchWorkingConfig';
+import { isVirtualWorkShift } from '@/utils/workshiftUtils';
+import { formatInVietnam } from '@/utils/datetime';
 
 interface WorkShiftDetailModalWithTimeOffProps extends WorkShiftDetailModalProps {
   selectedDate?: Date;
@@ -27,11 +36,17 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
 }) => {
   const { t } = useTranslation();
   const { canEditWorkshift, canDeleteWorkshift } = useWorkshiftPermissions();
+  const { ensureWorkShiftExists, isCreating: isEnsuringWorkshift } = useEnsureWorkShift();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isDisabling, setIsDisabling] = useState(false);
   const [showConfirmDisable, setShowConfirmDisable] = useState(false);
   const [_error, setError] = useState<string | null>(null);
+  const [currentWorkShift, setCurrentWorkShift] = useState<WorkShift | VirtualWorkShift | null>(workShift);
+
+  // Get branch working config to auto-adjust endTime
+  const branchId = currentWorkShift?.branchId?._id;
+  const { config: branchConfig } = useBranchWorkingConfig(branchId);
   const [formData, setFormData] = useState<{
     startTimeLocal?: string;
     endTimeLocal?: string;
@@ -43,14 +58,19 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
     status: 'SCHEDULED'
   });
 
-  // Initialize form data when workShift changes
+  // Update currentWorkShift when workShift prop changes
   useEffect(() => {
-    if (workShift) {
+    setCurrentWorkShift(workShift);
+  }, [workShift]);
+
+  // Initialize form data when currentWorkShift changes
+  useEffect(() => {
+    if (currentWorkShift) {
       setFormData({
-        startTimeLocal: workShift.startTimeLocal || '',
-        endTimeLocal: workShift.endTimeLocal || '',
-        status: workShift.status,
-        title: `${workShift.staffId?.userId?.fullName || workShift.staffId?.firstName || t('common.unknown')} - ${t('workshift.work_shift')}`
+        startTimeLocal: currentWorkShift.startTimeLocal || '',
+        endTimeLocal: currentWorkShift.endTimeLocal || '',
+        status: currentWorkShift.status,
+        title: `${currentWorkShift.staffId?.userId?.fullName || currentWorkShift.staffId?.firstName || t('common.unknown')} - ${t('workshift.work_shift')}`
       });
       setError(null);
       // Reset loading states when workShift changes
@@ -58,7 +78,38 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
       setIsLoading(false);
       setShowConfirmDisable(false);
     }
-  }, [workShift, t]);
+  }, [currentWorkShift, t]);
+
+  // Only fetch once when modal opens, not continuously
+  const hasFetchedRef = React.useRef<string | null>(null);
+  useEffect(() => {
+    if (isOpen && workShift?._id) {
+      // Chỉ fetch cho real shifts (không phải virtual)
+      if (!isVirtualWorkShift(workShift)) {
+        const workshiftKey = `${workShift._id}-${isOpen}`;
+        if (hasFetchedRef.current !== workshiftKey) {
+          hasFetchedRef.current = workshiftKey;
+          const fetchLatestWorkShift = async () => {
+            try {
+              const response = await workShiftApi.getWorkShiftById(workShift._id);
+              if (response.success && response.data) {
+                setCurrentWorkShift(response.data);
+                onUpdate?.(response.data);
+              }
+            } catch (error) {
+              console.error('Failed to fetch latest workshift:', error);
+              setCurrentWorkShift(workShift);
+            }
+          };
+          fetchLatestWorkShift();
+        }
+      } else {
+        setCurrentWorkShift(workShift);
+      }
+    } else if (!isOpen) {
+      hasFetchedRef.current = null;
+    }
+  }, [isOpen, workShift?._id]); // Đã loại bỏ onUpdate để tránh infinite loop
 
   // Reset states when modal closes or opens
   useEffect(() => {
@@ -79,7 +130,12 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
   }, [isOpen]);
 
   const handleSave = async () => {
-    if (!workShift) return;
+    if (!currentWorkShift) return;
+
+    if (isVirtualWorkShift(currentWorkShift)) {
+      setError(t('workshift.error_virtual_workshift_cannot_edit'));
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -93,8 +149,8 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
       // Only include time fields if they were actually changed
       if (formData.startTimeLocal && formData.endTimeLocal) {
         // Create full datetime strings by combining with the original date
-        const originalStartDate = new Date(workShift.startTime);
-        const originalEndDate = new Date(workShift.endTime);
+        const originalStartDate = new Date(currentWorkShift.startTime);
+        const originalEndDate = new Date(currentWorkShift.endTime);
 
         // Parse the local time and create new datetime
         const [startHour, startMin] = formData.startTimeLocal.split(':').map(Number);
@@ -116,7 +172,7 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
     };
 
     const updateData = prepareUpdateData();
-    const response = await workShiftApi.updateWorkShift(workShift._id, updateData);
+    const response = await workShiftApi.updateWorkShift(currentWorkShift._id, updateData);
 
     if (response.success) {
       onUpdate?.(response.data);
@@ -128,12 +184,17 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
   };
 
   const handleDisable = async () => {
-    if (!workShift) return;
+    if (!currentWorkShift) return;
+
+    if (isVirtualWorkShift(currentWorkShift)) {
+      setError(t('workshift.error_virtual_workshift_cannot_disable'));
+      return;
+    }
 
     setIsDisabling(true);
     setError(null);
 
-    const response = await workShiftApi.disableWorkShift(workShift._id);
+    const response = await workShiftApi.disableWorkShift(currentWorkShift._id);
 
     if (response.success) {
       onUpdate?.(response.data);
@@ -145,32 +206,70 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
   };
 
   const handleCancel = () => {
-    if (workShift) {
+    if (currentWorkShift) {
       setFormData({
-        startTimeLocal: workShift.startTimeLocal || '',
-        endTimeLocal: workShift.endTimeLocal || '',
-        status: workShift.status,
-        title: `${workShift.staffId?.userId?.fullName || workShift.staffId?.firstName || t('common.unknown')} - ${t('workshift.work_shift')}`
+        startTimeLocal: currentWorkShift.startTimeLocal || '',
+        endTimeLocal: currentWorkShift.endTimeLocal || '',
+        status: currentWorkShift.status,
+        title: `${currentWorkShift.staffId?.userId?.fullName || currentWorkShift.staffId?.firstName || t('common.unknown')} - ${t('workshift.work_shift')}`
       });
     }
     setIsEditing(false);
     setError(null);
   };
 
-  const handleTimeOffCreated = () => {
-    // Refresh the parent component when time off is created
-    onTimeOffChange?.();
+  const handleEnsureWorkshift = async (): Promise<WorkShift | null> => {
+    if (!currentWorkShift) return null;
+
+    const realWorkShift = await ensureWorkShiftExists(currentWorkShift);
+    if (realWorkShift) {
+      setCurrentWorkShift(realWorkShift);
+      onUpdate?.(realWorkShift);
+      return realWorkShift;
+    }
+    return null;
   };
 
-  if (!workShift) return null;
+  const handleTimeOffCreated = async () => {
+    // Refresh the parent component when time off is created
+    await onTimeOffChange?.();
+
+    if (currentWorkShift?._id) {
+      hasFetchedRef.current = null;
+    }
+  };
+
+  if (!currentWorkShift) return null;
+
+  // Helper function to get status icon and color
+  const getStatusInfo = (status: WorkShiftStatus) => {
+    switch (status) {
+      case 'SCHEDULED':
+        return { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50' };
+      case 'PENDING_TIME_OFF':
+        return { icon: AlertCircle, color: 'text-yellow-600', bgColor: 'bg-yellow-50' };
+      case 'CANCELLED':
+        return { icon: Ban, color: 'text-red-600', bgColor: 'bg-red-50' };
+      case 'IN_PROGRESS':
+        return { icon: Loader2, color: 'text-blue-600', bgColor: 'bg-blue-50' };
+      case 'COMPLETED':
+        return { icon: CheckCircle, color: 'text-gray-600', bgColor: 'bg-gray-50' };
+      default:
+        return { icon: CheckCircle, color: 'text-gray-600', bgColor: 'bg-gray-50' };
+    }
+  };
+
+  const statusInfo = getStatusInfo(currentWorkShift.status || 'SCHEDULED');
+  const StatusIcon = statusInfo.icon;
 
   const staffName =
-    workShift.staffId?.userId?.fullName ||
-    (workShift.staffId?.firstName && workShift.staffId?.lastName
-      ? `${workShift.staffId.firstName} ${workShift.staffId.lastName}`
+    currentWorkShift.staffId?.userId?.fullName ||
+    (currentWorkShift.staffId?.firstName && currentWorkShift.staffId?.lastName
+      ? `${currentWorkShift.staffId.firstName} ${currentWorkShift.staffId.lastName}`
       : t('common.unknown'));
 
-  const branchName = workShift.branchId?.branchName || t('common.unknown');
+  const branchName = currentWorkShift.branchId?.branchName || t('common.unknown');
+  const isVirtual = isVirtualWorkShift(currentWorkShift);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -180,19 +279,18 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
         </DialogTitle>
 
         <Tabs defaultValue="workshift" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="workshift">{t('workshift.work_shift')}</TabsTrigger>
-            <TabsTrigger value="reschedule">{t('workshift.reschedule')}</TabsTrigger>
             <TabsTrigger value="timeoff">{t('timeoff.out_of_office')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="workshift" className="space-y-6">
             {/* Status Section */}
-            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+            <div className={`flex items-center gap-3 p-4 rounded-lg ${statusInfo.bgColor}`}>
+              <StatusIcon className={`h-5 w-5 ${statusInfo.color}`} />
               <div>
                 <p className="font-medium text-gray-900">{t('workshift.status')}</p>
-                <p className="text-lg font-bold text-green-600">
+                <p className={`text-lg font-bold ${statusInfo.color}`}>
                   {isEditing ? (
                     <select
                       value={formData.status}
@@ -202,8 +300,10 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                       <option value="SCHEDULED">{t('workshift.status.scheduled')}</option>
                       <option value="CANCELLED">{t('workshift.status.cancelled')}</option>
                     </select>
+                  ) : currentWorkShift?.status ? (
+                    t(`workshift.status.${currentWorkShift.status.toLowerCase()}`)
                   ) : (
-                    t(`workshift.status.${workShift.status.toLowerCase()}`)
+                    t('workshift.status.scheduled')
                   )}
                 </p>
               </div>
@@ -219,7 +319,7 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                     <Clock className="h-5 w-5 text-gray-600" />
                     <div>
                       <p className="font-medium text-gray-900">
-                        {new Date(workShift.startTime).toLocaleDateString('en-US', {
+                        {formatInVietnam(currentWorkShift.startTime, {
                           weekday: 'long',
                           day: '2-digit',
                           month: '2-digit',
@@ -232,8 +332,26 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                             <input
                               type="time"
                               value={formData.startTimeLocal}
-                              onChange={(e) => setFormData((prev) => ({ ...prev, startTimeLocal: e.target.value }))}
+                              onChange={(e) => {
+                                const newStartTime = e.target.value;
+                                // Find matching default shift and auto-adjust endTime
+                                let newEndTime = formData.endTimeLocal;
+                                if (branchConfig?.defaultShifts && newStartTime) {
+                                  const matchingShift = branchConfig.defaultShifts.find(
+                                    (shift) => shift.startTime === newStartTime
+                                  );
+                                  if (matchingShift?.endTime) {
+                                    newEndTime = matchingShift.endTime;
+                                  }
+                                }
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  startTimeLocal: newStartTime,
+                                  endTimeLocal: newEndTime
+                                }));
+                              }}
                               className="border border-gray-300 rounded px-2 py-1 text-sm"
+                              disabled={isVirtual}
                             />
                             <span className="text-gray-500">-</span>
                             <input
@@ -241,13 +359,19 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                               value={formData.endTimeLocal}
                               onChange={(e) => setFormData((prev) => ({ ...prev, endTimeLocal: e.target.value }))}
                               className="border border-gray-300 rounded px-2 py-1 text-sm"
+                              disabled={isVirtual}
                             />
                           </div>
                         ) : (
-                          `${workShift.startTimeLocal || '08:00'} - ${workShift.endTimeLocal || '11:00'}`
+                          `${currentWorkShift.startTimeLocal || '08:00'} - ${currentWorkShift.endTimeLocal || '11:00'}`
                         )}
                       </p>
-                      <p className="text-sm text-gray-500">Timezone: UTC • No Repeat</p>
+                      {isVirtual && (
+                        <p className="text-xs text-gray-500 italic mt-1">
+                          (Virtual - Will be created when you request timeoff or reschedule)
+                        </p>
+                      )}
+                      <p className="text-sm text-gray-500">Timezone: Asia/Ho_Chi_Minh (VN) • No Repeat</p>
                     </div>
                   </div>
                 </div>
@@ -258,7 +382,9 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                     <User className="h-5 w-5 text-gray-600" />
                     <div>
                       <p className="font-medium text-gray-900">{staffName}</p>
-                      <p className="text-sm text-gray-500">{workShift.staffId?.jobTitle || t('common.unknown')}</p>
+                      <p className="text-sm text-gray-500">
+                        {currentWorkShift.staffId?.jobTitle || t('common.unknown')}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -273,8 +399,10 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                     <div>
                       <p className="font-medium text-gray-900">{t('workshift.branch')}</p>
                       <p className="text-lg font-semibold text-gray-900">{branchName}</p>
-                      <p className="text-sm text-gray-500">{workShift.branchId?.location || t('common.unknown')}</p>
-                      <p className="text-sm text-gray-500">Timezone: UTC</p>
+                      <p className="text-sm text-gray-500">
+                        {currentWorkShift.branchId?.location || t('common.unknown')}
+                      </p>
+                      <p className="text-sm text-gray-500">Timezone: Asia/Ho_Chi_Minh (VN)</p>
                     </div>
                   </div>
                 </div>
@@ -284,7 +412,7 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                   <div className="flex items-center gap-3">
                     <Calendar className="h-5 w-5 text-gray-600" />
                     <div>
-                      <p className="font-medium text-gray-900">{staffName} (UTC)</p>
+                      <p className="font-medium text-gray-900">{staffName} (VN Time)</p>
                       <p className="text-sm text-gray-500">Busy • Default visibility • Notify 10 minutes before</p>
                     </div>
                   </div>
@@ -328,7 +456,7 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                   </>
                 ) : (
                   <>
-                    {workShift.status === 'SCHEDULED' && canDeleteWorkshift() && (
+                    {currentWorkShift.status === 'SCHEDULED' && canDeleteWorkshift() && !isVirtual && (
                       <Button
                         onClick={() => setShowConfirmDisable(true)}
                         variant="outline"
@@ -341,7 +469,7 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                     <Button variant="outline" onClick={onClose} className="border-gray-300 text-gray-700">
                       {t('common.close')}
                     </Button>
-                    {canEditWorkshift() && (
+                    {canEditWorkshift() && !isVirtual && (
                       <Button
                         onClick={() => setIsEditing(true)}
                         className="bg-orange-600 hover:bg-orange-700 text-white"
@@ -355,25 +483,40 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
             </div>
           </TabsContent>
 
-          <TabsContent value="reschedule" className="space-y-6">
-            {/* Reschedule Tab */}
-            <RescheduleTab workShift={workShift} onClose={onClose} />
-          </TabsContent>
-
           <TabsContent value="timeoff" className="space-y-6">
             {/* Time Off Request Tab */}
-            {(() => {
-              // Prioritize workshift date over selectedDate
-              const effectiveSelectedDate = workShift ? new Date(workShift.startTime) : selectedDate || new Date();
-              return (
-                <TimeOffRequestTab
-                  staffId={workShift.staffId?._id || ''}
-                  selectedDate={effectiveSelectedDate}
-                  onTimeOffCreated={handleTimeOffCreated}
-                  userRole={userRole}
-                />
-              );
-            })()}
+            {isEnsuringWorkshift ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-orange-600" />
+                <span className="ml-2 text-gray-600">{t('workshift.creating_workshift')}</span>
+              </div>
+            ) : (
+              <TimeOffRequestTab
+                staffId={currentWorkShift.staffId?._id || ''}
+                selectedDate={(() => {
+                  if (currentWorkShift?.startTime) {
+                    const utcDate = new Date(currentWorkShift.startTime);
+                    const vnDateStr = utcDate.toLocaleString('en-US', {
+                      timeZone: 'Asia/Ho_Chi_Minh',
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit'
+                    });
+                    const [month, day, year] = vnDateStr.split('/');
+                    return new Date(
+                      Number.parseInt(year, 10),
+                      Number.parseInt(month, 10) - 1,
+                      Number.parseInt(day, 10)
+                    );
+                  }
+                  return selectedDate || new Date();
+                })()}
+                onTimeOffCreated={handleTimeOffCreated}
+                userRole={userRole}
+                workShift={currentWorkShift}
+                onEnsureWorkshift={handleEnsureWorkshift}
+              />
+            )}
           </TabsContent>
         </Tabs>
 
@@ -397,11 +540,9 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                 <div className="space-y-2">
                   <p className="font-semibold text-gray-900">{staffName}</p>
                   <p className="text-gray-900">
-                    {workShift.startTimeLocal || '08:00'} - {workShift.endTimeLocal || '11:00'}
+                    {currentWorkShift.startTimeLocal || '08:00'} - {currentWorkShift.endTimeLocal || '11:00'}
                   </p>
-                  <p className="text-gray-500">
-                    {new Date(workShift.startTime).toLocaleDateString('en-US', { weekday: 'long' })}
-                  </p>
+                  <p className="text-gray-500">{formatInVietnam(currentWorkShift.startTime, { weekday: 'long' })}</p>
                 </div>
               </div>
 

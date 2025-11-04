@@ -561,8 +561,11 @@ const RescheduleRequestList: React.FC<RescheduleRequestListProps> = ({
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedRequests.map((request) => {
-                  // Chỉ cho phép xem nếu status đã hoàn thành hoặc bị từ chối
-                  const isFinalStatus = request.status === 'COMPLETED' || request.status === 'REJECTED';
+                  const isOwnerOrManager =
+                    userRole === 'OWNER' || userRole === 'owner' || userRole === 'MANAGER' || userRole === 'manager';
+                  const isFinalStatus =
+                    request.status === 'REJECTED' ||
+                    ((request.status === 'COMPLETED' || request.status === 'APPROVED') && !isOwnerOrManager);
 
                   return (
                     <tr key={request._id} className="hover:bg-gray-50">

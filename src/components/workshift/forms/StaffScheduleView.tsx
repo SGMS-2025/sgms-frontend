@@ -90,7 +90,7 @@ const StaffScheduleView: React.FC<StaffScheduleViewProps> = ({
                   className={`w-2 h-2 rounded-full ${(() => {
                     switch (shift.status) {
                       case 'SCHEDULED':
-                        return 'bg-blue-500';
+                        return 'bg-green-500';
                       case 'IN_PROGRESS':
                         return 'bg-green-500';
                       case 'COMPLETED':

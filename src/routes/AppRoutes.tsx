@@ -26,7 +26,6 @@ import { SubscriptionPackagesPage } from '@/pages/owner/SubscriptionPackagesPage
 import AddNewStaff from '@/pages/owner/AddNewStaff';
 import DiscountPage from '@/pages/owner/DiscountPage';
 import TestimonialPage from '@/pages/owner/TestimonialPage';
-import { ScheduleTemplatePage } from '@/pages/ScheduleTemplatePage';
 import { TechnicianLayout } from '@/layouts/TechnicianLayout';
 import TechnicianDashboard from '@/pages/technician/TechnicianDashboard';
 import { EquipmentListPage } from '@/pages/technician/EquipmentListPage';
@@ -60,10 +59,6 @@ import TechnicianTimeOffPage from '@/pages/technician/TimeOffPage';
 import CustomerPaymentsPage from '@/pages/owner/CustomerPaymentsPage';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
-import { SidebarProvider } from '@/contexts/SidebarContext';
-import { OwnerSidebar } from '@/components/layout/OwnerSidebar';
-import { TechnicianSidebar } from '@/components/layout/TechnicianSidebar';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import AttendancePage from '@/pages/attendance/AttendancePage';
 import RescheduleManagementPage from '@/pages/owner/RescheduleManagementPage';
 import CustomerSecurity from '@/pages/customer/CustomerSecurity';
@@ -81,9 +76,9 @@ import OwnerSubscriptionGate from '@/components/guards/OwnerSubscriptionGate';
 import OwnerSubscriptionGateWithLayout from '@/components/guards/OwnerSubscriptionGateWithLayout';
 
 // WorkShift Calendar with Layout Component
+// Note: Layout is provided by OwnerSubscriptionGateWithLayout wrapper
 const WorkShiftCalendarPageWithLayout: React.FC = () => {
   const { isAuthenticated, user, isLoading } = useAuthState();
-  const { currentStaff } = useCurrentUserStaff();
 
   // Show loading while authentication is being checked
   if (isLoading) {
@@ -107,45 +102,14 @@ const WorkShiftCalendarPageWithLayout: React.FC = () => {
     return <Navigate to="/home" replace />;
   }
 
-  // Choose appropriate sidebar based on user role and job title
-  const renderSidebar = () => {
-    if (user.role === 'OWNER') {
-      return <OwnerSidebar />;
-    } else if (user.role === 'STAFF') {
-      // Manager should use OwnerSidebar, others use TechnicianSidebar
-      if (currentStaff?.jobTitle === 'Manager') {
-        return <OwnerSidebar />;
-      }
-      return <TechnicianSidebar />;
-    }
-    return <OwnerSidebar />; // fallback
-  };
-
-  return (
-    <SidebarProvider>
-      <div className="h-screen bg-[#f1f3f4] flex overflow-hidden">
-        {renderSidebar()}
-        <div className="flex-1 overflow-y-auto hide-scrollbar">
-          {/* Header */}
-          <div className="bg-white border-b border-gray-200">
-            <div className="px-5 py-2 pb-3">
-              <DashboardHeader />
-            </div>
-          </div>
-          {/* Main Content */}
-          <div className="p-6">
-            <WorkShiftCalendarPage />
-          </div>
-        </div>
-      </div>
-    </SidebarProvider>
-  );
+  // Just return the page content - layout is handled by OwnerSubscriptionGateWithLayout
+  return <WorkShiftCalendarPage />;
 };
 
 // Reschedule Management with Layout Component
+// Note: Layout is provided by OwnerSubscriptionGateWithLayout wrapper
 const RescheduleManagementPageWithLayout: React.FC = () => {
   const { isAuthenticated, user, isLoading } = useAuthState();
-  const { currentStaff } = useCurrentUserStaff();
 
   // Show loading while authentication is being checked
   if (isLoading) {
@@ -169,39 +133,8 @@ const RescheduleManagementPageWithLayout: React.FC = () => {
     return <Navigate to="/home" replace />;
   }
 
-  // Choose appropriate sidebar based on user role and job title
-  const renderSidebar = () => {
-    if (user.role === 'OWNER') {
-      return <OwnerSidebar />;
-    } else if (user.role === 'STAFF') {
-      // Manager should use OwnerSidebar, others use TechnicianSidebar
-      if (currentStaff?.jobTitle === 'Manager') {
-        return <OwnerSidebar />;
-      }
-      return <TechnicianSidebar />;
-    }
-    return <OwnerSidebar />; // fallback
-  };
-
-  return (
-    <SidebarProvider>
-      <div className="h-screen bg-[#f1f3f4] flex overflow-hidden">
-        {renderSidebar()}
-        <div className="flex-1 overflow-y-auto hide-scrollbar">
-          {/* Header */}
-          <div className="bg-white border-b border-gray-200">
-            <div className="px-5 py-2 pb-3">
-              <DashboardHeader />
-            </div>
-          </div>
-          {/* Main Content */}
-          <div className="p-6">
-            <RescheduleManagementPage />
-          </div>
-        </div>
-      </div>
-    </SidebarProvider>
-  );
+  // Just return the page content - layout is handled by OwnerSubscriptionGateWithLayout
+  return <RescheduleManagementPage />;
 };
 
 // Protected Route Component - supports multiple roles and job titles
@@ -379,8 +312,6 @@ const AppRoutes: React.FC = () => {
             <Route path="expenses" element={<ExpensesPage />} />
             {/* Testimonial Management Route */}
             <Route path="testimonials" element={<TestimonialPage />} />
-            {/* Schedule Template Management Route */}
-            <Route path="schedule-templates" element={<ScheduleTemplatePage />} />
             {/* Shared Equipment Routes for Manager */}
             <Route path="equipment" element={<EquipmentListPage />} />
             <Route path="equipment/add" element={<AddEquipmentPage />} />

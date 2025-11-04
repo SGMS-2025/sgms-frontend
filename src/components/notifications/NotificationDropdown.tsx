@@ -8,6 +8,7 @@ import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import type { Notification } from '@/contexts/SocketContext';
 import type { WorkShiftNotificationData } from '@/types/api/NotificationWorkShift';
+import { formatInVietnam } from '@/utils/datetime';
 
 // Custom types for notification data
 interface TimeOffNotificationData {
@@ -56,6 +57,18 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     if (onClose) {
       onClose();
     }
+  };
+
+  // Format UTC time to Vietnam timezone with 12-hour format (AM/PM)
+  const formatTimeInVietnam = (utcTimeString: string | undefined): string => {
+    if (!utcTimeString) return '';
+    // Use formatInVietnam to convert UTC to Vietnam timezone, then format as 12-hour with AM/PM
+    return formatInVietnam(utcTimeString, {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Ho_Chi_Minh'
+    });
   };
 
   const handleNotificationClick = (notification: Notification) => {
@@ -202,25 +215,8 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                             <span className="text-sm font-medium text-blue-900">Time:</span>
                             <span className="text-sm text-blue-800 font-semibold">
-                              {(notification.data as WorkShiftNotificationData).formattedStartTime ||
-                                ((notification.data as WorkShiftNotificationData).startTime &&
-                                  new Date(
-                                    (notification.data as WorkShiftNotificationData).startTime!
-                                  ).toLocaleTimeString('en-US', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    hour12: true
-                                  }))}{' '}
-                              -{' '}
-                              {(notification.data as WorkShiftNotificationData).formattedEndTime ||
-                                ((notification.data as WorkShiftNotificationData).endTime &&
-                                  new Date(
-                                    (notification.data as WorkShiftNotificationData).endTime!
-                                  ).toLocaleTimeString('en-US', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    hour12: true
-                                  }))}
+                              {formatTimeInVietnam((notification.data as WorkShiftNotificationData).startTime) || 'N/A'}{' '}
+                              - {formatTimeInVietnam((notification.data as WorkShiftNotificationData).endTime) || 'N/A'}
                             </span>
                           </div>
 

@@ -42,7 +42,26 @@ import { SortableHeader } from '@/components/ui/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 import { sortArray } from '@/utils/sort';
 import TimeOffCard from './TimeOffCard';
-import type { TimeOffListProps, TimeOffStatus, TimeOffType } from '@/types/api/TimeOff';
+import type { TimeOffListProps, TimeOffStatus, TimeOffType, TimeOff } from '@/types/api/TimeOff';
+
+// Helper function to check if user can cancel timeoff (matches usePermissionChecks logic)
+const canCancelTimeOff = (timeOff: TimeOff, userRole?: string, currentUserId?: string): boolean => {
+  // Check if status is PENDING
+  if (timeOff.status !== 'PENDING') {
+    return false;
+  }
+
+  // Check if user is STAFF
+  const isStaff = userRole === 'STAFF' || userRole === 'staff';
+  if (!isStaff) {
+    return false;
+  }
+
+  // Check if user is the requester
+  const requesterId = typeof timeOff.staffId === 'string' ? timeOff.staffId : timeOff.staffId?.userId?._id;
+
+  return requesterId === currentUserId;
+};
 
 const getStatusOptions = (t: (key: string) => string): { value: TimeOffStatus | 'ALL'; label: string }[] => [
   { value: 'ALL', label: t('common.all_status') },
@@ -156,7 +175,7 @@ const TimeOffList: React.FC<
   const getTypeColor = (type: TimeOffType) => {
     switch (type) {
       case 'VACATION':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-green-100 text-green-800';
       case 'SICK_LEAVE':
         return 'bg-red-100 text-red-800';
       case 'PERSONAL_LEAVE':
@@ -305,8 +324,8 @@ const TimeOffList: React.FC<
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Calendar className="w-6 h-6 text-blue-600" />
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Calendar className="w-6 h-6 text-green-600" />
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">{t('timeoff.total_requests') || 'Total'}</p>
@@ -641,8 +660,8 @@ const TimeOffList: React.FC<
                                 {t('common.reject')}
                               </DropdownMenuItem>
                             )}
-                            {onCancel && timeOff.status === 'PENDING' && (
-                              <DropdownMenuItem onClick={() => onCancel(timeOff._id)} className="text-red-600">
+                            {onCancel && canCancelTimeOff(timeOff, userRole, currentUserId) && (
+                              <DropdownMenuItem onClick={() => onCancel(timeOff._id)} className="text-orange-600">
                                 <XCircle className="mr-2 h-4 w-4" />
                                 {t('common.cancel')}
                               </DropdownMenuItem>
