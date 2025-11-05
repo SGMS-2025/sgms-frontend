@@ -3,46 +3,80 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import type { TFunction } from 'i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, X, Plus, MapPin } from 'lucide-react';
+import { CalendarIcon, X, Plus, Package } from 'lucide-react';
 import { cn, formatDate } from '@/utils/utils';
-import { useBranch } from '@/contexts/BranchContext';
-import type { DiscountCampaign } from '@/types/api/Discount';
-import type { DiscountCampaignFormData } from '@/types/api/Discount';
+import { createMatrixCellKey } from '@/utils/matrixUtils';
+import { useMatrix } from '@/hooks/useMatrix';
+import type { DiscountCampaign, DiscountCampaignFormData } from '@/types/api/Discount';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-// Validation schema
-const discountCampaignSchema = z
-  .object({
-    campaignName: z
-      .string()
-      .min(1, 'Campaign name is required')
-      .max(100, 'Campaign name must not exceed 100 characters'),
-    description: z.string().max(1000, 'Description must not exceed 1000 characters').optional(),
-    discountPercentage: z
-      .number()
-      .min(1, 'Discount percentage must be at least 1%')
-      .max(100, 'Discount percentage must not exceed 100%'),
-    branchId: z.array(z.string()).min(1, 'At least one branch must be selected'),
-    startDate: z.date({
-      message: 'Start date is required'
-    }),
-    endDate: z.date({
-      message: 'End date is required'
-    }),
-    status: z.string().optional()
-  })
-  .refine((data) => data.endDate > data.startDate, {
-    message: 'End date must be after start date',
-    path: ['endDate']
-  });
+// Validation schema builder with i18n
+const buildDiscountCampaignSchema = (t: TFunction) =>
+  z
+    .object({
+      campaignName: z
+        .string()
+        .min(1, t('discount.validation.campaign_name_required', { defaultValue: 'Campaign name is required' }))
+        .max(
+          100,
+          t('discount.validation.campaign_name_max', {
+            defaultValue: 'Campaign name must not exceed 100 characters'
+          })
+        ),
+      description: z
+        .string()
+        .max(
+          1000,
+          t('discount.validation.description_max', { defaultValue: 'Description must not exceed 1000 characters' })
+        )
+        .optional(),
+      discountPercentage: z
+        .number()
+        .min(1, t('discount.validation.percentage_min', { defaultValue: 'Discount percentage must be at least 1%' }))
+        .max(
+          100,
+          t('discount.validation.percentage_max', { defaultValue: 'Discount percentage must not exceed 100%' })
+        ),
+      packageId: z
+        .array(z.string())
+        .min(1, t('discount.validation.select_at_least_one', { defaultValue: 'Select at least one service/package' })),
+      discountCode: z
+        .string()
+        .trim()
+        .min(1, t('discount.validation.discount_code_required', { defaultValue: 'Discount code is required' }))
+        .max(50, t('discount.validation.discount_code_too_long', { defaultValue: 'Discount code too long' })),
+      usageLimit: z
+        .union([
+          z
+            .number()
+            .min(
+              0,
+              t('discount.validation.usage_limit_non_negative', { defaultValue: 'Usage limit must be non-negative' })
+            ),
+          z.null()
+        ])
+        .optional(),
+      startDate: z.date({
+        message: t('discount.validation.start_date_required', { defaultValue: 'Start date is required' })
+      }),
+      endDate: z.date({
+        message: t('discount.validation.end_date_required', { defaultValue: 'End date is required' })
+      }),
+      status: z.string().optional()
+    })
+    .refine((data) => data.endDate > data.startDate, {
+      message: t('discount.validation.end_after_start', { defaultValue: 'End date must be after start date' }),
+      path: ['endDate']
+    });
 
 interface DiscountCampaignFormProps {
   campaign?: DiscountCampaign;
@@ -58,10 +92,13 @@ const DiscountCampaignForm: React.FC<DiscountCampaignFormProps> = ({
   loading = false
 }) => {
   const { t } = useTranslation();
-  const { branches, loading: branchesLoading, error: branchesError } = useBranch();
-  const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
+  const { services, features, cells, loading: matrixLoading, error: matrixError } = useMatrix();
+  const discountCampaignSchema = React.useMemo(() => buildDiscountCampaignSchema(t), [t]);
+  const [selectedPackages, setSelectedPackages] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+  const [isDiscountCodeManuallyEdited, setIsDiscountCodeManuallyEdited] = useState<boolean>(false);
+  const [autoSuffix, setAutoSuffix] = useState<string>('');
 
   const {
     register,
@@ -75,17 +112,52 @@ const DiscountCampaignForm: React.FC<DiscountCampaignFormProps> = ({
       campaignName: campaign?.campaignName || '',
       description: campaign?.description || '',
       discountPercentage: campaign?.discountPercentage || 1,
-      branchId: campaign?.branchId?.map((branch) => branch._id) || [],
+      packageId: Array.isArray(campaign?.packageId)
+        ? campaign.packageId.map((pkg) => pkg._id).filter((id): id is string => Boolean(id))
+        : [],
+      discountCode: campaign?.discountCode || '',
+      usageLimit: campaign?.usageLimit ?? null,
       startDate: campaign?.startDate ? new Date(campaign.startDate) : undefined,
       endDate: campaign?.endDate ? new Date(campaign.endDate) : undefined,
       status: campaign?.status || 'PENDING'
     }
   });
 
+  // Auto-generate discountCode from campaignName when creating (not editing) until user edits code manually
+  const campaignNameValue = watch('campaignName');
+  useEffect(() => {
+    if (campaign) return; // only on create
+    if (isDiscountCodeManuallyEdited) return; // stop auto if user edited
+    if (!campaignNameValue) {
+      setValue('discountCode', '');
+      return;
+    }
+    const ensureSuffix = () => {
+      if (autoSuffix) return autoSuffix;
+      const s = Math.random().toString(36).slice(2, 6).toUpperCase();
+      setAutoSuffix(s);
+      return s;
+    };
+    const slug = campaignNameValue
+      .normalize('NFD')
+      .replaceAll(/\p{Diacritic}/gu, '')
+      .replaceAll(/[^a-zA-Z0-9]+/g, '-')
+      .replaceAll(/^-+|-+$/g, '')
+      .toUpperCase();
+    const suffix = ensureSuffix();
+    const maxBaseLen = Math.max(0, 30 - (suffix ? suffix.length + 1 : 0));
+    const base = slug.slice(0, maxBaseLen);
+    const generated = suffix ? `${base}-${suffix}` : base;
+    setValue('discountCode', generated);
+  }, [campaign, campaignNameValue, isDiscountCodeManuallyEdited, setValue, autoSuffix]);
+
   // Initialize form with campaign data
   useEffect(() => {
     if (campaign) {
-      setSelectedBranches(campaign.branchId?.map((branch) => branch._id) || []);
+      const initialPackages = Array.isArray(campaign.packageId)
+        ? campaign.packageId.map((pkg) => pkg._id).filter((id): id is string => Boolean(id))
+        : [];
+      setSelectedPackages(initialPackages);
       setStartDate(campaign.startDate ? new Date(campaign.startDate) : undefined);
       setEndDate(campaign.endDate ? new Date(campaign.endDate) : undefined);
     }
@@ -104,34 +176,103 @@ const DiscountCampaignForm: React.FC<DiscountCampaignFormProps> = ({
     }
   }, [endDate, setValue]);
 
-  // Update form values when branches change
+  // Update form values when selected packages change
   useEffect(() => {
-    setValue('branchId', selectedBranches);
-  }, [selectedBranches, setValue]);
+    setValue('packageId', selectedPackages);
+  }, [selectedPackages, setValue]);
 
-  const handleBranchToggle = (branchId: string) => {
-    setSelectedBranches((prev) =>
-      prev.includes(branchId) ? prev.filter((id) => id !== branchId) : [...prev, branchId]
-    );
+  const handlePackageToggle = (pkgId: string) => {
+    setSelectedPackages((prev) => (prev.includes(pkgId) ? prev.filter((id) => id !== pkgId) : [...prev, pkgId]));
   };
 
-  const handleSelectAllBranches = () => {
-    const allBranchIds = branches.map((branch) => branch._id);
-    setSelectedBranches(allBranchIds);
+  const handleSelectAllPackages = () => {
+    const allIds = services.map((s) => s.id);
+    setSelectedPackages(allIds);
   };
 
-  const handleClearAllBranches = () => {
-    setSelectedBranches([]);
+  const handleClearAllPackages = () => {
+    setSelectedPackages([]);
   };
 
-  const onFormSubmit = async (data: DiscountCampaignFormData) => {
-    try {
-      await onSubmit(data);
-    } catch (error) {
-      console.error('Form submission error:', error);
-      // TODO: Add proper error handling with user notification
+  const onFormSubmit = (data: DiscountCampaignFormData) => onSubmit(data);
+
+  const renderPackagesContent = (() => {
+    if (matrixLoading) {
+      return (
+        <div className="text-center py-4">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mx-auto"></div>
+          <p className="text-sm text-gray-600 mt-2">{t('discount.loading_services')}</p>
+        </div>
+      );
     }
-  };
+    if (matrixError) {
+      return (
+        <div className="text-center py-4">
+          <p className="text-sm text-red-600 mb-2">{matrixError}</p>
+          <p className="text-xs text-gray-500">{t('common.try_refresh_contact_support')}</p>
+        </div>
+      );
+    }
+    if (services.length === 0) {
+      return (
+        <div className="text-center py-4">
+          <p className="text-sm text-gray-600 mb-2">{t('discount.no_services')}</p>
+        </div>
+      );
+    }
+    return (
+      <TooltipProvider>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto border rounded-lg p-4">
+          {services.map((svc) => {
+            const included = features.filter((f) => {
+              const key = createMatrixCellKey(svc.id, f.id);
+              const cell = cells[key];
+              return Boolean(cell?.isIncluded);
+            });
+            return (
+              <div key={svc.id} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`pkg-${svc.id}`}
+                  checked={selectedPackages.includes(svc.id)}
+                  onCheckedChange={() => handlePackageToggle(svc.id)}
+                />
+                <Label htmlFor={`pkg-${svc.id}`} className="flex-1 text-sm font-medium leading-none cursor-pointer">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="font-medium truncate cursor-help">{svc.name}</div>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      align="start"
+                      className="max-w-sm whitespace-normal bg-white text-gray-900 border border-gray-200 shadow-lg rounded-md p-3"
+                    >
+                      <div className="text-xs text-gray-700 space-y-1">
+                        <p className="font-semibold text-gray-900">{svc.name}</p>
+                        {svc.durationInMonths ? (
+                          <p>
+                            {t('class_service.duration')}: {svc.durationInMonths}
+                          </p>
+                        ) : null}
+                        <p>{t('common.feature_title')}</p>
+                        {included.length > 0 ? (
+                          <ul className="list-disc pl-4 space-y-1">
+                            {included.map((f) => (
+                              <li key={`${svc.id}-${f.id}`}>{f.name}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>{t('common.not_available')}</p>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+              </div>
+            );
+          })}
+        </div>
+      </TooltipProvider>
+    );
+  })();
 
   return (
     <div className="w-full max-w-4xl mx-auto">
@@ -268,17 +409,17 @@ const DiscountCampaignForm: React.FC<DiscountCampaignFormProps> = ({
           </div>
         </div>
 
-        {/* Branch Selection */}
+        {/* Service/Package Selection via Matrix */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium text-gray-700">{t('discount.select_branches')} *</Label>
+            <Label className="text-sm font-medium text-gray-700">{t('discount.select_services')} *</Label>
             <div className="flex gap-2">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleSelectAllBranches}
-                disabled={branchesLoading}
+                onClick={handleSelectAllPackages}
+                disabled={matrixLoading}
               >
                 {t('discount.select_all')}
               </Button>
@@ -286,79 +427,113 @@ const DiscountCampaignForm: React.FC<DiscountCampaignFormProps> = ({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleClearAllBranches}
-                disabled={branchesLoading}
+                onClick={handleClearAllPackages}
+                disabled={matrixLoading}
               >
                 {t('discount.clear_all')}
               </Button>
             </div>
           </div>
 
-          {branchesLoading ? (
-            <div className="text-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mx-auto"></div>
-              <p className="text-sm text-gray-600 mt-2">{t('discount.loading_branches')}</p>
-            </div>
-          ) : branchesError ? (
-            <div className="text-center py-4">
-              <p className="text-sm text-red-600 mb-2">{branchesError}</p>
-              <p className="text-xs text-gray-500">
-                Please try refreshing the page or contact support if the issue persists.
-              </p>
-            </div>
-          ) : branches.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-sm text-gray-600 mb-2">{t('discount.no_branches')}</p>
-              <p className="text-xs text-gray-500 mb-3">{t('discount.create_branch_first')}</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto border rounded-lg p-4">
-              {branches.map((branch) => (
-                <div key={branch._id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`branch-${branch._id}`}
-                    checked={selectedBranches.includes(branch._id)}
-                    onCheckedChange={() => handleBranchToggle(branch._id)}
-                  />
-                  <Label
-                    htmlFor={`branch-${branch._id}`}
-                    className="flex-1 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                  >
-                    <div className="flex items-center">
-                      <MapPin className="w-4 h-4 mr-2 text-gray-500" />
-                      <div>
-                        <div className="font-medium">{branch.branchName}</div>
-                        <div className="text-xs text-gray-500">{branch.location}</div>
-                      </div>
-                    </div>
-                  </Label>
-                </div>
-              ))}
-            </div>
-          )}
+          {renderPackagesContent}
 
-          {selectedBranches.length > 0 && (
+          {selectedPackages.length > 0 && (
             <div className="mt-3">
-              <p className="text-sm text-gray-600 mb-2">{t('discount.selected_branches')}:</p>
-              <div className="flex flex-wrap gap-2">
-                {selectedBranches.map((branchId) => {
-                  const branch = branches.find((b) => b._id === branchId);
-                  return branch ? (
-                    <Badge key={branchId} variant="secondary" className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      {branch.branchName}
-                      <X
-                        className="w-3 h-3 cursor-pointer hover:text-red-500"
-                        onClick={() => handleBranchToggle(branchId)}
-                      />
-                    </Badge>
-                  ) : null;
-                })}
-              </div>
+              <p className="text-sm text-gray-600 mb-2">{t('discount.selected_services')}:</p>
+              <TooltipProvider>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {selectedPackages.map((pkgId) => {
+                    const svc = services.find((s) => s.id === pkgId);
+                    if (!svc) return null;
+                    const included = features.filter((f) => {
+                      const key = createMatrixCellKey(svc.id, f.id);
+                      const cell = cells[key];
+                      return Boolean(cell?.isIncluded);
+                    });
+                    return (
+                      <div key={pkgId} className="flex items-center gap-3 p-3 border rounded-lg">
+                        <Package className="w-5 h-5 text-gray-500" />
+                        <div className="min-w-0 w-full flex items-start justify-between gap-2">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <p className="font-medium text-gray-900 truncate cursor-help flex-1 min-w-0">
+                                {svc.name}
+                              </p>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              align="start"
+                              className="max-w-sm whitespace-normal bg-white text-gray-900 border border-gray-200 shadow-lg rounded-md p-3"
+                            >
+                              <div className="text-xs text-gray-700 space-y-1">
+                                <p className="font-semibold text-gray-900">{svc.name}</p>
+                                {svc.durationInMonths ? (
+                                  <p>
+                                    {t('class_service.duration')}: {svc.durationInMonths}
+                                  </p>
+                                ) : null}
+                                {included.length > 0 ? (
+                                  <ul className="list-disc pl-4 space-y-1">
+                                    {included.map((f) => (
+                                      <li key={`${svc.id}-${f.id}`}>{f.name}</li>
+                                    ))}
+                                  </ul>
+                                ) : (
+                                  <p>{t('common.not_available')}</p>
+                                )}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                          <button
+                            type="button"
+                            onClick={() => handlePackageToggle(pkgId)}
+                            className="shrink-0 text-gray-400 hover:text-red-500"
+                            aria-label="remove"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </TooltipProvider>
             </div>
           )}
 
-          {errors.branchId && <p className="text-sm text-red-600">{errors.branchId.message}</p>}
+          {errors.packageId && <p className="text-sm text-red-600">{errors.packageId.message}</p>}
+        </div>
+
+        {/* Discount Code */}
+        <div className="space-y-2">
+          <Label htmlFor="discountCode" className="text-sm font-medium text-gray-700">
+            {t('discount.discount_code')} *
+          </Label>
+          <Input
+            id="discountCode"
+            {...register('discountCode', {
+              onChange: () => setIsDiscountCodeManuallyEdited(true)
+            })}
+            placeholder={t('discount.discount_code_placeholder')}
+            className={cn(errors.discountCode && 'border-red-500')}
+          />
+          {errors.discountCode && <p className="text-sm text-red-600">{errors.discountCode.message}</p>}
+        </div>
+
+        {/* Usage Limit */}
+        <div className="space-y-2">
+          <Label htmlFor="usageLimit" className="text-sm font-medium text-gray-700">
+            {t('discount.usage_limit')} ({t('discount.null_unlimited')})
+          </Label>
+          <Input
+            id="usageLimit"
+            type="number"
+            min="0"
+            step="1"
+            {...register('usageLimit', { valueAsNumber: true })}
+            placeholder={t('discount.usage_limit_placeholder')}
+            className={cn(errors.usageLimit && 'border-red-500')}
+          />
+          {errors.usageLimit && <p className="text-sm text-red-600">{errors.usageLimit.message}</p>}
         </div>
 
         {/* Form Actions */}
