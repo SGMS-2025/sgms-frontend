@@ -5,10 +5,20 @@ export interface DiscountCampaign {
   campaignName: string;
   description: string;
   discountPercentage: number;
+  discountCode: string;
+  usageLimit: number | null;
+  usageCount?: number;
   branchId: Array<{
     _id: string;
     branchName: string;
     address: string;
+  }>;
+  // Populated ServicePackage refs
+  packageId: Array<{
+    _id: string;
+    name?: string;
+    type?: string;
+    defaultDurationMonths?: number;
   }>;
   startDate: string;
   endDate: string;
@@ -77,7 +87,9 @@ export interface DiscountCampaignFormData {
   campaignName: string;
   description?: string;
   discountPercentage: number;
-  branchId: string[];
+  packageId: string[];
+  discountCode: string;
+  usageLimit?: number | null;
   startDate: Date;
   endDate: Date;
   status?: string;
@@ -88,7 +100,9 @@ export interface DiscountCampaignApiData {
   campaignName: string;
   description?: string;
   discountPercentage: number;
-  branchId: string[];
+  packageId: string[];
+  discountCode: string;
+  usageLimit?: number | null;
   startDate: string;
   endDate: string;
   status?: string;

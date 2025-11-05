@@ -23,6 +23,7 @@ import {
   Percent,
   Users,
   MapPin,
+  Package,
   Search,
   Edit,
   Trash2,
@@ -401,7 +402,7 @@ const DiscountManagement: React.FC = () => {
                       />
                     </div>
                   </div>
-                  <div className="w-full sm:w-27">
+                  <div className="w-full sm:w-35">
                     <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                       <SelectTrigger>
                         <SelectValue placeholder={t('discount.filter_by_status')} />
@@ -441,44 +442,46 @@ const DiscountManagement: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {paginatedCampaigns.map((campaign) => (
                 <Card key={campaign._id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg font-semibold text-gray-900">{campaign.campaignName}</CardTitle>
-                      <div className="flex items-center gap-2">
-                        {(() => {
-                          const badgeConfig = getStatusBadgeConfig(campaign, t);
-                          return <Badge variant={badgeConfig.variant}>{badgeConfig.text}</Badge>;
-                        })()}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewCampaign(campaign)}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              {t('common.view')}
-                            </DropdownMenuItem>
-                            {canManageCampaign(campaign) && (
-                              <>
-                                <DropdownMenuItem onClick={() => handleEditCampaign(campaign)}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  {t('common.edit')}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDeleteClick(campaign)} className="text-red-600">
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  {t('common.delete')}
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                  <CardHeader className="pb-3 relative">
+                    <div className="min-w-0 pr-24">
+                      <CardTitle className="text-lg font-semibold text-gray-900 truncate">
+                        {campaign.campaignName}
+                      </CardTitle>
+                    </div>
+                    <div className="absolute top-0 right-2 flex items-center gap-2 whitespace-nowrap">
+                      {(() => {
+                        const badgeConfig = getStatusBadgeConfig(campaign, t);
+                        return <Badge variant={badgeConfig.variant}>{badgeConfig.text}</Badge>;
+                      })()}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewCampaign(campaign)}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            {t('common.view')}
+                          </DropdownMenuItem>
+                          {canManageCampaign(campaign) && (
+                            <>
+                              <DropdownMenuItem onClick={() => handleEditCampaign(campaign)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                {t('common.edit')}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDeleteClick(campaign)} className="text-red-600">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                {t('common.delete')}
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-gray-600 text-sm">{campaign.description}</p>
+                    {/* <p className="text-gray-600 text-sm">{campaign.description}</p> */}
 
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-500">{t('discount.discount')}:</span>
@@ -496,19 +499,19 @@ const DiscountManagement: React.FC = () => {
                       </div>
                     </div>
 
-                    {campaign.branchId && campaign.branchId.length > 0 && (
+                    {campaign.packageId && campaign.packageId.length > 0 && (
                       <div>
-                        <span className="text-sm text-gray-500">{t('discount.branches')}:</span>
+                        <span className="text-sm text-gray-500">{t('discount.applicable_services')}:</span>
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {campaign.branchId.slice(0, 2).map((branch, index) => (
+                          {campaign.packageId.slice(0, 2).map((pkg, index) => (
                             <Badge key={index} variant="outline" className="text-xs">
-                              <MapPin className="w-3 h-3 mr-1" />
-                              {branch.branchName}
+                              <Package className="w-3 h-3 mr-1" />
+                              {pkg.name || pkg._id}
                             </Badge>
                           ))}
-                          {campaign.branchId.length > 2 && (
+                          {campaign.packageId.length > 2 && (
                             <Badge variant="outline" className="text-xs">
-                              +{campaign.branchId.length - 2} {t('discount.more')}
+                              +{campaign.packageId.length - 2} {t('discount.more')}
                             </Badge>
                           )}
                         </div>
@@ -520,7 +523,16 @@ const DiscountManagement: React.FC = () => {
             </div>
           ) : (
             <div className="overflow-x-auto bg-white rounded-lg border border-gray-200 shadow-sm">
-              <table className="w-full">
+              <table className="w-full table-fixed">
+                <colgroup>
+                  <col className="w-[18rem]" />
+                  <col className="w-[6rem]" />
+                  <col className="w-[8rem]" />
+                  <col className="w-[8rem]" />
+                  <col className="w-[8rem]" />
+                  <col className="w-[12rem]" />
+                  <col className="w-[7rem]" />
+                </colgroup>
                 <thead className="border-b bg-gray-50">
                   <tr>
                     <SortableHeader
@@ -559,7 +571,7 @@ const DiscountManagement: React.FC = () => {
                       getSortIcon={getSortIcon}
                     />
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('discount.branches')}
+                      {t('discount.applicable_services')}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       {t('common.actions')}
@@ -592,15 +604,15 @@ const DiscountManagement: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex flex-wrap gap-1">
-                          {campaign.branchId.slice(0, 2).map((branch, index) => (
+                          {campaign.packageId.slice(0, 2).map((pkg, index) => (
                             <Badge key={index} variant="outline" className="text-xs">
-                              <MapPin className="w-3 h-3 mr-1" />
-                              {branch.branchName}
+                              <Package className="w-3 h-3 mr-1" />
+                              {pkg.name || pkg._id}
                             </Badge>
                           ))}
-                          {campaign.branchId.length > 2 && (
+                          {campaign.packageId.length > 2 && (
                             <Badge variant="outline" className="text-xs">
-                              +{campaign.branchId.length - 2}
+                              +{campaign.packageId.length - 2}
                             </Badge>
                           )}
                         </div>

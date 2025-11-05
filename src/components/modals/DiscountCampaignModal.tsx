@@ -4,8 +4,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, Percent, MapPin, User, Clock, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Percent, MapPin, User, Edit, Trash2, Package } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatDate } from '@/utils/utils';
+import { useMatrix } from '@/hooks/useMatrix';
+import { createMatrixCellKey } from '@/utils/matrixUtils';
 import { getStatusBadgeConfig } from '@/utils/discountUtils';
 import type { DiscountCampaign } from '@/types/api/Discount';
 
@@ -29,6 +32,7 @@ const DiscountCampaignModal: React.FC<DiscountCampaignModalProps> = ({
   canManage = false
 }) => {
   const { t } = useTranslation();
+  const { features, cells } = useMatrix();
 
   if (!campaign) return null;
 
@@ -53,22 +57,13 @@ const DiscountCampaignModal: React.FC<DiscountCampaignModalProps> = ({
         <div className="overflow-y-auto max-h-[calc(90vh-4rem)] pr-2 hide-scrollbar">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-gray-900 mb-2">{campaign.campaignName}</DialogTitle>
-            <div className="flex items-center gap-2">
-              <Badge variant={badgeConfig.variant}>{badgeConfig.text}</Badge>
-              {campaign.status === 'ACTIVE' && (
-                <Badge variant="outline" className="text-green-600 border-green-600">
-                  <Clock className="w-3 h-3 mr-1" />
-                  {campaign.daysRemaining} {t('discount.days_remaining')}
-                </Badge>
-              )}
-            </div>
           </DialogHeader>
 
-          <DialogDescription className="text-gray-600">
+          <DialogDescription className="text-sm text-gray-700 leading-6 whitespace-pre-line">
             {campaign.description || t('discount.no_description')}
           </DialogDescription>
 
-          <Separator />
+          <Separator className="my-4" />
 
           <div className="space-y-6">
             {/* Campaign Details */}
@@ -92,6 +87,39 @@ const DiscountCampaignModal: React.FC<DiscountCampaignModalProps> = ({
                   {campaign.campaignDuration} {t('discount.days')}
                 </p>
               </div>
+
+              {/* Discount Code */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Percent className="w-5 h-5 text-purple-500" />
+                  <span className="text-sm font-medium text-gray-700">{t('discount.discount_code')}</span>
+                </div>
+                <p className="text-lg font-semibold text-gray-900">{campaign.discountCode}</p>
+              </div>
+
+              {/* Usage Limit */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Percent className="w-5 h-5 text-teal-500" />
+                  <span className="text-sm font-medium text-gray-700">{t('discount.usage_limit')}</span>
+                </div>
+                <p className="text-lg font-semibold text-gray-900">
+                  {campaign.usageLimit == null || campaign.usageLimit === 0
+                    ? t('discount.unlimited')
+                    : campaign.usageLimit}
+                </p>
+              </div>
+
+              {/* Usage Count */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Percent className="w-5 h-5 text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700">{t('discount.usage_count')}</span>
+                </div>
+                <p className="text-lg font-semibold text-gray-900">
+                  {typeof campaign.usageCount === 'number' ? campaign.usageCount : 0}
+                </p>
+              </div>
             </div>
 
             {/* Date Range */}
@@ -108,6 +136,62 @@ const DiscountCampaignModal: React.FC<DiscountCampaignModalProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Applicable Services */}
+            {campaign.packageId && campaign.packageId.length > 0 && (
+              <div className="space-y-4">
+                <h4 className="text-lg font-semibold text-gray-900">{t('discount.applicable_services')}</h4>
+                <TooltipProvider>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {campaign.packageId.map((pkg, index) => {
+                      const included = features.filter((f) => {
+                        const key = createMatrixCellKey(pkg._id, f.id);
+                        const cell = cells[key];
+                        return Boolean(cell?.isIncluded);
+                      });
+
+                      return (
+                        <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
+                          <Package className="w-5 h-5 text-gray-500" />
+                          <div className="min-w-0 w-full flex items-start justify-between gap-2">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <p className="font-medium text-gray-900 truncate cursor-help flex-1 min-w-0">
+                                  {pkg.name || pkg._id}
+                                </p>
+                              </TooltipTrigger>
+                              <TooltipContent
+                                align="start"
+                                className="max-w-sm whitespace-normal bg-white text-gray-900 border border-gray-200 shadow-lg rounded-md p-3"
+                              >
+                                <div className="text-xs text-gray-700 space-y-1">
+                                  <p className="font-semibold text-gray-900">{pkg.name || pkg._id}</p>
+                                  {pkg.defaultDurationMonths ? (
+                                    <p>
+                                      {t('class_service.duration')}: {pkg.defaultDurationMonths}
+                                    </p>
+                                  ) : null}
+                                  <p>{t('common.feature_title')}</p>
+                                  {included.length > 0 ? (
+                                    <ul className="list-disc pl-4 space-y-1">
+                                      {included.map((f) => (
+                                        <li key={`${pkg._id}-${f.id}`}>{f.name}</li>
+                                      ))}
+                                    </ul>
+                                  ) : (
+                                    <p>{t('common.not_available')}</p>
+                                  )}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </TooltipProvider>
+              </div>
+            )}
 
             {/* Branches */}
             {campaign.branchId && campaign.branchId.length > 0 && (
