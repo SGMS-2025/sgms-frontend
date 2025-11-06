@@ -1,6 +1,7 @@
 import type { ApiResponse } from '@/types/api/Api';
 import { api } from './api';
 import type { BranchListResponse, BranchListParams, Branch, CreateAndUpdateBranchRequest } from '@/types/api/Branch';
+import type { BranchWorkingConfig, BranchWorkingConfigRequest } from '@/types/api/BranchWorkingConfig';
 
 export const branchApi = {
   /**
@@ -105,6 +106,22 @@ export const branchApi = {
   // Toggle branch status (owner only)
   toggleBranchStatus: async (branchId: string): Promise<ApiResponse<Branch>> => {
     const response = await api.patch(`/branches/${branchId}/status`);
+    return response.data;
+  },
+
+  /** Get working config of a branch */
+  getBranchWorkingConfig: async (
+    branchId: string
+  ): Promise<{ success: boolean; message: string; data: BranchWorkingConfig }> => {
+    const response = await api.get(`/branches/${branchId}/working-config`);
+    return response.data;
+  },
+  /** Update working config of a branch */
+  updateBranchWorkingConfig: async (
+    branchId: string,
+    data: BranchWorkingConfigRequest
+  ): Promise<{ success: boolean; message: string; data: BranchWorkingConfig }> => {
+    const response = await api.post(`/branches/${branchId}/working-config`, data);
     return response.data;
   }
 };

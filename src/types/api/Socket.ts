@@ -139,6 +139,7 @@ export interface SocketEvents {
   'notification:reschedule:branch_update': (data: RescheduleNotificationData) => void;
   'notification:reschedule:owner_update': (data: RescheduleNotificationData) => void;
   'notification:reschedule:manager_update': (data: RescheduleNotificationData) => void;
+  'notification:reschedule:staff_update': (data: RescheduleNotificationData) => void;
   'notification:staff:created': (data: StaffNotificationData) => void;
   'notification:staff:updated': (data: StaffNotificationData) => void;
   'notification:staff:deleted': (data: StaffNotificationData) => void;

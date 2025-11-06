@@ -60,11 +60,11 @@ const TimeOffCard: React.FC<TimeOffCardProps> = ({
   // Helper functions moved to shared utilities
 
   return (
-    <Card className="hover:shadow-md transition-shadow duration-200">
+    <Card className="hover:shadow-md transition-shadow duration-200 overflow-hidden">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
+        <div className="flex items-start justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <Avatar className="h-10 w-10 flex-shrink-0">
               <AvatarImage
                 src={
                   timeOff.staffId.userId?.email
@@ -77,12 +77,14 @@ const TimeOffCard: React.FC<TimeOffCardProps> = ({
                 {(timeOff.staffId.userId?.fullName || 'U').charAt(0)}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <h3 className="font-semibold text-gray-900 text-sm">{timeOff.staffId.userId?.fullName || 'Unknown'}</h3>
-              <p className="text-xs text-gray-500">{timeOff.staffId.jobTitle}</p>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-gray-900 text-sm truncate">
+                {timeOff.staffId.userId?.fullName || 'Unknown'}
+              </h3>
+              <p className="text-xs text-gray-500 truncate">{timeOff.staffId.jobTitle}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <TypeBadge type={timeOff.type} badgeType="timeoff" t={t} />
             <StatusBadge status={timeOff.status} type="timeoff" t={t} />
             {showActions && <ActionDropdown actions={actionItems} />}
@@ -93,42 +95,42 @@ const TimeOffCard: React.FC<TimeOffCardProps> = ({
       <CardContent className="pt-0">
         <div className="space-y-3">
           {/* Type and Duration */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Calendar className="h-4 w-4 text-gray-400" />
-              <span className="font-medium">{t(`timeoff.type.${timeOff.type.toLowerCase()}`)}</span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm text-gray-600 min-w-0 flex-1">
+              <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <span className="font-medium truncate">{t(`timeoff.type.${timeOff.type.toLowerCase()}`)}</span>
             </div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-500 flex-shrink-0 whitespace-nowrap">
               {timeOff.duration} {timeOff.duration === 1 ? t('timeoff.day') : t('timeoff.days')}
             </div>
           </div>
 
           {/* Branch Information */}
           <div className="flex items-center gap-2 text-sm text-gray-600">
-            <MapPin className="h-4 w-4 text-gray-400" />
-            <span className="font-medium">{timeOff.branchId?.branchName || t('common.unknown')}</span>
+            <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <span className="font-medium truncate">{timeOff.branchId?.branchName || t('common.unknown')}</span>
           </div>
 
           {/* Date Range */}
           <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Clock className="h-4 w-4 text-gray-400" />
-            <span className="font-medium">
+            <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <span className="font-medium truncate">
               {timeOff.startDateFmt} - {timeOff.endDateFmt}
             </span>
           </div>
 
           {/* Reason */}
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-600 min-w-0">
             <span className="font-medium">{t('timeoff.reason')}:</span>
-            <p className="mt-1 text-gray-700 line-clamp-2">{timeOff.reason}</p>
+            <p className="mt-1 text-gray-700 line-clamp-2 break-words">{timeOff.reason}</p>
           </div>
 
           {/* Approved By */}
           {timeOff.approvedBy && (
             <div className="flex items-center gap-2 text-sm text-gray-600">
-              <User className="h-4 w-4 text-gray-400" />
+              <User className="h-4 w-4 text-gray-400 flex-shrink-0" />
               <span className="font-medium">{t('timeoff.approved_by')}:</span>
-              <span>{timeOff.approvedBy.userId?.fullName || 'Unknown'}</span>
+              <span className="truncate">{timeOff.approvedBy.userId?.fullName || 'Unknown'}</span>
             </div>
           )}
         </div>

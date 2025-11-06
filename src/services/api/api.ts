@@ -62,19 +62,35 @@ const handleClientError = (status: number, errorMessage: string, skipErrorToast 
     return;
   }
 
+  // Helper to safely localize error messages
+  const safeLocalize = (key: string, fallback: string): string => {
+    try {
+      const translated = i18n.t(key);
+      // If translation returns the key itself, it means no translation found
+      return translated === key ? fallback : translated;
+    } catch {
+      return fallback;
+    }
+  };
+
   switch (status) {
     case 403:
       handleSpecificError(errorMessage);
       break;
     case 400:
-    case 409:
-      toast.error(i18n.t(`error.${errorMessage}`));
+    case 409: {
+      // Try to localize error, fallback to original message if not found
+      const localizedError = safeLocalize(`error.${errorMessage}`, errorMessage);
+      toast.error(localizedError);
       break;
+    }
     case 404:
       toast.error(i18n.t('error.NOT_FOUND'));
       break;
-    default:
-      toast.error(i18n.t(`error.${errorMessage}`));
+    default: {
+      const localizedDefault = safeLocalize(`error.${errorMessage}`, errorMessage);
+      toast.error(localizedDefault);
+    }
   }
 };
 
@@ -145,6 +161,16 @@ const handleApiError = (error: AxiosError) => {
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
+    // Add language to query params for subscription endpoints
+    const currentLang = i18n.language || 'vi';
+    const validLang = ['en', 'vi'].includes(currentLang) ? currentLang : 'vi';
+
+    // Add language param to subscription-related endpoints
+    if (config.url?.includes('/subscriptions/packages')) {
+      const separator = config.url.includes('?') ? '&' : '?';
+      config.url = `${config.url}${separator}lang=${validLang}`;
+    }
+
     return config;
   },
   (error) => {

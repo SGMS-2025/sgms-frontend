@@ -451,6 +451,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       socketService.on('notification:reschedule:branch_update', handleRescheduleSocketNotification);
       socketService.on('notification:reschedule:owner_update', handleRescheduleSocketNotification);
       socketService.on('notification:reschedule:manager_update', handleRescheduleSocketNotification);
+      socketService.on('notification:reschedule:staff_update', handleRescheduleSocketNotification);
     };
 
     if (!state.isConnected) {
@@ -492,6 +493,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
         socketService.off('notification:reschedule:branch_update', handleRescheduleSocketNotification);
         socketService.off('notification:reschedule:owner_update', handleRescheduleSocketNotification);
         socketService.off('notification:reschedule:manager_update', handleRescheduleSocketNotification);
+        socketService.off('notification:reschedule:staff_update', handleRescheduleSocketNotification);
       }
 
       // Only clean up the remaining event listeners

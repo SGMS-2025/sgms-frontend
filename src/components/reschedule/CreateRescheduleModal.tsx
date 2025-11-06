@@ -23,6 +23,7 @@ import type {
 } from '@/types/api/Reschedule';
 import type { Staff } from '@/types/api/Staff';
 import type { WorkShift } from '@/types/api/WorkShift';
+import { isVirtualWorkShift } from '@/utils/workshiftUtils';
 
 const getRescheduleTypes = (
   t: (key: string) => string
@@ -53,14 +54,23 @@ const getPriorityOptions = (
   { value: 'URGENT', label: t('common.urgent'), color: 'bg-red-100 text-red-800' }
 ];
 
-const CreateRescheduleModal: React.FC<CreateRescheduleModalProps> = ({ isOpen, onClose, onSuccess, workShiftId }) => {
+const CreateRescheduleModal: React.FC<CreateRescheduleModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  workShiftId,
+  workShift: workShiftProp,
+  onEnsureWorkshift
+}) => {
   const { t } = useTranslation();
   const { create, loading } = useCreateRescheduleRequest();
   const { currentBranch } = useBranch();
   const { state: authState } = useAuth();
 
   // If workShiftId is provided, fetch the work shift details
-  const { workShift } = useWorkShift(workShiftId || '');
+  // Use workShift from hook, or fallback to prop if available
+  const { workShift: fetchedWorkShift } = useWorkShift(workShiftId || '');
+  const workShift = fetchedWorkShift || workShiftProp;
 
   // State for staff list and available shifts
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -221,6 +231,18 @@ const CreateRescheduleModal: React.FC<CreateRescheduleModalProps> = ({ isOpen, o
 
     if (!validateForm()) {
       return;
+    }
+
+    // If workshift is virtual, ensure it exists first
+    if (workShift && isVirtualWorkShift(workShift) && onEnsureWorkshift) {
+      const realWorkShift = await onEnsureWorkshift();
+      if (!realWorkShift) {
+        // Error already handled, but we should update formData with real workshift ID
+        // For now, allow backend to handle the error
+        return;
+      }
+      // Update formData with the real workshift ID
+      formData.originalShiftId = realWorkShift._id;
     }
 
     const result = await create(formData);

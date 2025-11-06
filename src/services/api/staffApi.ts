@@ -101,5 +101,37 @@ export const staffApi = {
       const response = await api.post('/staff', staffData);
       return response.data;
     }
+  },
+
+  downloadStaffTemplate: async (): Promise<Blob> => {
+    const response = await api.get('/staff/template/download', {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  importStaffsFromFile: async (
+    file: File,
+    branchId: string
+  ): Promise<
+    ApiResponse<{
+      successCount: number;
+      failedCount: number;
+      errors: Array<{ row: number; error: string }>;
+      generatedPasswords: Array<{ email: string; username: string; password: string }>;
+    }>
+  > => {
+    const formData = new FormData();
+    formData.append('excelFile', file);
+    formData.append('branchId', branchId);
+
+    const response = await api.post('/staff/import', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      // @ts-expect-error - Custom config property
+      skipErrorToast: true
+    });
+    return response.data;
   }
 };

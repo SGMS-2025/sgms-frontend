@@ -1,5 +1,16 @@
 import { toast } from 'sonner';
 import type { AsyncOperation, SuccessCallback, ErrorCallback, ErrorHandlerOptions } from '@/types/errorHandler';
+import { mapBackendToFrontendField, type FieldMappingContext } from './fieldMapper';
+
+/**
+ * @param message - Error message string from backend
+ * @returns Normalized error key in uppercase with underscores
+ */
+export const normalizeErrorKey = (message: string): string => {
+  if (!message) return '';
+  // Convert to uppercase and replace spaces with underscores
+  return message.toUpperCase().replace(/\s+/g, '_');
+};
 
 /**
  * Handle async operations with automatic error handling and user feedback
@@ -98,4 +109,153 @@ export const handleAsyncOperationWithOptions = async <T = unknown>(
     }
     return null;
   }
+};
+
+/**
+ * API error structure with meta information
+ */
+export interface ApiError extends Error {
+  meta?: {
+    details?: Array<{ field: string; message: string }>;
+    field?: string;
+  };
+  code?: string;
+  statusCode?: number;
+}
+
+/**
+ * Options for handleApiErrorForForm function
+ */
+export interface FormErrorHandlerOptions {
+  /** Context for field mapping ('staff' or 'customer') */
+  context?: FieldMappingContext;
+  /** Custom field mappings to override defaults */
+  customFieldMappings?: Record<string, string>;
+  /** Translation function */
+  t?: (key: string) => string;
+  /** Whether to handle 409 conflict errors specially */
+  handleConflictErrors?: boolean;
+  /** Special error key mappings for specific fields */
+  errorKeyMappings?: Record<string, string>;
+}
+
+/**
+ * Handle API errors for forms and return field-specific error messages
+ * Processes error.meta.details array and error.meta.field to map backend fields to frontend fields
+ *
+ * @param error - API error object with meta information
+ * @param options - Configuration options
+ * @returns Record of field names to error messages
+ *
+ * @example
+ * const errors = handleApiErrorForForm(error, {
+ *   context: 'customer',
+ *   t: (key) => i18n.t(key)
+ * });
+ * setErrors(errors);
+ */
+export const handleApiErrorForForm = (
+  error: ApiError,
+  options: FormErrorHandlerOptions = {}
+): Record<string, string> => {
+  const {
+    context = 'staff',
+    customFieldMappings,
+    t = (key: string) => key,
+    handleConflictErrors = true,
+    errorKeyMappings = {}
+  } = options;
+
+  const fieldErrors: Record<string, string> = {};
+
+  // Check if this is a 409 conflict error
+  const isConflictError = error.statusCode === 409 || error.code === 'MONGO_DUPLICATE_KEY' || error.code === 'CONFLICT';
+
+  // Handle errors with meta.details array (preferred format)
+  if (error?.meta?.details && Array.isArray(error.meta.details) && error.meta.details.length > 0) {
+    error.meta.details.forEach((detail: { field: string; message: string }) => {
+      // Map backend field to frontend field
+      let frontendField = mapBackendToFrontendField(detail.field, context, customFieldMappings);
+
+      // Determine error key
+      let errorKey: string;
+
+      // Special handling for conflict errors - check field mapping first
+      if (isConflictError && detail.field === 'username') {
+        // Username duplicate means email duplicate - always map to email field
+        frontendField = 'email';
+        errorKey = errorKeyMappings[detail.field] || 'EMAIL_ALREADY_EXISTS';
+      } else if (isConflictError && detail.field === 'phoneNumber') {
+        errorKey = errorKeyMappings[detail.field] || 'PHONE_NUMBER_ALREADY_EXISTS';
+      } else if (isConflictError && detail.field === 'email') {
+        errorKey = errorKeyMappings[detail.field] || 'EMAIL_ALREADY_EXISTS';
+      } else if (errorKeyMappings[detail.field]) {
+        // Use custom error key mapping
+        errorKey = errorKeyMappings[detail.field];
+      } else if (isConflictError) {
+        // Generic conflict error
+        errorKey = normalizeErrorKey(detail.message || error.message || 'DUPLICATE_ENTRY');
+      } else {
+        // Use normalized error key from message
+        errorKey = normalizeErrorKey(detail.message || error.message || '');
+      }
+
+      // Translate and set error
+      const translatedMessage = t(`error.${errorKey}`);
+      fieldErrors[frontendField] = translatedMessage;
+    });
+  }
+  // Handle single field error (error.meta.field)
+  else if (error?.meta?.field) {
+    let frontendField = mapBackendToFrontendField(error.meta.field, context, customFieldMappings);
+    let errorKey: string;
+
+    // Special handling for conflict errors - check field mapping first
+    if (isConflictError && error.meta.field === 'username') {
+      // Username duplicate means email duplicate - always map to email field
+      frontendField = 'email';
+      errorKey = errorKeyMappings[error.meta.field] || 'EMAIL_ALREADY_EXISTS';
+    } else if (isConflictError && error.meta.field === 'phoneNumber') {
+      errorKey = errorKeyMappings[error.meta.field] || 'PHONE_NUMBER_ALREADY_EXISTS';
+    } else if (isConflictError && error.meta.field === 'email') {
+      errorKey = errorKeyMappings[error.meta.field] || 'EMAIL_ALREADY_EXISTS';
+    } else if (errorKeyMappings[error.meta.field]) {
+      errorKey = errorKeyMappings[error.meta.field];
+    } else if (isConflictError) {
+      errorKey = normalizeErrorKey(error.message || 'DUPLICATE_ENTRY');
+    } else {
+      errorKey = normalizeErrorKey(error.message || '');
+    }
+
+    const translatedMessage = t(`error.${errorKey}`);
+    fieldErrors[frontendField] = translatedMessage;
+  }
+  // Fallback: Try to parse field from error message
+  else if (isConflictError && handleConflictErrors) {
+    const errorMsg = error.message || '';
+    let frontendField: string | null = null;
+    let errorKey = 'DUPLICATE_ENTRY';
+
+    // Try to detect field from error message
+    if (errorMsg.toLowerCase().includes('email') || errorMsg.includes('email_1')) {
+      frontendField = 'email';
+      errorKey = 'EMAIL_ALREADY_EXISTS';
+    } else if (errorMsg.toLowerCase().includes('phone') || errorMsg.includes('phoneNumber_1')) {
+      frontendField = context === 'customer' ? 'phone' : 'phoneNumber';
+      errorKey = 'PHONE_NUMBER_ALREADY_EXISTS';
+    } else if (error.code === 'MONGO_DUPLICATE_KEY') {
+      // For generic duplicate key errors, try to infer from common fields
+      // This is a best-effort fallback
+      if (errorMsg.toLowerCase().includes('username')) {
+        frontendField = context === 'customer' ? 'email' : 'username';
+        errorKey = context === 'customer' ? 'EMAIL_ALREADY_EXISTS' : 'USERNAME_ALREADY_EXISTS';
+      }
+    }
+
+    if (frontendField) {
+      const translatedMessage = t(`error.${errorKey}`);
+      fieldErrors[frontendField] = translatedMessage;
+    }
+  }
+  return fieldErrors;
 };

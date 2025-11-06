@@ -48,12 +48,18 @@ const RescheduleRequestCard: React.FC<RescheduleRequestCardProps> = ({
   const { t } = useTranslation();
 
   // Use permission checks hook
+  const isOwnerOrManager =
+    userRole === 'OWNER' || userRole === 'owner' || userRole === 'MANAGER' || userRole === 'manager';
+  const isFinalStatus =
+    request.status === 'REJECTED' ||
+    ((request.status === 'COMPLETED' || request.status === 'APPROVED') && !isOwnerOrManager);
+
   const permissions = usePermissionChecks({
     userRole,
     currentUserId,
     requesterId: request.requesterStaffId,
     status: request.status,
-    isFinalStatus: request.status === 'COMPLETED' || request.status === 'REJECTED'
+    isFinalStatus
   });
 
   // Action handlers
@@ -122,11 +128,11 @@ const RescheduleRequestCard: React.FC<RescheduleRequestCardProps> = ({
   };
 
   return (
-    <Card className="hover:shadow-md transition-shadow duration-200">
+    <Card className="hover:shadow-md transition-shadow duration-200 min-w-0">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
+        <div className="flex items-start justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <Avatar className="h-10 w-10 flex-shrink-0">
               <AvatarImage
                 src={
                   requester?.userId?.email
@@ -139,14 +145,14 @@ const RescheduleRequestCard: React.FC<RescheduleRequestCardProps> = ({
                 {requester?.userId?.fullName?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <h3 className="font-semibold text-gray-900 text-sm">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-gray-900 text-sm truncate">
                 {requester?.userId?.fullName || t('common.unknown')}
               </h3>
-              <p className="text-xs text-gray-500">{requester?.jobTitle || t('common.staff')}</p>
+              <p className="text-xs text-gray-500 truncate">{requester?.jobTitle || t('common.staff')}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Badge className={cn('text-xs', getPriorityColor(request.priority))}>
               {getPriorityText(request.priority, t)}
             </Badge>
@@ -157,19 +163,19 @@ const RescheduleRequestCard: React.FC<RescheduleRequestCardProps> = ({
       </CardHeader>
 
       <CardContent className="pt-0">
-        <div className="space-y-3">
+        <div className="space-y-3 min-w-0">
           {/* Swap Type */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+          <div className="flex items-center justify-between min-w-0">
+            <div className="flex items-center gap-2 text-sm text-gray-600 min-w-0">
               <TypeBadge type={request.swapType} badgeType="reschedule" t={t} showIcon={true} />
             </div>
           </div>
 
           {/* Original Shift */}
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Calendar className="h-4 w-4 text-gray-400" />
-            <span className="font-medium">{t('reschedule.original_shift')}:</span>
-            <span>
+          <div className="flex items-center gap-2 text-sm text-gray-600 min-w-0">
+            <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <span className="font-medium flex-shrink-0">{t('reschedule.original_shift')}:</span>
+            <span className="truncate">
               {(() => {
                 if (!originalShift) return t('common.not_available');
                 if (originalShift.startTimeFmt && originalShift.endTimeFmt) {
@@ -182,10 +188,10 @@ const RescheduleRequestCard: React.FC<RescheduleRequestCardProps> = ({
 
           {/* Target Shift (if exists) */}
           {targetShift && (
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <ArrowRightLeft className="h-4 w-4 text-gray-400" />
-              <span className="font-medium">{t('reschedule.target_shift')}:</span>
-              <span>
+            <div className="flex items-center gap-2 text-sm text-gray-600 min-w-0">
+              <ArrowRightLeft className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <span className="font-medium flex-shrink-0">{t('reschedule.target_shift')}:</span>
+              <span className="truncate">
                 {targetShift.startTimeFmt} - {targetShift.endTimeFmt}
               </span>
             </div>
@@ -193,45 +199,55 @@ const RescheduleRequestCard: React.FC<RescheduleRequestCardProps> = ({
 
           {/* Target Staff (if exists) */}
           {targetStaff && (
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <User className="h-4 w-4 text-gray-400" />
-              <span className="font-medium">{t('reschedule.target_staff')}:</span>
-              <span>{targetStaff.userId?.fullName || 'Unknown'}</span>
+            <div className="flex items-center gap-2 text-sm text-gray-600 min-w-0">
+              <User className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <span className="font-medium flex-shrink-0">{t('reschedule.target_staff')}:</span>
+              <span className="truncate">{targetStaff.userId?.fullName || 'Unknown'}</span>
             </div>
           )}
 
           {/* Branch Information */}
-          <div className="flex items-start gap-2 text-sm text-gray-600">
-            <MapPin className="h-4 w-4 text-gray-400 mt-[2px]" />
-            <div className="flex flex-col">
-              <span className="font-medium">
+          <div className="flex items-start gap-2 text-sm text-gray-600 min-w-0">
+            <MapPin className="h-4 w-4 text-gray-400 mt-[2px] flex-shrink-0" />
+            <div className="flex flex-col min-w-0 flex-1">
+              <div className="font-medium break-words">
                 {t('common.branch')}: <span className="font-medium">{branch?.branchName || t('common.branch')}</span>
-              </span>
+              </div>
 
-              {branch?.location && <span className="text-gray-500">{branch.location}</span>}
+              {branch?.location && <span className="text-gray-500 break-words">{branch.location}</span>}
             </div>
           </div>
 
           {/* Expiry Time */}
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Clock className="h-4 w-4 text-gray-400" />
-            <span className="font-medium">{t('reschedule.expires')}:</span>
-            <span className={request.isExpired ? 'text-red-600' : 'text-gray-700'}>
+          <div className="flex items-center gap-2 text-sm text-gray-600 min-w-0">
+            <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <span className="font-medium flex-shrink-0">{t('reschedule.expires')}:</span>
+            <span className={cn('truncate', request.isExpired ? 'text-red-600' : 'text-gray-700')}>
               {formatExpiryTime(request.expiresAt)}
             </span>
           </div>
 
           {/* Reason */}
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-600 min-w-0">
             <span className="font-medium">{t('reschedule.reason')}:</span>
-            <p className="mt-1 text-gray-700 line-clamp-2">{request.reason}</p>
+            <p
+              className="mt-1 text-gray-700 break-words line-clamp-2"
+              style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+            >
+              {request.reason}
+            </p>
           </div>
 
           {/* Rejection Reason */}
           {request.rejectionReason && (
-            <div className="text-sm text-red-600">
+            <div className="text-sm text-red-600 min-w-0">
               <span className="font-medium">{t('reschedule.rejection_reason')}:</span>
-              <p className="mt-1 line-clamp-2">{request.rejectionReason}</p>
+              <p
+                className="mt-1 break-words line-clamp-2"
+                style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+              >
+                {request.rejectionReason}
+              </p>
             </div>
           )}
         </div>

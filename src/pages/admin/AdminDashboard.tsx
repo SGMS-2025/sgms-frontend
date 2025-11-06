@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Users,
   Building2,
@@ -32,6 +33,7 @@ interface DashboardStats {
 }
 
 const AdminDashboard = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
@@ -70,7 +72,7 @@ const AdminDashboard = () => {
   const statCards = [
     // TODO: Uncomment when User Management is implemented
     // {
-    //   title: 'Tổng người dùng',
+    //   title: t('admin.dashboard.stats.total_users'),
     //   value: stats.totalUsers,
     //   icon: Users,
     //   trend: '+12.5%',
@@ -79,15 +81,15 @@ const AdminDashboard = () => {
     //   onClick: () => navigate('/admin/users')
     // },
     {
-      title: 'Yêu cầu chờ duyệt',
+      title: t('admin.dashboard.stats.pending'),
       value: stats.pendingVerifications,
       icon: Clock,
-      badge: stats.pendingVerifications > 0 ? 'Cần xử lý' : undefined,
+      badge: stats.pendingVerifications > 0 ? t('admin.dashboard.stats.pending_badge') : undefined,
       color: 'yellow',
       onClick: () => navigate('/admin/business-verifications?status=PENDING')
     },
     {
-      title: 'Đã xác thực',
+      title: t('admin.dashboard.stats.approved'),
       value: stats.approvedVerifications,
       icon: CheckCircle2,
       trend: '+8.2%',
@@ -96,7 +98,7 @@ const AdminDashboard = () => {
       onClick: () => navigate('/admin/business-verifications?status=APPROVED')
     },
     {
-      title: 'Đã từ chối',
+      title: t('admin.dashboard.stats.rejected'),
       value: stats.rejectedVerifications,
       icon: XCircle,
       color: 'red',
@@ -135,8 +137,8 @@ const AdminDashboard = () => {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-500 mt-1">Tổng quan hệ thống</p>
+            <h1 className="text-3xl font-bold text-gray-900">{t('admin.dashboard.title')}</h1>
+            <p className="text-gray-500 mt-1">{t('admin.dashboard.subtitle')}</p>
           </div>
         </div>
 
@@ -162,11 +164,11 @@ const AdminDashboard = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-500 mt-1">Chào mừng quay trở lại! Đây là tổng quan hệ thống.</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('admin.dashboard.title')}</h1>
+          <p className="text-gray-500 mt-1">{t('admin.dashboard.description')}</p>
         </div>
         <Button onClick={() => fetchDashboardStats()} variant="outline">
-          Làm mới dữ liệu
+          {t('admin.dashboard.refresh')}
         </Button>
       </div>
 
@@ -222,13 +224,13 @@ const AdminDashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Building2 className="w-5 h-5 text-orange-600" />
-              Quản lý xác thực
+              {t('admin.dashboard.quick_actions.verification')}
             </CardTitle>
-            <CardDescription>Xem và duyệt yêu cầu xác thực doanh nghiệp</CardDescription>
+            <CardDescription>{t('admin.dashboard.quick_actions.verification_desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button className="w-full bg-orange-600 hover:bg-orange-700">
-              Xem danh sách
+              {t('admin.dashboard.quick_actions.verification_button')}
               <ArrowUpRight className="w-4 h-4 ml-2" />
             </Button>
           </CardContent>
@@ -238,13 +240,13 @@ const AdminDashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5 text-orange-600" />
-              Quản lý người dùng
+              {t('admin.dashboard.quick_actions.users')}
             </CardTitle>
-            <CardDescription>Quản lý tài khoản và phân quyền người dùng</CardDescription>
+            <CardDescription>{t('admin.dashboard.quick_actions.users_desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button className="w-full bg-orange-600 hover:bg-orange-700">
-              Xem người dùng
+              {t('admin.dashboard.quick_actions.users_button')}
               <ArrowUpRight className="w-4 h-4 ml-2" />
             </Button>
           </CardContent>
@@ -254,13 +256,13 @@ const AdminDashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-orange-600" />
-              Báo cáo & Thống kê
+              {t('admin.dashboard.quick_actions.reports')}
             </CardTitle>
-            <CardDescription>Xem báo cáo chi tiết và phân tích dữ liệu</CardDescription>
+            <CardDescription>{t('admin.dashboard.quick_actions.reports_desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button className="w-full bg-orange-600 hover:bg-orange-700">
-              Xem báo cáo
+              {t('admin.dashboard.quick_actions.reports_button')}
               <ArrowUpRight className="w-4 h-4 ml-2" />
             </Button>
           </CardContent>
@@ -273,10 +275,10 @@ const AdminDashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-yellow-800">
               <AlertTriangle className="w-5 h-5" />
-              Có {stats.pendingVerifications} yêu cầu đang chờ xử lý
+              {t('admin.dashboard.alert.pending_title', { count: stats.pendingVerifications })}
             </CardTitle>
             <CardDescription className="text-yellow-700">
-              Vui lòng xem xét và xử lý các yêu cầu xác thực doanh nghiệp đang chờ duyệt
+              {t('admin.dashboard.alert.pending_description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -284,7 +286,7 @@ const AdminDashboard = () => {
               className="bg-yellow-600 hover:bg-yellow-700"
               onClick={() => navigate('/admin/business-verifications?status=PENDING')}
             >
-              Xem ngay
+              {t('admin.dashboard.alert.view_now')}
             </Button>
           </CardContent>
         </Card>
@@ -293,13 +295,13 @@ const AdminDashboard = () => {
       {/* Recent Activity */}
       <Card>
         <CardHeader>
-          <CardTitle>Hoạt động gần đây</CardTitle>
-          <CardDescription>Các hoạt động mới nhất trong hệ thống</CardDescription>
+          <CardTitle>{t('admin.dashboard.recent_activity')}</CardTitle>
+          <CardDescription>{t('admin.dashboard.recent_activity_desc')}</CardDescription>
         </CardHeader>
         <CardContent>
           {stats.recentActivity.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <p>Chưa có hoạt động nào</p>
+              <p>{t('admin.dashboard.recent_activity_empty')}</p>
             </div>
           ) : (
             <div className="space-y-4">

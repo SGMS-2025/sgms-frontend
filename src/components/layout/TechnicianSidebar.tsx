@@ -18,8 +18,7 @@ import {
   FileText,
   ClipboardList,
   CalendarDays,
-  ChevronDown,
-  ArrowRightLeft
+  ChevronDown
 } from 'lucide-react';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -499,14 +498,6 @@ export const TechnicianSidebar: React.FC = () => {
     });
   }
 
-  // Add calendar for all technician roles
-  mainNavItems.push({
-    icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
-    label: t('technician.sidebar.schedule', 'My Schedule'),
-    isActive: location.pathname.startsWith('/manage/technician/calendar'),
-    onClick: () => handleNavigation('/manage/technician/calendar')
-  });
-
   mainNavItems.push({
     icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
     label: t('technician.sidebar.attendanceHistory', 'Attendance History'),
@@ -592,12 +583,6 @@ export const TechnicianSidebar: React.FC = () => {
               label={t('sidebar.time_off', 'Time Off')}
               isActive={location.pathname.startsWith('/manage/technician/timeoff')}
               onClick={() => handleNavigation('/manage/technician/timeoff')}
-            />
-            <SubMenuItem
-              icon={<ArrowRightLeft className="w-5 h-5 stroke-[1.75]" />}
-              label={t('sidebar.reschedule') || 'Reschedule'}
-              isActive={location.pathname.startsWith('/reschedule')}
-              onClick={() => handleNavigation('/reschedule')}
             />
           </DropdownSidebarItem>
         </nav>

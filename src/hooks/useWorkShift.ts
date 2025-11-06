@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { workShiftApi } from '@/services/api/workShiftApi';
+import { isVirtualWorkShift } from '@/utils/workshiftUtils';
 import type {
   WorkShift,
   WorkShiftStats,
@@ -170,6 +171,14 @@ export const useWorkShiftOperations = () => {
 
   const updateWorkShift = useCallback(
     async (id: string, data: UpdateWorkShiftRequest) => {
+      // Don't update if it's a virtual workshift
+      if (isVirtualWorkShift({ _id: id })) {
+        toast.error(t('workshift.cannot_edit_virtual'), {
+          id: 'workshift-virtual-error'
+        });
+        return null;
+      }
+
       setLoading(true);
       setError(null);
 
@@ -196,6 +205,14 @@ export const useWorkShiftOperations = () => {
 
   const deleteWorkShift = useCallback(
     async (id: string) => {
+      // Don't delete if it's a virtual workshift
+      if (isVirtualWorkShift({ _id: id })) {
+        toast.error(t('workshift.cannot_delete_virtual'), {
+          id: 'workshift-virtual-error'
+        });
+        return false;
+      }
+
       setLoading(true);
       setError(null);
 
@@ -221,6 +238,14 @@ export const useWorkShiftOperations = () => {
 
   const disableWorkShift = useCallback(
     async (id: string) => {
+      // Don't disable if it's a virtual workshift
+      if (isVirtualWorkShift({ _id: id })) {
+        toast.error(t('workshift.cannot_disable_virtual'), {
+          id: 'workshift-virtual-error'
+        });
+        return null;
+      }
+
       setLoading(true);
       setError(null);
 
@@ -264,6 +289,14 @@ export const useWorkShift = (id: string) => {
 
   const fetchWorkShift = useCallback(async () => {
     if (!id) return;
+
+    // Don't fetch if it's a virtual workshift
+    if (isVirtualWorkShift({ _id: id })) {
+      setLoading(false);
+      setError(null);
+      setWorkShift(null);
+      return;
+    }
 
     setLoading(true);
     setError(null);

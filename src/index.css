@@ -516,78 +516,123 @@ select:focus {
   background-color: #ea4335;
 }
 
-/* New Simple Calendar Grid System */
+/* ============================================
+   📅 MODERN CALENDAR GRID SYSTEM
+   ============================================ */
 .calendar-grid-wrapper {
   display: flex;
   width: 100%;
-  height: 1080px; /* Fixed height for 18 hours (5 AM - 10 PM) */
-  min-height: 1080px;
+  height: 100%;
+  min-height: 600px;
   position: relative;
 }
 
+/* Enhanced Time Sidebar - Modern gradient */
 .calendar-time-sidebar {
-  width: 80px;
-  background-color: #f9fafb;
-  border-right: 1px solid #e5e7eb;
+  width: 90px; /* Wider for better readability */
+  background: linear-gradient(to right, #f8fafc 0%, #ffffff 100%);
+  border-right: 2px solid #e2e8f0;
   position: sticky;
   left: 0;
   z-index: 20;
   flex-shrink: 0;
-  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
-  min-height: 1080px; /* 18 hours × 60px = 1080px */
-  height: 1080px;
+  box-shadow: 
+    4px 0 12px rgba(0, 0, 0, 0.04),
+    inset -1px 0 0 rgba(255, 255, 255, 0.8);
+  min-height: 600px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* Slightly bigger gap */
+  padding: 12px 0; /* More padding */
 }
 
 /* Add horizontal lines on time sidebar to match grid lines */
 .calendar-time-sidebar::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background-image: repeating-linear-gradient(to bottom, #e5e7eb 0px, #e5e7eb 1px, transparent 1px, transparent 60px);
-  pointer-events: none;
-  z-index: 5;
+  content: none; /* Remove grid lines, using time-marker borders instead */
 }
 
 .calendar-content-area {
   flex: 1;
   position: relative;
   overflow: hidden; /* Prevent content overflow */
-  height: 1080px;
-  min-height: 1080px;
+  height: 100%; /* Full height */
+  min-height: 600px; /* Minimum height for all shifts */
 }
 
-/* Time labels positioned exactly on horizontal border lines */
+/* ============================================
+   🎨 SHIFT LABELS - Modern card design
+   ============================================ */
 .time-marker {
-  position: absolute;
-  right: 6px;
-  background-color: white;
-  padding: 2px 6px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #4b5563;
-  transform: translateY(-8px); /* Adjust to sit slightly above the line for better visibility */
+  position: relative;
+  flex: 1;
+  width: calc(100% - 8px);
+  min-height: 120px; /* Slightly taller */
+  margin: 0 4px;
+  background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+  padding: 16px 12px; /* More padding for content */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 6px; /* Space between title and time */
+  border: none;
+  border-radius: 12px; /* Rounder corners */
+  border-left: 4px solid #cbd5e1; /* Default border color */
   z-index: 15;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  line-height: 1;
-  white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
 }
 
-/* Special positioning for the first time marker (5 AM) to ensure it's visible */
-.time-marker:first-child {
-  transform: translateY(4px); /* Move it down slightly to ensure it's not cut off at the top */
+/* Subtle background pattern */
+.time-marker::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 50%, rgba(249, 115, 22, 0.02) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-/* Grid cells for days and hours */
+/* Shift title styling */
+.time-marker > div:first-child {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: -0.02em;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* Shift time range styling */
+.time-marker > div:last-child {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  position: relative;
+  z-index: 1;
+  letter-spacing: 0.01em;
+}
+
+/* ============================================
+   📊 CALENDAR DAY COLUMNS - Enhanced
+   ============================================ */
 .calendar-day-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   height: 100%;
-  min-height: 1080px; /* 18 hours × 60px = 1080px */
+  min-height: 600px;
   width: 100%;
 }
 
@@ -596,51 +641,74 @@ select:focus {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 1080px; /* Ensure full height */
-  overflow: visible; /* Allow shift cards to overflow */
-  isolation: isolate; /* Create stacking context for proper z-index */
+  min-height: 100%;
+  height: 100%;
+  overflow: visible;
+  isolation: isolate;
+  gap: 10px; /* Match sidebar gap */
+  padding: 12px 0; /* Match sidebar padding */
+  background: linear-gradient(to right, #ffffff 0%, #fafbfc 100%);
+  transition: background 0.2s ease;
+}
+
+.calendar-day-column-new:hover {
+  background: linear-gradient(to right, #fafbfc 0%, #f8fafc 100%);
 }
 
 .calendar-day-column-new:last-child {
   border-right: none;
 }
 
-/* Add the same horizontal grid lines pattern to each day column */
 .calendar-day-column-new::before {
+  content: none;
+}
+
+/* Improved vertical line that extends to bottom */
+.calendar-day-column-new::after {
   content: '';
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background-image: repeating-linear-gradient(to bottom, #e5e7eb 0px, #e5e7eb 1px, transparent 1px, transparent 60px);
+  bottom: 0;
+  right: -1px;
+  width: 1px;
+  background: linear-gradient(to bottom, 
+    transparent 0%,
+    #e5e7eb 10%,
+    #e5e7eb 90%,
+    transparent 100%);
   pointer-events: none;
-  z-index: 1;
+  z-index: 10;
 }
 
+/* ============================================
+   🎯 TIME CELLS - Interactive zones
+   ============================================ */
 .calendar-time-cell {
-  height: 60px;
-  min-height: 60px !important;
-  max-height: 60px !important;
-  flex: 0 0 60px; /* Flex properties to maintain size */
-  border: none; /* Remove all borders, we use pseudo-elements for grid lines */
-  cursor: default;
-  transition: background-color 0.15s ease;
+  flex: 1;
+  min-height: 120px; /* Match time-marker height */
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   background: transparent;
   outline: none;
-  padding: 0;
+  padding: 6px;
   margin: 0;
   box-sizing: border-box;
   width: 100%;
-  z-index: 1; /* Below shift cards */
-  overflow: visible; /* Allow shift cards to overflow and be clickable */
-  pointer-events: none !important; /* Disable pointer events completely on cells */
+  z-index: 1;
+  overflow: visible;
+  border-radius: 8px;
+  pointer-events: auto;
 }
 
 .calendar-time-cell:hover {
-  background-color: transparent; /* Remove hover effect as pointer-events is disabled */
-  z-index: 1;
+  background-color: rgba(59, 130, 246, 0.04);
+  z-index: 2;
+}
+
+.calendar-time-cell:active {
+  background-color: rgba(59, 130, 246, 0.08);
 }
 
 .calendar-time-cell:focus {
@@ -648,25 +716,93 @@ select:focus {
   outline: none;
 }
 
-/* Enable pointer events on shift buttons inside cells */
+/* ============================================
+   ✨ SHIFT CARDS - Google Calendar inspired
+   ============================================ */
 .calendar-time-cell > button {
-  pointer-events: auto !important; /* Enable pointer events only on shift buttons */
+  pointer-events: auto !important;
   position: absolute;
-  z-index: 30 !important; /* Much higher z-index to be above all cells */
+  z-index: 30 !important;
   cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid rgba(255, 255, 255, 0.3); /* Subtle border like Google Calendar */
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-left-width: 3px; /* Accent border on left */
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 8px 10px;
+  text-align: left;
+  overflow: hidden;
+  /* Apply fade-in animation */
+  animation: shiftFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-/* Ensure shift cards maintain proper styling when they span multiple hours */
+/* Add subtle shine effect on shift cards */
+.calendar-time-cell > button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(to bottom, 
+    rgba(255, 255, 255, 0.5) 0%, 
+    rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+  border-radius: 8px 8px 0 0;
+  z-index: 0;
+}
+
+/* Shift card hover state - Material Design elevation */
 .calendar-time-cell > button:hover {
   box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
-  transform: translateY(-1px); /* Subtle lift effect */
-  z-index: 60 !important; /* Bring to front on hover */
-  border-color: rgba(255, 255, 255, 0.5);
+    0 12px 20px -5px rgba(0, 0, 0, 0.12),
+    0 6px 10px -3px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-3px) scale(1.02);
+  z-index: 60 !important;
+  filter: brightness(1.05);
 }
+
+/* Shift card active/pressed state */
+.calendar-time-cell > button:active {
+  transform: translateY(0) scale(0.99);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Shift card focus state for accessibility */
+.calendar-time-cell > button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-color: #3b82f6;
+}
+
+/* ============================================
+   🎬 ANIMATIONS
+   ============================================ */
+@keyframes shiftFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Stagger animation for multiple shifts */
+.calendar-time-cell > button:nth-child(1) { animation-delay: 0ms; }
+.calendar-time-cell > button:nth-child(2) { animation-delay: 50ms; }
+.calendar-time-cell > button:nth-child(3) { animation-delay: 100ms; }
+.calendar-time-cell > button:nth-child(4) { animation-delay: 150ms; }
 
 /* Ensure perfect horizontal line alignment */
 .calendar-main-container .h-16 {

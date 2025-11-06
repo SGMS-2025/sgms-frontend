@@ -225,6 +225,10 @@ class SocketService implements SocketServiceInterface {
       this.handleRescheduleNotification(data);
     });
 
+    this.socket.on('notification:reschedule:staff_update', (data: RescheduleNotificationData) => {
+      this.handleRescheduleNotification(data);
+    });
+
     // Ping/pong for connection health
     this.socket.on('pong', () => {});
 

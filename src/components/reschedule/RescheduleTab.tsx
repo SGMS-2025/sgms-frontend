@@ -18,16 +18,17 @@ import {
 import { useMyRescheduleRequests } from '@/hooks/useReschedule';
 import CreateRescheduleModal from './CreateRescheduleModal';
 import RescheduleRequestDetailModal from './RescheduleRequestDetailModal';
-import type { WorkShift } from '@/types/api/WorkShift';
+import type { WorkShift, VirtualWorkShift } from '@/types/api/WorkShift';
 import type { RescheduleRequest, RescheduleState } from '@/types/api/Reschedule';
 import type { BaseComponentProps } from '@/types/components/ComponentTypes';
 
 interface RescheduleTabProps extends BaseComponentProps {
-  workShift: WorkShift;
+  workShift: WorkShift | VirtualWorkShift;
   onClose?: () => void;
+  onEnsureWorkshift?: () => Promise<WorkShift | null>;
 }
 
-const RescheduleTab: React.FC<RescheduleTabProps> = ({ workShift }) => {
+const RescheduleTab: React.FC<RescheduleTabProps> = ({ workShift, onEnsureWorkshift }) => {
   const { t } = useTranslation();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<RescheduleRequest | null>(null);
@@ -250,6 +251,8 @@ const RescheduleTab: React.FC<RescheduleTabProps> = ({ workShift }) => {
           onClose={() => setShowCreateModal(false)}
           workShiftId={workShift._id}
           onSuccess={handleCreateSuccess}
+          workShift={workShift}
+          onEnsureWorkshift={onEnsureWorkshift}
         />
       )}
 
