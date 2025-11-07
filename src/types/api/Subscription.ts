@@ -18,7 +18,15 @@ export interface SubscriptionPackage {
 // Owner Subscription Types
 export interface OwnerSubscription {
   _id: string;
-  userId: string;
+  userId:
+    | string
+    | {
+        _id: string;
+        username?: string;
+        email?: string;
+        fullName?: string;
+        phoneNumber?: string;
+      };
   packageId: string | SubscriptionPackage;
   status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
   startDate: string;
@@ -75,6 +83,36 @@ export interface UpdateSubscriptionPackageRequest {
   tier?: number;
   isActive?: boolean;
   features?: string[];
+}
+
+// Admin request shapes to match backend validation for package create/update
+export interface AdminCreateSubscriptionPackageRequest {
+  name: string;
+  tier: number;
+  price: number;
+  duration: { value: number; unit: 'DAY' | 'MONTH' | 'YEAR' };
+  features: {
+    maxBranches: { min: number; max: number };
+    maxCustomers: { min: number; max: number };
+    additionalFeatures?: string[];
+  };
+  description?: string;
+  isActive?: boolean;
+  displayOrder?: number;
+}
+
+export interface AdminUpdateSubscriptionPackageRequest {
+  name?: string;
+  price?: number;
+  duration?: { value?: number; unit?: 'DAY' | 'MONTH' | 'YEAR' };
+  features?: {
+    maxBranches?: { min?: number; max?: number };
+    maxCustomers?: { min?: number; max?: number };
+    additionalFeatures?: string[];
+  };
+  description?: string;
+  isActive?: boolean;
+  displayOrder?: number;
 }
 
 export interface CancelSubscriptionRequest {
@@ -151,16 +189,18 @@ export interface ValidationResponse {
 export interface AllSubscriptionsResponse {
   success: boolean;
   message: string;
-  data: {
-    subscriptions: OwnerSubscription[];
-    pagination: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    };
+  data: OwnerSubscription[]; // sendPaginated returns array directly
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNext?: boolean;
+    hasPrev?: boolean;
   };
-  statusCode: number;
+  statusCode?: number;
+  timestamp?: string;
+  requestId?: string;
 }
 
 // Query Types

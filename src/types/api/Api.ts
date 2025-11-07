@@ -19,6 +19,11 @@ export interface ApiErrorResponse {
     code: string;
     statusCode: number;
     stack?: string;
+    meta?: {
+      details?: Array<{ field: string; message: string; value?: unknown }>;
+      field?: string;
+      [key: string]: unknown;
+    };
   };
   timestamp: string;
   requestId: string;
