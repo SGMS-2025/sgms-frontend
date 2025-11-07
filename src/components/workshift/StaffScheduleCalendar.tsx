@@ -14,6 +14,7 @@ import { useBranch } from '@/contexts/BranchContext';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { useBranchWorkingConfig } from '@/hooks/useBranchWorkingConfig';
+import { useBreakpoint } from '@/hooks/useWindowSize';
 import { staffApi } from '@/services/api/staffApi';
 import { workShiftApi } from '@/services/api/workShiftApi';
 import { useTimeOffList } from '@/hooks/useTimeOff';
@@ -27,6 +28,7 @@ import WorkShiftDetailModalWithTimeOff from './WorkShiftDetailModalWithTimeOff';
 import CreateDropdown from './CreateDropdown';
 import CreateWorkShiftModal from './CreateWorkShiftModal';
 import BranchWorkingConfigModal from './BranchWorkingConfigModal';
+import MobileCalendarView from './mobile/MobileCalendarView';
 
 // Custom type for realtime notification event
 interface RealtimeNotificationEvent extends Event {
@@ -84,6 +86,11 @@ const getBranchIds = (branchId: unknown): string[] => {
 
 const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedStaffId, onStaffSelect, userRole }) => {
   const { t } = useTranslation();
+  const { isMobile, width } = useBreakpoint(); // Detect mobile device
+
+  // Debug: Log breakpoint detection
+  console.log('[StaffScheduleCalendar] isMobile:', isMobile, 'width:', width);
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'week' | 'month' | 'day'>('week');
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -112,7 +119,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   const { user } = useAuthState();
 
   // Fetch branch working config
-  const { config: branchConfig } = useBranchWorkingConfig(currentBranch?._id);
+  const { config: branchConfig, refetch: refetchBranchConfig } = useBranchWorkingConfig(currentBranch?._id);
 
   // Check if current user can view all staff schedules in the branch
   const canViewAllStaffSchedules = useMemo(() => {
@@ -164,10 +171,26 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     return weekDates;
   };
 
+  // Memoize visibleStaffList separately to avoid recalculation
+  const visibleStaffList = useMemo(() => {
+    if (!canViewAllStaffSchedules) {
+      return currentStaff ? [currentStaff] : [];
+    }
+    if (!currentBranch || !staffList.length) {
+      return [];
+    }
+    return staffList.filter((staff) => {
+      const staffBranchIds = getBranchIds(staff.branchId);
+      return staffBranchIds.includes(currentBranch._id);
+    });
+  }, [staffList, currentBranch, canViewAllStaffSchedules, currentStaff]);
+
   // Generate virtual workshifts from branchWorkingConfig
   // Logic: Tạo virtual shift cho TẤT CẢ shifts trong branch config cho mỗi staff
+  // OPTIMIZED: Use Map for O(1) lookup instead of O(n) find()
   const generateVirtualWorkShifts = useMemo(() => {
-    if (!branchConfig || !currentBranch || !staffList.length) {
+    // Early return if loading or missing dependencies
+    if (loadingWorkShifts || !branchConfig || !currentBranch || !visibleStaffList.length) {
       return [];
     }
 
@@ -181,16 +204,22 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
       Technician: 'TECHNICIAN'
     };
 
-    // Filter staff list based on permissions for display
-    const visibleStaffList = (() => {
-      if (canViewAllStaffSchedules) {
-        return staffList.filter((staff) => {
-          const staffBranchIds = getBranchIds(staff.branchId);
-          return staffBranchIds.includes(currentBranch._id);
-        });
+    // OPTIMIZATION: Create a Map for O(1) lookup of existing shifts
+    // Key format: `${staffId}-${dateStr}-${startTime}`
+    // This reduces complexity from O(n²) to O(n)
+    const existingShiftsMap = new Map<string, boolean>();
+    workShifts.forEach((ws) => {
+      const wsStaffId = getStaffId(ws.staffId);
+      if (!wsStaffId) return;
+
+      const realDateStr = utcToVnDateString(ws.startTime);
+      const realVnTime = utcToVnTimeString(ws.startTime);
+
+      if (realVnTime) {
+        const key = `${wsStaffId}-${realDateStr}-${realVnTime}`;
+        existingShiftsMap.set(key, true);
       }
-      return currentStaff ? [currentStaff] : [];
-    })();
+    });
 
     // Group visible staff by role for processing
     const staffByRole = new Map<string, Staff[]>();
@@ -225,32 +254,9 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
           availableShifts.forEach((shiftConfig) => {
             const virtualDateStr = formatDateString(date);
 
-            const existingShift = workShifts.find((ws) => {
-              // Check same staff first
-              const wsStaffId = getStaffId(ws.staffId);
-              if (wsStaffId !== staff._id) {
-                return false;
-              }
-              // Convert real shift UTC time to VN timezone for date comparison
-              const realDateStr = utcToVnDateString(ws.startTime);
-
-              // Compare dates - must be same date in VN timezone
-              if (realDateStr !== virtualDateStr) {
-                return false;
-              }
-
-              // Convert real shift UTC time to VN time string and compare
-              const realVnTime = utcToVnTimeString(ws.startTime);
-
-              // If times match, this is the same shift - don't create virtual
-              if (realVnTime === shiftConfig.startTime) {
-                return true;
-              }
-
-              return false;
-            });
-
-            if (existingShift) {
+            // OPTIMIZATION: Use Map lookup (O(1)) instead of find() (O(n))
+            const lookupKey = `${staff._id}-${virtualDateStr}-${shiftConfig.startTime}`;
+            if (existingShiftsMap.has(lookupKey)) {
               // Real shift exists for this staff/date/time - don't create virtual shift
               return;
             }
@@ -304,7 +310,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     });
 
     return virtualWorkShifts;
-  }, [branchConfig, currentBranch, staffList, workShifts, currentDate, canViewAllStaffSchedules, currentStaff]);
+  }, [branchConfig, currentBranch, visibleStaffList, workShifts, currentDate, loadingWorkShifts]);
 
   // Time Off functionality
   const { timeOffs, refetch: refetchTimeOffs } = useTimeOffList({
@@ -811,7 +817,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     fetchStaff();
   }, [currentBranch?._id, canViewAllStaffSchedules, currentStaff]);
 
-  // Common function to fetch workshifts
+  // Common function to fetch workshifts - OPTIMIZED: Only fetch current week
   const fetchWorkShifts = useCallback(async () => {
     if (!currentBranch?._id) {
       setWorkShifts([]);
@@ -820,21 +826,36 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     }
 
     setLoadingWorkShifts(true);
+
+    // Calculate week date range - only fetch current week
+    const weekDates = getWeekDates(currentDate);
+    const startDate = new Date(weekDates[0]);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(weekDates[6]);
+    endDate.setHours(23, 59, 59, 999);
+
+    // Format dates for API (ISO string)
+    const startDateISO = startDate.toISOString();
+    const endDateISO = endDate.toISOString();
+
     const response = await workShiftApi.getWorkShifts({
-      branchId: currentBranch._id
+      branchId: currentBranch._id,
+      startDate: startDateISO,
+      endDate: endDateISO
     });
+
     if (response.success) {
       setWorkShifts(response.data.data);
     } else {
       setWorkShifts([]);
     }
     setLoadingWorkShifts(false);
-  }, [currentBranch?._id]);
+  }, [currentBranch?._id, currentDate]);
 
-  // Fetch all workshifts on component mount
+  // Fetch workshifts when branch or week changes
   useEffect(() => {
     fetchWorkShifts();
-  }, [currentBranch?._id, fetchWorkShifts]);
+  }, [currentBranch?._id, currentDate, fetchWorkShifts]);
 
   // Memoize the notification handler to prevent stale closures
   const handleRealtimeNotification = useCallback(
@@ -928,6 +949,27 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   }, [workShifts]);
 
   const allWorkShifts = useMemo(() => {
+    // Early return if loading - return existing workShifts to avoid blocking UI
+    if (loadingWorkShifts) {
+      return workShifts;
+    }
+
+    // OPTIMIZATION: Create Map for O(1) lookup instead of O(n) some()
+    // This reduces complexity from O(n²) to O(n)
+    const realShiftsMap = new Map<string, WorkShift>();
+    workShifts.forEach((realShift) => {
+      const realStaffId = getStaffId(realShift.staffId);
+      if (!realStaffId) return;
+
+      const realDateStr = utcToVnDateString(realShift.startTime);
+      const realVnTime = utcToVnTimeString(realShift.startTime);
+
+      if (realVnTime) {
+        const key = `${realStaffId}-${realDateStr}-${realVnTime}`;
+        realShiftsMap.set(key, realShift);
+      }
+    });
+
     const virtualShifts = generateVirtualWorkShifts.filter((shift) => {
       // Filter by selected staff if needed
       if (selectedStaffId && shift.staffId?._id !== selectedStaffId) {
@@ -941,41 +983,17 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
 
       const virtualDateStr = utcToVnDateString(shift.startTime);
 
-      const hasRealShift = workShifts.some((realShift) => {
-        const realStaffId = getStaffId(realShift.staffId);
-
-        if (realStaffId !== virtualStaffId) {
-          return false;
-        }
-
-        const realDateStr = utcToVnDateString(realShift.startTime);
-
-        const realVnTime = utcToVnTimeString(realShift.startTime);
-
-        if (realDateStr !== virtualDateStr) {
-          return false;
-        }
-
-        if (!shift.startTimeLocal) {
-          return false;
-        }
-
-        if (realVnTime === shift.startTimeLocal) {
-          return true;
-        }
-
-        return false;
-      });
-
-      if (hasRealShift) {
-        return false;
+      // OPTIMIZATION: Use Map lookup (O(1)) instead of some() (O(n))
+      const lookupKey = `${virtualStaffId}-${virtualDateStr}-${shift.startTimeLocal}`;
+      if (realShiftsMap.has(lookupKey)) {
+        return false; // Has real shift, don't show virtual
       }
 
       return true;
     });
 
     return [...workShifts, ...virtualShifts];
-  }, [workShifts, generateVirtualWorkShifts, selectedStaffId]);
+  }, [workShifts, generateVirtualWorkShifts, selectedStaffId, loadingWorkShifts]);
 
   const filteredWorkShifts = allWorkShifts.filter((shift) => {
     if (!canViewAllStaffSchedules && currentStaff) {
@@ -1016,6 +1034,11 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   // Refresh workshifts after creating new one
   const refreshWorkShifts = async () => {
     await fetchWorkShifts();
+  };
+
+  // Refresh branch config and workshifts after updating branch working config
+  const refreshBranchConfigAndShifts = async () => {
+    await Promise.all([refetchBranchConfig(), fetchWorkShifts()]);
   };
 
   // Refresh time offs and workshifts
@@ -1111,6 +1134,59 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     return t('workshift.select_staff') || 'Select Staff';
   };
 
+  // Handle shift tap in mobile view
+  const handleShiftTap = (shift: WorkShift | VirtualWorkShift) => {
+    setSelectedWorkShift(shift);
+    setShowWorkShiftDetail(true);
+  };
+
+  // Handle create shift in mobile view
+  const handleCreateShift = () => {
+    setShowCreateWorkShiftModal(true);
+  };
+
+  // Render mobile view if on mobile device
+  if (isMobile) {
+    return (
+      <>
+        <MobileCalendarView
+          selectedDate={currentDate}
+          onDateChange={setCurrentDate}
+          shifts={allWorkShifts}
+          branchConfig={branchConfig}
+          onShiftTap={handleShiftTap}
+          onCreateShift={handleCreateShift}
+          onBranchConfig={() => setShowBranchConfig(true)}
+          canEdit={canViewAllStaffSchedules}
+        />
+
+        {/* Modals - Shared between mobile and desktop */}
+        <WorkShiftDetailModalWithTimeOff
+          isOpen={showWorkShiftDetail}
+          onClose={() => setShowWorkShiftDetail(false)}
+          workShift={selectedWorkShift}
+          onUpdate={refreshWorkShifts}
+          selectedDate={currentDate}
+        />
+
+        <CreateWorkShiftModal
+          isOpen={showCreateWorkShiftModal}
+          onClose={() => setShowCreateWorkShiftModal(false)}
+          onSuccess={refreshWorkShifts}
+        />
+
+        {showBranchConfig && (
+          <BranchWorkingConfigModal
+            isOpen={showBranchConfig}
+            onClose={() => setShowBranchConfig(false)}
+            onSuccess={refreshBranchConfigAndShifts}
+          />
+        )}
+      </>
+    );
+  }
+
+  // Desktop view (existing code)
   return (
     <div className="calendar-main-container flex h-full bg-gray-50 overflow-hidden">
       {/* Main Content */}
@@ -1536,7 +1612,11 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
       />
 
       {showBranchConfig && (
-        <BranchWorkingConfigModal isOpen={showBranchConfig} onClose={() => setShowBranchConfig(false)} />
+        <BranchWorkingConfigModal
+          isOpen={showBranchConfig}
+          onClose={() => setShowBranchConfig(false)}
+          onSuccess={refreshBranchConfigAndShifts}
+        />
       )}
     </div>
   );
