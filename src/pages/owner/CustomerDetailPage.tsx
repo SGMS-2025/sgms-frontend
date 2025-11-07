@@ -30,6 +30,7 @@ import { ExtendMembershipDialog } from '@/components/customer/ExtendMembershipDi
 import { CancelServiceContractDialog } from '@/components/customer/CancelServiceContractDialog';
 import { ExtendServiceContractDialog } from '@/components/customer/ExtendServiceContractDialog';
 import { CancelMembershipDialog } from '@/components/modals/CancelMembershipDialog';
+import { ContractDocumentsTab } from '@/components/customer/ContractDocumentsTab';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -445,6 +446,12 @@ const CustomerDetailPage: React.FC = () => {
               >
                 Báo cáo
               </TabsTrigger>
+              <TabsTrigger
+                value="contracts"
+                className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wide transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                Hợp đồng
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -765,6 +772,10 @@ const CustomerDetailPage: React.FC = () => {
               title="Báo cáo hội viên"
               description="Báo cáo chuyên sâu về khách hàng sẽ sẵn sàng khi tính năng báo cáo được kích hoạt."
             />
+          </TabsContent>
+
+          <TabsContent value="contracts" className="pt-4">
+            {customer.id && <ContractDocumentsTab customerId={customer.id} />}
           </TabsContent>
         </Tabs>
       </div>

@@ -57,6 +57,7 @@ import TimeOffManagementPage from '@/pages/owner/TimeOffManagementPage';
 import PTTimeOffPage from '@/pages/pt/TimeOffPage';
 import TechnicianTimeOffPage from '@/pages/technician/TimeOffPage';
 import CustomerPaymentsPage from '@/pages/owner/CustomerPaymentsPage';
+import ContractsPage from '@/pages/owner/ContractsPage';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import AttendancePage from '@/pages/attendance/AttendancePage';
@@ -314,6 +315,8 @@ const AppRoutes: React.FC = () => {
             <Route path="expenses" element={<ExpensesPage />} />
             {/* Testimonial Management Route */}
             <Route path="testimonials" element={<TestimonialPage />} />
+            {/* Contracts Management Route */}
+            <Route path="contracts" element={<ContractsPage />} />
             {/* Shared Equipment Routes for Manager */}
             <Route path="equipment" element={<EquipmentListPage />} />
             <Route path="equipment/add" element={<AddEquipmentPage />} />
