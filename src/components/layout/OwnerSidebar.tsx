@@ -24,7 +24,8 @@ import {
   DollarSign,
   CalendarDays,
   CreditCard,
-  Building2
+  Building2,
+  FileText
 } from 'lucide-react';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -487,6 +488,15 @@ export const OwnerSidebar: React.FC = () => {
       isActive: location.pathname === '/manage/testimonials',
       onClick: () => {
         navigate('/manage/testimonials');
+      }
+    },
+    {
+      icon: <FileText className="w-5 h-5 stroke-[1.75]" />,
+      label: t('sidebar.contracts', { defaultValue: 'Hợp đồng / Contracts' }),
+      href: '/manage/contracts',
+      isActive: location.pathname === '/manage/contracts',
+      onClick: () => {
+        navigate('/manage/contracts');
       }
     }
   ];

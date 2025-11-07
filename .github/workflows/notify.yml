@@ -46,7 +46,11 @@ jobs:
             FIRST_COMMIT_MSG="${{ github.event.pull_request.title }}"
           fi
           
-          echo "msg=${FIRST_COMMIT_MSG}" >> $GITHUB_OUTPUT
+          {
+            echo "msg<<EOF"
+            echo "$FIRST_COMMIT_MSG"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Send PR info to Discord
         env:
