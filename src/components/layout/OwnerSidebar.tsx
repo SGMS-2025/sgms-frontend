@@ -24,8 +24,7 @@ import {
   DollarSign,
   CalendarDays,
   CreditCard,
-  Building2,
-  Crown
+  Building2
 } from 'lucide-react';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -180,7 +179,7 @@ const UpgradeCard: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    navigate('/pricing');
+    navigate('/manage/subscriptions');
   };
 
   if (isCollapsed) {
@@ -462,15 +461,6 @@ export const OwnerSidebar: React.FC = () => {
       isActive: location.pathname === '/manage/customers',
       onClick: () => {
         navigate('/manage/customers');
-      }
-    },
-    {
-      icon: <Crown className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.subscriptions', { defaultValue: 'Gói dịch vụ' }),
-      href: '/manage/subscriptions',
-      isActive: location.pathname === '/manage/subscriptions',
-      onClick: () => {
-        navigate('/manage/subscriptions');
       }
     },
     {

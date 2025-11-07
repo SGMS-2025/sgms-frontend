@@ -227,6 +227,24 @@ export const AdminSidebar: React.FC = () => {
       }
     },
     {
+      icon: <BarChart3 className="w-5 h-5 stroke-[1.75]" />,
+      label: t('sidebar.subscriptions', 'Subscriptions'),
+      href: '/admin/subscriptions',
+      isActive: location.pathname === '/admin/subscriptions',
+      onClick: () => {
+        navigate('/admin/subscriptions');
+      }
+    },
+    {
+      icon: <FileText className="w-5 h-5 stroke-[1.75]" />,
+      label: t('sidebar.subscription_packages', 'Gói Subscription'),
+      href: '/admin/subscriptions/packages',
+      isActive: location.pathname === '/admin/subscriptions/packages',
+      onClick: () => {
+        navigate('/admin/subscriptions/packages');
+      }
+    },
+    {
       icon: <Building2 className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.business_verification', 'Xác thực doanh nghiệp'),
       href: '/admin/business-verifications',

@@ -71,6 +71,8 @@ import { CustomerLayout } from '@/layouts/CustomerLayout';
 import BusinessVerificationPage from '@/pages/auth/BusinessVerificationPage';
 import BusinessVerificationManagementPage from '@/pages/admin/BusinessVerificationManagementPage';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
+import AdminSubscriptionsPage from '@/pages/admin/AdminSubscriptionsPage';
+import AdminSubscriptionPackagesPage from '@/pages/admin/AdminSubscriptionPackagesPage';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import OwnerSubscriptionGate from '@/components/guards/OwnerSubscriptionGate';
 import OwnerSubscriptionGateWithLayout from '@/components/guards/OwnerSubscriptionGateWithLayout';
@@ -440,6 +442,10 @@ const AppRoutes: React.FC = () => {
 
           {/* Business Verification Management */}
           <Route path="business-verifications" element={<BusinessVerificationManagementPage />} />
+
+          {/* Subscriptions (Admin) */}
+          <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
+          <Route path="subscriptions/packages" element={<AdminSubscriptionPackagesPage />} />
 
           {/* TODO: Add more admin routes here */}
           {/* <Route path="users" element={<UserManagementPage />} /> */}
