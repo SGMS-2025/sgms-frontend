@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { branchApi } from '@/services/api/branchApi';
 import type { BranchWorkingConfig } from '@/types/api/BranchWorkingConfig';
 
@@ -7,33 +7,37 @@ export const useBranchWorkingConfig = (branchId?: string) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchConfig = useCallback(async () => {
     if (!branchId) {
       setConfig(null);
       return;
     }
 
-    const fetchConfig = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await branchApi.getBranchWorkingConfig(branchId);
-        if (response.success && response.data) {
-          setConfig(response.data);
-        } else {
-          setError(response.message || 'Failed to fetch config');
-          setConfig(null);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await branchApi.getBranchWorkingConfig(branchId);
+      if (response.success && response.data) {
+        setConfig(response.data);
+      } else {
+        setError(response.message || 'Failed to fetch config');
         setConfig(null);
-      } finally {
-        setLoading(false);
       }
-    };
-
-    fetchConfig();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setConfig(null);
+    } finally {
+      setLoading(false);
+    }
   }, [branchId]);
 
-  return { config, loading, error };
+  useEffect(() => {
+    fetchConfig();
+  }, [fetchConfig]);
+
+  const refetch = useCallback(async () => {
+    await fetchConfig();
+  }, [fetchConfig]);
+
+  return { config, loading, error, refetch };
 };

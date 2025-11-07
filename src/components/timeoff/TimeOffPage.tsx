@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useBreakpoint } from '@/hooks/useWindowSize';
+import MobileTimeOffView from '@/components/timeoff/mobile/MobileTimeOffView';
 import { RefreshCw } from 'lucide-react';
 import { useTimeOffList, useTimeOffOperations } from '@/hooks/useTimeOff';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
@@ -194,6 +196,8 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
     }
   }, [searchParams, timeOffs, showHighlight, userRole]);
 
+  const { isMobile } = useBreakpoint();
+
   if (error) {
     return (
       <div className="p-6">
@@ -215,45 +219,67 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
 
   return (
     <div className="p-6">
-      {/* Time Off List */}
-      <TimeOffList
-        timeOffs={timeOffs}
-        loading={loading}
-        onEdit={handleEditTimeOff}
-        onDelete={handleDeleteTimeOff}
-        onView={handleViewTimeOff}
-        onApprove={canApprove ? handleApproveTimeOff : undefined}
-        onReject={canApprove ? handleRejectTimeOff : undefined}
-        onCancel={handleCancelTimeOff}
-        userRole={userRole}
-        currentUserId={user?._id}
-        onCreateNew={userRole !== 'owner' ? handleCreateNew : undefined}
-        onRefresh={handleRefresh}
-        onExport={handleExport}
-        searchValue={searchValue}
-        onSearchChange={handleSearchChange}
-        statusFilter={statusFilter}
-        onStatusFilterChange={handleStatusFilterChange}
-        typeFilter={typeFilter}
-        onTypeFilterChange={handleTypeFilterChange}
-        showFilters={true}
-        showStats={true}
-        showHeader={true}
-        stats={
-          stats
-            ? {
-                total: stats.totalRequests,
-                pending: stats.pendingRequests,
-                approved: stats.approvedRequests,
-                rejected: stats.rejectedRequests,
-                cancelled: stats.cancelledRequests
-              }
-            : undefined
-        }
-      />
+      {/* Time Off List / Mobile View */}
+      {isMobile ? (
+        <MobileTimeOffView
+          timeOffs={timeOffs}
+          loading={loading}
+          stats={
+            stats
+              ? {
+                  total: stats.totalRequests,
+                  pending: stats.pendingRequests,
+                  approved: stats.approvedRequests,
+                  rejected: stats.rejectedRequests,
+                  cancelled: stats.cancelledRequests
+                }
+              : undefined
+          }
+          onCreateNew={userRole !== 'owner' ? handleCreateNew : undefined}
+          onRefresh={handleRefresh}
+          onExport={handleExport}
+          onView={handleViewTimeOff}
+        />
+      ) : (
+        <TimeOffList
+          timeOffs={timeOffs}
+          loading={loading}
+          onEdit={handleEditTimeOff}
+          onDelete={handleDeleteTimeOff}
+          onView={handleViewTimeOff}
+          onApprove={canApprove ? handleApproveTimeOff : undefined}
+          onReject={canApprove ? handleRejectTimeOff : undefined}
+          onCancel={handleCancelTimeOff}
+          userRole={userRole}
+          currentUserId={user?._id}
+          onCreateNew={userRole !== 'owner' ? handleCreateNew : undefined}
+          onRefresh={handleRefresh}
+          onExport={handleExport}
+          searchValue={searchValue}
+          onSearchChange={handleSearchChange}
+          statusFilter={statusFilter}
+          onStatusFilterChange={handleStatusFilterChange}
+          typeFilter={typeFilter}
+          onTypeFilterChange={handleTypeFilterChange}
+          showFilters={true}
+          showStats={true}
+          showHeader={true}
+          stats={
+            stats
+              ? {
+                  total: stats.totalRequests,
+                  pending: stats.pendingRequests,
+                  approved: stats.approvedRequests,
+                  rejected: stats.rejectedRequests,
+                  cancelled: stats.cancelledRequests
+                }
+              : undefined
+          }
+        />
+      )}
 
-      {/* Pagination */}
-      {pagination && pagination.totalPages > 1 && (
+      {/* Pagination - Desktop only */}
+      {!isMobile && pagination && pagination.totalPages > 1 && (
         <Card>
           <CardContent className="py-4">
             <div className="flex items-center justify-between">

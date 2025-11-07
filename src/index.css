@@ -711,6 +711,37 @@ select:focus {
   background-color: rgba(59, 130, 246, 0.08);
 }
 
+/* ============================================
+   📱 MOBILE CALENDAR VIEW
+   ============================================ */
+.mobile-calendar-view {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.mobile-calendar-header {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-calendar-grid {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.mobile-shift-card {
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-shift-card:active {
+  transform: scale(0.98);
+}
+
+/* Active/Touch state */
+.active\:scale-98:active {
+  transform: scale(0.98);
+}
+
 .calendar-time-cell:focus {
   background-color: transparent;
   outline: none;
