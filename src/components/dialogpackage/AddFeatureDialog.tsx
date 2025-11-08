@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { useFeatureForm } from './useFeatureForm';
+import { FeatureFormFields } from './FeatureFormFields';
 
 interface AddFeatureDialogProps {
   readonly onSubmit: (v: { name: string }) => void;
@@ -15,19 +15,42 @@ interface AddFeatureDialogProps {
 export function AddFeatureDialog({ onSubmit, loading, serviceType }: AddFeatureDialogProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
+
+  const form = useFeatureForm({
+    serviceType,
+    validateOnBlur: true // AddFeatureDialog's special validation timing
+  });
 
   const handleCreate = () => {
-    if (!name.trim()) return;
-    onSubmit({ name: name.trim() });
+    const isValid = form.validate();
+    if (!isValid) {
+      return;
+    }
+
+    onSubmit({ name: form.name.trim() });
     setOpen(false);
-    setName('');
+    form.resetForm();
   };
 
-  const translationKey = serviceType === 'CLASS' ? 'class_service' : 'pt_service';
+  const handleClose = () => {
+    form.setIsClosing(true);
+    form.resetForm();
+    setOpen(false);
+    setTimeout(() => form.setIsClosing(false), 100);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          handleClose();
+        } else {
+          setOpen(isOpen);
+          form.setIsClosing(false);
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button
           size="sm"
@@ -35,31 +58,28 @@ export function AddFeatureDialog({ onSubmit, loading, serviceType }: AddFeatureD
           disabled={loading}
         >
           <Plus className="h-4 w-4 mr-2" />
-          {t(`${translationKey}.add_feature`)}
+          {t(`${form.translationKey}.add_feature`)}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto hide-scrollbar">
         <DialogHeader>
-          <DialogTitle>{t(`${translationKey}.add_feature_dialog_title`)}</DialogTitle>
+          <DialogTitle>{t(`${form.translationKey}.add_feature_dialog_title`)}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-2">
-          <div className="grid gap-2">
-            <Label htmlFor="name">{t(`${translationKey}.feature_name`)}</Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t(`${translationKey}.feature_name_placeholder`)}
-              disabled={loading}
-            />
-          </div>
-        </div>
+        <FeatureFormFields
+          translationKey={form.translationKey}
+          name={form.name}
+          error={form.error}
+          onNameChange={form.handleNameChange}
+          onBlur={form.handleBlur}
+          disabled={loading}
+        />
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-            {t(`${translationKey}.cancel`)}
+          <Button variant="outline" onClick={handleClose} disabled={loading}>
+            {t(`${form.translationKey}.cancel`)}
           </Button>
           <Button onClick={handleCreate} className="bg-black hover:bg-gray-800 text-white" disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {t(`${translationKey}.create_feature`)}
+            {t(`${form.translationKey}.create_feature`)}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -18,41 +19,6 @@ import { useCustomerPaymentHistory } from '@/hooks/useCustomerPayments';
 import type { CustomerPaymentHistoryPendingTransfer, PaymentContractType } from '@/types/api/Payment';
 import { PaymentHistoryItem } from './PaymentHistoryItem';
 
-const currencyFormatter = new Intl.NumberFormat('vi-VN', {
-  style: 'currency',
-  currency: 'VND'
-});
-
-const dateTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
-  dateStyle: 'short',
-  timeStyle: 'short'
-});
-
-const METHOD_LABELS: Record<string, string> = {
-  ALL: 'Tất cả phương thức',
-  CASH: 'Tiền mặt',
-  BANK_TRANSFER: 'Chuyển khoản',
-  PAYOS: 'PayOS',
-  DEBT: 'Công nợ'
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  ALL: 'Tất cả trạng thái',
-  SETTLED: 'Hoàn tất',
-  PAID: 'Đã thanh toán',
-  REFUNDED: 'Đã hoàn tiền',
-  PENDING: 'Chờ xử lý',
-  PROCESSING: 'Đang xử lý',
-  FAILED: 'Thất bại',
-  CANCELED: 'Đã hủy'
-};
-
-const CONTRACT_TYPE_LABELS: Record<string, string> = {
-  ALL: 'Tất cả loại hợp đồng',
-  MEMBERSHIP: 'Thành viên',
-  SERVICE: 'Dịch vụ'
-};
-
 const STATUS_BADGE_CLASS: Record<string, string> = {
   SETTLED: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   PAID: 'bg-emerald-100 text-emerald-700 border-emerald-200',
@@ -63,28 +29,51 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
   CANCELED: 'bg-gray-100 text-gray-600 border-gray-200'
 };
 
-const formatDateTime = (value: string | Date | null | undefined) => {
+const formatDateTime = (value: string | Date | null | undefined, locale: string = 'vi-VN') => {
   if (!value) return '-';
   const parsed = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(parsed.getTime())) return '-';
-  return dateTimeFormatter.format(parsed);
+  const formatter = new Intl.DateTimeFormat(locale, {
+    dateStyle: 'short',
+    timeStyle: 'short'
+  });
+  return formatter.format(parsed);
 };
 
-const formatCurrency = (value: number | null | undefined) => currencyFormatter.format(value || 0);
+const formatCurrency = (value: number | null | undefined, locale: string = 'vi-VN') => {
+  const formatter = new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: 'VND'
+  });
+  return formatter.format(value || 0);
+};
 
 const getStatusBadgeClass = (status: string) =>
   STATUS_BADGE_CLASS[status] || 'bg-slate-100 text-slate-700 border-slate-200';
 
 const PendingTransferCard: React.FC<{
   transfer: CustomerPaymentHistoryPendingTransfer;
-}> = ({ transfer }) => {
+  t: (key: string) => string;
+  locale: string;
+}> = ({ transfer, t, locale }) => {
+  const getContractTypeLabel = (type: string) => {
+    switch (type) {
+      case 'MEMBERSHIP':
+        return t('payment_history.contract_type.membership');
+      case 'SERVICE':
+        return t('payment_history.contract_type.service');
+      default:
+        return type;
+    }
+  };
+
   return (
     <div className="space-y-3 rounded-xl border border-orange-200 bg-orange-50/60 p-4 shadow-sm">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-sm font-semibold text-gray-800">{transfer.contractName}</p>
           <p className="text-xs text-gray-500">
-            {CONTRACT_TYPE_LABELS[transfer.contractType] || transfer.contractType}
+            {getContractTypeLabel(transfer.contractType)}
             {transfer.branch?.name ? ` • ${transfer.branch.name}` : ''}
           </p>
         </div>
@@ -93,21 +82,23 @@ const PendingTransferCard: React.FC<{
 
       <div className="grid gap-3 text-sm text-gray-600 md:grid-cols-2">
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Số tiền</p>
-          <p className="font-semibold text-gray-900">{formatCurrency(transfer.amount)}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('payment_history.amount')}</p>
+          <p className="font-semibold text-gray-900">{formatCurrency(transfer.amount, locale)}</p>
         </div>
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Nội dung chuyển khoản</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            {t('payment_history.transfer_content')}
+          </p>
           <p className="font-semibold text-gray-900">{transfer.orderCode || transfer.paymentCode || '-'}</p>
         </div>
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Ngày tạo</p>
-          <p className="font-semibold text-gray-900">{formatDateTime(transfer.createdAt)}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('payment_history.created_at')}</p>
+          <p className="font-semibold text-gray-900">{formatDateTime(transfer.createdAt, locale)}</p>
         </div>
         <div className="space-y-1">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Hết hạn</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('payment_history.expires_at')}</p>
           <p className="font-semibold text-gray-900">
-            {transfer.expiresAt ? formatDateTime(transfer.expiresAt) : 'Không xác định'}
+            {transfer.expiresAt ? formatDateTime(transfer.expiresAt, locale) : t('payment_history.unknown')}
           </p>
         </div>
       </div>
@@ -116,14 +107,14 @@ const PendingTransferCard: React.FC<{
 
       <div className="grid gap-2 text-xs text-gray-600 md:grid-cols-2">
         <div>
-          <p className="font-medium text-gray-600">Ngân hàng</p>
+          <p className="font-medium text-gray-600">{t('payment_history.bank')}</p>
           <p>
             {transfer.bankAccount.name || '-'}{' '}
             {transfer.bankAccount.bankCode ? `(${transfer.bankAccount.bankCode})` : ''}
           </p>
         </div>
         <div>
-          <p className="font-medium text-gray-600">Số tài khoản</p>
+          <p className="font-medium text-gray-600">{t('payment_history.account_number')}</p>
           <p>{transfer.bankAccount.number || '-'}</p>
         </div>
         {transfer.checkoutUrl && (
@@ -134,7 +125,7 @@ const PendingTransferCard: React.FC<{
               rel="noopener noreferrer"
               className="text-sm font-medium text-orange-600 hover:text-orange-700"
             >
-              Mở trang thanh toán
+              {t('payment_history.open_payment_page')}
             </a>
           </div>
         )}
@@ -148,9 +139,10 @@ interface SummaryCardProps {
   amount: number;
   highlight?: boolean;
   suffix?: string;
+  locale?: string;
 }
 
-const SummaryCard: React.FC<SummaryCardProps> = ({ title, amount, highlight, suffix }) => (
+const SummaryCard: React.FC<SummaryCardProps> = ({ title, amount, highlight, suffix, locale = 'vi-VN' }) => (
   <div
     className={`rounded-xl border p-4 shadow-sm ${
       highlight ? 'border-orange-300 bg-gradient-to-br from-orange-50 to-white' : 'border-gray-200 bg-white'
@@ -158,7 +150,7 @@ const SummaryCard: React.FC<SummaryCardProps> = ({ title, amount, highlight, suf
   >
     <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{title}</p>
     <p className="mt-1 text-xl font-semibold text-gray-900">
-      {suffix ? amount : formatCurrency(amount)}
+      {suffix ? amount : formatCurrency(amount, locale)}
       {suffix ? ` ${suffix}` : ''}
     </p>
   </div>
@@ -172,6 +164,8 @@ export interface PaymentHistoryTabProps {
 const DEFAULT_PAGE_SIZE = 10;
 
 export const PaymentHistoryTab: React.FC<PaymentHistoryTabProps> = ({ customerId, pageSize = DEFAULT_PAGE_SIZE }) => {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
   const { data, loading, error, refetch, query, setQuery } = useCustomerPaymentHistory(customerId ?? null, {
     limit: pageSize,
     includePending: true
@@ -201,6 +195,51 @@ export const PaymentHistoryTab: React.FC<PaymentHistoryTabProps> = ({ customerId
     }));
   }, [summary?.amountByMethod]);
 
+  const getMethodLabel = (method: string) => {
+    switch (method) {
+      case 'CASH':
+        return t('payment_history.method.cash');
+      case 'BANK_TRANSFER':
+        return t('payment_history.method.bank_transfer');
+      case 'PAYOS':
+        return t('payment_history.method.payos');
+      default:
+        return method;
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'SETTLED':
+        return t('payment_history.status.settled');
+      case 'PAID':
+        return t('payment_history.status.paid');
+      case 'REFUNDED':
+        return t('payment_history.status.refunded');
+      case 'PENDING':
+        return t('payment_history.status.pending');
+      case 'PROCESSING':
+        return t('payment_history.status.processing');
+      case 'FAILED':
+        return t('payment_history.status.failed');
+      case 'CANCELED':
+        return t('payment_history.status.canceled');
+      default:
+        return status;
+    }
+  };
+
+  const getContractTypeLabel = (type: string) => {
+    switch (type) {
+      case 'MEMBERSHIP':
+        return t('payment_history.contract_type.membership');
+      case 'SERVICE':
+        return t('payment_history.contract_type.service');
+      default:
+        return type;
+    }
+  };
+
   const handleContractTypeChange = (value: string) => {
     const nextValue = value === 'ALL' ? null : (value as PaymentContractType);
     setQuery({ contractType: nextValue, page: 1 });
@@ -227,10 +266,8 @@ export const PaymentHistoryTab: React.FC<PaymentHistoryTabProps> = ({ customerId
   if (!customerId) {
     return (
       <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-        <p className="text-sm font-medium text-gray-600">Không tìm thấy mã khách hàng liên kết với tài khoản này.</p>
-        <p className="mt-1 text-xs text-gray-500">
-          Vui lòng liên hệ quản trị viên để được cấp quyền truy cập lịch sử thanh toán.
-        </p>
+        <p className="text-sm font-medium text-gray-600">{t('payment_history.no_customer_id')}</p>
+        <p className="mt-1 text-xs text-gray-500">{t('payment_history.contact_admin')}</p>
       </div>
     );
   }
@@ -239,8 +276,8 @@ export const PaymentHistoryTab: React.FC<PaymentHistoryTabProps> = ({ customerId
     <div className="space-y-6 p-4 md:p-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Lịch sử thanh toán</h2>
-          <p className="text-sm text-gray-500">Theo dõi các giao dịch thanh toán gần đây và trạng thái xử lý.</p>
+          <h2 className="text-lg font-semibold text-gray-900">{t('payment_history.title')}</h2>
+          <p className="text-sm text-gray-500">{t('payment_history.description')}</p>
         </div>
         <Button
           variant="outline"
@@ -249,7 +286,7 @@ export const PaymentHistoryTab: React.FC<PaymentHistoryTabProps> = ({ customerId
           disabled={loading}
         >
           <RefreshCcw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Tải lại
+          {t('payment_history.refresh')}
         </Button>
       </div>
 
@@ -258,28 +295,41 @@ export const PaymentHistoryTab: React.FC<PaymentHistoryTabProps> = ({ customerId
           {error}
           <div className="mt-2">
             <Button size="sm" variant="secondary" onClick={refetch}>
-              Thử lại
+              {t('payment_history.try_again')}
             </Button>
           </div>
         </div>
       )}
 
       <div className="grid gap-3 md:grid-cols-4">
-        <SummaryCard title="Tổng số giao dịch" amount={summary?.totalTransactions ?? 0} suffix="giao dịch" />
-        <SummaryCard title="Tổng tiền đã thanh toán" amount={summary?.totalAmount ?? 0} highlight />
         <SummaryCard
-          title="Số tiền đang chờ"
+          title={t('payment_history.summary.total_transactions')}
+          amount={summary?.totalTransactions ?? 0}
+          suffix={t('payment_history.summary.transactions_unit')}
+          locale={locale}
+        />
+        <SummaryCard
+          title={t('payment_history.summary.total_paid')}
+          amount={summary?.totalAmount ?? 0}
+          highlight
+          locale={locale}
+        />
+        <SummaryCard
+          title={t('payment_history.summary.pending_amount')}
           amount={summary?.pendingAmount ?? 0}
           highlight={Boolean(summary?.pendingAmount)}
+          locale={locale}
         />
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Theo phương thức</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            {t('payment_history.summary.by_method')}
+          </p>
           <div className="mt-2 space-y-1 text-sm text-gray-600">
-            {amountByMethodEntries.length === 0 && <p>Chưa có dữ liệu</p>}
+            {amountByMethodEntries.length === 0 && <p>{t('payment_history.no_data')}</p>}
             {amountByMethodEntries.map((entry) => (
               <div key={entry.method} className="flex items-center justify-between">
-                <span>{METHOD_LABELS[entry.method] || entry.method}</span>
-                <span className="font-semibold text-gray-900">{formatCurrency(entry.amount)}</span>
+                <span>{getMethodLabel(entry.method)}</span>
+                <span className="font-semibold text-gray-900">{formatCurrency(entry.amount, locale)}</span>
               </div>
             ))}
           </div>
@@ -290,62 +340,68 @@ export const PaymentHistoryTab: React.FC<PaymentHistoryTabProps> = ({ customerId
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wide text-gray-500">Loại hợp đồng</label>
+              <label className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                {t('payment_history.filter.contract_type')}
+              </label>
               <Select
                 defaultValue={query.contractType ? String(query.contractType) : 'ALL'}
                 onValueChange={handleContractTypeChange}
               >
                 <SelectTrigger className="h-11 rounded-xl border-gray-200 focus:ring-orange-500">
-                  <SelectValue placeholder="Tất cả" />
+                  <SelectValue placeholder={t('payment_history.filter.all')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(CONTRACT_TYPE_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="ALL">{t('payment_history.filter.all_contract_types')}</SelectItem>
+                  <SelectItem value="MEMBERSHIP">{t('payment_history.contract_type.membership')}</SelectItem>
+                  <SelectItem value="SERVICE">{t('payment_history.contract_type.service')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wide text-gray-500">Phương thức</label>
+              <label className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                {t('payment_history.filter.method')}
+              </label>
               <Select defaultValue={query.method ?? 'ALL'} onValueChange={handleMethodChange}>
                 <SelectTrigger className="h-11 rounded-xl border-gray-200 focus:ring-orange-500">
-                  <SelectValue placeholder="Tất cả" />
+                  <SelectValue placeholder={t('payment_history.filter.all')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(METHOD_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="ALL">{t('payment_history.filter.all_methods')}</SelectItem>
+                  <SelectItem value="CASH">{t('payment_history.method.cash')}</SelectItem>
+                  <SelectItem value="BANK_TRANSFER">{t('payment_history.method.bank_transfer')}</SelectItem>
+                  <SelectItem value="PAYOS">{t('payment_history.method.payos')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium uppercase tracking-wide text-gray-500">Trạng thái</label>
+              <label className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                {t('payment_history.filter.status')}
+              </label>
               <Select defaultValue={query.status ?? 'ALL'} onValueChange={handleStatusChange}>
                 <SelectTrigger className="h-11 rounded-xl border-gray-200 focus:ring-orange-500">
-                  <SelectValue placeholder="Tất cả" />
+                  <SelectValue placeholder={t('payment_history.filter.all')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="ALL">{t('payment_history.filter.all_statuses')}</SelectItem>
+                  <SelectItem value="SETTLED">{t('payment_history.status.settled')}</SelectItem>
+                  <SelectItem value="PAID">{t('payment_history.status.paid')}</SelectItem>
+                  <SelectItem value="REFUNDED">{t('payment_history.status.refunded')}</SelectItem>
+                  <SelectItem value="PENDING">{t('payment_history.status.pending')}</SelectItem>
+                  <SelectItem value="PROCESSING">{t('payment_history.status.processing')}</SelectItem>
+                  <SelectItem value="FAILED">{t('payment_history.status.failed')}</SelectItem>
+                  <SelectItem value="CANCELED">{t('payment_history.status.canceled')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2 rounded-xl border border-gray-200 bg-gray-50 p-3">
               <label className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                Hiển thị giao dịch chờ
+                {t('payment_history.filter.show_pending')}
               </label>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Bao gồm công nợ</span>
+                <span className="text-sm text-gray-700">{t('payment_history.filter.include_pending')}</span>
                 <Switch checked={query.includePending ?? true} onCheckedChange={handleIncludePendingChange} />
               </div>
             </div>
@@ -362,14 +418,12 @@ export const PaymentHistoryTab: React.FC<PaymentHistoryTabProps> = ({ customerId
           {hasPendingTransfers && (
             <div className="space-y-3 rounded-2xl border border-orange-200 bg-white p-4 shadow-sm">
               <div>
-                <h3 className="text-base font-semibold text-gray-900">Giao dịch chờ xác nhận</h3>
-                <p className="text-sm text-gray-500">
-                  Hoàn tất chuyển khoản hoặc cập nhật trạng thái để hoàn tất thanh toán.
-                </p>
+                <h3 className="text-base font-semibold text-gray-900">{t('payment_history.pending_transactions')}</h3>
+                <p className="text-sm text-gray-500">{t('payment_history.pending_description')}</p>
               </div>
               <div className="grid gap-3 lg:grid-cols-2">
                 {pendingTransfers.map((transfer) => (
-                  <PendingTransferCard key={transfer.paymentTransactionId} transfer={transfer} />
+                  <PendingTransferCard key={transfer.paymentTransactionId} transfer={transfer} t={t} locale={locale} />
                 ))}
               </div>
             </div>
@@ -378,19 +432,21 @@ export const PaymentHistoryTab: React.FC<PaymentHistoryTabProps> = ({ customerId
           <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div>
-                <h3 className="text-base font-semibold text-gray-900">Giao dịch gần đây</h3>
-                <p className="text-sm text-gray-500">Danh sách cập nhật theo bộ lọc và phân trang bên dưới.</p>
+                <h3 className="text-base font-semibold text-gray-900">{t('payment_history.recent_transactions')}</h3>
+                <p className="text-sm text-gray-500">{t('payment_history.recent_description')}</p>
               </div>
               {summary?.totalTransactions !== undefined && (
                 <div className="text-sm text-gray-500">
-                  Tổng cộng <span className="font-semibold text-gray-900">{summary.totalTransactions}</span> giao dịch
+                  {t('payment_history.total_transactions_count', {
+                    count: summary.totalTransactions
+                  })}
                 </div>
               )}
             </div>
 
             {transactions.length === 0 ? (
               <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-sm text-gray-500">
-                Chưa có giao dịch nào phù hợp với bộ lọc hiện tại.
+                {t('payment_history.no_transactions_filter')}
               </div>
             ) : (
               <>
@@ -398,37 +454,37 @@ export const PaymentHistoryTab: React.FC<PaymentHistoryTabProps> = ({ customerId
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Thời gian</TableHead>
-                        <TableHead>Hợp đồng</TableHead>
-                        <TableHead>Chi nhánh</TableHead>
-                        <TableHead>Phương thức</TableHead>
-                        <TableHead>Số tiền</TableHead>
-                        <TableHead>Trạng thái</TableHead>
-                        <TableHead>Mã tham chiếu</TableHead>
+                        <TableHead>{t('payment_history.table.time')}</TableHead>
+                        <TableHead>{t('payment_history.table.contract')}</TableHead>
+                        <TableHead>{t('payment_history.table.branch')}</TableHead>
+                        <TableHead>{t('payment_history.table.method')}</TableHead>
+                        <TableHead>{t('payment_history.table.amount')}</TableHead>
+                        <TableHead>{t('payment_history.table.status')}</TableHead>
+                        <TableHead>{t('payment_history.table.reference')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {transactions.map((transaction) => (
                         <TableRow key={transaction.transactionId}>
                           <TableCell className="font-medium text-gray-900">
-                            {formatDateTime(transaction.occurredAt)}
+                            {formatDateTime(transaction.occurredAt, locale)}
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col">
                               <span className="font-medium text-gray-900">{transaction.contractName}</span>
                               <span className="text-xs text-gray-500">
-                                {CONTRACT_TYPE_LABELS[transaction.contractType] || transaction.contractType}
+                                {getContractTypeLabel(transaction.contractType)}
                               </span>
                             </div>
                           </TableCell>
                           <TableCell>{transaction.branch?.name || '-'}</TableCell>
-                          <TableCell>{METHOD_LABELS[transaction.method] || transaction.method}</TableCell>
+                          <TableCell>{getMethodLabel(transaction.method)}</TableCell>
                           <TableCell className="font-semibold text-gray-900">
-                            {formatCurrency(transaction.amount)}
+                            {formatCurrency(transaction.amount, locale)}
                           </TableCell>
                           <TableCell>
                             <Badge className={`${getStatusBadgeClass(transaction.status)} border`}>
-                              {transaction.status}
+                              {getStatusLabel(transaction.status)}
                             </Badge>
                           </TableCell>
                           <TableCell>{transaction.referenceCode || '-'}</TableCell>

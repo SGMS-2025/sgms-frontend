@@ -9,7 +9,8 @@ import type {
   StaffListParams,
   UseStaffListReturn,
   StaffUpdateData,
-  CreateStaffRequest
+  CreateStaffRequest,
+  StaffImportResult
 } from '@/types/api/Staff';
 
 const transformStaffToDisplay = (staff: Staff): StaffDisplay => ({
@@ -305,7 +306,7 @@ export const useStaffImport = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const importStaffs = useCallback(async (file: File, branchId: string) => {
+  const importStaffs = useCallback(async (file: File, branchId: string): Promise<StaffImportResult> => {
     setLoading(true);
     setError(null);
 
@@ -326,8 +327,90 @@ export const useStaffImport = () => {
         setLoading(false);
         throw new Error(errorMsg);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       setLoading(false);
+
+      // Handle 500 error for missing required columns
+      const errorWithResponse = err as {
+        response?: {
+          status?: number;
+          data?: {
+            error?: {
+              message?: string;
+              meta?: { errors?: unknown[] };
+            };
+            meta?: { errors?: unknown[] };
+          };
+        };
+      };
+      if (errorWithResponse?.response?.status === 500) {
+        const errorMessage = errorWithResponse?.response?.data?.error?.message || (err as Error)?.message || '';
+        if (errorMessage.includes('Missing required columns')) {
+          // Extract missing columns from error message
+          const missingColumnsMatch = errorMessage.match(/Missing required columns: (.+)/);
+          const missingColumns = missingColumnsMatch
+            ? missingColumnsMatch[1].split(', ').map((col: string) => col.trim())
+            : [];
+
+          // Create inline error similar to validation errors
+          const inlineErrors: StaffImportResult['errors'] = [
+            {
+              row: 1,
+              errorKey: 'staff_import.error_missing_required_columns',
+              errorData: { missingColumns: missingColumns.join(', ') }
+            }
+          ];
+
+          // Return error result so modal can display detailed errors
+          return {
+            successCount: 0,
+            failedCount: inlineErrors.length,
+            errors: inlineErrors,
+            generatedPasswords: []
+          };
+        }
+      }
+
+      // Handle validation errors (400/422) with detailed errors
+      if (errorWithResponse?.response?.status === 400 || errorWithResponse?.response?.status === 422) {
+        const errorData = errorWithResponse?.response?.data;
+        const validationErrors = errorData?.error?.meta?.errors || errorData?.meta?.errors || [];
+
+        if (validationErrors.length > 0) {
+          // Map validation errors to the correct type
+          const mappedErrors: StaffImportResult['errors'] = validationErrors.map((error: unknown) => {
+            // Type guard to check if error has the expected structure
+            if (typeof error === 'object' && error !== null) {
+              const errObj = error as Record<string, unknown>;
+              return {
+                row: typeof errObj.row === 'number' ? errObj.row : 0,
+                error: typeof errObj.error === 'string' ? errObj.error : undefined,
+                errorKey: typeof errObj.errorKey === 'string' ? errObj.errorKey : undefined,
+                errorData:
+                  typeof errObj.errorData === 'object' && errObj.errorData !== null
+                    ? (errObj.errorData as Record<string, unknown>)
+                    : undefined,
+                message: typeof errObj.message === 'string' ? errObj.message : undefined,
+                field: typeof errObj.field === 'string' ? errObj.field : undefined
+              };
+            }
+            // Fallback for unknown error format
+            return {
+              row: 0,
+              error: String(error)
+            };
+          });
+
+          // Return error data so modal can display detailed errors
+          return {
+            successCount: 0,
+            failedCount: mappedErrors.length,
+            errors: mappedErrors,
+            generatedPasswords: []
+          };
+        }
+      }
+
       throw err;
     }
   }, []);

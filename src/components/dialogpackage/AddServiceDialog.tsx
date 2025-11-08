@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { parsePriceInput } from '@/utils/currency';
+import { useServiceForm } from './useServiceForm';
+import { ServiceFormFields } from './ServiceFormFields';
 
 interface AddServiceDialogProps {
   readonly onSubmit: (v: {
@@ -13,6 +14,7 @@ interface AddServiceDialogProps {
     durationInMonths?: number;
     minParticipants?: number;
     maxParticipants?: number;
+    sessionCount?: number;
   }) => void;
   readonly loading: boolean;
   readonly serviceType: 'CLASS' | 'PT';
@@ -29,32 +31,54 @@ export function AddServiceDialog({
 }: AddServiceDialogProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [price, setPrice] = useState<string>('');
-  const [duration, setDuration] = useState<string>('1');
-  const [minParticipants, setMinParticipants] = useState<string>(defaultMinParticipants.toString());
-  const [maxParticipants, setMaxParticipants] = useState<string>(defaultMaxParticipants.toString());
+
+  const form = useServiceForm({
+    serviceType,
+    defaultMinParticipants,
+    defaultMaxParticipants,
+    validateOnBlur: true // AddServiceDialog's special validation timing
+  });
 
   const handleCreate = () => {
-    if (!name.trim()) return;
+    const isValid = form.validateAll();
+    if (!isValid) {
+      return;
+    }
+
     onSubmit({
-      name: name.trim(),
-      price: price ? Number(price) : undefined,
-      durationInMonths: duration ? Number(duration) : undefined,
-      minParticipants: minParticipants ? Number(minParticipants) : defaultMinParticipants,
-      maxParticipants: maxParticipants ? Number(maxParticipants) : defaultMaxParticipants
+      name: form.name.trim(),
+      price: form.price ? parsePriceInput(form.price) : undefined,
+      durationInMonths: form.duration ? Number(form.duration) : undefined,
+      sessionCount: form.sessionCount ? Number(form.sessionCount) : undefined,
+      minParticipants: form.minParticipants ? Number(form.minParticipants) : defaultMinParticipants,
+      maxParticipants: form.maxParticipants ? Number(form.maxParticipants) : defaultMaxParticipants
     });
+
+    // Reset form and close
     setOpen(false);
-    setName('');
-    setPrice('');
-    setMinParticipants(defaultMinParticipants.toString());
-    setMaxParticipants(defaultMaxParticipants.toString());
+    form.resetForm();
   };
 
-  const translationKey = serviceType === 'CLASS' ? 'class_service' : 'pt_service';
+  const handleClose = () => {
+    form.setIsClosing(true);
+    form.resetForm();
+    setOpen(false);
+    // Reset isClosing after a short delay to allow modal to close
+    setTimeout(() => form.setIsClosing(false), 100);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          handleClose();
+        } else {
+          setOpen(isOpen);
+          form.setIsClosing(false);
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button
           size="sm"
@@ -62,75 +86,39 @@ export function AddServiceDialog({
           disabled={loading}
         >
           <Plus className="h-4 w-4 mr-2" />
-          {t(`${translationKey}.add_${serviceType.toLowerCase()}`)}
+          {t(`${form.translationKey}.add_${serviceType.toLowerCase()}`)}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto hide-scrollbar">
         <DialogHeader>
-          <DialogTitle>{t(`${translationKey}.add_${serviceType.toLowerCase()}_dialog_title`)}</DialogTitle>
+          <DialogTitle>{t(`${form.translationKey}.add_${serviceType.toLowerCase()}_dialog_title`)}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-2">
-          <div className="grid gap-2">
-            <Label htmlFor="name">{t(`${translationKey}.${serviceType.toLowerCase()}_name`)}</Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t(`${translationKey}.${serviceType.toLowerCase()}_name_placeholder`)}
-              disabled={loading}
-            />
-          </div>
-          <div className="grid gap-2 grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="price">{t(`${translationKey}.price`)}</Label>
-              <Input
-                type="number"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder={t(`${translationKey}.price_placeholder`)}
-                disabled={loading}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="duration">{t(`${translationKey}.duration`)}</Label>
-              <Input
-                type="number"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                placeholder={t(`${translationKey}.duration_placeholder`)}
-                disabled={loading}
-              />
-            </div>
-          </div>
-          <div className="grid gap-2 grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="minParticipants">{t(`${translationKey}.min_participants`)}</Label>
-              <Input
-                type="number"
-                value={minParticipants}
-                onChange={(e) => setMinParticipants(e.target.value)}
-                placeholder={t(`${translationKey}.min_participants_placeholder`)}
-                disabled={loading}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="maxParticipants">{t(`${translationKey}.max_participants`)}</Label>
-              <Input
-                type="number"
-                value={maxParticipants}
-                onChange={(e) => setMaxParticipants(e.target.value)}
-                placeholder={t(`${translationKey}.max_participants_placeholder`)}
-                disabled={loading}
-              />
-            </div>
-          </div>
-        </div>
+        <ServiceFormFields
+          translationKey={form.translationKey}
+          serviceType={serviceType}
+          name={form.name}
+          price={form.price}
+          duration={form.duration}
+          sessionCount={form.sessionCount}
+          minParticipants={form.minParticipants}
+          maxParticipants={form.maxParticipants}
+          errors={form.errors}
+          onNameChange={form.handleNameChange}
+          onPriceChange={form.handlePriceChange}
+          onDurationChange={form.handleDurationChange}
+          onSessionCountChange={form.handleSessionCountChange}
+          onMinParticipantsChange={form.handleMinParticipantsChange}
+          onMaxParticipantsChange={form.handleMaxParticipantsChange}
+          onBlur={form.handleBlur}
+          disabled={loading}
+        />
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-            {t(`${translationKey}.cancel`)}
+          <Button variant="outline" onClick={handleClose} disabled={loading}>
+            {t(`${form.translationKey}.cancel`)}
           </Button>
           <Button onClick={handleCreate} className="bg-black hover:bg-gray-800 text-white" disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {t(`${translationKey}.create_${serviceType.toLowerCase()}`)}
+            {t(`${form.translationKey}.create_${serviceType.toLowerCase()}`)}
           </Button>
         </DialogFooter>
       </DialogContent>

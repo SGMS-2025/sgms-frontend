@@ -56,23 +56,25 @@ export function ExcelImportModalBase<T extends BaseImportResult>({
     setImportResult(null);
     resetError();
 
-    // Import using provided function
-    setUploadProgress(25);
-    const result = await importFunction(file, currentBranch._id);
-    setUploadProgress(100);
+    try {
+      setUploadProgress(25);
+      const result = await importFunction(file, currentBranch._id);
+      setUploadProgress(100);
 
-    setImportResult(result);
+      setImportResult(result);
 
-    if (result.successCount > 0) {
-      toast.success(
-        tKey('success_import') ? t(tKey('success_import'), { count: result.successCount }) : tKey('success_import')
-      );
-      onImportSuccess();
-    }
-
-    // Reset file input to allow re-upload
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      if (result.successCount > 0) {
+        toast.success(
+          tKey('success_import') ? t(tKey('success_import'), { count: result.successCount }) : tKey('success_import')
+        );
+        onImportSuccess();
+      }
+    } catch {
+      setUploadProgress(0);
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -92,7 +94,7 @@ export function ExcelImportModalBase<T extends BaseImportResult>({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className={`${maxWidth} max-h-[90vh] overflow-y-auto`}>
+      <DialogContent className={`${maxWidth} max-h-[90vh] overflow-y-auto hide-scrollbar`}>
         <DialogHeader className="bg-orange-500 text-white rounded-t-lg -m-6 mb-0 p-6">
           <DialogTitle className="text-xl font-semibold flex items-center">
             <FileSpreadsheet className="w-5 h-5 mr-2" />
@@ -215,10 +217,35 @@ export function ExcelImportModalBase<T extends BaseImportResult>({
                       <h5 className="text-sm font-medium text-gray-700">{tKey('error_details')}</h5>
                       <div className="max-h-40 overflow-y-auto space-y-1">
                         {importResult.errors.map((errorItem, index) => {
-                          const errorMessage =
-                            errorItem.errorKey && errorItem.errorData
-                              ? String(t(errorItem.errorKey, errorItem.errorData as Record<string, unknown>))
-                              : errorItem.error || errorItem.message || 'Unknown error';
+                          let errorMessage = 'Unknown error';
+
+                          if (errorItem.errorKey) {
+                            const translationKey = errorItem.errorKey.includes('.')
+                              ? errorItem.errorKey
+                              : `${translationNamespace}.${errorItem.errorKey}`;
+
+                            if (errorItem.errorData) {
+                              const translated = t(translationKey, errorItem.errorData as Record<string, unknown>);
+
+                              // If translation returns the key itself, it means translation not found
+                              if (translated === translationKey) {
+                                errorMessage = errorItem.errorKey; // Fallback to raw key
+                              } else {
+                                errorMessage = translated;
+                              }
+                            } else {
+                              const translated = t(translationKey);
+
+                              // If translation returns the key itself, it means translation not found
+                              if (translated === translationKey) {
+                                errorMessage = errorItem.errorKey; // Fallback to raw key
+                              } else {
+                                errorMessage = translated;
+                              }
+                            }
+                          } else if (errorItem.error || errorItem.message) {
+                            errorMessage = errorItem.error || errorItem.message || 'Unknown error';
+                          }
 
                           return (
                             <div key={index} className="flex items-start space-x-2 text-xs text-red-600">

@@ -52,7 +52,6 @@ export interface CustomerDisplay {
     duration?: string;
     initialPaidAmount?: number;
     totalAmount?: number;
-    remainingDebt?: number;
     status?: 'ACTIVE' | 'EXPIRED' | 'CANCELED' | 'SUSPENDED';
     discountCampaignId?: {
       _id: string;
@@ -83,7 +82,6 @@ export interface CustomerDisplay {
     status?: string;
     initialPaidAmount?: number;
     totalAmount?: number;
-    remainingDebt?: number;
     discountCampaignId?: {
       _id: string;
       name: string;
@@ -303,7 +301,6 @@ export interface MembershipContractResponse {
       discountAmount: number;
       total: number;
       paidAmount: number;
-      debtAmount: number;
       status: string;
       activationDate?: string;
       createdAt: string;

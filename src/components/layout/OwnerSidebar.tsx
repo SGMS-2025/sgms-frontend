@@ -503,7 +503,7 @@ export const OwnerSidebar: React.FC = () => {
 
   return (
     <div
-      className={`bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0 transition-all duration-300 ${
+      className={`bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0 self-start flex-shrink-0 transition-all duration-300 ${
         isCollapsed ? 'w-16 overflow-hidden' : 'w-64'
       }`}
       style={isCollapsed ? { maxWidth: '64px', minWidth: '64px' } : {}}

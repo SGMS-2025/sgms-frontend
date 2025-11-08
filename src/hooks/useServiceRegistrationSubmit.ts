@@ -1,0 +1,100 @@
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import { serviceContractApi } from '@/services/api/serviceContractApi';
+import type { ServiceContractResponse } from '@/types/api/Package';
+import type { ServiceRegistrationFormData } from './useServiceRegistration';
+
+export interface UseServiceRegistrationSubmitOptions {
+  customerId: string;
+  packageTypeName: string; // 'gói PT' or 'gói lớp học'
+  onSuccess?: () => void;
+  onClose: () => void;
+  onPaymentRequired?: (contractId: string) => void;
+}
+
+export interface UseServiceRegistrationSubmitReturn {
+  loading: boolean;
+  handleSubmit: (formData: ServiceRegistrationFormData) => void;
+}
+
+export const useServiceRegistrationSubmit = ({
+  customerId,
+  packageTypeName,
+  onSuccess,
+  onClose,
+  onPaymentRequired
+}: UseServiceRegistrationSubmitOptions): UseServiceRegistrationSubmitReturn => {
+  const { t } = useTranslation();
+  const [loading, setLoading] = useState(false);
+
+  const handleRegistrationSuccess = () => {
+    toast.success(
+      t('service_registration.registration_success', {
+        packageType: packageTypeName,
+        defaultValue: `Registration for ${packageTypeName} successful!`
+      })
+    );
+    setTimeout(() => {
+      onSuccess?.();
+      onClose();
+    }, 500);
+  };
+
+  const handleContractCreated = (response: ServiceContractResponse, formData: ServiceRegistrationFormData) => {
+    if (!response.success) {
+      toast.error(
+        response.message ||
+          t('service_registration.registration_failed', {
+            packageType: packageTypeName,
+            defaultValue: `Unable to register ${packageTypeName}`
+          })
+      );
+      setLoading(false);
+      return;
+    }
+
+    const contractData = response.data;
+    const contractId = contractData?._id;
+
+    // If payment method is BANK_TRANSFER and we have a contractId, trigger PayOS payment
+    if (formData.paymentMethod === 'BANK_TRANSFER' && contractId && onPaymentRequired) {
+      onPaymentRequired(contractId);
+    } else {
+      handleRegistrationSuccess();
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = (formData: ServiceRegistrationFormData) => {
+    if (!formData.servicePackageId) {
+      toast.error(
+        t('service_registration.please_select_package', {
+          packageType: packageTypeName,
+          defaultValue: `Please select ${packageTypeName}`
+        })
+      );
+      return;
+    }
+
+    setLoading(true);
+
+    serviceContractApi
+      .createServiceContract(customerId, formData)
+      .then((response) => handleContractCreated(response, formData))
+      .catch(() => {
+        toast.error(
+          t('service_registration.registration_error', {
+            packageType: packageTypeName,
+            defaultValue: `An error occurred while registering ${packageTypeName}`
+          })
+        );
+        setLoading(false);
+      });
+  };
+
+  return {
+    loading,
+    handleSubmit
+  };
+};
