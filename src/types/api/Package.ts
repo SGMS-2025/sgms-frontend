@@ -15,6 +15,7 @@ export interface ServicePackage {
   defaultPriceVND?: number;
   minParticipants: number;
   maxParticipants?: number;
+  sessionCount?: number;
   status: PackageStatus;
   createdAt: string;
   updatedAt: string;
@@ -32,6 +33,7 @@ export interface ServicePackageDisplay {
   defaultPriceVND?: number;
   minParticipants: number;
   maxParticipants?: number;
+  sessionCount?: number;
   status: PackageStatus;
   createdAt: string;
   updatedAt: string;
@@ -46,6 +48,7 @@ export interface CreatePackageRequest {
   defaultPriceVND?: number;
   minParticipants?: number;
   maxParticipants?: number;
+  sessionCount?: number;
   status?: PackageStatus;
 }
 
@@ -57,6 +60,7 @@ export interface UpdatePackageRequest {
   defaultPriceVND?: number;
   minParticipants?: number;
   maxParticipants?: number;
+  sessionCount?: number;
   status?: PackageStatus;
 }
 
@@ -96,6 +100,7 @@ export interface PackageFormData {
   defaultPriceVND?: number;
   minParticipants?: number;
   maxParticipants?: number;
+  sessionCount?: number;
 }
 
 // Tooltip data interface
@@ -118,6 +123,9 @@ export interface LegacyService {
   type?: PackageType;
   price?: number;
   durationInMonths?: number;
+  sessionCount?: number;
+  minParticipants?: number;
+  maxParticipants?: number;
   status?: 'active' | 'inactive';
 }
 
@@ -174,7 +182,6 @@ export interface ServiceContractResponse {
     discountAmount: number;
     total: number;
     paidAmount: number;
-    debtAmount: number;
     status: string;
     createdAt: string;
   };

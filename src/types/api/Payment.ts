@@ -86,7 +86,6 @@ export interface PaymentLedgerItem {
   status: string;
   totalAmount: number;
   paidAmount: number;
-  debtAmount: number;
   startDate?: string;
   endDate?: string;
   createdAt: string;

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,19 +24,12 @@ import { useAuthState } from '@/hooks/useAuth';
 import { branchApi } from '@/services/api/branchApi';
 import { useCustomerMembershipContract } from '@/hooks/useCustomerMembershipContract';
 import type { MembershipContract, MembershipPlan } from '@/types/api/Membership';
-import { calculateRemainingDays, formatCurrency, getMembershipStatusLabel, isExpiringSoon } from '@/utils/membership';
-import { cn, formatDate } from '@/utils/utils';
+import { calculateRemainingDays, getMembershipStatusLabel, isExpiringSoon } from '@/utils/membership';
+import { cn } from '@/utils/utils';
 import { MembershipCancelDialog } from '@/components/membership/MembershipCancelDialog';
 import { ExtendMembershipDialog } from '@/components/customer/ExtendMembershipDialog';
 import { membershipApi } from '@/services/api/membershipApi';
 import { toast } from 'sonner';
-
-const FALLBACK_BENEFITS = [
-  'Truy cập không giới hạn trong khung giờ mở cửa',
-  'Hỗ trợ đo chỉ số hình thể định kỳ',
-  'Ưu tiên đặt lịch huấn luyện với PT tại quầy',
-  'Nhận thông báo sớm về ưu đãi và sự kiện'
-];
 
 type BranchSummary = {
   _id: string;
@@ -55,17 +49,68 @@ type EnhancedMembershipContract = Omit<MembershipContract, 'membershipPlanId'> &
 
 type NormalizedPlan = Pick<MembershipPlan, 'name' | 'description' | 'durationInMonths' | 'price' | 'benefits'> | null;
 
-const formatDateLabel = (value?: string) => (value ? formatDate(value) : 'Đang cập nhật');
-const formatDurationLabel = (months?: number) => (months ? `${months} tháng` : 'Theo hợp đồng');
-const defaultBranchLabel = (id: string) => `Chi nhánh ${id.slice(-4).toUpperCase()}`;
+type TranslationFunction = (
+  key: string,
+  options?: {
+    defaultValue?: string;
+    count?: number;
+    id?: string;
+    hotline?: string;
+    branchName?: string;
+    [key: string]: string | number | undefined;
+  }
+) => string;
+
 const clampProgress = (value: number | null | undefined) => {
   if (value == null || Number.isNaN(value)) return 0;
   return Math.min(100, Math.max(0, Math.round(value)));
 };
 
+const formatDateLabel = (t: TranslationFunction, value?: string, locale: string = 'vi-VN') => {
+  if (!value) return t('customer_membership.updating', { defaultValue: 'Updating' });
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return t('customer_membership.updating', { defaultValue: 'Updating' });
+  return date.toLocaleDateString(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+};
+
+const formatDurationLabel = (t: TranslationFunction, months?: number) => {
+  if (months) return t('customer_membership.duration_months', { count: months, defaultValue: `${months} months` });
+  return t('customer_membership.by_contract', { defaultValue: 'By contract' });
+};
+
+const defaultBranchLabel = (id: string, t: TranslationFunction) => {
+  return t('customer_membership.branch_label', {
+    id: id.slice(-4).toUpperCase(),
+    defaultValue: `Branch ${id.slice(-4).toUpperCase()}`
+  });
+};
+
+const getFallbackBenefits = (t: TranslationFunction): string[] => {
+  return [
+    t('customer_membership.benefits.unlimited_access', {
+      defaultValue: 'Unlimited access during opening hours'
+    }),
+    t('customer_membership.benefits.body_measurements', {
+      defaultValue: 'Regular body measurements support'
+    }),
+    t('customer_membership.benefits.pt_priority', {
+      defaultValue: 'Priority booking for PT training at the counter'
+    }),
+    t('customer_membership.benefits.early_notifications', {
+      defaultValue: 'Early notifications about promotions and events'
+    })
+  ];
+};
+
 export default function CustomerMembership() {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuthState();
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
   const branchField = user?.customer?.branchId;
 
   const branchIds = useMemo(() => {
@@ -106,46 +151,41 @@ export default function CustomerMembership() {
   const [branchSummaries, setBranchSummaries] = useState<Record<string, BranchSummary>>({});
   const [branchSummaryLoading, setBranchSummaryLoading] = useState(false);
 
-  const fetchBranchSummary = useCallback(async (branchId: string): Promise<BranchSummary | null> => {
-    if (!branchId) return null;
+  const fetchBranchSummary = useCallback(
+    async (branchId: string): Promise<BranchSummary | null> => {
+      if (!branchId) return null;
 
-    const fallback: BranchSummary = {
-      _id: branchId,
-      branchName: defaultBranchLabel(branchId),
-      location: undefined,
-      hotline: undefined
-    };
+      const fallback: BranchSummary = {
+        _id: branchId,
+        branchName: defaultBranchLabel(branchId, t),
+        location: undefined,
+        hotline: undefined
+      };
 
-    try {
-      const response = await branchApi.getBranchDetail(branchId);
-      if (response.success && response.data) {
+      const publicResponse = await branchApi.getBranchDetail(branchId);
+      if (publicResponse.success && publicResponse.data) {
         return {
-          _id: response.data._id,
-          branchName: response.data.branchName,
-          location: response.data.location,
-          hotline: response.data.hotline
+          _id: publicResponse.data._id,
+          branchName: publicResponse.data.branchName,
+          location: publicResponse.data.location,
+          hotline: publicResponse.data.hotline
         };
       }
-    } catch (publicError) {
-      console.warn('Failed to load public branch detail', publicError);
-    }
 
-    try {
-      const response = await branchApi.getBranchDetailProtected(branchId);
-      if (response.success && response.data) {
+      const protectedResponse = await branchApi.getBranchDetailProtected(branchId);
+      if (protectedResponse.success && protectedResponse.data) {
         return {
-          _id: response.data._id,
-          branchName: response.data.branchName,
-          location: response.data.location,
-          hotline: response.data.hotline
+          _id: protectedResponse.data._id,
+          branchName: protectedResponse.data.branchName,
+          location: protectedResponse.data.location,
+          hotline: protectedResponse.data.hotline
         };
       }
-    } catch (protectedError) {
-      console.warn('Failed to load protected branch detail', protectedError);
-    }
 
-    return fallback;
-  }, []);
+      return fallback;
+    },
+    [t]
+  );
 
   useEffect(() => {
     if (!branchIds.length) {
@@ -175,7 +215,7 @@ export default function CustomerMembership() {
     return () => {
       isMounted = false;
     };
-  }, [branchIds, fetchBranchSummary]);
+  }, [branchIds, fetchBranchSummary, t]);
 
   const {
     contract,
@@ -224,7 +264,7 @@ export default function CustomerMembership() {
     return null;
   }, [enhancedContract]);
 
-  const benefits = plan?.benefits && plan.benefits.length > 0 ? plan.benefits : FALLBACK_BENEFITS;
+  const benefits = plan?.benefits && plan.benefits.length > 0 ? plan.benefits : getFallbackBenefits(t);
   const branchInfo = selectedBranchId ? (branchSummaries[selectedBranchId] ?? null) : null;
   const daysRemaining = enhancedContract?.endDate
     ? Math.max(0, calculateRemainingDays(enhancedContract.endDate))
@@ -244,7 +284,6 @@ export default function CustomerMembership() {
   const expiringSoon = enhancedContract?.endDate ? isExpiringSoon(enhancedContract.endDate, 10) : false;
   const totalValue = enhancedContract?.total ?? plan?.price ?? 0;
   const paidAmount = enhancedContract?.paidAmount ?? 0;
-  const outstanding = enhancedContract?.debtAmount ?? Math.max(0, totalValue - paidAmount);
 
   const showEmptyState = Boolean(selectedBranchId && !membershipLoading && !enhancedContract && !error && !authLoading);
   const shouldShowSkeleton = Boolean((membershipLoading || authLoading) && selectedBranchId);
@@ -269,28 +308,29 @@ export default function CustomerMembership() {
     async (reason?: string) => {
       if (!enhancedContract?._id) return;
 
-      try {
-        setCancelLoading(true);
-        await membershipApi.cancelPublicMembershipContract(enhancedContract._id, { reason });
+      setCancelLoading(true);
+      const response = await membershipApi.cancelPublicMembershipContract(enhancedContract._id, { reason });
 
-        toast.success('Hủy gói membership thành công!');
+      if (response.success) {
+        toast.success(
+          t('customer_membership.cancel_success', { defaultValue: 'Membership package canceled successfully!' })
+        );
         setShowCancelDialog(false);
 
         // Delay để backend lưu xong
         setTimeout(() => {
           refetch();
         }, 500);
-      } catch (error) {
-        console.error('Error canceling membership:', error);
-        toast.error('Không thể hủy gói membership', {
-          description: error instanceof Error ? error.message : 'Vui lòng thử lại sau'
+      } else {
+        toast.error(t('customer_membership.cancel_failed', { defaultValue: 'Unable to cancel membership package' }), {
+          description:
+            response.message || t('customer_membership.please_try_again', { defaultValue: 'Please try again later' })
         });
-        throw error;
-      } finally {
-        setCancelLoading(false);
       }
+
+      setCancelLoading(false);
     },
-    [enhancedContract?._id, refetch]
+    [enhancedContract?._id, refetch, t]
   );
 
   const handleExtendSuccess = useCallback(() => {
@@ -306,22 +346,28 @@ export default function CustomerMembership() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-orange-500">
-            <Dumbbell className="h-4 w-4" /> Membership
+            <Dumbbell className="h-4 w-4" /> {t('customer_membership.membership', { defaultValue: 'Membership' })}
           </p>
-          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Quản lý gói tập luyện</h1>
-          <p className="mt-1 text-sm text-gray-600">Theo dõi trạng thái hợp đồng và quyền lợi thành viên của bạn.</p>
+          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+            {t('customer_membership.title', { defaultValue: 'Manage Training Package' })}
+          </h1>
+          <p className="mt-1 text-sm text-gray-600">
+            {t('customer_membership.description', { defaultValue: 'Track your contract status and member benefits.' })}
+          </p>
         </div>
 
         {branchIds.length > 1 ? (
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-semibold uppercase text-gray-500">Chi nhánh</span>
+            <span className="text-xs font-semibold uppercase text-gray-500">
+              {t('customer_membership.branch', { defaultValue: 'Branch' })}
+            </span>
             <Select
               value={selectedBranchId}
               onValueChange={setSelectedBranchId}
               disabled={!branchIds.length || branchSummaryLoading}
             >
               <SelectTrigger className="min-w-[220px] justify-between">
-                <SelectValue placeholder="Chọn chi nhánh" />
+                <SelectValue placeholder={t('customer_membership.select_branch', { defaultValue: 'Select branch' })} />
               </SelectTrigger>
               <SelectContent>
                 {branchIds.map((branchId) => {
@@ -329,7 +375,7 @@ export default function CustomerMembership() {
                   return (
                     <SelectItem key={branchId} value={branchId}>
                       <div className="flex flex-col text-left">
-                        <span className="font-medium">{summary?.branchName ?? defaultBranchLabel(branchId)}</span>
+                        <span className="font-medium">{summary?.branchName ?? defaultBranchLabel(branchId, t)}</span>
                         {summary?.location && <span className="text-xs text-muted-foreground">{summary.location}</span>}
                       </div>
                     </SelectItem>
@@ -350,11 +396,13 @@ export default function CustomerMembership() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <div>
-            <AlertTitle>Không thể tải thông tin membership</AlertTitle>
+            <AlertTitle>
+              {t('customer_membership.error.load_failed', { defaultValue: 'Unable to load membership information' })}
+            </AlertTitle>
             <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <span>{error}</span>
               <Button variant="outline" size="sm" onClick={refetch}>
-                Thử lại
+                {t('customer_membership.retry', { defaultValue: 'Retry' })}
               </Button>
             </AlertDescription>
           </div>
@@ -365,10 +413,12 @@ export default function CustomerMembership() {
         <Alert>
           <AlertCircle className="h-4 w-4 text-orange-500" />
           <div>
-            <AlertTitle>Chưa có chi nhánh được gán</AlertTitle>
+            <AlertTitle>{t('customer_membership.error.no_branch', { defaultValue: 'No branch assigned' })}</AlertTitle>
             <AlertDescription>
-              Tài khoản của bạn hiện chưa được liên kết với chi nhánh cụ thể. Vui lòng liên hệ quầy tiếp tân để được hỗ
-              trợ.
+              {t('customer_membership.error.no_branch_description', {
+                defaultValue:
+                  'Your account is not currently linked to a specific branch. Please contact the reception desk for assistance.'
+              })}
             </AlertDescription>
           </div>
         </Alert>
@@ -381,6 +431,7 @@ export default function CustomerMembership() {
           branchName={branchInfo?.branchName}
           onBrowsePlans={handleBrowsePlans}
           loadingBranches={branchSummaryLoading}
+          t={t}
         />
       )}
 
@@ -396,11 +447,12 @@ export default function CustomerMembership() {
             expiringSoon={expiringSoon}
             totalValue={totalValue}
             paidAmount={paidAmount}
-            outstanding={outstanding}
             onRenew={handleBrowsePlans}
             onContact={handleContactBranch}
             onExtend={() => setShowExtendDialog(true)}
             onCancel={() => setShowCancelDialog(true)}
+            t={t}
+            locale={locale}
           />
 
           {/* Cancel Dialog */}
@@ -436,11 +488,12 @@ interface MembershipDetailsProps {
   expiringSoon: boolean;
   totalValue: number;
   paidAmount: number;
-  outstanding: number;
   onRenew: () => void;
   onContact: () => void;
   onExtend: () => void;
   onCancel: () => void;
+  t: TranslationFunction;
+  locale: string;
 }
 
 function MembershipDetails({
@@ -453,11 +506,12 @@ function MembershipDetails({
   expiringSoon,
   totalValue,
   paidAmount,
-  outstanding,
   onRenew,
   onContact,
   onExtend,
-  onCancel
+  onCancel,
+  t,
+  locale
 }: MembershipDetailsProps) {
   return (
     <div className="space-y-6">
@@ -468,15 +522,18 @@ function MembershipDetails({
         daysRemaining={daysRemaining}
         timelineProgress={timelineProgress}
         expiringSoon={expiringSoon}
+        t={t}
+        locale={locale}
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <MembershipBenefitsCard benefits={benefits} description={plan?.description} />
+        <MembershipBenefitsCard benefits={benefits} description={plan?.description} t={t} />
         <MembershipPaymentCard
           contract={contract}
           totalValue={totalValue}
           paidAmount={paidAmount}
-          outstanding={outstanding}
+          t={t}
+          locale={locale}
         />
         <MembershipActionsCard
           branch={branch}
@@ -486,12 +543,13 @@ function MembershipDetails({
           onCancel={onCancel}
           expiringSoon={expiringSoon}
           contract={contract}
+          t={t}
         />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <MembershipTimelineCard contract={contract} />
-        <MembershipNotesCard contract={contract} />
+        <MembershipTimelineCard contract={contract} t={t} locale={locale} />
+        <MembershipNotesCard contract={contract} t={t} />
       </div>
     </div>
   );
@@ -504,6 +562,8 @@ interface MembershipOverviewCardProps {
   daysRemaining: number | null;
   timelineProgress: number | null;
   expiringSoon: boolean;
+  t: TranslationFunction;
+  locale: string;
 }
 
 function MembershipOverviewCard({
@@ -512,19 +572,30 @@ function MembershipOverviewCard({
   branch,
   daysRemaining,
   timelineProgress,
-  expiringSoon
+  expiringSoon,
+  t,
+  locale
 }: MembershipOverviewCardProps) {
-  const statusLabel = getMembershipStatusLabel(contract.status);
+  const statusLabel = t(`membership.status.${contract.status.toLowerCase()}`, {
+    defaultValue: getMembershipStatusLabel(contract.status)
+  });
 
   return (
     <Card className="overflow-hidden border-0 shadow-lg">
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 px-6 py-6 text-white sm:px-8 sm:py-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-white/60">Gói membership</p>
-            <h2 className="text-3xl font-semibold">{plan?.name ?? 'Gói tập luyện hiện tại'}</h2>
+            <p className="text-sm uppercase tracking-[0.2em] text-white/60">
+              {t('customer_membership.membership_package', { defaultValue: 'Membership Package' })}
+            </p>
+            <h2 className="text-3xl font-semibold">
+              {plan?.name ?? t('customer_membership.current_package', { defaultValue: 'Current Training Package' })}
+            </h2>
             <p className="mt-1 max-w-2xl text-sm text-white/70">
-              {plan?.description ?? 'Quyền lợi và hạn sử dụng được cập nhật theo hợp đồng mới nhất.'}
+              {plan?.description ??
+                t('customer_membership.contract_description', {
+                  defaultValue: 'Benefits and validity are updated according to the latest contract.'
+                })}
             </p>
           </div>
           <div className="flex flex-col items-start gap-2 md:items-end">
@@ -534,29 +605,41 @@ function MembershipOverviewCard({
             >
               {statusLabel}
             </Badge>
-            <span className="text-xs text-white/70">Mã hợp đồng #{contract._id.slice(-8).toUpperCase()}</span>
+            <span className="text-xs text-white/70">
+              {t('customer_membership.contract_id', {
+                id: contract._id.slice(-8).toUpperCase(),
+                defaultValue: `Contract #${contract._id.slice(-8).toUpperCase()}`
+              })}
+            </span>
           </div>
         </div>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <InfoRow
-            label="Chi nhánh"
-            value={branch?.branchName ?? 'Đang cập nhật'}
+            label={t('customer_membership.branch', { defaultValue: 'Branch' })}
+            value={branch?.branchName ?? t('customer_membership.updating', { defaultValue: 'Updating' })}
             subValue={branch?.location}
             icon={MapPin}
           />
           <InfoRow
-            label="Chu kỳ"
-            value={formatDurationLabel(plan?.durationInMonths)}
-            subValue={daysRemaining != null ? `${daysRemaining} ngày còn lại` : undefined}
+            label={t('customer_membership.cycle', { defaultValue: 'Cycle' })}
+            value={formatDurationLabel(t, plan?.durationInMonths)}
+            subValue={
+              daysRemaining != null
+                ? t('customer_membership.days_remaining', {
+                    count: daysRemaining,
+                    defaultValue: `${daysRemaining} days remaining`
+                  })
+                : undefined
+            }
             icon={Calendar}
           />
         </div>
 
         <div className="mt-6">
           <div className="mb-2 flex items-center justify-between text-xs text-white/70">
-            <span>{formatDateLabel(contract.startDate)}</span>
-            <span>{formatDateLabel(contract.endDate)}</span>
+            <span>{formatDateLabel(t, contract.startDate, locale)}</span>
+            <span>{formatDateLabel(t, contract.endDate, locale)}</span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-white/20">
             <div
@@ -569,20 +652,34 @@ function MembershipOverviewCard({
         {expiringSoon && (
           <div className="mt-6 flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-4 py-3 text-sm text-white">
             <AlertCircle className="h-4 w-4" />
-            Gói của bạn sắp hết hạn, hãy gia hạn sớm để tránh gián đoạn.
+            {t('customer_membership.expiring_soon', {
+              defaultValue: 'Your package is expiring soon, please renew early to avoid interruption.'
+            })}
           </div>
         )}
       </div>
 
       <CardContent className="grid gap-4 py-6 text-sm text-gray-700 sm:grid-cols-2 lg:grid-cols-4">
-        <KeyStat label="Ngày bắt đầu" value={formatDateLabel(contract.startDate)} icon={Calendar} />
         <KeyStat
-          label="Kích hoạt"
-          value={formatDateLabel(contract.activationDate ?? contract.startDate)}
+          label={t('customer_membership.start_date', { defaultValue: 'Start Date' })}
+          value={formatDateLabel(t, contract.startDate, locale)}
+          icon={Calendar}
+        />
+        <KeyStat
+          label={t('customer_membership.activation', { defaultValue: 'Activation' })}
+          value={formatDateLabel(t, contract.activationDate ?? contract.startDate, locale)}
           icon={Sparkles}
         />
-        <KeyStat label="Ngày hết hạn" value={formatDateLabel(contract.endDate)} icon={Calendar} />
-        <KeyStat label="Cập nhật gần nhất" value={formatDateLabel(contract.updatedAt)} icon={RefreshCcw} />
+        <KeyStat
+          label={t('customer_membership.expiry_date', { defaultValue: 'Expiry Date' })}
+          value={formatDateLabel(t, contract.endDate, locale)}
+          icon={Calendar}
+        />
+        <KeyStat
+          label={t('customer_membership.last_updated', { defaultValue: 'Last Updated' })}
+          value={formatDateLabel(t, contract.updatedAt, locale)}
+          icon={RefreshCcw}
+        />
       </CardContent>
     </Card>
   );
@@ -591,14 +688,16 @@ function MembershipOverviewCard({
 interface MembershipBenefitsCardProps {
   benefits: string[];
   description?: string;
+  t: TranslationFunction;
 }
 
-function MembershipBenefitsCard({ benefits, description }: MembershipBenefitsCardProps) {
+function MembershipBenefitsCard({ benefits, description, t }: MembershipBenefitsCardProps) {
   return (
     <Card className="h-full border border-orange-100 bg-gradient-to-br from-orange-50 to-white">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-orange-600">
-          <ShieldCheck className="h-4 w-4" /> Quyền lợi thành viên
+          <ShieldCheck className="h-4 w-4" />{' '}
+          {t('customer_membership.member_benefits', { defaultValue: 'Member Benefits' })}
         </CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
@@ -621,26 +720,46 @@ interface MembershipPaymentCardProps {
   contract: EnhancedMembershipContract;
   totalValue: number;
   paidAmount: number;
-  outstanding: number;
+  t: TranslationFunction;
+  locale: string;
 }
 
-function MembershipPaymentCard({ contract, totalValue, paidAmount, outstanding }: MembershipPaymentCardProps) {
+function MembershipPaymentCard({ contract, totalValue, paidAmount, t, locale }: MembershipPaymentCardProps) {
   const discountCampaign = contract.discountCampaignSnapshot?.campaignName;
+
+  const formatCurrencyWithLocale = (amount: number) => {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: 'VND',
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
 
   return (
     <Card className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-gray-900">
-          <CreditCard className="h-4 w-4 text-orange-500" /> Thanh toán
+          <CreditCard className="h-4 w-4 text-orange-500" />{' '}
+          {t('customer_membership.payment', { defaultValue: 'Payment' })}
         </CardTitle>
-        <CardDescription>Tổng quan công nợ và ưu đãi áp dụng</CardDescription>
+        <CardDescription>
+          {t('customer_membership.payment_description', { defaultValue: 'Overview of debt and applied promotions' })}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <PaymentStat label="Tổng phí" value={formatCurrency(totalValue)} />
-        <PaymentStat label="Đã thanh toán" value={formatCurrency(paidAmount)} />
-        <PaymentStat label="Công nợ còn lại" value={formatCurrency(outstanding)} highlight={outstanding > 0} />
+        <PaymentStat
+          label={t('customer_membership.total_fee', { defaultValue: 'Total Fee' })}
+          value={formatCurrencyWithLocale(totalValue)}
+        />
+        <PaymentStat
+          label={t('customer_membership.paid', { defaultValue: 'Paid' })}
+          value={formatCurrencyWithLocale(paidAmount)}
+        />
         <div className="rounded-lg border border-dashed border-gray-200 px-3 py-2 text-sm text-gray-600">
-          Ưu đãi áp dụng: <span className="font-medium">{discountCampaign ?? 'Không có'}</span>
+          {t('customer_membership.applied_promotion', { defaultValue: 'Applied Promotion' })}:{' '}
+          <span className="font-medium">
+            {discountCampaign ?? t('customer_membership.none', { defaultValue: 'None' })}
+          </span>
         </div>
       </CardContent>
     </Card>
@@ -655,6 +774,7 @@ interface MembershipActionsCardProps {
   onCancel: () => void;
   expiringSoon: boolean;
   contract: EnhancedMembershipContract;
+  t: TranslationFunction;
 }
 
 function MembershipActionsCard({
@@ -664,7 +784,8 @@ function MembershipActionsCard({
   onExtend,
   onCancel,
   expiringSoon,
-  contract
+  contract,
+  t
 }: MembershipActionsCardProps) {
   const canExtend = ['ACTIVE', 'EXPIRED', 'PAST_DUE'].includes(contract.status);
   const canCancel = ['ACTIVE', 'PENDING_ACTIVATION'].includes(contract.status);
@@ -672,19 +793,36 @@ function MembershipActionsCard({
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Quản lý gói của bạn</CardTitle>
-        <CardDescription>Gia hạn, hủy gói hoặc liên hệ chi nhánh</CardDescription>
+        <CardTitle>{t('customer_membership.manage_package', { defaultValue: 'Manage Your Package' })}</CardTitle>
+        <CardDescription>
+          {t('customer_membership.manage_description', { defaultValue: 'Extend, cancel package or contact branch' })}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
-          <p className="font-semibold text-gray-900">{branch?.branchName ?? 'Chi nhánh chưa cập nhật'}</p>
+          <p className="font-semibold text-gray-900">
+            {branch?.branchName ?? t('customer_membership.branch_not_updated', { defaultValue: 'Branch not updated' })}
+          </p>
           {branch?.location && <p className="text-xs text-gray-500">{branch.location}</p>}
-          {branch?.hotline && <p className="text-xs text-gray-500">Hotline: {branch.hotline}</p>}
-          {!branch?.hotline && <p className="text-xs text-gray-500">Hotline chưa được cập nhật</p>}
+          {branch?.hotline && (
+            <p className="text-xs text-gray-500">
+              {t('customer_membership.hotline', {
+                hotline: branch.hotline,
+                defaultValue: `Hotline: ${branch.hotline}`
+              })}
+            </p>
+          )}
+          {!branch?.hotline && (
+            <p className="text-xs text-gray-500">
+              {t('customer_membership.hotline_not_updated', { defaultValue: 'Hotline not updated' })}
+            </p>
+          )}
         </div>
         {expiringSoon && (
           <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            Gói sắp hết hạn — hãy gia hạn để duy trì quyền lợi.
+            {t('customer_membership.expiring_renew', {
+              defaultValue: 'Package expiring soon — please renew to maintain benefits.'
+            })}
           </div>
         )}
         <div className="flex flex-col gap-3">
@@ -694,18 +832,19 @@ function MembershipActionsCard({
             disabled={!canExtend}
           >
             <Calendar className="h-4 w-4 mr-2" />
-            Gia hạn gói
+            {t('customer_membership.extend_package', { defaultValue: 'Extend Package' })}
           </Button>
           <Button variant="outline" onClick={onRenew} className="justify-center">
             <Sparkles className="h-4 w-4 mr-2" />
-            Nâng cấp gói mới
+            {t('customer_membership.upgrade_package', { defaultValue: 'Upgrade to New Package' })}
           </Button>
           <Button variant="outline" onClick={onContact} disabled={!branch?.hotline} className="justify-center">
-            <PhoneCall className="h-4 w-4 mr-2" /> Gọi hotline
+            <PhoneCall className="h-4 w-4 mr-2" />{' '}
+            {t('customer_membership.call_hotline', { defaultValue: 'Call Hotline' })}
           </Button>
           <Button variant="destructive" onClick={onCancel} disabled={!canCancel} className="justify-center">
             <AlertCircle className="h-4 w-4 mr-2" />
-            Hủy gói
+            {t('customer_membership.cancel_package', { defaultValue: 'Cancel Package' })}
           </Button>
         </div>
       </CardContent>
@@ -715,22 +854,46 @@ function MembershipActionsCard({
 
 interface MembershipTimelineCardProps {
   contract: EnhancedMembershipContract;
+  t: TranslationFunction;
+  locale: string;
 }
 
-function MembershipTimelineCard({ contract }: MembershipTimelineCardProps) {
+function MembershipTimelineCard({ contract, t, locale }: MembershipTimelineCardProps) {
   const timeline = [
-    { label: 'Tạo hợp đồng', value: formatDateLabel(contract.createdAt), icon: FileText },
-    { label: 'Kích hoạt', value: formatDateLabel(contract.activationDate ?? contract.startDate), icon: Sparkles },
-    { label: 'Ngày bắt đầu', value: formatDateLabel(contract.startDate), icon: Calendar },
-    { label: 'Ngày kết thúc', value: formatDateLabel(contract.endDate), icon: Calendar },
-    { label: 'Cập nhật gần nhất', value: formatDateLabel(contract.updatedAt), icon: RefreshCcw }
+    {
+      label: t('customer_membership.timeline.created', { defaultValue: 'Contract Created' }),
+      value: formatDateLabel(t, contract.createdAt, locale),
+      icon: FileText
+    },
+    {
+      label: t('customer_membership.timeline.activation', { defaultValue: 'Activation' }),
+      value: formatDateLabel(t, contract.activationDate ?? contract.startDate, locale),
+      icon: Sparkles
+    },
+    {
+      label: t('customer_membership.timeline.start_date', { defaultValue: 'Start Date' }),
+      value: formatDateLabel(t, contract.startDate, locale),
+      icon: Calendar
+    },
+    {
+      label: t('customer_membership.timeline.end_date', { defaultValue: 'End Date' }),
+      value: formatDateLabel(t, contract.endDate, locale),
+      icon: Calendar
+    },
+    {
+      label: t('customer_membership.timeline.last_updated', { defaultValue: 'Last Updated' }),
+      value: formatDateLabel(t, contract.updatedAt, locale),
+      icon: RefreshCcw
+    }
   ];
 
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Dòng thời gian hợp đồng</CardTitle>
-        <CardDescription>Kiểm tra các mốc quan trọng của membership</CardDescription>
+        <CardTitle>{t('customer_membership.timeline.title', { defaultValue: 'Contract Timeline' })}</CardTitle>
+        <CardDescription>
+          {t('customer_membership.timeline.description', { defaultValue: 'Check important milestones of membership' })}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {timeline.map((item) => (
@@ -751,25 +914,31 @@ function MembershipTimelineCard({ contract }: MembershipTimelineCardProps) {
 
 interface MembershipNotesCardProps {
   contract: EnhancedMembershipContract;
+  t: TranslationFunction;
 }
 
-function MembershipNotesCard({ contract }: MembershipNotesCardProps) {
+function MembershipNotesCard({ contract, t }: MembershipNotesCardProps) {
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Ghi chú hợp đồng</CardTitle>
-        <CardDescription>Theo dõi ghi chú và chiến dịch giảm giá (nếu có)</CardDescription>
+        <CardTitle>{t('customer_membership.notes.title', { defaultValue: 'Contract Notes' })}</CardTitle>
+        <CardDescription>
+          {t('customer_membership.notes.description', { defaultValue: 'Track notes and discount campaigns (if any)' })}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 text-sm text-gray-700">
         <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
-          <p className="text-xs text-gray-500">Chiến dịch áp dụng</p>
+          <p className="text-xs text-gray-500">
+            {t('customer_membership.notes.applied_campaign', { defaultValue: 'Applied Campaign' })}
+          </p>
           <p className="font-medium text-gray-900">
-            {contract.discountCampaignSnapshot?.campaignName ?? 'Không có chiến dịch ưu đãi'}
+            {contract.discountCampaignSnapshot?.campaignName ??
+              t('customer_membership.notes.no_campaign', { defaultValue: 'No promotion campaign' })}
           </p>
         </div>
         <div className="rounded-lg border border-gray-100 bg-white px-3 py-2">
-          <p className="text-xs text-gray-500">Ghi chú</p>
-          <p>{contract.notes ?? 'Không có ghi chú bổ sung.'}</p>
+          <p className="text-xs text-gray-500">{t('customer_membership.notes.notes', { defaultValue: 'Notes' })}</p>
+          <p>{contract.notes ?? t('customer_membership.notes.no_notes', { defaultValue: 'No additional notes.' })}</p>
         </div>
       </CardContent>
     </Card>
@@ -837,25 +1006,31 @@ interface MembershipEmptyStateProps {
   branchName?: string;
   onBrowsePlans: () => void;
   loadingBranches: boolean;
+  t: TranslationFunction;
 }
 
-function MembershipEmptyState({ branchName, onBrowsePlans, loadingBranches }: MembershipEmptyStateProps) {
+function MembershipEmptyState({ branchName, onBrowsePlans, loadingBranches, t }: MembershipEmptyStateProps) {
   return (
     <Card className="border-dashed border-gray-200 bg-white text-center">
       <CardHeader>
         <CardTitle className="flex flex-col items-center gap-2 text-gray-900">
           <Dumbbell className="h-5 w-5 text-orange-500" />
-          Bạn chưa có gói membership hoạt động
+          {t('customer_membership.empty_state.title', { defaultValue: "You don't have an active membership package" })}
         </CardTitle>
         <CardDescription>
           {loadingBranches
-            ? 'Đang tải chi nhánh của bạn...'
-            : `Chưa có hợp đồng tại ${branchName ?? 'chi nhánh được chọn'}. Hãy đăng ký ngay để nhận đặc quyền thành viên.`}
+            ? t('customer_membership.empty_state.loading_branches', { defaultValue: 'Loading your branches...' })
+            : t('customer_membership.empty_state.description', {
+                branchName:
+                  branchName ??
+                  t('customer_membership.empty_state.selected_branch', { defaultValue: 'selected branch' }),
+                defaultValue: `No contract at ${branchName ?? 'selected branch'}. Register now to receive member privileges.`
+              })}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Button onClick={onBrowsePlans} className="bg-orange-500 text-white hover:bg-orange-600">
-          Khám phá gói membership
+          {t('customer_membership.empty_state.explore_packages', { defaultValue: 'Explore Membership Packages' })}
         </Button>
       </CardContent>
     </Card>

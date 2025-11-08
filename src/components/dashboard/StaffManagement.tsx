@@ -15,7 +15,8 @@ import {
   UserX,
   Settings,
   Shield,
-  MapPin
+  MapPin,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,6 +51,7 @@ import { sortArray, staffSortConfig } from '@/utils/sort';
 import StaffProfileModal from '@/components/modals/StaffProfileModal';
 import StaffPermissionOverlayModal from '@/components/modals/StaffPermissionOverlayModal';
 import StaffAttendanceHistoryModal from '@/components/modals/StaffAttendanceHistoryModal';
+import { StaffExcelImportModal } from '@/components/modals/StaffExcelImportModal';
 import type {
   StaffFilters,
   StaffManagementProps,
@@ -72,7 +74,6 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
     selectedIds: []
   });
 
-  const [activeTab, setActiveTab] = useState<'staff' | 'customer'>('staff');
   const [selectedStaff, setSelectedStaff] = useState<StaffDisplay | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -83,6 +84,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
   const [permissionLoadingId, setPermissionLoadingId] = useState<string | null>(null);
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [attendanceStaff, setAttendanceStaff] = useState<StaffDisplay | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Use the custom sort hook
   const { sortState, handleSort, getSortIcon } = useTableSort<SortField>();
@@ -157,7 +159,6 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
   };
 
   const handleSelectStaff = (staffId: string) => {
-    console.log('Selecting staff:', staffId);
     setFilters((prev) => {
       const newSelectedIds = prev.selectedIds.includes(staffId)
         ? prev.selectedIds.filter((id) => id !== staffId)
@@ -358,12 +359,6 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
               </div>
             )}
           </div>
-          <Button
-            variant="outline"
-            className="rounded-full border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:border-orange-300 hover:text-orange-500"
-          >
-            {t('dashboard.detailed_report') || 'Detailed report'}
-          </Button>
         </div>
 
         <div className="grid w-full gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -435,26 +430,9 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
       <div className="mb-8 flex flex-col gap-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap gap-2">
-            <button
-              className={`inline-flex items-center rounded-full px-6 py-2 text-sm font-medium transition-all ${
-                activeTab === 'staff'
-                  ? 'bg-orange-500 text-white shadow-sm'
-                  : 'border border-gray-200 bg-white text-gray-500 hover:border-orange-300 hover:text-orange-500'
-              }`}
-              onClick={() => setActiveTab('staff')}
-            >
+            <button className="inline-flex items-center rounded-full px-6 py-2 text-sm font-medium bg-orange-500 text-white shadow-sm">
               <FileText className="mr-2 h-4 w-4" />
               {t('dashboard.staff_list')}
-            </button>
-            <button
-              className={`inline-flex items-center rounded-full px-6 py-2 text-sm font-medium transition-all ${
-                activeTab === 'customer'
-                  ? 'bg-orange-500 text-white shadow-sm'
-                  : 'border border-gray-200 bg-white text-gray-500 hover:border-orange-300 hover:text-orange-500'
-              }`}
-              onClick={() => setActiveTab('customer')}
-            >
-              {t('dashboard.customer_list')}
             </button>
           </div>
 
@@ -464,32 +442,60 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
                 {t('dashboard.selected')} {selectedCount}
               </span>
             )}
-            <Button
-              className={`h-11 rounded-full px-6 text-sm font-semibold shadow-sm ${
-                currentUser?.role === 'OWNER' ||
-                currentUser?.role === 'ADMIN' ||
-                (currentStaff && currentStaff.jobTitle === 'Manager')
-                  ? 'bg-orange-500 text-white hover:bg-orange-600'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-              onClick={
-                currentUser?.role === 'OWNER' ||
-                currentUser?.role === 'ADMIN' ||
-                (currentStaff && currentStaff.jobTitle === 'Manager')
-                  ? handleAddStaff
-                  : undefined
-              }
-              disabled={
-                !(
+            <div className="flex gap-2">
+              <Button
+                className={`h-11 rounded-full px-6 text-sm font-semibold shadow-sm ${
                   currentUser?.role === 'OWNER' ||
                   currentUser?.role === 'ADMIN' ||
                   (currentStaff && currentStaff.jobTitle === 'Manager')
-                )
-              }
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              {t('dashboard.add_staff')}
-            </Button>
+                    ? 'bg-blue-500 text-white hover:bg-blue-600'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+                onClick={
+                  currentUser?.role === 'OWNER' ||
+                  currentUser?.role === 'ADMIN' ||
+                  (currentStaff && currentStaff.jobTitle === 'Manager')
+                    ? () => setIsImportModalOpen(true)
+                    : undefined
+                }
+                disabled={
+                  !(
+                    currentUser?.role === 'OWNER' ||
+                    currentUser?.role === 'ADMIN' ||
+                    (currentStaff && currentStaff.jobTitle === 'Manager')
+                  )
+                }
+              >
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Import Excel
+              </Button>
+              <Button
+                className={`h-11 rounded-full px-6 text-sm font-semibold shadow-sm ${
+                  currentUser?.role === 'OWNER' ||
+                  currentUser?.role === 'ADMIN' ||
+                  (currentStaff && currentStaff.jobTitle === 'Manager')
+                    ? 'bg-orange-500 text-white hover:bg-orange-600'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+                onClick={
+                  currentUser?.role === 'OWNER' ||
+                  currentUser?.role === 'ADMIN' ||
+                  (currentStaff && currentStaff.jobTitle === 'Manager')
+                    ? handleAddStaff
+                    : undefined
+                }
+                disabled={
+                  !(
+                    currentUser?.role === 'OWNER' ||
+                    currentUser?.role === 'ADMIN' ||
+                    (currentStaff && currentStaff.jobTitle === 'Manager')
+                  )
+                }
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                {t('dashboard.add_staff')}
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -909,6 +915,16 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
         staffId={attendanceStaff?.id || null}
         staffName={attendanceStaff?.name}
         jobTitle={attendanceStaff?.jobTitle}
+      />
+
+      {/* Staff Excel Import Modal */}
+      <StaffExcelImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportSuccess={() => {
+          refetch();
+          setIsImportModalOpen(false);
+        }}
       />
 
       {/* Delete Staff Confirmation Dialog */}
