@@ -19,6 +19,15 @@ import {
   PaginationPrevious
 } from '@/components/ui/pagination';
 import { useAttendanceHistory } from '@/hooks/useStaffAttendance';
+import {
+  formatToAmPm,
+  formatTimeOnly,
+  formatCheckOutTime,
+  getAttendanceStatusStyles,
+  getCheckInStatus,
+  getCheckOutStatus,
+  getTimeStatusInfo
+} from '@/utils/staffAttendanceUtils';
 
 const StaffAttendanceHistory: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -44,7 +53,7 @@ const StaffAttendanceHistory: React.FC = () => {
     return sortArray(items, sortState, (att, field) => {
       switch (field) {
         case 'workshift':
-          return new Date(att.workShiftInfo?.startTime || 0).getTime();
+          return att.shiftConfig?.startTime ? new Date(`2000-01-01T${att.shiftConfig.startTime}`).getTime() : 0;
         case 'day': {
           const dayDate = att.checkInTime ?? att.checkOutTime ?? att.createdAt;
           if (dayDate) {
@@ -64,16 +73,124 @@ const StaffAttendanceHistory: React.FC = () => {
     });
   }, [items, sortState]);
 
+  // Group items by date for display
+  const groupedItems = React.useMemo(() => {
+    // Helper to get date key from item
+    const getDateKey = (item: (typeof sortedItems)[0]): string => {
+      if (item.dateVN) {
+        const dateVNRegex = /(\d{2})\/(\d{2})\/(\d{4})/;
+        const dateVNMatch = dateVNRegex.exec(item.dateVN);
+        if (dateVNMatch) {
+          const [, day, month, year] = dateVNMatch;
+          return `${year}-${month}-${day}`;
+        }
+        return item.dateVN;
+      }
+      if (item.date) {
+        const dateRegex = /^(\d{4}-\d{2}-\d{2})/;
+        const dateMatch = dateRegex.exec(item.date);
+        if (dateMatch) {
+          return dateMatch[1];
+        }
+        const date = new Date(item.date);
+        const year = date.getUTCFullYear();
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(date.getUTCDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+      return 'unknown';
+    };
+
+    // Helper to get date display from item
+    const getDateDisplay = (item: (typeof sortedItems)[0]): string => {
+      if (item.dateVN) return item.dateVN;
+      if (item.date) {
+        const date = new Date(item.date);
+        return date.toLocaleDateString('vi-VN');
+      }
+      return '-';
+    };
+    const dateMap = new Map<string, typeof sortedItems>();
+
+    for (const item of sortedItems) {
+      const dateKey = getDateKey(item);
+      if (!dateMap.has(dateKey)) {
+        dateMap.set(dateKey, []);
+      }
+      dateMap.get(dateKey)!.push(item);
+    }
+
+    // Convert map to array
+    const groups: Array<{ dateKey: string; dateDisplay: string; items: typeof sortedItems }> = [];
+    for (const [dateKey, items] of dateMap.entries()) {
+      const dateDisplay = getDateDisplay(items[0]);
+      groups.push({ dateKey, dateDisplay, items });
+    }
+
+    // Sort groups by dateKey (descending)
+    groups.sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+
+    return groups;
+  }, [sortedItems]);
+
+  // Flatten grouped items for pagination
+  const flattenedItems = React.useMemo(() => {
+    return groupedItems.flatMap((group) => group.items);
+  }, [groupedItems]);
+
   // Pagination
-  const totalPages = Math.ceil(sortedItems.length / itemsPerPage) || 1;
+  const totalPages = Math.ceil(flattenedItems.length / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedItems = sortedItems.slice(startIndex, endIndex);
+
+  // Get paginated groups (only include groups that have items in the current page)
+  const paginatedGroups = React.useMemo(() => {
+    const result: Array<{ dateKey: string; dateDisplay: string; items: typeof sortedItems; startIndex: number }> = [];
+    let currentIndex = 0;
+
+    for (const group of groupedItems) {
+      const groupStartIndex = currentIndex;
+      const groupEndIndex = currentIndex + group.items.length;
+
+      // Check if this group overlaps with the current page
+      if (groupEndIndex > startIndex && groupStartIndex < endIndex) {
+        // Get items that are in the current page
+        const pageStartInGroup = Math.max(0, startIndex - groupStartIndex);
+        const pageEndInGroup = Math.min(group.items.length, endIndex - groupStartIndex);
+        const itemsInPage = group.items.slice(pageStartInGroup, pageEndInGroup);
+
+        if (itemsInPage.length > 0) {
+          result.push({
+            dateKey: group.dateKey,
+            dateDisplay: group.dateDisplay,
+            items: itemsInPage,
+            startIndex: groupStartIndex + pageStartInGroup
+          });
+        }
+      }
+
+      currentIndex = groupEndIndex;
+    }
+
+    return result;
+  }, [groupedItems, startIndex, endIndex]);
 
   // Reset to first page when filters or sort change
   React.useEffect(() => {
     setCurrentPage(1);
   }, [dateFrom, dateTo, sortState]);
+
+  // Helper to check if this is the first item in a date group
+  const isFirstItemInGroup = (itemIndex: number) => {
+    return itemIndex === 0;
+  };
+
+  // Helper to render time status
+  const renderTimeStatus = (status: 'early' | 'on-time' | 'late' | 'overtime' | null) => {
+    const statusInfo = getTimeStatusInfo(status);
+    if (!statusInfo) return null;
+    return <span className={`text-xs font-semibold ${statusInfo.colorClass}`}>({t(statusInfo.translationKey)})</span>;
+  };
 
   return (
     <div className="basic-management">
@@ -151,15 +268,15 @@ const StaffAttendanceHistory: React.FC = () => {
                 <thead className="border-b bg-gray-50 sticky top-0 z-10">
                   <tr>
                     <SortableHeader
-                      field="workshift"
-                      label={t('attendance.history.workshift', 'Work shift (Start - End)')}
+                      field="day"
+                      label={t('attendance.history.day', 'Day')}
                       sortState={sortState}
                       onSort={handleSort}
                       getSortIcon={getSortIcon}
                     />
                     <SortableHeader
-                      field="day"
-                      label={t('attendance.history.day', 'Day')}
+                      field="workshift"
+                      label={t('attendance.history.workshift', 'Work shift (Start - End)')}
                       sortState={sortState}
                       onSort={handleSort}
                       getSortIcon={getSortIcon}
@@ -188,29 +305,47 @@ const StaffAttendanceHistory: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {paginatedItems.map((it) => (
-                    <tr key={it._id} className="hover:bg-gray-50">
-                      <td className="px-2 py-3 md:px-4 md:py-4 whitespace-nowrap">
-                        {it.workShiftInfo ? `${it.workShiftInfo.startTimeVN} - ${it.workShiftInfo.endTimeVN}` : '-'}
-                      </td>
-                      <td className="px-2 py-3 md:px-4 md:py-4 whitespace-nowrap">
-                        {(() => {
-                          if (it.checkInTime) return new Date(it.checkInTime).toLocaleDateString('vi-VN');
-                          if (it.checkOutTime) return new Date(it.checkOutTime).toLocaleDateString('vi-VN');
-                          return it.dayOfTheWeek || '-';
-                        })()}
-                      </td>
-                      <td className="px-2 py-3 md:px-4 md:py-4 whitespace-nowrap">
-                        {it.checkInTime ? new Date(it.checkInTime).toLocaleString('vi-VN') : '-'}
-                      </td>
-                      <td className="px-2 py-3 md:px-4 md:py-4 whitespace-nowrap">
-                        {it.checkOutTime ? new Date(it.checkOutTime).toLocaleString('vi-VN') : '-'}
-                      </td>
-                      <td className="px-2 py-3 md:px-4 md:py-4 whitespace-nowrap">
-                        <Badge className="text-[10px] md:text-xs">{t(`attendance.status.values.${it.status}`)}</Badge>
-                      </td>
-                    </tr>
-                  ))}
+                  {paginatedGroups.map((group) =>
+                    group.items.map((it, itemIndex) => (
+                      <tr key={it._id} className="hover:bg-gray-50">
+                        {isFirstItemInGroup(itemIndex) && (
+                          <td
+                            className="px-2 py-3 md:px-4 md:py-4 whitespace-nowrap font-semibold bg-gray-50"
+                            rowSpan={group.items.length}
+                          >
+                            {group.dateDisplay}
+                            {group.items[0]?.dayOfTheWeek && (
+                              <span className="text-xs text-gray-500 ml-1">
+                                ({t(`common.days.${group.items[0].dayOfTheWeek.toLowerCase()}`)})
+                              </span>
+                            )}
+                          </td>
+                        )}
+                        <td className="px-2 py-3 md:px-4 md:py-4 whitespace-nowrap">
+                          {it.shiftConfig
+                            ? `${formatToAmPm(it.shiftConfig.startTime)} - ${formatToAmPm(it.shiftConfig.endTime)}`
+                            : '-'}
+                        </td>
+                        <td className="px-2 py-3 md:px-4 md:py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1">
+                            {formatTimeOnly(it.checkInTime)}
+                            {renderTimeStatus(getCheckInStatus(it.checkInTime, it.shiftConfig?.startTime, it.date))}
+                          </div>
+                        </td>
+                        <td className="px-2 py-3 md:px-4 md:py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1">
+                            {formatCheckOutTime(it.checkOutTime, it.checkInTime)}
+                            {renderTimeStatus(getCheckOutStatus(it.checkOutTime, it.shiftConfig?.endTime, it.date))}
+                          </div>
+                        </td>
+                        <td className="px-2 py-3 md:px-4 md:py-4 whitespace-nowrap">
+                          <Badge className={`text-[10px] md:text-xs ${getAttendanceStatusStyles(it.status)}`}>
+                            {t(`attendance.status.values.${it.status}`)}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -218,7 +353,7 @@ const StaffAttendanceHistory: React.FC = () => {
         })()}
       </div>
 
-      {sortedItems.length > itemsPerPage && (
+      {flattenedItems.length > itemsPerPage && (
         <div className="flex justify-center mt-8">
           <Pagination>
             <PaginationContent>

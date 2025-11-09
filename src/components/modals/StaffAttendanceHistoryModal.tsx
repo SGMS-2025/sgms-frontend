@@ -4,7 +4,15 @@ import { X, Loader2, Calendar, Clock3, MapPin, User, RefreshCw } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useStaffAttendanceHistory } from '@/hooks/useStaffAttendance';
-import { formatTimeOnly, formatToAmPm } from '@/utils/staffAttendanceUtils';
+import {
+  formatTimeOnly,
+  formatToAmPm,
+  formatCheckOutTime,
+  getCheckInStatus,
+  getCheckOutStatus,
+  getAttendanceStatusStyles,
+  getTimeStatusInfo
+} from '@/utils/staffAttendanceUtils';
 import type { GetStaffAttendanceHistoryParams } from '@/types/api/StaffAttendance';
 
 interface StaffAttendanceHistoryModalProps {
@@ -34,13 +42,6 @@ export default function StaffAttendanceHistoryModal({
     initialFilters
   );
 
-  const getStatusStyles = (status: string) => {
-    if (status === 'CHECKED_OUT') return 'bg-green-50 text-green-600';
-    if (status === 'CHECKED_IN') return 'bg-blue-50 text-blue-600';
-    if (status === 'AUTO_CLOSE') return 'bg-yellow-50 text-yellow-600';
-    return 'bg-gray-100 text-gray-600';
-  };
-
   const translateJobTitle = (jobTitle: string) => {
     const jobTitleMap: Record<string, string> = {
       Manager: 'staff_modal.role_manager',
@@ -59,6 +60,57 @@ export default function StaffAttendanceHistoryModal({
   };
 
   const staffDisplayName = jobTitle ? `${translateJobTitle(jobTitle)}: ${staffName}` : staffName;
+
+  // Helper to render time status badge
+  const renderTimeStatus = (status: 'early' | 'on-time' | 'late' | 'overtime' | null) => {
+    const statusInfo = getTimeStatusInfo(status);
+    if (!statusInfo) return null;
+    const statusText = t(statusInfo.translationKey);
+    return <span className={`ml-1 text-sm font-semibold ${statusInfo.colorClass}`}>({statusText})</span>;
+  };
+
+  // Group items by date (normalize to same day for comparison)
+  const groupedByDate = useMemo(() => {
+    const groups: Record<string, typeof items> = {};
+    for (const item of items) {
+      // Normalize date to start of day for consistent grouping
+      let dateKey = 'unknown';
+      if (item.date) {
+        // Extract date part directly from ISO string (YYYY-MM-DD)
+        // Backend stores date normalized to start of day UTC
+        const dateStr = item.date;
+        const dateRegex = /^(\d{4}-\d{2}-\d{2})/;
+        const dateMatch = dateRegex.exec(dateStr);
+        if (dateMatch) {
+          dateKey = dateMatch[1]; // YYYY-MM-DD format
+        } else {
+          // Fallback: use Date object
+          const date = new Date(item.date);
+          const year = date.getUTCFullYear();
+          const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+          const day = String(date.getUTCDate()).padStart(2, '0');
+          dateKey = `${year}-${month}-${day}`;
+        }
+      } else if (item.dateVN) {
+        // If dateVN exists, parse it to get consistent key
+        // dateVN format: "dd/mm/yyyy" or similar
+        const dateVNRegex = /(\d{2})\/(\d{2})\/(\d{4})/;
+        const dateVNMatch = dateVNRegex.exec(item.dateVN);
+        if (dateVNMatch) {
+          const [, day, month, year] = dateVNMatch;
+          dateKey = `${year}-${month}-${day}`;
+        } else {
+          dateKey = item.dateVN;
+        }
+      }
+
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
+      }
+      groups[dateKey].push(item);
+    }
+    return groups;
+  }, [items]);
 
   const renderContent = () => {
     if (loading) {
@@ -85,56 +137,106 @@ export default function StaffAttendanceHistoryModal({
     }
 
     return (
-      <div className="space-y-3">
-        {items.map((item) => (
-          <div key={item._id} className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span
-                  className={`inline-flex items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusStyles(item.status)}`}
-                >
-                  {t(`attendance.status.values.${item.status}`)}
+      <div className="space-y-4">
+        {Object.entries(groupedByDate).map(([dateKey, dateItems]) => (
+          <div key={dateKey} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            {/* Date Header */}
+            <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-orange-500" />
+                <span className="font-semibold text-sm text-gray-700">
+                  {dateItems[0]?.dateVN ||
+                    (dateItems[0]?.date ? new Date(dateItems[0].date).toLocaleDateString('vi-VN') : dateKey)}
                 </span>
-                <span className="text-sm text-gray-500">{t(`common.days.${item.dayOfTheWeek.toLowerCase()}`)}</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-700">
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4 text-orange-500" />
-                  <span>{new Date(item.createdAt).toLocaleDateString('vi-VN')}</span>
-                </div>
-
-                {/* Real check-in/check-out time */}
-                <div className="flex items-center gap-1">
-                  <Clock3 className="w-4 h-4 text-blue-500" />
-                  <span className="font-medium">Check-in: {formatTimeOnly(item.checkInTime)}</span>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <Clock3 className="w-4 h-4 text-red-500" />
-                  <span className="font-medium">Check-out: {formatTimeOnly(item.checkOutTime)}</span>
-                </div>
-
-                {/* work shift start and end time (startTimeVN/endTimeVN) */}
-                {item.workShiftInfo && (
-                  <div className="flex items-center gap-1">
-                    <Clock3 className="w-4 h-4 text-green-600" />
-                    <span className="text-green-700">
-                      {t('attendance.work_shift')}:{' '}
-                      {formatToAmPm(item.workShiftInfo.startTimeVN || item.workShiftInfo.startTime)} →{' '}
-                      {formatToAmPm(item.workShiftInfo.endTimeVN || item.workShiftInfo.endTime)}
-                    </span>
-                  </div>
+                {dateItems[0]?.dayOfTheWeek && (
+                  <span className="text-xs text-gray-500">
+                    ({t(`common.days.${dateItems[0].dayOfTheWeek.toLowerCase()}`)})
+                  </span>
                 )}
-
-                {item.branchInfo && (
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4 text-purple-500" />
-                    <span>
-                      {item.branchInfo?.branchName} • {item.branchInfo?.location}
-                    </span>
-                  </div>
-                )}
+                <span className="text-xs text-gray-400 ml-auto">
+                  {dateItems.length} {dateItems.length === 1 ? 'shift' : 'shifts'}
+                </span>
               </div>
+            </div>
+
+            {/* Attendance Items for this date */}
+            <div className="divide-y divide-gray-100">
+              {dateItems.map((item) => (
+                <div key={item._id} className="p-4">
+                  <div className="space-y-3">
+                    {/* First row: Status and Shift time */}
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`inline-flex items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold ${getAttendanceStatusStyles(item.status)}`}
+                      >
+                        {t(`attendance.status.values.${item.status}`)}
+                      </span>
+                      {item.shiftConfig && (
+                        <span className="text-xs text-gray-600">
+                          {formatToAmPm(item.shiftConfig.startTime)} - {formatToAmPm(item.shiftConfig.endTime)}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Second row: Check-in, Check-out, and Location */}
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-700">
+                      {/* Real check-in/check-out time */}
+                      <div className="flex items-center gap-1">
+                        <Clock3 className="w-4 h-4 text-blue-500" />
+                        <span className="font-medium">
+                          Check-in:{' '}
+                          <span className="inline-block min-w-[160px]">
+                            {item.checkInTime ? (
+                              <>
+                                {formatTimeOnly(item.checkInTime)}
+                                {renderTimeStatus(
+                                  getCheckInStatus(item.checkInTime, item.shiftConfig?.startTime, item.date)
+                                )}
+                              </>
+                            ) : (
+                              <span className="invisible">11:00 PM (Đúng giờ)</span>
+                            )}
+                          </span>
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <Clock3 className="w-4 h-4 text-red-500" />
+                        <span className="font-medium">
+                          Check-out:{' '}
+                          <span className="inline-block min-w-[160px]">
+                            {item.checkOutTime ? (
+                              <>
+                                {formatCheckOutTime(item.checkOutTime, item.checkInTime)}
+                                {renderTimeStatus(
+                                  getCheckOutStatus(item.checkOutTime, item.shiftConfig?.endTime, item.date)
+                                )}
+                              </>
+                            ) : (
+                              <span className="invisible">11:00 PM (Đúng giờ)</span>
+                            )}
+                          </span>
+                        </span>
+                      </div>
+
+                      {item.branchInfo && (
+                        <div className="flex items-center gap-1">
+                          <MapPin className="w-4 h-4 text-purple-500" />
+                          <span className="text-xs">
+                            {item.branchInfo?.branchName} • {item.branchInfo?.location}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Third row: Notes */}
+                    <div className="flex items-start gap-2 text-sm text-gray-600">
+                      <span className="text-xs font-medium">{t('attendance.note')}</span>
+                      <span className="text-xs italic">{item.notes || 'N/a'}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         ))}
@@ -169,7 +271,7 @@ export default function StaffAttendanceHistoryModal({
         <div className="p-4 bg-gray-50 border-b flex flex-wrap gap-3 items-center">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs sm:text-sm text-gray-600">{t('common.sort_by') || 'Sort by'}:</span>
-            {(['checkInTime', 'checkOutTime', 'status'] as const).map((field) => (
+            {(['date', 'checkInTime', 'checkOutTime', 'status'] as const).map((field) => (
               <button
                 key={field}
                 onClick={() => {
