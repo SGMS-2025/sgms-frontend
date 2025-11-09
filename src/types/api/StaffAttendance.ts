@@ -6,7 +6,9 @@ export type DayNames = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday
 export interface StaffAttendance extends BaseEntity {
   staffId: ID;
   branchId: ID;
-  workShiftId: ID;
+  branchWorkingConfigId: ID;
+  shiftConfigId: ID;
+  date: string; // ISO date string
   checkInTime?: string;
   checkOutTime?: string;
   status: AttendanceStatus;
@@ -16,6 +18,7 @@ export interface StaffAttendance extends BaseEntity {
   // Virtual fields
   checkInTimeVN?: string;
   checkOutTimeVN?: string;
+  dateVN?: string; // Vietnam timezone date string
 
   // Populated fields (optional)
   staffInfo?: {
@@ -32,14 +35,18 @@ export interface StaffAttendance extends BaseEntity {
     location: string;
     hotline: string;
   };
-  workShiftInfo?: {
+  branchWorkingConfigInfo?: {
     _id: ID;
-    startTime: string;
-    endTime: string;
-    status: string;
-    // Localized display times (e.g., UTC+7)
-    startTimeVN?: string;
-    endTimeVN?: string;
+    defaultWorkingDays: string[];
+    defaultDayOff: string[];
+    isActive: boolean;
+  };
+  shiftConfig?: {
+    _id: ID;
+    startTime: string; // "HH:mm" format
+    endTime: string; // "HH:mm" format
+    hour?: number;
+    type?: string;
   };
 }
 
@@ -62,7 +69,7 @@ export interface GetStaffAttendanceHistoryParams {
   fromDate?: string; // ISO string
   toDate?: string; // ISO string
   dayOfTheWeek?: DayNames;
-  sortBy?: 'checkInTime' | 'checkOutTime' | 'status' | 'dayOfTheWeek' | 'createdAt' | 'updatedAt';
+  sortBy?: 'date' | 'checkInTime' | 'checkOutTime' | 'status' | 'dayOfTheWeek' | 'createdAt' | 'updatedAt';
   sortOrder?: 'asc' | 'desc';
 }
 

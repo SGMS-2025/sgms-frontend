@@ -13,7 +13,6 @@ export interface ToggleAttendanceParams {
   username?: string;
   staffId?: string;
   branchId?: string;
-  workShiftId?: string;
   notes?: string;
 }
 
