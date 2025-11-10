@@ -13,10 +13,14 @@ import { useBranch } from '@/contexts/BranchContext';
 import { membershipApi } from '@/services/api/membershipApi';
 import { discountCampaignApi } from '@/services/api/discountApi';
 import { paymentApi, type PayOSPaymentData } from '@/services/api/paymentApi';
+import { contractDocumentApi } from '@/services/api/contractDocumentApi';
 import { PayOSPaymentModal } from '@/components/modals/PayOSPaymentModal';
+import PostPurchaseContractDialog from '@/components/contracts/PostPurchaseContractDialog';
+import EmbeddedDocumentViewer from '@/components/contracts/EmbeddedDocumentViewer';
 import type { MembershipPlan } from '@/types/api/Membership';
 import type { MembershipRegistrationFormData, MembershipContractResponse } from '@/types/api/Customer';
 import type { DiscountCampaign } from '@/types/api/Discount';
+import type { ContractDocument } from '@/types/api/ContractDocument';
 
 interface MembershipRegistrationDialogProps {
   isOpen: boolean;
@@ -49,6 +53,12 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
   const [showPayOSModal, setShowPayOSModal] = useState(false);
   const [payOSData, setPayOSData] = useState<PayOSPaymentData | null>(null);
   const [createdContractId, setCreatedContractId] = useState<string | null>(null);
+
+  // Post-purchase contract states
+  const [showPostPurchaseDialog, setShowPostPurchaseDialog] = useState(false);
+  const [createdContractDocument, setCreatedContractDocument] = useState<ContractDocument | null>(null);
+  const [showSendingViewer, setShowSendingViewer] = useState(false);
+  const [sendingIframeUrl, setSendingIframeUrl] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<MembershipRegistrationFormData>({
     membershipPlanId: '',
@@ -85,21 +95,17 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
     const fetchData = async () => {
       if (!currentBranch?._id) return;
 
-      try {
-        const [plansRes, promotionsRes] = await Promise.all([
-          membershipApi.getMembershipPlans({ page: 1, limit: 100, status: 'ACTIVE' }, [currentBranch._id]),
-          discountCampaignApi.getActiveCampaignsByBranch(currentBranch._id)
-        ]);
+      const [plansRes, promotionsRes] = await Promise.all([
+        membershipApi.getMembershipPlans({ page: 1, limit: 100, status: 'ACTIVE' }, [currentBranch._id]),
+        discountCampaignApi.getActiveCampaignsByBranch(currentBranch._id)
+      ]);
 
-        if (plansRes.success && plansRes.data) {
-          setPlans(plansRes.data.plans || []);
-        }
+      if (plansRes.success && plansRes.data) {
+        setPlans(plansRes.data.plans || []);
+      }
 
-        if (promotionsRes.success && promotionsRes.data) {
-          setPromotions(promotionsRes.data);
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
+      if (promotionsRes.success && promotionsRes.data) {
+        setPromotions(promotionsRes.data);
       }
     };
 
@@ -153,13 +159,29 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
       return;
     }
 
-    const contractId = response.data?.contract._id;
+    const contract = response.data?.contract;
+    const contractDocument = response.data?.contractDocument;
+    const contractId = contract?._id;
+
+    // Store contract document for post-purchase flow
+    if (contractDocument) {
+      setCreatedContractDocument(contractDocument);
+    } else {
+      // Warn if no template was found
+      toast.info('Hợp đồng đã tạo nhưng chưa có template. Vui lòng tạo hợp đồng thủ công sau.');
+    }
 
     if (formData.paymentMethod === 'BANK_TRANSFER' && contractId) {
       handlePayOSPayment(contractId);
     } else {
-      handleRegistrationSuccess();
-      setLoading(false);
+      // Show post-purchase dialog if contract document exists
+      if (contractDocument) {
+        setLoading(false);
+        setShowPostPurchaseDialog(true);
+      } else {
+        handleRegistrationSuccess();
+        setLoading(false);
+      }
     }
   };
 
@@ -188,7 +210,46 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
   const handlePaymentSuccess = () => {
     setShowPayOSModal(false);
     toast.success(t('membership_registration.payment_success'));
-    // Delay to ensure backend has saved
+
+    // Show post-purchase dialog if contract document exists
+    if (createdContractDocument) {
+      setShowPostPurchaseDialog(true);
+    } else {
+      setTimeout(() => {
+        onSuccess?.();
+        onClose();
+      }, 500);
+    }
+  };
+
+  const handleSendNow = async () => {
+    if (!createdContractDocument) return;
+
+    const response = await contractDocumentApi.createEmbeddedSending(createdContractDocument._id, {
+      type: 'invite',
+      redirectUrl: `${window.location.origin}/manage/contracts`
+    });
+
+    if (response.success && response.data?.link) {
+      setSendingIframeUrl(response.data.link);
+      setShowSendingViewer(true);
+    } else {
+      toast.error('Không thể tạo link gửi hợp đồng');
+    }
+  };
+
+  const handleSendLater = () => {
+    toast.info('Bạn có thể gửi hợp đồng sau trong trang Quản lý hợp đồng');
+    setTimeout(() => {
+      onSuccess?.();
+      onClose();
+    }, 500);
+  };
+
+  const handleSendingViewerClose = () => {
+    setShowSendingViewer(false);
+    setSendingIframeUrl(null);
+    toast.success('Hợp đồng đã được gửi đi!');
     setTimeout(() => {
       onSuccess?.();
       onClose();
@@ -412,7 +473,6 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
           isOpen={showPayOSModal}
           onClose={() => {
             setShowPayOSModal(false);
-            // Delay to ensure backend has saved
             setTimeout(() => {
               onSuccess?.();
               onClose();
@@ -426,6 +486,25 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
           contractType="membership"
         />
       )}
+
+      {/* Post-Purchase Contract Dialog */}
+      <PostPurchaseContractDialog
+        open={showPostPurchaseDialog}
+        onOpenChange={setShowPostPurchaseDialog}
+        contractDocument={createdContractDocument}
+        onSendNow={handleSendNow}
+        onSendLater={handleSendLater}
+      />
+
+      {/* Embedded Sending Viewer */}
+      <EmbeddedDocumentViewer
+        open={showSendingViewer}
+        onOpenChange={setShowSendingViewer}
+        documentTitle={createdContractDocument?.title || 'Contract Document'}
+        mode="sending"
+        iframeUrl={sendingIframeUrl}
+        onClose={handleSendingViewerClose}
+      />
     </Dialog>
   );
 };

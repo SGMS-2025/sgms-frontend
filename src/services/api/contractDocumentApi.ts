@@ -39,6 +39,12 @@ export const contractDocumentApi = {
     if (data.branchId) {
       formData.append('branchId', data.branchId);
     }
+    if (data.isTemplate !== undefined) {
+      formData.append('isTemplate', String(data.isTemplate));
+    }
+    if (data.templateContractType) {
+      formData.append('templateContractType', data.templateContractType);
+    }
 
     const response = await api.post<ApiResponse<ContractDocument>>('/signnow/documents', formData, {
       headers: {

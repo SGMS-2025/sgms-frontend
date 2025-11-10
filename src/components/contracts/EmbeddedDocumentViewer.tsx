@@ -49,47 +49,34 @@ export default function EmbeddedDocumentViewer({
     setLoading(true);
     setError(null);
 
-    try {
-      if (!documentId) {
-        setError('Document ID is required');
-        setLoading(false);
-        return;
-      }
-
-      const { contractDocumentApi } = await import('@/services/api/contractDocumentApi');
-
-      const redirectUrl = `${window.location.origin}/manage/contracts`;
-      let response;
-
-      if (mode === 'edit') {
-        response = await contractDocumentApi.createEmbeddedEditor(documentId, {
-          redirectUrl
-        });
-      } else {
-        response = await contractDocumentApi.createEmbeddedView(documentId, {
-          redirectUrl
-        });
-      }
-
-      console.log('Embedded response:', response);
-
-      if (response.success && response.data?.link) {
-        console.log('Setting iframe URL:', response.data.link);
-        setIframeUrl(response.data.link);
-      } else {
-        console.error('Invalid response format:', response);
-        setError(response.message || 'Failed to load document');
-      }
-    } catch (err) {
-      console.error('Error loading embedded document:', err);
-      const errorMessage =
-        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
-        (err as { message?: string })?.message ||
-        'Failed to load document. Please try again.';
-      setError(errorMessage);
-    } finally {
+    if (!documentId) {
+      setError('Document ID is required');
       setLoading(false);
+      return;
     }
+
+    const { contractDocumentApi } = await import('@/services/api/contractDocumentApi');
+
+    const redirectUrl = `${window.location.origin}/manage/contracts`;
+    let response;
+
+    if (mode === 'edit') {
+      response = await contractDocumentApi.createEmbeddedEditor(documentId, {
+        redirectUrl
+      });
+    } else {
+      response = await contractDocumentApi.createEmbeddedView(documentId, {
+        redirectUrl
+      });
+    }
+
+    if (response.success && response.data?.link) {
+      setIframeUrl(response.data.link);
+    } else {
+      setError(response.message || 'Failed to load document');
+    }
+
+    setLoading(false);
   };
 
   const handleClose = () => {

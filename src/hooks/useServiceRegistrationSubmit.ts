@@ -8,9 +8,9 @@ import type { ServiceRegistrationFormData } from './useServiceRegistration';
 export interface UseServiceRegistrationSubmitOptions {
   customerId: string;
   packageTypeName: string; // 'gói PT' or 'gói lớp học'
-  onSuccess?: () => void;
+  onSuccess?: (response?: ServiceContractResponse) => void;
   onClose: () => void;
-  onPaymentRequired?: (contractId: string) => void;
+  onPaymentRequired?: (contractId: string, response: ServiceContractResponse) => void;
 }
 
 export interface UseServiceRegistrationSubmitReturn {
@@ -28,17 +28,23 @@ export const useServiceRegistrationSubmit = ({
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
 
-  const handleRegistrationSuccess = () => {
+  const handleRegistrationSuccess = (response: ServiceContractResponse) => {
     toast.success(
       t('service_registration.registration_success', {
         packageType: packageTypeName,
         defaultValue: `Registration for ${packageTypeName} successful!`
       })
     );
-    setTimeout(() => {
-      onSuccess?.();
-      onClose();
-    }, 500);
+
+    // Call onSuccess with response data to allow custom handling
+    if (onSuccess) {
+      onSuccess(response);
+    } else {
+      // Fallback to default behavior
+      setTimeout(() => {
+        onClose();
+      }, 500);
+    }
   };
 
   const handleContractCreated = (response: ServiceContractResponse, formData: ServiceRegistrationFormData) => {
@@ -59,9 +65,10 @@ export const useServiceRegistrationSubmit = ({
 
     // If payment method is BANK_TRANSFER and we have a contractId, trigger PayOS payment
     if (formData.paymentMethod === 'BANK_TRANSFER' && contractId && onPaymentRequired) {
-      onPaymentRequired(contractId);
+      onPaymentRequired(contractId, response);
+      setLoading(false);
     } else {
-      handleRegistrationSuccess();
+      handleRegistrationSuccess(response);
       setLoading(false);
     }
   };

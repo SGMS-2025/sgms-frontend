@@ -242,6 +242,14 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                           Mẫu
                         </Badge>
                       )}
+                      {contract.signersCount !== undefined && contract.signersCount !== null && (
+                        <Badge
+                          variant="outline"
+                          className="text-xs font-medium bg-gray-100 text-gray-700 border-gray-200"
+                        >
+                          Signers: {contract.signersCount}
+                        </Badge>
+                      )}
                     </div>
                     <h4 className="font-semibold text-foreground">{contract.title}</h4>
                     {contract.description && <p className="text-sm text-muted-foreground">{contract.description}</p>}

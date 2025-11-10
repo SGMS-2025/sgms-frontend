@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Upload, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { contractDocumentApi } from '@/services/api/contractDocumentApi';
+import { useBranch } from '@/contexts/BranchContext';
 import { toast } from 'sonner';
 import type { UploadDocumentRequest } from '@/types/api/ContractDocument';
 
@@ -17,13 +19,31 @@ interface DocumentUploadDialogProps {
   branchId?: string;
 }
 
-export default function DocumentUploadDialog({ open, onOpenChange, onUploaded, branchId }: DocumentUploadDialogProps) {
+export default function DocumentUploadDialog({
+  open,
+  onOpenChange,
+  onUploaded,
+  branchId: initialBranchId
+}: DocumentUploadDialogProps) {
   const { t } = useTranslation();
+  const { currentBranch, branches } = useBranch();
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState('');
+  const [templateContractType, setTemplateContractType] = useState<
+    'membership' | 'service_pt' | 'service_class' | 'custom'
+  >('membership');
+  const [selectedBranchId, setSelectedBranchId] = useState<string>('');
+
+  // Initialize selected branch when dialog opens
+  useEffect(() => {
+    if (open) {
+      // Use initialBranchId if provided, otherwise use current branch
+      setSelectedBranchId(initialBranchId || currentBranch?._id || '');
+    }
+  }, [open, initialBranchId, currentBranch]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -67,30 +87,28 @@ export default function DocumentUploadDialog({ open, onOpenChange, onUploaded, b
     }
 
     setLoading(true);
-    try {
-      const data: UploadDocumentRequest = {
-        document: file,
-        title: title || file.name,
-        description: description || undefined,
-        tags: tags ? tags.split(',').map((t) => t.trim()) : undefined,
-        branchId: branchId
-      };
 
-      const response = await contractDocumentApi.uploadDocument(data);
+    const data: UploadDocumentRequest = {
+      document: file,
+      title: title || file.name,
+      description: description || undefined,
+      tags: tags ? tags.split(',').map((t) => t.trim()) : undefined,
+      ...(selectedBranchId && selectedBranchId !== 'global' ? { branchId: selectedBranchId } : {}),
+      isTemplate: true,
+      templateContractType: templateContractType
+    };
 
-      if (response.success) {
-        toast.success('Document uploaded successfully');
-        handleClose();
-        onUploaded?.();
-      } else {
-        toast.error(response.message || 'Failed to upload document');
-      }
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('Failed to upload document');
-    } finally {
-      setLoading(false);
+    const response = await contractDocumentApi.uploadDocument(data);
+
+    if (response.success) {
+      toast.success('Document uploaded successfully');
+      handleClose();
+      onUploaded?.();
+    } else {
+      toast.error(response.message || 'Failed to upload document');
     }
+
+    setLoading(false);
   };
 
   const handleClose = () => {
@@ -99,6 +117,7 @@ export default function DocumentUploadDialog({ open, onOpenChange, onUploaded, b
       setTitle('');
       setDescription('');
       setTags('');
+      setTemplateContractType('membership');
       onOpenChange(false);
     }
   };
@@ -183,6 +202,66 @@ export default function DocumentUploadDialog({ open, onOpenChange, onUploaded, b
               placeholder={t('contracts.tags_placeholder', 'e.g. contract, membership (comma-separated)')}
               disabled={loading}
             />
+          </div>
+
+          {/* Branch Selector */}
+          <div className="space-y-2">
+            <Label htmlFor="branch">
+              {t('contracts.branch', 'Branch')} <span className="text-red-500">*</span>
+            </Label>
+            <Select value={selectedBranchId} onValueChange={setSelectedBranchId} disabled={loading}>
+              <SelectTrigger id="branch">
+                <SelectValue placeholder={t('contracts.select_branch', 'Select branch')} />
+              </SelectTrigger>
+              <SelectContent>
+                {/* Global Template Option */}
+                <SelectItem value="global">
+                  {t('contracts.global_template', 'Global Template (All Branches)')}
+                </SelectItem>
+                {/* User's Branches */}
+                {branches.map((branch) => (
+                  <SelectItem key={branch._id} value={branch._id}>
+                    {branch.branchName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-gray-500">
+              {t(
+                'contracts.branch_hint',
+                'Select which branch this template is for, or choose Global for all branches'
+              )}
+            </p>
+          </div>
+
+          {/* Template Contract Type */}
+          <div className="space-y-2">
+            <Label htmlFor="templateType">
+              {t('contracts.template_type', 'Template Type')} <span className="text-red-500">*</span>
+            </Label>
+            <Select
+              value={templateContractType}
+              onValueChange={(value) =>
+                setTemplateContractType(value as 'membership' | 'service_pt' | 'service_class' | 'custom')
+              }
+              disabled={loading}
+            >
+              <SelectTrigger id="templateType">
+                <SelectValue placeholder={t('contracts.select_template_type', 'Select template type')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="membership">{t('contracts.type_membership', 'Membership Contract')}</SelectItem>
+                <SelectItem value="service_pt">{t('contracts.type_pt', 'PT Contract (1-on-1)')}</SelectItem>
+                <SelectItem value="service_class">{t('contracts.type_class', 'Class Contract (Group)')}</SelectItem>
+                <SelectItem value="custom">{t('contracts.type_custom', 'Custom Contract')}</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-gray-500">
+              {t(
+                'contracts.template_type_hint',
+                'This helps auto-select the correct template when creating customer contracts'
+              )}
+            </p>
           </div>
 
           <DialogFooter>
