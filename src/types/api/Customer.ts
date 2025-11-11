@@ -428,12 +428,15 @@ export interface CustomerListResponse {
 }
 
 // PT Customer specific types
+export type ContractType = 'PT_PACKAGE' | 'MEMBERSHIP_KPI';
+
 export interface PTCustomer {
   _id: string;
   fullName: string;
   phone: string;
   email?: string;
   avatar?: string;
+  contractType?: ContractType; // 'PT_PACKAGE' | 'MEMBERSHIP_KPI'
   package: {
     contractId: string;
     name: string;

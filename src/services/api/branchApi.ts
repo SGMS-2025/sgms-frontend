@@ -1,6 +1,12 @@
 import type { ApiResponse } from '@/types/api/Api';
 import { api } from './api';
-import type { BranchListResponse, BranchListParams, Branch, CreateAndUpdateBranchRequest } from '@/types/api/Branch';
+import type {
+  BranchListResponse,
+  BranchListParams,
+  Branch,
+  CreateAndUpdateBranchRequest,
+  MyBranchesApiResponse
+} from '@/types/api/Branch';
 import type { BranchWorkingConfig, BranchWorkingConfigRequest } from '@/types/api/BranchWorkingConfig';
 
 export const branchApi = {
@@ -55,7 +61,7 @@ export const branchApi = {
   },
 
   // Get my branches (owner only)
-  getMyBranches: async (params: BranchListParams = {}): Promise<ApiResponse<BranchListResponse>> => {
+  getMyBranches: async (params: BranchListParams = {}): Promise<MyBranchesApiResponse> => {
     const response = await api.get('/branches/my-branches', { params });
     return response.data;
   },

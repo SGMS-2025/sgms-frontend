@@ -77,6 +77,8 @@ import AdminSubscriptionPackagesPage from '@/pages/admin/AdminSubscriptionPackag
 import { AdminLayout } from '@/layouts/AdminLayout';
 import OwnerSubscriptionGate from '@/components/guards/OwnerSubscriptionGate';
 import OwnerSubscriptionGateWithLayout from '@/components/guards/OwnerSubscriptionGateWithLayout';
+import KPIManagementPage from '@/pages/owner/KPIManagementPage';
+import MyKPIPage from '@/pages/pt/MyKPIPage';
 
 // WorkShift Calendar with Layout Component
 // Note: Layout is provided by OwnerSubscriptionGateWithLayout wrapper
@@ -329,6 +331,9 @@ const AppRoutes: React.FC = () => {
             {/* Time Off Management Routes */}
             <Route path="timeoff" element={<TimeOffPage />} />
             <Route path="timeoff/management" element={<TimeOffManagementPage />} />
+
+            {/* KPI Management Routes */}
+            <Route path="kpi" element={<KPIManagementPage />} />
           </Route>
           {/* Subscription Management Route (accessible without active subscription for OWNER) */}
           <Route path="subscriptions" element={<SubscriptionPackagesPage />} />
@@ -398,6 +403,12 @@ const AppRoutes: React.FC = () => {
           {/* Training Progress Detail Route for PT */}
           <Route path="clients/:id/progress" element={<TrainingProgressDetailPage />} />
 
+          {/* Customers Route for PT - to register packages for customers in branch */}
+          <Route path="customers" element={<CustomerManagementPage />} />
+
+          {/* Customer Detail Route for PT */}
+          <Route path="customers/:id/detail" element={<CustomerDetailPage />} />
+
           {/* Time Off Route for PT */}
           <Route path="timeoff" element={<PTTimeOffPage />} />
 
@@ -406,6 +417,9 @@ const AppRoutes: React.FC = () => {
 
           {/* Equipment Issue Report Route for PT */}
           <Route path="equipment-issues" element={<EquipmentIssueReportPage />} />
+
+          {/* My KPI Route for PT */}
+          <Route path="kpi" element={<MyKPIPage />} />
 
           <Route path="*" element={<Navigate to="/manage/pt" replace />} />
         </Route>

@@ -25,7 +25,8 @@ import {
   CalendarDays,
   CreditCard,
   Building2,
-  FileText
+  FileText,
+  TrendingUp
 } from 'lucide-react';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -586,6 +587,12 @@ export const OwnerSidebar: React.FC = () => {
               label={t('sidebar.expenses') || 'Chi phí / Expenses'}
               isActive={location.pathname === '/manage/expenses'}
               onClick={() => navigate('/manage/expenses')}
+            />
+            <SubMenuItem
+              icon={<TrendingUp className="w-5 h-5 stroke-[1.75]" />}
+              label={t('sidebar.kpi', 'KPI Management')}
+              isActive={location.pathname === '/manage/kpi'}
+              onClick={() => navigate('/manage/kpi')}
             />
           </DropdownSidebarItem>
         </div>

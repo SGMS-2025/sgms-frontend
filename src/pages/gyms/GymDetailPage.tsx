@@ -302,7 +302,12 @@ const GymDetailPage: React.FC = () => {
     }
   };
 
-  const handleConfirmPurchase = async (payload: { transactionCode?: string; note?: string; startDate?: string }) => {
+  const handleConfirmPurchase = async (payload: {
+    transactionCode?: string;
+    note?: string;
+    startDate?: string;
+    referralCode?: string;
+  }) => {
     if (!branch?._id || !selectedPlan) return;
 
     try {
@@ -339,7 +344,7 @@ const GymDetailPage: React.FC = () => {
     }
   };
 
-  const handlePayOSPurchase = async (payload: { note?: string; startDate?: string }) => {
+  const handlePayOSPurchase = async (payload: { note?: string; startDate?: string; referralCode?: string }) => {
     if (!branch?._id || !selectedPlan) return;
 
     try {

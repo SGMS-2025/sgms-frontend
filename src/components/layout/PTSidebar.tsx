@@ -18,7 +18,8 @@ import {
   CalendarDays,
   ChevronDown,
   ShieldCheck as Shield,
-  User
+  User,
+  UserCheck
 } from 'lucide-react';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -380,6 +381,13 @@ export const PTSidebar: React.FC = () => {
       isActive: location.pathname.startsWith('/manage/pt/clients'),
       onClick: () => handleNavigation('/manage/pt/clients')
     },
+    {
+      icon: <UserCheck className="w-5 h-5" />,
+      label: t('pt.sidebar.registerPackage', 'Register Package'),
+      href: '/manage/pt/customers',
+      isActive: location.pathname.startsWith('/manage/pt/customers'),
+      onClick: () => handleNavigation('/manage/pt/customers')
+    },
     // Schedule and Time Off will be handled by dropdown
     {
       icon: <Calendar className="w-5 h-5" />,
@@ -422,6 +430,13 @@ export const PTSidebar: React.FC = () => {
       href: '/manage/pt/equipment-issues',
       isActive: location.pathname.startsWith('/manage/pt/equipment-issues'),
       onClick: () => handleNavigation('/manage/pt/equipment-issues')
+    },
+    {
+      icon: <TrendingUp className="w-5 h-5" />,
+      label: t('pt.sidebar.myKPI', 'My KPI'),
+      href: '/manage/pt/kpi',
+      isActive: location.pathname === '/manage/pt/kpi',
+      onClick: () => handleNavigation('/manage/pt/kpi')
     }
   ];
 

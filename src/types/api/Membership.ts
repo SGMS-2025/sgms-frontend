@@ -165,6 +165,7 @@ export interface CreatePublicMembershipContractPayload {
   startDate?: string;
   note?: string;
   transactionCode?: string;
+  referralCode?: string; // CASE 1: Referral code from PT
   proofImageUrls?: string[];
 }
 
@@ -195,6 +196,7 @@ export interface CreatePublicMembershipContractPayOSPayload {
   membershipPlanId: string;
   startDate?: string;
   note?: string;
+  referralCode?: string; // CASE 1: Referral code from PT
   returnUrl?: string;
   cancelUrl?: string;
 }

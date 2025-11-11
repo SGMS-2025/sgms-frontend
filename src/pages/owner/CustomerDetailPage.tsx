@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -37,9 +37,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { customerApi } from '@/services/api/customerApi';
+import { useBranch } from '@/contexts/BranchContext';
+import { socketService } from '@/services/socket/socketService';
 import { cn } from '@/utils/utils';
 import type { CustomerDisplay } from '@/types/api/Customer';
 import type { MembershipContract } from '@/types/api/Membership';
+import type { MembershipContractUpdateEvent } from '@/types/api/Socket';
 import type { LucideIcon } from 'lucide-react';
 
 const formatDate = (value?: string, locale: string = 'vi-VN') => {
@@ -122,6 +125,7 @@ const CustomerDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
+  const { currentBranch } = useBranch();
 
   const [customer, setCustomer] = useState<CustomerDisplay | null>(null);
   const [loading, setLoading] = useState(true);
@@ -143,33 +147,66 @@ const CustomerDetailPage: React.FC = () => {
   const [showExtendPT, setShowExtendPT] = useState(false);
   const [showExtendClass, setShowExtendClass] = useState(false);
 
-  useEffect(() => {
-    if (id) {
-      void fetchCustomerDetail();
-    }
-  }, [id]);
-
-  const fetchCustomerDetail = async () => {
+  const fetchCustomerDetail = useCallback(async () => {
     if (!id) return;
 
     try {
       setLoading(true);
       setError(null);
 
-      const response = await customerApi.getCustomerById(id);
+      // Pass branchId if available (for PT/Staff role to check branch access)
+      // If branchId is not available, backend will extract it from customer record
+      const branchId = currentBranch?._id;
+      console.log('[CustomerDetailPage] Fetching customer detail:', { customerId: id, branchId });
+      const response = await customerApi.getCustomerById(id, branchId);
 
       if (response.success && response.data) {
         setCustomer(response.data);
       } else {
         setError(response.message || t('customer_detail.error.fetch_failed'));
       }
-    } catch (fetchError) {
+    } catch (fetchError: unknown) {
       console.error('Error fetching customer detail:', fetchError);
-      setError(t('customer_detail.error.fetch_error'));
+      // Check if it's an axios error with response
+      if (fetchError && typeof fetchError === 'object' && 'response' in fetchError) {
+        const axiosError = fetchError as { response?: { data?: { message?: string } } };
+        const errorMessage = axiosError.response?.data?.message || t('customer_detail.error.fetch_error');
+        setError(errorMessage);
+      } else {
+        setError(t('customer_detail.error.fetch_error'));
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, currentBranch?._id, t]);
+
+  useEffect(() => {
+    if (id) {
+      void fetchCustomerDetail();
+    }
+  }, [id, fetchCustomerDetail]);
+
+  // Listen for membership contract updates (realtime)
+  useEffect(() => {
+    if (!id) return;
+
+    const handleMembershipContractUpdate = (data: MembershipContractUpdateEvent) => {
+      // Convert customerId to string for comparison
+      const updateCustomerId = data.customerId?.toString();
+      const currentCustomerId = customer?.id?.toString();
+
+      if (updateCustomerId === currentCustomerId || (!customer && id)) {
+        void fetchCustomerDetail();
+      }
+    };
+
+    // Listen for membership contract update events from socket
+    socketService.on('membership:contract:updated', handleMembershipContractUpdate);
+
+    return () => {
+      socketService.off('membership:contract:updated', handleMembershipContractUpdate);
+    };
+  }, [customer?.id, id, fetchCustomerDetail]); // Include fetchCustomerDetail in dependencies
 
   const getStatusText = (status: string) => {
     switch (status) {
