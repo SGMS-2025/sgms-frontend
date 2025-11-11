@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { User, Package } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,12 @@ import { PaymentAmountInput } from './shared/PaymentAmountInput';
 import { PaymentMethodSelector } from './shared/PaymentMethodSelector';
 import { NotesField } from './shared/NotesField';
 import { FormActions } from './shared/FormActions';
+import SelectTemplateDialog from '@/components/contracts/SelectTemplateDialog';
+import PostPurchaseContractDialog from '@/components/contracts/PostPurchaseContractDialog';
+import EmbeddedDocumentViewer from '@/components/contracts/EmbeddedDocumentViewer';
+import { contractDocumentApi } from '@/services/api/contractDocumentApi';
+import type { ContractDocument } from '@/types/api/ContractDocument';
+import type { ServiceContractResponse } from '@/types/api/Package';
 
 interface PTRegistrationDialogProps {
   isOpen: boolean;
@@ -35,6 +42,15 @@ export const PTRegistrationDialog: React.FC<PTRegistrationDialogProps> = ({
 }) => {
   const { t } = useTranslation();
   const { currentBranch } = useBranch();
+
+  // Contract workflow states
+  const [showSelectTemplateDialog, setShowSelectTemplateDialog] = useState(false);
+  const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
+  const [showPostPurchaseDialog, setShowPostPurchaseDialog] = useState(false);
+  const [createdContractDocument, setCreatedContractDocument] = useState<ContractDocument | null>(null);
+  const [showSendingViewer, setShowSendingViewer] = useState(false);
+  const [sendingIframeUrl, setSendingIframeUrl] = useState<string | null>(null);
+  const [pendingContractResponse, setPendingContractResponse] = useState<ServiceContractResponse | null>(null);
 
   // Fetch registration data (including trainers for PT)
   const { packages, promotions, trainers } = useFetchRegistrationData({
@@ -55,7 +71,43 @@ export const PTRegistrationDialog: React.FC<PTRegistrationDialogProps> = ({
     handlePromotionChange
   } = useServiceRegistration(currentBranch?._id || '');
 
-  // PayOS payment handling
+  // Custom onSuccess handler to show template selection dialog
+  const handleRegistrationSuccess = (response?: ServiceContractResponse) => {
+    if (!response?.success || !response?.data) {
+      toast.error('Có lỗi khi tạo hợp đồng');
+      return;
+    }
+
+    const contract = response.data;
+    const contractId = contract._id;
+
+    if (contractId) {
+      // Show template selection dialog after successful contract creation
+      setSelectedContractId(contractId);
+      setShowSelectTemplateDialog(true);
+    } else {
+      toast.error('Không thể lấy ID hợp đồng');
+    }
+  };
+
+  // PayOS payment handling with post-purchase flow
+  const handlePaymentSuccessWithContract = () => {
+    toast.success('Thanh toán thành công!');
+
+    // After successful payment, show template selection dialog if we have pending contract
+    if (pendingContractResponse) {
+      handleRegistrationSuccess(pendingContractResponse);
+      setPendingContractResponse(null);
+    } else if (createdContractDocument) {
+      setShowPostPurchaseDialog(true);
+    } else {
+      setTimeout(() => {
+        onSuccess?.();
+        onClose();
+      }, 500);
+    }
+  };
+
   const { showPayOSModal, payOSData, createdContractId, handlePayOSPayment, handlePaymentSuccess, handleModalClose } =
     usePayOSPayment({
       customerId,
@@ -63,18 +115,75 @@ export const PTRegistrationDialog: React.FC<PTRegistrationDialogProps> = ({
       totalPrice: priceCalculation.totalPrice,
       initialPaidAmount: formData.initialPaidAmount,
       packageDescription: t('pt_registration.package_description'),
-      onSuccess,
+      onSuccess: handlePaymentSuccessWithContract,
       onClose
     });
 
-  // Submit handling
+  // Wrapper to handle payment required with contract response
+  const handlePaymentRequiredWithResponse = (contractId: string, response: ServiceContractResponse) => {
+    // Save the contract response for after payment
+    setPendingContractResponse(response);
+    // Trigger PayOS payment flow
+    handlePayOSPayment(contractId);
+  };
+
+  // Submit handling with contract document capture
   const { loading, handleSubmit } = useServiceRegistrationSubmit({
     customerId,
     packageTypeName: t('pt_registration.package_type_name'),
-    onSuccess,
+    onSuccess: handleRegistrationSuccess,
     onClose,
-    onPaymentRequired: handlePayOSPayment
+    onPaymentRequired: handlePaymentRequiredWithResponse
   });
+
+  const handleSendNow = async () => {
+    if (!createdContractDocument) return;
+
+    const response = await contractDocumentApi.createEmbeddedSending(createdContractDocument._id, {
+      type: 'invite',
+      redirectUrl: `${window.location.origin}/manage/contracts`
+    });
+
+    if (response.success && response.data?.link) {
+      setSendingIframeUrl(response.data.link);
+      setShowSendingViewer(true);
+    } else {
+      toast.error('Không thể tạo link gửi hợp đồng');
+    }
+  };
+
+  const handleTemplateSelected = (contractDocument: ContractDocument) => {
+    setCreatedContractDocument(contractDocument);
+    setShowSelectTemplateDialog(false);
+    setShowPostPurchaseDialog(true);
+  };
+
+  const handleSkipTemplateSelection = () => {
+    setShowSelectTemplateDialog(false);
+    toast.info('Bạn có thể tạo hợp đồng sau trong trang Quản lý hợp đồng');
+    setTimeout(() => {
+      onSuccess?.();
+      onClose();
+    }, 500);
+  };
+
+  const handleSendLater = () => {
+    toast.info('Bạn có thể gửi hợp đồng sau trong trang Quản lý hợp đồng');
+    setTimeout(() => {
+      onSuccess?.();
+      onClose();
+    }, 500);
+  };
+
+  const handleSendingViewerClose = () => {
+    setShowSendingViewer(false);
+    setSendingIframeUrl(null);
+    toast.success('Hợp đồng đã được gửi đi!');
+    setTimeout(() => {
+      onSuccess?.();
+      onClose();
+    }, 500);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -233,6 +342,39 @@ export const PTRegistrationDialog: React.FC<PTRegistrationDialogProps> = ({
           contractType="service"
         />
       )}
+
+      {/* Template Selection Dialog */}
+      {selectedContractId && currentBranch?._id && (
+        <SelectTemplateDialog
+          open={showSelectTemplateDialog}
+          onOpenChange={setShowSelectTemplateDialog}
+          contractType="service_pt"
+          branchId={currentBranch._id}
+          customerId={customerId}
+          contractId={selectedContractId}
+          onTemplateSelected={handleTemplateSelected}
+          onSkip={handleSkipTemplateSelection}
+        />
+      )}
+
+      {/* Post-Purchase Contract Dialog */}
+      <PostPurchaseContractDialog
+        open={showPostPurchaseDialog}
+        onOpenChange={setShowPostPurchaseDialog}
+        contractDocument={createdContractDocument}
+        onSendNow={handleSendNow}
+        onSendLater={handleSendLater}
+      />
+
+      {/* Embedded Sending Viewer */}
+      <EmbeddedDocumentViewer
+        open={showSendingViewer}
+        onOpenChange={setShowSendingViewer}
+        documentTitle={createdContractDocument?.title || 'Contract Document'}
+        mode="sending"
+        iframeUrl={sendingIframeUrl}
+        onClose={handleSendingViewerClose}
+      />
     </Dialog>
   );
 };

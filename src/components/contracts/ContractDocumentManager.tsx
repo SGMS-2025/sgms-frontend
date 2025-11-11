@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { contractDocumentApi } from '@/services/api/contractDocumentApi';
 import { toast } from 'sonner';
 import DocumentUploadDialog from './DocumentUploadDialog';
@@ -18,6 +19,7 @@ export default function ContractDocumentManager() {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<DocumentStatus | 'all'>('all');
+  const [typeFilter, setTypeFilter] = useState<'templates' | 'contracts'>('templates');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -28,30 +30,29 @@ export default function ContractDocumentManager() {
 
   const fetchDocuments = useCallback(async () => {
     setLoading(true);
-    try {
-      const response = await contractDocumentApi.listDocuments({
-        page,
-        limit: 10,
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-        status: statusFilter,
-        search: search || undefined
-      });
 
-      if (response.success) {
-        // API returns data as array directly and pagination at root level
-        const documents = Array.isArray(response.data) ? response.data : [];
-        setDocuments(documents);
-        setTotalPages(response.pagination?.totalPages || 1);
-        setTotal(response.pagination?.total || 0);
-      }
-    } catch (error) {
-      console.error('Error fetching documents:', error);
+    const response = await contractDocumentApi.listDocuments({
+      page,
+      limit: 10,
+      sortBy: 'createdAt',
+      sortOrder: 'desc',
+      status: statusFilter,
+      type: typeFilter,
+      search: search || undefined
+    });
+
+    if (response.success) {
+      // API returns data as array directly and pagination at root level
+      const documents = Array.isArray(response.data) ? response.data : [];
+      setDocuments(documents);
+      setTotalPages(response.pagination?.totalPages || 1);
+      setTotal(response.pagination?.total || 0);
+    } else {
       toast.error('Failed to load documents');
-    } finally {
-      setLoading(false);
     }
-  }, [page, statusFilter, search]);
+
+    setLoading(false);
+  }, [page, statusFilter, typeFilter, search]);
 
   useEffect(() => {
     fetchDocuments();
@@ -74,25 +75,20 @@ export default function ContractDocumentManager() {
   };
 
   const handleOpenSending = async (document: ContractDocument) => {
-    try {
-      const redirectUrl = `${window.location.origin}/manage/contracts`;
-      const response = await contractDocumentApi.createEmbeddedSending(document._id, {
-        type: 'document', // 'document' allows editing fields before sending, 'invite' opens invite page directly
-        redirectUrl,
-        linkExpiration: 45, // Max 45 minutes (SignNow API limit for embedded-sending)
-        redirectTarget: 'self'
-      });
+    const redirectUrl = `${window.location.origin}/manage/contracts`;
+    const response = await contractDocumentApi.createEmbeddedSending(document._id, {
+      type: 'document', // 'document' allows editing fields before sending, 'invite' opens invite page directly
+      redirectUrl,
+      linkExpiration: 45, // Max 45 minutes (SignNow API limit for embedded-sending)
+      redirectTarget: 'self'
+    });
 
-      if (response.success && response.data?.link) {
-        setSelectedDocument(document);
-        setEmbeddedMode('view'); // Reuse viewer component
-        setIframeUrl(response.data.link);
-        setEmbeddedViewerOpen(true);
-      } else {
-        toast.error('Failed to create sending link');
-      }
-    } catch (error) {
-      console.error('Error creating sending link:', error);
+    if (response.success && response.data?.link) {
+      setSelectedDocument(document);
+      setEmbeddedMode('view'); // Reuse viewer component
+      setIframeUrl(response.data.link);
+      setEmbeddedViewerOpen(true);
+    } else {
       toast.error('Failed to create sending link');
     }
   };
@@ -110,16 +106,11 @@ export default function ContractDocumentManager() {
       return;
     }
 
-    try {
-      const response = await contractDocumentApi.deleteDocument(documentId);
-      if (response.success) {
-        toast.success('Document deleted successfully');
-        fetchDocuments();
-      } else {
-        toast.error('Failed to delete document');
-      }
-    } catch (error) {
-      console.error('Error deleting document:', error);
+    const response = await contractDocumentApi.deleteDocument(documentId);
+    if (response.success) {
+      toast.success('Document deleted successfully');
+      fetchDocuments();
+    } else {
       toast.error('Failed to delete document');
     }
   };
@@ -160,6 +151,20 @@ export default function ContractDocumentManager() {
           {t('contracts.upload_document', 'Upload Document')}
         </Button>
       </div>
+
+      {/* Tabs */}
+      <Tabs
+        value={typeFilter}
+        onValueChange={(value) => {
+          setTypeFilter(value as 'templates' | 'contracts');
+          setPage(1);
+        }}
+      >
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="templates">{t('contracts.templates', 'Templates')}</TabsTrigger>
+          <TabsTrigger value="contracts">{t('contracts.customer_contracts', 'Customer Contracts')}</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* Filters */}
       <div className="flex gap-4">
@@ -219,6 +224,11 @@ export default function ContractDocumentManager() {
                       <FileText className="h-5 w-5 text-orange-500" />
                       <h3 className="font-semibold text-gray-900">{doc.title}</h3>
                       {getStatusBadge(doc.status)}
+                      {doc.signersCount !== undefined && doc.signersCount !== null && (
+                        <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700">
+                          Signers: {doc.signersCount}
+                        </Badge>
+                      )}
                     </div>
                     {doc.description && <p className="text-sm text-gray-600 mb-2">{doc.description}</p>}
                     <div className="flex items-center gap-4 text-xs text-gray-500">

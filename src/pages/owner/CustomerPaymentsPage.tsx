@@ -2,23 +2,36 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
-import { Calendar as CalendarIcon, CreditCard, Loader2, RotateCcw, Search } from 'lucide-react';
+import {
+  Calendar as CalendarIcon,
+  CreditCard,
+  Loader2,
+  RotateCcw,
+  Search,
+  TrendingUp,
+  TrendingDown,
+  Clock,
+  XCircle,
+  Download,
+  DollarSign,
+  CheckCircle2
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Pagination,
   PaginationContent,
+  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
   PaginationPrevious
 } from '@/components/ui/pagination';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useBranch } from '@/contexts/BranchContext';
@@ -44,10 +57,10 @@ const getStatusOptions = (
 ];
 
 const statusClasses: Record<TransactionStatus, string> = {
-  SETTLED: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  PENDING: 'bg-amber-100 text-amber-700 border-amber-200',
-  FAILED: 'bg-red-100 text-red-700 border-red-200',
-  VOID: 'bg-gray-100 text-gray-600 border-gray-200'
+  SETTLED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  PENDING: 'bg-amber-50 text-amber-700 border-amber-200',
+  FAILED: 'bg-red-50 text-red-700 border-red-200',
+  VOID: 'bg-gray-50 text-gray-600 border-gray-200'
 };
 
 const getStatusLabels = (
@@ -56,7 +69,7 @@ const getStatusLabels = (
   SETTLED: t('payment.status.settled', { defaultValue: 'Hoàn tất' }),
   PENDING: t('payment.status.pending', { defaultValue: 'Đang chờ' }),
   FAILED: t('payment.status.failed', { defaultValue: 'Thất bại' }),
-  VOID: t('payment.status.void', { defaultValue: 'Đã hủy' })
+  VOID: t('payment.status.void', { defaultValue: 'Đa hủy' })
 });
 
 const getMethodLabels = (t: (key: string, options?: Record<string, unknown>) => string): Record<string, string> => ({
@@ -165,36 +178,52 @@ const resolvePerformerEmail = (recordedBy: TransactionRecordedBy | string | null
   return recordedBy.email || null;
 };
 
+// Shadcn UI style Summary Card
 const SummaryCard: React.FC<{
   title: string;
   value: string;
   caption?: string;
-  tone?: 'default' | 'success' | 'warning' | 'danger';
-}> = ({ title, value, caption, tone = 'default' }) => {
-  const toneClasses: Record<string, string> = {
-    default: 'border-gray-200 bg-white text-gray-900',
-    success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    warning: 'border-amber-200 bg-amber-50 text-amber-700',
-    danger: 'border-red-200 bg-red-50 text-red-700'
+  icon: React.ElementType;
+  trend?: 'up' | 'down' | 'neutral';
+}> = ({ title, value, caption, icon: Icon, trend = 'neutral' }) => {
+  const trendColors = {
+    up: 'text-emerald-600',
+    down: 'text-red-600',
+    neutral: 'text-orange-600'
   };
 
   return (
-    <div className={`rounded-2xl border p-5 shadow-sm transition ${toneClasses[tone]}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</p>
-      <p className="mt-2 text-2xl font-semibold">{value}</p>
-      {caption ? <p className="mt-2 text-xs text-gray-500">{caption}</p> : null}
-    </div>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <Icon className={`h-4 w-4 ${trendColors[trend]}`} />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        {caption && <p className="text-xs text-muted-foreground mt-1">{caption}</p>}
+      </CardContent>
+    </Card>
   );
 };
 
-const StatusPill: React.FC<{ status: TransactionStatus; statusLabels: Record<TransactionStatus, string> }> = ({
+// Status Badge
+const StatusBadge: React.FC<{ status: TransactionStatus; statusLabels: Record<TransactionStatus, string> }> = ({
   status,
   statusLabels
 }) => (
-  <Badge className={`${statusClasses[status] || 'bg-slate-100 text-slate-700 border-slate-200'} px-3 py-1 font-medium`}>
+  <Badge variant="outline" className={`${statusClasses[status] || 'bg-slate-50 text-slate-700 border-slate-200'}`}>
     {statusLabels[status] || status}
   </Badge>
 );
+
+// Payment Method Badge
+const PaymentMethodBadge: React.FC<{ method: string }> = ({ method }) => {
+  return (
+    <Badge variant="secondary" className="font-normal">
+      {method}
+    </Badge>
+  );
+};
 
 const CustomerPaymentsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -257,11 +286,8 @@ const CustomerPaymentsPage: React.FC = () => {
       (acc, transaction) => {
         const amount = transaction.amount || 0;
 
-        // For revenue calculation, we need to consider transaction type
-        // RECEIPT transactions are positive (money in)
-        // REFUND transactions should reduce total (subtract from total)
         if (transaction.type === 'RECEIPT') {
-          acc.totalAmount += amount; // Positive amount for receipts
+          acc.totalAmount += amount;
           acc.totalCount += 1;
 
           if (transaction.status === 'SETTLED') {
@@ -275,12 +301,11 @@ const CustomerPaymentsPage: React.FC = () => {
             acc.failedCount += 1;
           }
         } else if (transaction.type === 'REFUND') {
-          // Refunds reduce the total amount (subtract from total)
-          acc.totalAmount -= amount; // Subtract refund amount from total
+          acc.totalAmount -= amount;
           acc.totalCount += 1;
 
           if (transaction.status === 'SETTLED') {
-            acc.settledAmount -= amount; // Subtract from settled amount
+            acc.settledAmount -= amount;
             acc.settledCount += 1;
           } else if (transaction.status === 'PENDING') {
             acc.pendingAmount -= amount;
@@ -346,58 +371,98 @@ const CustomerPaymentsPage: React.FC = () => {
     setDatePickerOpen(false);
   };
 
+  // Generate pagination pages array with ellipsis
+  const generatePaginationPages = useMemo(() => {
+    return (currentPage: number, totalPages: number): Array<number | 'ellipsis'> => {
+      const pages: Array<number | 'ellipsis'> = [];
+
+      // If total pages <= 7, show all pages
+      if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+        return pages;
+      }
+
+      // Always show first page
+      pages.push(1);
+
+      // Calculate if we need ellipsis
+      const showEllipsisStart = currentPage > 3;
+      const showEllipsisEnd = currentPage < totalPages - 2;
+
+      if (showEllipsisStart) {
+        pages.push('ellipsis');
+      }
+
+      // Show pages around current page
+      const rangeStart = Math.max(2, currentPage - 1);
+      const rangeEnd = Math.min(totalPages - 1, currentPage + 1);
+
+      for (let i = rangeStart; i <= rangeEnd; i++) {
+        if (i !== 1 && i !== totalPages) {
+          pages.push(i);
+        }
+      }
+
+      if (showEllipsisEnd) {
+        pages.push('ellipsis');
+      }
+
+      // Always show last page if more than 1 page
+      if (totalPages > 1) {
+        pages.push(totalPages);
+      }
+
+      return pages;
+    };
+  }, []);
+
   const renderTableSection = () => {
     if (loading) {
       return (
-        <div className="flex items-center justify-center py-12 text-gray-500">
-          <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-          {t('payment.loading_transactions', { defaultValue: 'Đang tải giao dịch...' })}
+        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+          <Loader2 className="h-8 w-8 animate-spin mb-2" />
+          <p className="text-sm">{t('payment.loading_transactions', { defaultValue: 'Đang tải giao dịch...' })}</p>
         </div>
       );
     }
 
     if (error) {
-      return <div className="py-12 text-center text-sm text-red-600">{error}</div>;
+      return (
+        <div className="flex flex-col items-center justify-center py-12">
+          <XCircle className="h-8 w-8 text-destructive mb-2" />
+          <p className="text-sm text-destructive">{error}</p>
+        </div>
+      );
     }
 
     if (transactions.length === 0) {
       return (
-        <div className="py-12 text-center text-sm text-gray-500">
-          {t('payment.no_transactions_found', { defaultValue: 'Không có giao dịch nào' })}
+        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+          <CreditCard className="h-12 w-12 mb-2 opacity-20" />
+          <p className="text-sm font-medium">
+            {t('payment.no_transactions_found', { defaultValue: 'Không có giao dịch nào' })}
+          </p>
+          <p className="text-xs mt-1">Thử thay đổi bộ lọc để xem kết quả khác</p>
         </div>
       );
     }
 
     return (
       <>
-        <ScrollArea className="max-h-[520px] rounded-2xl border border-gray-100">
+        <div className="rounded-md border">
           <Table>
-            <TableHeader className="bg-gray-50">
-              <TableRow className="border-b border-gray-100">
-                <TableHead className="w-40 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {t('payment.date', { defaultValue: 'Ngày' })}
-                </TableHead>
-                <TableHead className="w-52 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {t('payment.customer', { defaultValue: 'Khách hàng' })}
-                </TableHead>
-                <TableHead className="w-64 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {t('payment.contract', { defaultValue: 'Dịch vụ' })}
-                </TableHead>
-                <TableHead className="text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {t('payment.amount', { defaultValue: 'Số tiền' })}
-                </TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {t('payment.method', { defaultValue: 'Phương thức' })}
-                </TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {t('payment.status', { defaultValue: 'Trạng thái' })}
-                </TableHead>
-                <TableHead className="w-48 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {t('payment.performer', { defaultValue: 'Người thực hiện' })}
-                </TableHead>
-                <TableHead className="w-56 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  {t('payment.reference_code', { defaultValue: 'Mã giao dịch' })}
-                </TableHead>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[140px]">{t('payment.date', { defaultValue: 'Ngày' })}</TableHead>
+                <TableHead className="w-[200px]">{t('payment.customer', { defaultValue: 'Khách hàng' })}</TableHead>
+                <TableHead>{t('payment.contract', { defaultValue: 'Dịch vụ' })}</TableHead>
+                <TableHead className="text-right">{t('payment.amount', { defaultValue: 'Số tiền' })}</TableHead>
+                <TableHead>{t('payment.method', { defaultValue: 'Phương thức' })}</TableHead>
+                <TableHead>{t('payment.status', { defaultValue: 'Trạng thái' })}</TableHead>
+                <TableHead>{t('payment.performer', { defaultValue: 'Người thực hiện' })}</TableHead>
+                <TableHead>{t('payment.reference_code', { defaultValue: 'Mã giao dịch' })}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -414,50 +479,62 @@ const CustomerPaymentsPage: React.FC = () => {
                     : null);
 
                 return (
-                  <TableRow key={transaction._id} className="border-b border-gray-100 last:border-b-0">
-                    <TableCell className="align-top text-sm font-medium text-gray-900">{occurredAt}</TableCell>
-                    <TableCell className="align-top">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-sm font-semibold text-gray-900">
+                  <TableRow key={transaction._id}>
+                    <TableCell className="font-medium">{occurredAt}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium">
                           {userInfo?.fullName || t('common.not_available', { defaultValue: 'N/A' })}
                         </span>
-                        <span className="text-xs text-gray-500">{userInfo?.phoneNumber || userInfo?.email || '-'}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {userInfo?.phoneNumber || userInfo?.email || '-'}
+                        </span>
                       </div>
                     </TableCell>
-                    <TableCell className="align-top">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-sm font-semibold text-gray-900">{subjectName}</span>
-                        <span className="text-xs text-gray-500">
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{subjectName}</span>
+                        <span className="text-xs text-muted-foreground">
                           {subjectLabels[transaction.subjectType] || subjectLabels.OTHER}
                           {branchName ? ` • ${branchName}` : ''}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="align-top text-right text-sm font-semibold text-gray-900">
+                    <TableCell className="text-right">
                       {transaction.type === 'REFUND' ? (
-                        <span className="text-red-600">{formatCurrency(Math.abs(transaction.amount))}</span>
+                        <div className="flex items-center justify-end gap-1 text-red-600">
+                          <TrendingDown className="h-3 w-3" />
+                          <span className="font-semibold">{formatCurrency(Math.abs(transaction.amount))}</span>
+                        </div>
                       ) : (
-                        <span className="text-green-600">{formatCurrency(transaction.amount)}</span>
+                        <div className="flex items-center justify-end gap-1 text-emerald-600">
+                          <TrendingUp className="h-3 w-3" />
+                          <span className="font-semibold">{formatCurrency(transaction.amount)}</span>
+                        </div>
                       )}
                     </TableCell>
-                    <TableCell className="align-top text-sm text-gray-700">{methodLabel}</TableCell>
-                    <TableCell className="align-top">
-                      <StatusPill status={transaction.status} statusLabels={statusLabels} />
+                    <TableCell>
+                      <PaymentMethodBadge method={methodLabel} />
                     </TableCell>
-                    <TableCell className="align-top">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-sm font-semibold text-gray-900">
-                          {resolvePerformerInfo(transaction.recordedBy, t)}
-                        </span>
-                        {resolvePerformerEmail(transaction.recordedBy) ? (
-                          <span className="text-xs text-gray-500">{resolvePerformerEmail(transaction.recordedBy)}</span>
-                        ) : null}
+                    <TableCell>
+                      <StatusBadge status={transaction.status} statusLabels={statusLabels} />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{resolvePerformerInfo(transaction.recordedBy, t)}</span>
+                        {resolvePerformerEmail(transaction.recordedBy) && (
+                          <span className="text-xs text-muted-foreground">
+                            {resolvePerformerEmail(transaction.recordedBy)}
+                          </span>
+                        )}
                       </div>
                     </TableCell>
-                    <TableCell className="align-top">
-                      <div className="flex flex-col gap-1 text-sm text-gray-800">
-                        <span className="font-semibold">{reference || '-'}</span>
-                        {transaction.note ? <span className="text-xs text-gray-500">{transaction.note}</span> : null}
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <code className="text-xs font-mono">{reference || '-'}</code>
+                        {transaction.note && (
+                          <span className="text-xs text-muted-foreground italic">{transaction.note}</span>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -465,10 +542,10 @@ const CustomerPaymentsPage: React.FC = () => {
               })}
             </TableBody>
           </Table>
-        </ScrollArea>
+        </div>
 
-        {pagination && pagination.totalPages > 1 ? (
-          <div className="flex justify-center pt-4">
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex justify-center mt-4">
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
@@ -482,20 +559,33 @@ const CustomerPaymentsPage: React.FC = () => {
                     }}
                   />
                 </PaginationItem>
-                {Array.from({ length: pagination.totalPages }).map((_, index) => (
-                  <PaginationItem key={`page-${index + 1}`}>
-                    <PaginationLink
-                      href="#"
-                      isActive={pagination.page === index + 1}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        goToPage(index + 1);
-                      }}
-                    >
-                      {index + 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
+                {(() => {
+                  const currentPage = pagination.page || 1;
+                  return generatePaginationPages(currentPage, pagination.totalPages).map((page, index) => {
+                    if (page === 'ellipsis') {
+                      return (
+                        <PaginationItem key={`ellipsis-${currentPage}-${index}`}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      );
+                    }
+
+                    return (
+                      <PaginationItem key={`page-${page}`}>
+                        <PaginationLink
+                          href="#"
+                          isActive={(pagination.page || 1) === page}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            goToPage(page);
+                          }}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  });
+                })()}
                 <PaginationItem>
                   <PaginationNext
                     href="#"
@@ -510,32 +600,39 @@ const CustomerPaymentsPage: React.FC = () => {
               </PaginationContent>
             </Pagination>
           </div>
-        ) : null}
+        )}
       </>
     );
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex-1 space-y-4 p-8 pt-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold text-gray-900">
-            <CreditCard className="h-6 w-6 text-orange-500" />
+          <h2 className="text-3xl font-bold tracking-tight">
             {t('payment.transaction_history_title', { defaultValue: 'Lịch sử giao dịch' })}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
+          </h2>
+          <p className="text-muted-foreground">
             {t('payment.transaction_history_subtitle', {
               defaultValue: 'Theo dõi tổng quan giao dịch và dòng tiền tại câu lạc bộ'
             })}
           </p>
         </div>
-        <Button variant="outline" className="self-start" onClick={refetch}>
-          <RotateCcw className="mr-2 h-4 w-4" />
-          {t('common.refresh', { defaultValue: 'Làm mới' })}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={refetch}>
+            <RotateCcw className="mr-2 h-4 w-4" />
+            {t('common.refresh', { defaultValue: 'Làm mới' })}
+          </Button>
+          <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+            <Download className="mr-2 h-4 w-4" />
+            Xuất dữ liệu
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {/* Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
           title={t('payment.summary_total_amount', { defaultValue: 'Tổng doanh thu' })}
           value={formatCurrency(summary.totalAmount)}
@@ -543,6 +640,8 @@ const CustomerPaymentsPage: React.FC = () => {
             defaultValue: '{{count}} giao dịch',
             count: summary.totalCount
           })}
+          icon={DollarSign}
+          trend="neutral"
         />
         <SummaryCard
           title={t('payment.summary_settled', { defaultValue: 'Đã thu' })}
@@ -551,7 +650,8 @@ const CustomerPaymentsPage: React.FC = () => {
             defaultValue: '{{count}} giao dịch',
             count: summary.settledCount
           })}
-          tone="success"
+          icon={CheckCircle2}
+          trend="up"
         />
         <SummaryCard
           title={t('payment.summary_pending', { defaultValue: 'Đang chờ xử lý' })}
@@ -560,7 +660,8 @@ const CustomerPaymentsPage: React.FC = () => {
             defaultValue: '{{count}} giao dịch',
             count: summary.pendingCount
           })}
-          tone="warning"
+          icon={Clock}
+          trend="neutral"
         />
         <SummaryCard
           title={t('payment.summary_failed', { defaultValue: 'Thất bại' })}
@@ -569,19 +670,29 @@ const CustomerPaymentsPage: React.FC = () => {
             defaultValue: '{{count}} giao dịch',
             count: summary.failedCount
           })}
-          tone="danger"
+          icon={XCircle}
+          trend="down"
         />
       </div>
 
-      <Card className="border-none bg-white shadow-sm">
-        <CardContent className="space-y-6 p-6">
-          <div className="grid items-end gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,2.3fr)_minmax(0,1.1fr)_minmax(0,1.1fr)_minmax(0,1.3fr)]">
+      {/* Filters and Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('payment.transactions', { defaultValue: 'Giao dịch' })}</CardTitle>
+          <CardDescription>
+            {t('payment.transactions_subtitle', { defaultValue: 'Danh sách giao dịch mới nhất' })}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Filters */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                {t('common.search', { defaultValue: 'Tìm kiếm' })}
-              </label>
               <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
+                  placeholder={t('payment.search_transactions_placeholder', {
+                    defaultValue: 'Tìm theo khách hàng, mã giao dịch...'
+                  })}
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   onKeyDown={(event) => {
@@ -589,113 +700,70 @@ const CustomerPaymentsPage: React.FC = () => {
                       handleSearch();
                     }
                   }}
-                  placeholder={t('payment.search_transactions_placeholder', {
-                    defaultValue: 'Tìm theo khách hàng, mã giao dịch hoặc mô tả'
-                  })}
-                  className="h-11 pr-12"
+                  className="pl-8"
                 />
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="absolute right-1 top-1/2 h-9 w-9 -translate-y-1/2 rounded-xl border border-gray-200 bg-white shadow-sm transition hover:bg-gray-50"
-                  onClick={handleSearch}
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                {t('common.branch', { defaultValue: 'Chi nhánh' })}
-              </label>
-              <Select value={query.branchId || 'ALL'} onValueChange={handleBranchChange}>
-                <SelectTrigger className="h-11 rounded-xl border-gray-200">
-                  <SelectValue placeholder={t('common.branch', { defaultValue: 'Chi nhánh' })} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">{t('common.all', { defaultValue: 'Tất cả' })}</SelectItem>
-                  {branches.map((branch) => (
-                    <SelectItem key={branch._id} value={branch._id}>
-                      {branch.branchName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={query.branchId || 'ALL'} onValueChange={handleBranchChange}>
+              <SelectTrigger>
+                <SelectValue placeholder={t('common.branch', { defaultValue: 'Chi nhánh' })} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">{t('common.all', { defaultValue: 'Tất cả' })}</SelectItem>
+                {branches.map((branch) => (
+                  <SelectItem key={branch._id} value={branch._id}>
+                    {branch.branchName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                {t('payment.status', { defaultValue: 'Trạng thái' })}
-              </label>
-              <Select value={query.status || 'ALL'} onValueChange={handleStatusChange}>
-                <SelectTrigger className="h-11 rounded-xl border-gray-200">
-                  <SelectValue placeholder={t('payment.status', { defaultValue: 'Trạng thái' })} />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={query.status || 'ALL'} onValueChange={handleStatusChange}>
+              <SelectTrigger>
+                <SelectValue placeholder={t('payment.status', { defaultValue: 'Trạng thái' })} />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                {t('payment.date_range', { defaultValue: 'Khoảng thời gian' })}
-              </label>
-              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="flex h-11 w-full items-center justify-start gap-2 rounded-xl border-gray-200 px-3 text-left font-medium text-gray-700"
-                  >
-                    <CalendarIcon className="h-4 w-4 text-gray-500" />
-                    <span className="truncate">
-                      {selectedRange?.from || selectedRange?.to
-                        ? rangeLabel
-                        : t('payment.date_range_placeholder', { defaultValue: 'Tất cả thời gian' })}
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="start" className="w-auto p-0">
-                  <Calendar
-                    mode="range"
-                    numberOfMonths={1}
-                    selected={selectedRange}
-                    onSelect={handleDateRangeChange}
-                    defaultMonth={selectedRange?.from ?? selectedRange?.to ?? new Date()}
-                  />
-                  <div className="flex items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-4 py-2">
-                    <span className="text-xs text-gray-500">{rangeLabel}</span>
-                    {selectedRange ? (
-                      <Button variant="ghost" size="sm" onClick={handleClearDateRange}>
-                        {t('payment.clear_date_filter', { defaultValue: 'Xóa bộ lọc ngày' })}
-                      </Button>
-                    ) : null}
+            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedRange?.from || selectedRange?.to
+                    ? rangeLabel
+                    : t('payment.date_range_placeholder', { defaultValue: 'Chọn khoảng thời gian' })}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="range"
+                  selected={selectedRange}
+                  onSelect={handleDateRangeChange}
+                  numberOfMonths={1}
+                  defaultMonth={selectedRange?.from ?? selectedRange?.to ?? new Date()}
+                />
+                {selectedRange && (
+                  <div className="border-t p-3">
+                    <Button variant="ghost" size="sm" onClick={handleClearDateRange} className="w-full">
+                      {t('payment.clear_date_filter', { defaultValue: 'Xóa bộ lọc' })}
+                    </Button>
                   </div>
-                </PopoverContent>
-              </Popover>
-            </div>
+                )}
+              </PopoverContent>
+            </Popover>
           </div>
 
           <Separator />
 
-          <div className="flex flex-col gap-2">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                {t('payment.transactions', { defaultValue: 'Giao dịch' })}
-              </h2>
-              <p className="text-sm text-gray-500">
-                {t('payment.transactions_subtitle', { defaultValue: 'Danh sách giao dịch mới nhất' })}
-              </p>
-            </div>
-
-            {renderTableSection()}
-          </div>
+          {/* Table */}
+          {renderTableSection()}
         </CardContent>
       </Card>
     </div>

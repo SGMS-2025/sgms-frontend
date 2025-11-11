@@ -25,6 +25,7 @@ export interface ContractDocument {
   };
   documentOwner?: string;
   pageCount?: number;
+  signersCount?: number;
   signNowData?: Record<string, unknown>;
   // New fields for customer contracts
   customerId?:
@@ -42,6 +43,7 @@ export interface ContractDocument {
   contractId?: string;
   contractModel?: 'MembershipContract' | 'ServiceContract';
   isTemplate?: boolean;
+  templateContractType?: 'membership' | 'service_pt' | 'service_class' | 'custom';
   templateDocumentId?:
     | string
     | {
@@ -59,6 +61,7 @@ export interface DocumentListParams {
   sortBy?: 'createdAt' | 'updatedAt' | 'title' | 'fileName';
   sortOrder?: 'asc' | 'desc';
   status?: DocumentStatus | 'all';
+  type?: 'templates' | 'contracts';
   search?: string;
   branchId?: string;
   tags?: string | string[];
@@ -75,6 +78,8 @@ export interface UploadDocumentRequest {
   description?: string;
   tags?: string | string[];
   branchId?: string;
+  isTemplate?: boolean;
+  templateContractType?: 'membership' | 'service_pt' | 'service_class' | 'custom';
 }
 
 export interface CreateEmbeddedEditLinkRequest {

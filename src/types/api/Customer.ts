@@ -1,6 +1,7 @@
 import type { ServicePackage } from '@/types/api/Package';
 import type { DiscountCampaign } from '@/types/api/Discount';
 import type { Staff } from '@/types/api/Staff';
+import type { ContractDocument } from '@/types/api/ContractDocument';
 
 export interface CustomerDisplay {
   id: string;
@@ -305,6 +306,7 @@ export interface MembershipContractResponse {
       activationDate?: string;
       createdAt: string;
     };
+    contractDocument?: ContractDocument;
   };
   message?: string;
 }
