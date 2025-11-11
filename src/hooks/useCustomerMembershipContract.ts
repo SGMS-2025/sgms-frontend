@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { membershipApi } from '@/services/api/membershipApi';
+import { socketService } from '@/services/socket/socketService';
 import type { MembershipContract } from '@/types/api/Membership';
 import { handleAsyncOperationWithCallbacks } from '@/utils/errorHandler';
+import type { MembershipContractUpdateEvent } from '@/types/api/Socket';
 
 interface UseCustomerMembershipContractOptions {
   branchId?: string;
@@ -73,6 +75,37 @@ export const useCustomerMembershipContract = (
   useEffect(() => {
     fetchContract();
   }, [fetchContract]);
+
+  useEffect(() => {
+    if (!branchId) return;
+
+    // Debounce refetch to prevent excessive API calls
+    let debounceTimeout: NodeJS.Timeout | null = null;
+
+    const handleMembershipContractUpdate = (data: MembershipContractUpdateEvent) => {
+      // Check if this update is for the current branch
+      if (data.branchId && data.branchId.toString() === branchId.toString()) {
+        // Debounce refetch - wait 500ms after last event before refetching
+        if (debounceTimeout) {
+          clearTimeout(debounceTimeout);
+        }
+
+        debounceTimeout = setTimeout(() => {
+          void fetchContract();
+        }, 500);
+      }
+    };
+
+    // Listen for membership contract update events from socket
+    socketService.on('membership:contract:updated', handleMembershipContractUpdate);
+
+    return () => {
+      socketService.off('membership:contract:updated', handleMembershipContractUpdate);
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
+      }
+    };
+  }, [branchId, fetchContract]);
 
   return useMemo(
     () => ({

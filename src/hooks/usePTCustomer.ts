@@ -233,10 +233,20 @@ export const usePTCustomerUtils = () => {
       if (customer.package.status === 'EXPIRED') return 'expired';
       if (customer.package.status === 'PENDING_ACTIVATION') return 'pending';
 
-      const days = getRemainingDays(customer.package.endDate);
-      if (days <= 7) return 'urgent';
+      // For MEMBERSHIP_KPI customers (no sessions), only check expiration days
+      if (customer.contractType === 'MEMBERSHIP_KPI') {
+        const days = getRemainingDays(customer.package.endDate);
+        // Only mark as urgent if expiring within 7 days
+        if (days > 0 && days <= 7) return 'urgent';
+        return 'active';
+      }
 
-      if (customer.package.sessionsRemaining <= 3) return 'urgent';
+      // For PT_PACKAGE customers, check both expiration and sessions
+      const days = getRemainingDays(customer.package.endDate);
+      if (days > 0 && days <= 7) return 'urgent';
+
+      // Check sessions only for PT packages
+      if (customer.package.sessionsRemaining <= 3 && customer.package.sessionsRemaining > 0) return 'urgent';
 
       return 'active';
     },

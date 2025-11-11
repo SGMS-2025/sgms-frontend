@@ -56,6 +56,12 @@ export const staffApi = {
     return response.data;
   },
 
+  // Get staff by referral code (public endpoint, no auth required)
+  getStaffByReferralCode: async (referralCode: string): Promise<ApiResponse<Staff>> => {
+    const response = await api.get(`/staff/referral/${referralCode}`);
+    return response.data;
+  },
+
   // Update staff information
   updateStaff: async (staffId: string, updateData: StaffUpdateData): Promise<ApiResponse<Staff>> => {
     const response = await api.put(`/staff/${staffId}`, updateData);

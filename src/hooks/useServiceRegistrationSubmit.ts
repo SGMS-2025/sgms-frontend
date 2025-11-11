@@ -63,6 +63,9 @@ export const useServiceRegistrationSubmit = ({
     const contractData = response.data;
     const contractId = contractData?._id;
 
+    // Note: KPI update will be triggered automatically by backend via Socket.IO
+    // when transaction attribution is created and KPI is recalculated
+
     // If payment method is BANK_TRANSFER and we have a contractId, trigger PayOS payment
     if (formData.paymentMethod === 'BANK_TRANSFER' && contractId && onPaymentRequired) {
       onPaymentRequired(contractId, response);

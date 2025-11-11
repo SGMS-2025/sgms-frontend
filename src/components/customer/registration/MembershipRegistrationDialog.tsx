@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { Calendar, CreditCard, FileText, MapPin } from 'lucide-react';
+import { Calendar, DollarSign, CreditCard, FileText, MapPin, User } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,9 @@ import type { MembershipPlan } from '@/types/api/Membership';
 import type { MembershipRegistrationFormData, MembershipContractResponse } from '@/types/api/Customer';
 import type { DiscountCampaign } from '@/types/api/Discount';
 import type { ContractDocument } from '@/types/api/ContractDocument';
+import { staffApi } from '@/services/api/staffApi';
+import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
+import type { Staff } from '@/types/api/Staff';
 
 interface MembershipRegistrationDialogProps {
   isOpen: boolean;
@@ -45,9 +48,12 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
 }) => {
   const { t } = useTranslation();
   const { currentBranch, branches } = useBranch();
+  const { currentStaff } = useCurrentUserStaff(); // CASE 2: Get current staff if logged in as staff
   const [loading, setLoading] = useState(false);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [promotions, setPromotions] = useState<DiscountCampaign[]>([]);
+  const [staffList, setStaffList] = useState<Staff[]>([]); // CASE 2: Staff list for selector
+  const [loadingStaff, setLoadingStaff] = useState(false);
 
   // PayOS states
   const [showPayOSModal, setShowPayOSModal] = useState(false);
@@ -112,6 +118,41 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
     fetchData();
   }, [isOpen, currentBranch?._id]);
 
+  // CASE 2: Fetch staff list when branch changes
+  useEffect(() => {
+    if (!isOpen || !formData.branchId) return;
+
+    const fetchStaffList = async () => {
+      setLoadingStaff(true);
+      try {
+        const response = await staffApi.getStaffListByBranch(formData.branchId, {
+          limit: 100,
+          jobTitle: 'Personal Trainer' // Only show PT for KPI
+        });
+        if (response.success && response.data) {
+          setStaffList(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching staff list:', error);
+      } finally {
+        setLoadingStaff(false);
+      }
+    };
+
+    fetchStaffList();
+  }, [isOpen, formData.branchId]);
+
+  // CASE 2: Auto-set referrerStaffId if current user is PT (Personal Trainer)
+  // Only PT can receive KPI attribution, so only auto-select if current staff is PT
+  useEffect(() => {
+    if (currentStaff && currentStaff.userId?._id && currentStaff.jobTitle === 'Personal Trainer') {
+      setFormData((prev) => ({
+        ...prev,
+        referrerStaffId: currentStaff.userId._id
+      }));
+    }
+  }, [currentStaff]);
+
   const handlePayOSPayment = (contractId: string) => {
     const paymentAmount = Math.max(totalPrice, 1000);
 
@@ -170,6 +211,9 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
       // Warn if no template was found
       toast.info('Hợp đồng đã tạo nhưng chưa có template. Vui lòng tạo hợp đồng thủ công sau.');
     }
+
+    // Note: KPI update will be triggered automatically by backend via Socket.IO
+    // when transaction attribution is created and KPI is recalculated
 
     if (formData.paymentMethod === 'BANK_TRANSFER' && contractId) {
       handlePayOSPayment(contractId);
@@ -398,6 +442,66 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
 
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">{t('membership_registration.payment_method_label')}</Label>
+                    <Label className="text-sm font-medium">
+                      <DollarSign className="inline h-4 w-4" /> Số tiền thanh toán
+                    </Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={formData.initialPaidAmount}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, initialPaidAmount: parseFloat(e.target.value) || 0 }))
+                      }
+                      placeholder="Nhập số tiền"
+                    />
+                    <p className="text-xs text-muted-foreground">Gói hội viên thường yêu cầu thanh toán toàn bộ</p>
+                  </div>
+
+                  {/* CASE 2: Staff/PT Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <User className="h-4 w-4" /> PT/Staff hỗ trợ (tùy chọn)
+                    </Label>
+                    <Select
+                      value={formData.referrerStaffId || 'none'}
+                      onValueChange={(value) => {
+                        if (value === 'none') {
+                          setFormData((prev) => ({ ...prev, referrerStaffId: undefined }));
+                        } else {
+                          setFormData((prev) => ({ ...prev, referrerStaffId: value }));
+                        }
+                      }}
+                      disabled={loadingStaff}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn PT/Staff" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Không có</SelectItem>
+                        {staffList
+                          .filter((staff) => staff.userId?._id) // Only show staff with valid userId
+                          .map((staff) => (
+                            <SelectItem key={staff._id} value={staff.userId._id}>
+                              {staff.userId?.fullName || staff.userId?.username} ({staff.jobTitle})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    {currentStaff && currentStaff.jobTitle === 'Personal Trainer' && (
+                      <p className="text-xs text-blue-600">Đã tự động chọn bạn (PT): {currentStaff.userId?.fullName}</p>
+                    )}
+                    {currentStaff && currentStaff.jobTitle !== 'Personal Trainer' && (
+                      <p className="text-xs text-muted-foreground">
+                        Bạn đang đăng nhập với tư cách: {currentStaff.jobTitle}. Vui lòng chọn PT để attribute KPI.
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Chọn PT/Staff hỗ trợ khách hàng mua để họ nhận được hoa hồng
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Phương thức thanh toán</Label>
                     <Select
                       value={formData.paymentMethod}
                       onValueChange={(value: 'CASH' | 'BANK_TRANSFER') =>

@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Users, UserCheck, Briefcase, BarChart3 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis } from 'recharts';
+import { useStaffStats } from '@/hooks/useStaff';
+import { customerApi } from '@/services/api/customerApi';
 
 type SparkProps = { data: { m: string; v: number }[]; color?: string };
 const Sparkline: React.FC<SparkProps> = ({ data, color = '#f05a29' }) => {
-  const uid = React.useId().replace(/:/g, '');
+  const uid = React.useId().replaceAll(':', '');
   const gradId = `sparkGrad-${uid}`;
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -26,7 +28,36 @@ const Sparkline: React.FC<SparkProps> = ({ data, color = '#f05a29' }) => {
 
 export const StatsSidebar: React.FC = () => {
   const { t } = useTranslation();
+  const { stats: staffStats, loading: staffLoading } = useStaffStats();
+  const [customerCount, setCustomerCount] = useState<number>(0);
+  const [customerLoading, setCustomerLoading] = useState(true);
 
+  // Fetch customer count
+  useEffect(() => {
+    const fetchCustomerCount = async () => {
+      try {
+        setCustomerLoading(true);
+        const response = await customerApi.getCustomerList({ limit: 1, page: 1 });
+        if (response.success && response.data?.pagination) {
+          setCustomerCount(response.data.pagination.totalItems || 0);
+        }
+      } catch (error) {
+        // Error is not critical, just log it
+        console.warn('Failed to fetch customer count:', error);
+      } finally {
+        setCustomerLoading(false);
+      }
+    };
+
+    fetchCustomerCount();
+  }, []);
+
+  // Calculate stats from API data
+  const registeredCustomers = customerLoading ? 0 : customerCount;
+  const activePT = staffStats?.staffByJobTitle?.find((item) => item._id === 'Personal Trainer')?.count || 0;
+  const totalStaff = staffStats?.totalStaff || 0;
+
+  // Mock trend data (will be replaced in Phase 2)
   const customersTrend = [
     { m: 'Jan', v: 20 },
     { m: 'Feb', v: 24 },
@@ -87,7 +118,7 @@ export const StatsSidebar: React.FC = () => {
           <div className="ml-4 w-24 h-8 hidden md:block">
             <Sparkline data={customersTrend} />
           </div>
-          <div className="ml-auto text-xl font-bold text-gray-900">584</div>
+          <div className="ml-auto text-xl font-bold text-gray-900">{customerLoading ? '...' : registeredCustomers}</div>
         </div>
 
         <div className="flex items-center">
@@ -103,7 +134,7 @@ export const StatsSidebar: React.FC = () => {
           <div className="ml-4 w-24 h-8 hidden md:block">
             <Sparkline data={ptTrend} />
           </div>
-          <div className="ml-auto text-xl font-bold text-gray-900">29</div>
+          <div className="ml-auto text-xl font-bold text-gray-900">{staffLoading ? '...' : activePT}</div>
         </div>
 
         <div className="flex items-center">
@@ -119,7 +150,7 @@ export const StatsSidebar: React.FC = () => {
           <div className="ml-4 w-24 h-8 hidden md:block">
             <Sparkline data={staffTrend} />
           </div>
-          <div className="ml-auto text-xl font-bold text-gray-900">76</div>
+          <div className="ml-auto text-xl font-bold text-gray-900">{staffLoading ? '...' : totalStaff}</div>
         </div>
       </div>
     </div>

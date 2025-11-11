@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { User, Package } from 'lucide-react';
@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useBranch } from '@/contexts/BranchContext';
+import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { PayOSPaymentModal } from '@/components/modals/PayOSPaymentModal';
 import { formatCurrency } from '@/utils/currency';
 import { useServiceRegistration } from '@/hooks/useServiceRegistration';
@@ -42,6 +43,7 @@ export const PTRegistrationDialog: React.FC<PTRegistrationDialogProps> = ({
 }) => {
   const { t } = useTranslation();
   const { currentBranch } = useBranch();
+  const { currentStaff } = useCurrentUserStaff(); // Get current staff if logged in as staff
 
   // Contract workflow states
   const [showSelectTemplateDialog, setShowSelectTemplateDialog] = useState(false);
@@ -108,6 +110,18 @@ export const PTRegistrationDialog: React.FC<PTRegistrationDialogProps> = ({
     }
   };
 
+  // Auto-set referrerStaffId if current user is PT (Personal Trainer)
+  // Only PT can receive KPI attribution, so only auto-select if current staff is PT
+  useEffect(() => {
+    if (currentStaff && currentStaff.userId?._id && currentStaff.jobTitle === 'Personal Trainer') {
+      setFormData((prev) => ({
+        ...prev,
+        referrerStaffId: currentStaff.userId._id
+      }));
+    }
+  }, [currentStaff, setFormData]);
+
+  // PayOS payment handling
   const { showPayOSModal, payOSData, createdContractId, handlePayOSPayment, handlePaymentSuccess, handleModalClose } =
     usePayOSPayment({
       customerId,
