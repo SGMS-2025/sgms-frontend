@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Loader2, AlertCircle } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface EmbeddedDocumentViewerProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  documentId?: string;
-  documentTitle: string;
-  mode: 'edit' | 'view' | 'sending';
-  onClose?: () => void;
-  onSave?: () => void;
-  iframeUrl?: string | null; // Allow external URL to be passed
+  readonly open: boolean;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly documentId?: string;
+  readonly documentTitle: string;
+  readonly mode: 'edit' | 'view' | 'sending';
+  readonly onClose?: () => void;
+  readonly onSave?: () => void;
+  readonly iframeUrl?: string | null; // Allow external URL to be passed
 }
 
 export default function EmbeddedDocumentViewer({
@@ -31,20 +31,6 @@ export default function EmbeddedDocumentViewer({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (externalIframeUrl) {
-      // If external URL is provided (e.g., from embedded sending), use it directly
-      setIframeUrl(externalIframeUrl);
-      setLoading(false);
-      setError(null);
-    } else if (open && documentId) {
-      loadEmbeddedLink();
-    } else {
-      setIframeUrl(null);
-      setError(null);
-    }
-  }, [open, documentId, mode, externalIframeUrl]);
-
   const loadEmbeddedLink = async () => {
     setLoading(true);
     setError(null);
@@ -57,7 +43,7 @@ export default function EmbeddedDocumentViewer({
 
     const { contractDocumentApi } = await import('@/services/api/contractDocumentApi');
 
-    const redirectUrl = `${window.location.origin}/manage/contracts`;
+    const redirectUrl = `${globalThis.location.origin}/manage/contracts`;
     let response;
 
     if (mode === 'edit') {
@@ -86,6 +72,29 @@ export default function EmbeddedDocumentViewer({
     onClose?.();
   };
 
+  const handleSheetOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      onOpenChange(true);
+      return;
+    }
+    handleClose();
+  };
+
+  useEffect(() => {
+    if (externalIframeUrl) {
+      // If external URL is provided (e.g., from embedded sending), use it directly
+      setIframeUrl(externalIframeUrl);
+      setLoading(false);
+      setError(null);
+    } else if (open && documentId) {
+      loadEmbeddedLink();
+    } else {
+      setIframeUrl(null);
+      setError(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, documentId, mode, externalIframeUrl]);
+
   // Listen for messages from iframe (SignNow callbacks)
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -110,30 +119,61 @@ export default function EmbeddedDocumentViewer({
         window.removeEventListener('message', handleMessage);
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, onSave]);
 
+  const getModeTitle = () => {
+    switch (mode) {
+      case 'edit':
+        return t('contracts.edit_document', 'Edit Document');
+      case 'sending':
+        return t('contracts.send_document', 'Send Document');
+      case 'view':
+        return t('contracts.view_document', 'View Document');
+      default:
+        return t('contracts.document', 'Document');
+    }
+  };
+
+  const getModeDescription = () => {
+    switch (mode) {
+      case 'edit':
+        return t('contracts.edit_document_description', 'Add fields, assign signers, and prepare document for sending');
+      case 'sending':
+        return t('contracts.send_document_description', 'Configure recipients and send document for signature');
+      case 'view':
+        return t('contracts.view_document_description', 'View document contents and current status');
+      default:
+        return '';
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-6xl w-full h-[90vh] p-0 flex flex-col">
-        <DialogHeader className="px-6 py-4 border-b">
+    <Sheet open={open} onOpenChange={handleSheetOpenChange}>
+      <SheetContent
+        side="right"
+        className="w-screen sm:w-[95vw] lg:w-[90vw] xl:w-[85vw] max-w-none sm:max-w-none p-0 gap-0 flex flex-col [&>button]:hidden"
+      >
+        {/* Header */}
+        <SheetHeader className="px-6 py-4 border-b shrink-0">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-lg font-semibold">
-              {mode === 'edit'
-                ? t('contracts.edit_document', 'Edit Document')
-                : mode === 'sending'
-                  ? t('contracts.send_document', 'Send Document')
-                  : t('contracts.view_document', 'View Document')}
-              {documentTitle && <span className="ml-2 text-sm font-normal text-gray-500">- {documentTitle}</span>}
-            </DialogTitle>
-            <Button variant="ghost" size="sm" onClick={handleClose} className="h-8 w-8 p-0">
+            <div className="flex-1 pr-4">
+              <SheetTitle className="text-xl font-semibold">
+                {getModeTitle()}
+                {documentTitle && <span className="ml-2 text-base font-normal text-gray-500">- {documentTitle}</span>}
+              </SheetTitle>
+              <SheetDescription className="mt-1">{getModeDescription()}</SheetDescription>
+            </div>
+            <Button variant="ghost" size="sm" onClick={handleClose} className="h-8 w-8 p-0 shrink-0">
               <X className="h-4 w-4" />
             </Button>
           </div>
-        </DialogHeader>
+        </SheetHeader>
 
-        <div className="flex-1 relative overflow-hidden">
+        {/* Content */}
+        <div className="flex-1 relative overflow-hidden bg-gray-50">
           {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+            <div className="absolute inset-0 flex items-center justify-center bg-white/90 z-10">
               <div className="text-center">
                 <Loader2 className="h-8 w-8 animate-spin text-orange-500 mx-auto mb-4" />
                 <p className="text-sm text-gray-600">{t('contracts.loading_document', 'Loading document...')}</p>
@@ -142,7 +182,7 @@ export default function EmbeddedDocumentViewer({
           )}
 
           {error && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-50 p-6">
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-50 p-6 z-10">
               <Alert variant="destructive" className="max-w-md">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
@@ -161,11 +201,10 @@ export default function EmbeddedDocumentViewer({
               allow="clipboard-read; clipboard-write; autoplay; camera; microphone"
               sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation"
               allowFullScreen
-              style={{ minHeight: '600px' }}
             />
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

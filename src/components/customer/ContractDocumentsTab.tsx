@@ -1,17 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Loader2, AlertCircle, Eye, Edit, Send, Calendar, Tag, Plus } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import {
+  FileText,
+  Loader2,
+  AlertCircle,
+  Eye,
+  Edit,
+  Send,
+  Calendar,
+  Tag,
+  Plus,
+  AlertTriangle,
+  TrendingUp
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { contractDocumentApi } from '@/services/api/contractDocumentApi';
+import { membershipApi } from '@/services/api/membershipApi';
+import { serviceContractApi } from '@/services/api/serviceContractApi';
+import { useBranch } from '@/contexts/BranchContext';
 import { toast } from 'sonner';
 import type { ContractDocument } from '@/types/api/ContractDocument';
 import EmbeddedDocumentViewer from '@/components/contracts/EmbeddedDocumentViewer';
 
 interface ContractDocumentsTabProps {
   customerId: string;
+}
+
+interface ContractWithoutDocument {
+  _id: string;
+  type: 'membership' | 'service_pt' | 'service_class';
+  name: string;
+  startDate: string;
+  endDate?: string;
+  status: string;
+  total: number;
 }
 
 const formatDate = (dateString?: string) => {
@@ -61,6 +86,7 @@ const getContractTypeBadge = (type?: string) => {
 };
 
 export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ customerId }) => {
+  const { currentBranch } = useBranch();
   const [contracts, setContracts] = useState<ContractDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,11 +100,18 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
   const [templates, setTemplates] = useState<ContractDocument[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [creatingContract, setCreatingContract] = useState(false);
+  const [selectedContractForCreation, setSelectedContractForCreation] = useState<ContractWithoutDocument | null>(null);
+
+  // Contracts without documents
+  const [contractsWithoutDocuments, setContractsWithoutDocuments] = useState<ContractWithoutDocument[]>([]);
+  const [loadingMissingContracts, setLoadingMissingContracts] = useState(false);
 
   useEffect(() => {
     if (customerId) {
       fetchContracts();
+      fetchContractsWithoutDocuments();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerId]);
 
   const fetchContracts = async () => {
@@ -95,6 +128,111 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
     setLoading(false);
   };
 
+  const fetchContractsWithoutDocuments = async () => {
+    setLoadingMissingContracts(true);
+
+    try {
+      // Fetch all contracts (membership + service)
+      const [memberships, services, documentsRes] = await Promise.all([
+        membershipApi.getCustomerMemberships(customerId),
+        serviceContractApi.getCustomerServiceContracts(customerId),
+        contractDocumentApi.getCustomerContracts(customerId)
+      ]);
+
+      const missingContracts: ContractWithoutDocument[] = [];
+
+      // Check membership contracts
+      if (Array.isArray(memberships)) {
+        for (const membership of memberships) {
+          const hasDocument = documentsRes.data?.some(
+            (doc) => doc.contractId === membership._id && doc.contractType === 'membership'
+          );
+          if (!hasDocument && membership.status === 'ACTIVE') {
+            // Handle populated membershipPlanId (can be string or populated object)
+            let planName = 'Gói hội viên';
+            const planId = membership.membershipPlanId;
+            if (planId && typeof planId === 'object' && planId !== null && 'name' in planId) {
+              const planIdObj = planId as { name?: string };
+              if (typeof planIdObj.name === 'string') {
+                planName = planIdObj.name;
+              }
+            }
+            missingContracts.push({
+              _id: membership._id,
+              type: 'membership',
+              name: planName,
+              startDate: membership.startDate,
+              endDate: membership.endDate,
+              status: membership.status,
+              total: membership.total || 0
+            });
+          }
+        }
+      }
+
+      // Check service contracts
+      interface ServiceResponse {
+        success?: boolean;
+        data?: unknown;
+      }
+      interface ServiceItem {
+        _id: string;
+        packageType?: string;
+        status?: string;
+        startDate?: string;
+        endDate?: string;
+        total?: number;
+        servicePackageId?: { name?: string } | string;
+      }
+      const serviceResponse = services as ServiceResponse;
+      if (
+        serviceResponse &&
+        typeof serviceResponse === 'object' &&
+        'success' in serviceResponse &&
+        'data' in serviceResponse
+      ) {
+        const serviceData = serviceResponse.data;
+        let serviceList: unknown[] = [];
+        if (Array.isArray(serviceData)) {
+          serviceList = serviceData;
+        } else if (serviceData) {
+          serviceList = [serviceData];
+        }
+
+        for (const service of serviceList) {
+          const serviceItem = service as ServiceItem;
+          const contractType = serviceItem.packageType === 'PT' ? 'service_pt' : 'service_class';
+
+          const hasDocument = documentsRes.data?.some(
+            (doc) => doc.contractId === serviceItem._id && doc.contractType === contractType
+          );
+
+          if (!hasDocument && serviceItem.status === 'ACTIVE') {
+            const servicePackageName =
+              typeof serviceItem.servicePackageId === 'object' && serviceItem.servicePackageId?.name
+                ? serviceItem.servicePackageId.name
+                : `Gói ${serviceItem.packageType || ''}`;
+            missingContracts.push({
+              _id: serviceItem._id,
+              type: contractType,
+              name: servicePackageName,
+              startDate: serviceItem.startDate || '',
+              endDate: serviceItem.endDate,
+              status: serviceItem.status || '',
+              total: serviceItem.total || 0
+            });
+          }
+        }
+      }
+
+      setContractsWithoutDocuments(missingContracts);
+    } catch (error) {
+      console.error('Error fetching contracts without documents:', error);
+    } finally {
+      setLoadingMissingContracts(false);
+    }
+  };
+
   const handleOpenViewer = (document: ContractDocument) => {
     setSelectedDocument(document);
     setEmbeddedMode('view');
@@ -108,7 +246,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
   };
 
   const handleOpenSending = async (document: ContractDocument) => {
-    const redirectUrl = `${window.location.origin}/manage/customers/${customerId}/detail`;
+    const redirectUrl = `${globalThis.location.origin}/manage/customers/${customerId}/detail`;
     const response = await contractDocumentApi.createEmbeddedSending(document._id, {
       type: 'document',
       redirectUrl,
@@ -130,14 +268,24 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
     setIframeUrl(null);
     setSelectedDocument(null);
     fetchContracts();
+    fetchContractsWithoutDocuments();
   };
 
-  const fetchTemplates = async () => {
+  const fetchTemplates = async (contractType?: string) => {
     setLoadingTemplates(true);
 
-    const response = await contractDocumentApi.getTemplates();
+    const filters = currentBranch?._id ? { branchId: currentBranch._id } : undefined;
+    const response = await contractDocumentApi.getTemplates(filters);
     if (response.success && response.data) {
-      setTemplates(response.data);
+      // Filter templates by contract type if specified
+      let filteredTemplates = response.data;
+      if (contractType) {
+        filteredTemplates = response.data.filter((template) => {
+          // Match template's templateContractType with the contract type we need
+          return template.templateContractType === contractType;
+        });
+      }
+      setTemplates(filteredTemplates);
     } else {
       toast.error(response.message || 'Không thể tải danh sách template');
     }
@@ -145,23 +293,26 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
     setLoadingTemplates(false);
   };
 
-  const handleOpenTemplateDialog = () => {
-    setTemplateDialogOpen(true);
-    fetchTemplates();
-  };
+  const handleCreateFromTemplate = async (templateId: string) => {
+    if (!selectedContractForCreation) {
+      toast.error('Không tìm thấy thông tin contract cần tạo');
+      return;
+    }
 
-  const handleCreateFromTemplate = async (templateId: string, contractType?: string) => {
     setCreatingContract(true);
 
     const response = await contractDocumentApi.createContractFromTemplate(customerId, {
       templateDocumentId: templateId,
-      contractType: contractType as 'membership' | 'service_class' | 'service_pt' | 'custom' | undefined
+      contractType: selectedContractForCreation.type,
+      contractId: selectedContractForCreation._id
     });
 
     if (response.success && response.data) {
       toast.success('Tạo hợp đồng từ template thành công');
       setTemplateDialogOpen(false);
+      setSelectedContractForCreation(null);
       fetchContracts();
+      fetchContractsWithoutDocuments();
     } else {
       toast.error(response.message || 'Không thể tạo hợp đồng từ template');
     }
@@ -193,154 +344,282 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
     );
   }
 
-  if (contracts.length === 0) {
-    return (
-      <Card className="rounded-2xl border border-dashed border-border bg-muted/30 shadow-none">
-        <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-          <FileText className="h-12 w-12 text-muted-foreground" />
-          <div>
-            <p className="font-semibold text-foreground">Chưa có hợp đồng</p>
-            <p className="text-sm text-muted-foreground">Các hợp đồng của khách hàng sẽ hiển thị ở đây</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      maximumFractionDigits: 0
+    }).format(value);
+  };
+
+  const getTypeBadgeLabel = (type: string) => {
+    switch (type) {
+      case 'membership':
+        return 'Hội viên';
+      case 'service_pt':
+        return 'PT';
+      case 'service_class':
+        return 'Lớp học';
+      default:
+        return type;
+    }
+  };
+
+  const handleQuickCreateContract = (contractData: ContractWithoutDocument) => {
+    setSelectedContractForCreation(contractData);
+    setTemplateDialogOpen(true);
+
+    // Convert contract type to template contract type for filtering
+    let templateType: string | undefined;
+    if (contractData.type === 'membership') {
+      templateType = 'membership';
+    } else if (contractData.type === 'service_pt') {
+      templateType = 'service_pt';
+    } else if (contractData.type === 'service_class') {
+      templateType = 'service_class';
+    }
+
+    fetchTemplates(templateType);
+    toast.info(`Đang tìm template cho ${contractData.name}`);
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-foreground">Danh sách hợp đồng ({contracts.length})</h3>
-          <p className="text-sm text-muted-foreground">Quản lý và xem các hợp đồng của khách hàng</p>
-        </div>
-        <Button onClick={handleOpenTemplateDialog} className="rounded-full">
-          <Plus className="mr-2 h-4 w-4" />
-          Tạo hợp đồng mới
-        </Button>
+      {/* Statistics Section */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="rounded-2xl border border-border bg-card shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              Tổng hợp đồng
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{contracts.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Hợp đồng đã tạo</p>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-2xl border border-amber-200 bg-amber-50/50 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              Chưa có hợp đồng
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600">
+              {loadingMissingContracts ? '...' : contractsWithoutDocuments.length}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Dịch vụ cần tạo hợp đồng</p>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-2xl border border-border bg-card shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-green-600" />
+              Hoàn thành
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {contracts.length > 0
+                ? Math.round((contracts.length / (contracts.length + contractsWithoutDocuments.length)) * 100)
+                : 0}
+              %
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Tỷ lệ hoàn thành hợp đồng</p>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="grid gap-4">
-        {contracts.map((contract) => (
-          <Card
-            key={contract._id}
-            className="rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
-          >
-            <CardContent className="p-5">
-              <div className="space-y-4">
-                {/* Header */}
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {getContractTypeBadge(contract.contractType)}
-                      {getStatusBadge(contract.status)}
-                      {contract.isTemplate && (
-                        <Badge
-                          variant="outline"
-                          className="text-xs font-medium bg-purple-500/10 text-purple-700 border-purple-200"
-                        >
-                          Mẫu
-                        </Badge>
-                      )}
-                      {contract.signersCount !== undefined && contract.signersCount !== null && (
-                        <Badge
-                          variant="outline"
-                          className="text-xs font-medium bg-gray-100 text-gray-700 border-gray-200"
-                        >
-                          Signers: {contract.signersCount}
-                        </Badge>
-                      )}
+      {/* Missing Contracts Alert */}
+      {!loadingMissingContracts && contractsWithoutDocuments.length > 0 && (
+        <Alert className="rounded-2xl border-amber-200 bg-amber-50/50">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-900">Cần tạo hợp đồng</AlertTitle>
+          <AlertDescription className="text-amber-800">
+            <p className="mb-3">
+              Khách hàng này có <strong>{contractsWithoutDocuments.length}</strong> dịch vụ đã thanh toán nhưng chưa có
+              hợp đồng (contract document). Vui lòng tạo hợp đồng để hoàn tất quy trình.
+            </p>
+            <div className="space-y-2">
+              {contractsWithoutDocuments.map((contract) => (
+                <div
+                  key={contract._id}
+                  className="flex items-center justify-between rounded-xl border border-amber-200 bg-white p-3"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                        {getTypeBadgeLabel(contract.type)}
+                      </Badge>
+                      <span className="font-medium text-sm">{contract.name}</span>
                     </div>
-                    <h4 className="font-semibold text-foreground">{contract.title}</h4>
-                    {contract.description && <p className="text-sm text-muted-foreground">{contract.description}</p>}
+                    <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                      <span>
+                        <Calendar className="inline h-3 w-3 mr-1" />
+                        {formatDate(contract.startDate)}
+                      </span>
+                      <span className="font-semibold text-amber-700">{formatCurrency(contract.total)}</span>
+                    </div>
                   </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleQuickCreateContract(contract)}
+                    disabled={creatingContract}
+                    className="rounded-full border-amber-300 text-amber-700 hover:bg-amber-100"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Tạo hợp đồng
+                  </Button>
                 </div>
+              ))}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
-                {/* Details Grid */}
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="flex items-start gap-2 text-sm">
-                    <FileText className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">File</p>
-                      <p className="font-medium text-foreground">{contract.fileName}</p>
+      <div>
+        <h3 className="text-lg font-semibold text-foreground">Danh sách hợp đồng ({contracts.length})</h3>
+        <p className="text-sm text-muted-foreground">Quản lý và xem các hợp đồng của khách hàng</p>
+      </div>
+
+      {contracts.length === 0 ? (
+        <Card className="rounded-2xl border border-dashed border-border bg-muted/30 shadow-none">
+          <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+            <FileText className="h-12 w-12 text-muted-foreground" />
+            <div>
+              <p className="font-semibold text-foreground">Chưa có hợp đồng</p>
+              <p className="text-sm text-muted-foreground">Các hợp đồng của khách hàng sẽ hiển thị ở đây sau khi tạo</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {contracts.map((contract) => (
+            <Card
+              key={contract._id}
+              className="rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
+            >
+              <CardContent className="p-5">
+                <div className="space-y-4">
+                  {/* Header */}
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {getContractTypeBadge(contract.contractType)}
+                        {getStatusBadge(contract.status)}
+                        {contract.isTemplate && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs font-medium bg-purple-500/10 text-purple-700 border-purple-200"
+                          >
+                            Mẫu
+                          </Badge>
+                        )}
+                        {contract.signersCount !== undefined && contract.signersCount !== null && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs font-medium bg-gray-100 text-gray-700 border-gray-200"
+                          >
+                            Signers: {contract.signersCount}
+                          </Badge>
+                        )}
+                      </div>
+                      <h4 className="font-semibold text-foreground">{contract.title}</h4>
+                      {contract.description && <p className="text-sm text-muted-foreground">{contract.description}</p>}
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2 text-sm">
-                    <Calendar className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Ngày tạo</p>
-                      <p className="font-medium text-foreground">{formatDate(contract.createdAt)}</p>
-                    </div>
-                  </div>
-
-                  {contract.branchId && (
+                  {/* Details Grid */}
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="flex items-start gap-2 text-sm">
-                      <Tag className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                      <FileText className="mt-0.5 h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="text-xs text-muted-foreground">Chi nhánh</p>
-                        <p className="font-medium text-foreground">
-                          {typeof contract.branchId === 'object' ? contract.branchId.branchName : '—'}
-                        </p>
+                        <p className="text-xs text-muted-foreground">File</p>
+                        <p className="font-medium text-foreground">{contract.fileName}</p>
                       </div>
                     </div>
-                  )}
 
-                  {contract.tags && contract.tags.length > 0 && (
                     <div className="flex items-start gap-2 text-sm">
-                      <Tag className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                      <Calendar className="mt-0.5 h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="text-xs text-muted-foreground">Tags</p>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {contract.tags.map((tag, idx) => (
-                            <Badge key={idx} variant="outline" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
+                        <p className="text-xs text-muted-foreground">Ngày tạo</p>
+                        <p className="font-medium text-foreground">{formatDate(contract.createdAt)}</p>
+                      </div>
+                    </div>
+
+                    {contract.branchId && (
+                      <div className="flex items-start gap-2 text-sm">
+                        <Tag className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Chi nhánh</p>
+                          <p className="font-medium text-foreground">
+                            {typeof contract.branchId === 'object' ? contract.branchId.branchName : '—'}
+                          </p>
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
 
-                {/* Actions */}
-                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleOpenViewer(contract)}
-                    disabled={contract.status === 'deleted'}
-                    className="rounded-full"
-                  >
-                    <Eye className="mr-1 h-3 w-3" />
-                    Xem
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleOpenEditor(contract)}
-                    disabled={contract.status === 'deleted'}
-                    className="rounded-full"
-                  >
-                    <Edit className="mr-1 h-3 w-3" />
-                    Chỉnh sửa
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleOpenSending(contract)}
-                    disabled={contract.status === 'deleted'}
-                    className="rounded-full bg-orange-500 text-white hover:bg-orange-600"
-                  >
-                    <Send className="mr-1 h-3 w-3" />
-                    Gửi ký
-                  </Button>
+                    {contract.tags && contract.tags.length > 0 && (
+                      <div className="flex items-start gap-2 text-sm">
+                        <Tag className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Tags</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {contract.tags.map((tag) => (
+                              <Badge key={tag} variant="outline" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenViewer(contract)}
+                      disabled={contract.status === 'deleted'}
+                      className="rounded-full"
+                    >
+                      <Eye className="mr-1 h-3 w-3" />
+                      Xem
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenEditor(contract)}
+                      disabled={contract.status === 'deleted'}
+                      className="rounded-full"
+                    >
+                      <Edit className="mr-1 h-3 w-3" />
+                      Chỉnh sửa
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenSending(contract)}
+                      disabled={contract.status === 'deleted'}
+                      className="rounded-full bg-orange-500 text-white hover:bg-orange-600"
+                    >
+                      <Send className="mr-1 h-3 w-3" />
+                      Gửi ký
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Embedded Document Viewer/Editor/Sending */}
       {selectedDocument && (
@@ -361,7 +640,20 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Chọn template hợp đồng</DialogTitle>
-            <DialogDescription>Chọn một template có sẵn để tạo hợp đồng mới cho khách hàng</DialogDescription>
+            <DialogDescription>
+              {selectedContractForCreation ? (
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                    {getTypeBadgeLabel(selectedContractForCreation.type)}
+                  </Badge>
+                  <span className="text-sm">
+                    Tạo hợp đồng cho: <strong>{selectedContractForCreation.name}</strong>
+                  </span>
+                </div>
+              ) : (
+                'Chọn một template có sẵn để tạo hợp đồng mới cho khách hàng'
+              )}
+            </DialogDescription>
           </DialogHeader>
 
           {loadingTemplates ? (
@@ -375,8 +667,12 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
             <div className="flex min-h-[20vh] items-center justify-center">
               <div className="text-center">
                 <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-                <p className="mt-3 font-semibold text-foreground">Chưa có template nào</p>
-                <p className="text-sm text-muted-foreground">Vui lòng tạo template trước khi tạo hợp đồng</p>
+                <p className="mt-3 font-semibold text-foreground">Chưa có template phù hợp</p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedContractForCreation
+                    ? `Chưa có template cho loại hợp đồng ${getTypeBadgeLabel(selectedContractForCreation.type)}`
+                    : 'Vui lòng tạo template trước khi tạo hợp đồng'}
+                </p>
               </div>
             </div>
           ) : (
@@ -385,7 +681,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                 <Card
                   key={template._id}
                   className="cursor-pointer rounded-xl border border-border bg-card shadow-sm transition-all hover:shadow-md hover:border-primary"
-                  onClick={() => !creatingContract && handleCreateFromTemplate(template._id, template.contractType)}
+                  onClick={() => !creatingContract && handleCreateFromTemplate(template._id)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3">
