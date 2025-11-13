@@ -31,7 +31,9 @@ export const contractDocumentApi = {
     }
     if (data.tags) {
       if (Array.isArray(data.tags)) {
-        data.tags.forEach((tag) => formData.append('tags', tag));
+        for (const tag of data.tags) {
+          formData.append('tags', tag);
+        }
       } else {
         formData.append('tags', data.tags);
       }
@@ -60,15 +62,17 @@ export const contractDocumentApi = {
   listDocuments: async (params: DocumentListParams = {}): Promise<PaginatedApiResponse<DocumentListResponse>> => {
     const searchParams = new URLSearchParams();
 
-    Object.entries(params).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(params)) {
       if (value !== undefined && value !== null && value !== '') {
         if (Array.isArray(value)) {
-          value.forEach((v) => searchParams.append(key, v.toString()));
+          for (const v of value) {
+            searchParams.append(key, v.toString());
+          }
         } else {
           searchParams.append(key, value.toString());
         }
       }
-    });
+    }
 
     const queryString = searchParams.toString();
     const url = queryString ? `/signnow/documents?${queryString}` : '/signnow/documents';
@@ -138,6 +142,24 @@ export const contractDocumentApi = {
       `/signnow/documents/${documentId}/embedded-sending`,
       data
     );
+    return response.data;
+  },
+
+  /**
+   * Subscribe webhooks for a document
+   */
+  subscribeWebhooks: async (documentId: string): Promise<ApiResponse<Record<string, unknown>>> => {
+    const response = await api.post<ApiResponse<Record<string, unknown>>>(
+      `/signnow/documents/${documentId}/subscribe-webhooks`
+    );
+    return response.data;
+  },
+
+  /**
+   * Refresh document data from SignNow
+   */
+  refreshDocument: async (documentId: string): Promise<ApiResponse<Record<string, unknown>>> => {
+    const response = await api.post<ApiResponse<Record<string, unknown>>>(`/signnow/documents/${documentId}/refresh`);
     return response.data;
   },
 

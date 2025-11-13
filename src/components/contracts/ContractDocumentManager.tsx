@@ -75,7 +75,7 @@ export default function ContractDocumentManager() {
   };
 
   const handleOpenSending = async (document: ContractDocument) => {
-    const redirectUrl = `${window.location.origin}/manage/contracts`;
+    const redirectUrl = `${globalThis.location.origin}/manage/contracts`;
     const response = await contractDocumentApi.createEmbeddedSending(document._id, {
       type: 'document', // 'document' allows editing fields before sending, 'invite' opens invite page directly
       redirectUrl,
@@ -93,10 +93,27 @@ export default function ContractDocumentManager() {
     }
   };
 
-  const handleEmbeddedClose = () => {
+  const handleEmbeddedClose = async () => {
+    // If we were editing a document, refresh its data from SignNow
+    if (embeddedMode === 'edit' && selectedDocument) {
+      try {
+        const response = await contractDocumentApi.refreshDocument(selectedDocument._id);
+        if (response.success && response.data) {
+          const data = response.data as { updated?: boolean; message?: string };
+          if (data.updated) {
+            toast.success(data.message || 'Document updated successfully');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to refresh document:', error);
+        // Don't show error toast - just continue with normal refresh
+      }
+    }
+
     // Clear iframe URL when closing
     setIframeUrl(null);
     setSelectedDocument(null);
+
     // Refresh documents list after editing/viewing/sending
     fetchDocuments();
   };
@@ -131,6 +148,24 @@ export default function ContractDocumentManager() {
     const config = statusConfig[status] || statusConfig.uploaded;
     return (
       <Badge variant={config.variant} className="text-xs">
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const getContractTypeBadge = (contractType?: string) => {
+    if (!contractType) return null;
+
+    const typeConfig: Record<string, { label: string; className: string }> = {
+      membership: { label: 'Membership', className: 'bg-blue-500/10 text-blue-700 border-blue-200' },
+      service_pt: { label: 'PT (1-on-1)', className: 'bg-green-500/10 text-green-700 border-green-200' },
+      service_class: { label: 'Class (Group)', className: 'bg-purple-500/10 text-purple-700 border-purple-200' },
+      custom: { label: 'Custom', className: 'bg-gray-500/10 text-gray-700 border-gray-200' }
+    };
+
+    const config = typeConfig[contractType] || typeConfig.custom;
+    return (
+      <Badge variant="outline" className={`text-xs font-medium ${config.className}`}>
         {config.label}
       </Badge>
     );
@@ -204,26 +239,38 @@ export default function ContractDocumentManager() {
       </div>
 
       {/* Documents List */}
-      {loading ? (
+      {loading && (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
         </div>
-      ) : documents.length === 0 ? (
+      )}
+      {!loading && documents.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
           <p>{t('contracts.no_documents', 'No documents found')}</p>
         </div>
-      ) : (
+      )}
+      {!loading && documents.length > 0 && (
         <>
           <div className="bg-white rounded-lg border border-gray-200 divide-y">
             {documents.map((doc) => (
               <div key={doc._id} className="p-4 hover:bg-gray-50 transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <FileText className="h-5 w-5 text-orange-500" />
                       <h3 className="font-semibold text-gray-900">{doc.title}</h3>
                       {getStatusBadge(doc.status)}
+                      {doc.isTemplate && doc.templateContractType && getContractTypeBadge(doc.templateContractType)}
+                      {!doc.isTemplate && doc.contractType && getContractTypeBadge(doc.contractType)}
+                      {doc.isTemplate && (
+                        <Badge
+                          variant="outline"
+                          className="text-xs font-medium bg-purple-500/10 text-purple-700 border-purple-200"
+                        >
+                          Template
+                        </Badge>
+                      )}
                       {doc.signersCount !== undefined && doc.signersCount !== null && (
                         <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700">
                           Signers: {doc.signersCount}
@@ -236,8 +283,8 @@ export default function ContractDocumentManager() {
                       <span>{(doc.fileSize / 1024 / 1024).toFixed(2)} MB</span>
                       {doc.tags.length > 0 && (
                         <div className="flex gap-1">
-                          {doc.tags.map((tag, idx) => (
-                            <Badge key={idx} variant="outline" className="text-xs">
+                          {doc.tags.map((tag) => (
+                            <Badge key={tag} variant="outline" className="text-xs">
                               {tag}
                             </Badge>
                           ))}
