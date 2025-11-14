@@ -49,5 +49,66 @@ export const userApi = {
   getUserById: async (userId: string): Promise<ApiResponse<User>> => {
     const response = await api.get(`/users/${userId}`);
     return response.data;
+  },
+
+  /**
+   * Get accounts list (admin only) - CUSTOMER and OWNER roles
+   */
+  getAccountsList: async (params?: {
+    role?: 'CUSTOMER' | 'OWNER';
+    status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'DELETED';
+    search?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: 'createdAt' | 'updatedAt' | 'fullName' | 'email' | 'status';
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<ApiResponse<{ accounts: User[]; pagination: PaginationInfo }>> => {
+    const response = await api.get('/users/admin/accounts', { params });
+    return response.data;
+  },
+
+  /**
+   * Lock account (admin only)
+   */
+  lockAccount: async (userId: string): Promise<ApiResponse<User>> => {
+    const response = await api.post(`/users/admin/accounts/${userId}/lock`);
+    return response.data;
+  },
+
+  /**
+   * Unlock account (admin only)
+   */
+  unlockAccount: async (userId: string): Promise<ApiResponse<User>> => {
+    const response = await api.post(`/users/admin/accounts/${userId}/unlock`);
+    return response.data;
+  },
+
+  /**
+   * Get owner detail with branches (admin only)
+   */
+  getOwnerDetail: async (ownerId: string): Promise<ApiResponse<{ owner: User; branches: Branch[] }>> => {
+    const response = await api.get(`/users/admin/accounts/${ownerId}/owner-detail`);
+    return response.data;
   }
 };
+
+interface Branch {
+  _id: string;
+  branchName: string;
+  location?: string;
+  description?: string;
+  isActive: boolean;
+  ownerId: string;
+  managerId?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}

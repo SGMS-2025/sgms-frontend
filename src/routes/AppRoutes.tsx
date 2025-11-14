@@ -74,6 +74,9 @@ import BusinessVerificationManagementPage from '@/pages/admin/BusinessVerificati
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import AdminSubscriptionsPage from '@/pages/admin/AdminSubscriptionsPage';
 import AdminSubscriptionPackagesPage from '@/pages/admin/AdminSubscriptionPackagesPage';
+import AdminAccountsPage from '@/pages/admin/AdminAccountsPage';
+import AdminOwnerDetailPage from '@/pages/admin/AdminOwnerDetailPage';
+import AdminBranchCustomersPage from '@/pages/admin/AdminBranchCustomersPage';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import OwnerSubscriptionGate from '@/components/guards/OwnerSubscriptionGate';
 import OwnerSubscriptionGateWithLayout from '@/components/guards/OwnerSubscriptionGateWithLayout';
@@ -464,8 +467,12 @@ const AppRoutes: React.FC = () => {
           <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
           <Route path="subscriptions/packages" element={<AdminSubscriptionPackagesPage />} />
 
+          {/* Account Management (Admin) */}
+          <Route path="accounts" element={<AdminAccountsPage />} />
+          <Route path="accounts/:userId/owner" element={<AdminOwnerDetailPage />} />
+          <Route path="branches/:branchId/customers" element={<AdminBranchCustomersPage />} />
+
           {/* TODO: Add more admin routes here */}
-          {/* <Route path="users" element={<UserManagementPage />} /> */}
           {/* <Route path="roles" element={<RoleManagementPage />} /> */}
           {/* <Route path="reports" element={<ReportsPage />} /> */}
           {/* <Route path="logs" element={<SystemLogsPage />} /> */}

@@ -66,3 +66,25 @@ export interface PopulatedUser {
   role: string;
   status: Status;
 }
+
+export interface AccountsListQuery {
+  role?: 'CUSTOMER' | 'OWNER';
+  status?: Status | 'DELETED';
+  search?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: 'createdAt' | 'updatedAt' | 'fullName' | 'email' | 'status';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface AccountsListResponse {
+  accounts: User[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}

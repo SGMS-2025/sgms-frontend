@@ -258,10 +258,10 @@ export const AdminSidebar: React.FC = () => {
     {
       icon: <Users className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.users', 'Quản lý người dùng'),
-      href: '/admin/users',
-      isActive: location.pathname === '/admin/users',
+      href: '/admin/accounts',
+      isActive: location.pathname === '/admin/accounts' || location.pathname.startsWith('/admin/accounts/'),
       onClick: () => {
-        navigate('/admin/users');
+        navigate('/admin/accounts');
       }
     },
     {

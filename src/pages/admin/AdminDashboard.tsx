@@ -236,7 +236,7 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/admin/users')}>
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/admin/accounts')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5 text-orange-600" />

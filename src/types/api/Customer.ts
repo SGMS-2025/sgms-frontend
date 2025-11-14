@@ -27,6 +27,11 @@ export interface CustomerDisplay {
   lastPaymentDate?: string; // Ngày thanh toán gần nhất
   createdAt?: string; // Ngày tạo
   updatedAt?: string; // Ngày cập nhật
+  userId?: string; // User ID for lock/unlock operations
+  avatar?: {
+    publicId?: string;
+    url?: string;
+  }; // Avatar for display
 
   // Additional fields for detailed customer information
   gender?: string;
