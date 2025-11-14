@@ -6,6 +6,14 @@ import { useEquipmentList } from '@/hooks/useEquipment';
 import { useBranch } from '@/contexts/BranchContext';
 import { formatDate } from '@/utils/utils';
 import { formatNumber } from '@/utils/currency';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext
+} from '@/components/ui/pagination';
 import type { EquipmentStatus, EquipmentCategory } from '@/types/api/Equipment';
 
 // Equipment categories mapping
@@ -25,12 +33,15 @@ export const EquipmentManagement: React.FC = () => {
   const { currentBranch, branches } = useBranch();
   const [selectedCategory, setSelectedCategory] = useState<EquipmentCategory | ''>('');
   const [selectedLocation, setSelectedLocation] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Fetch equipment with filters
-  const { equipments, loading, error, updateFilters } = useEquipmentList({
+  const { equipments, loading, error, pagination, updateFilters, goToPage } = useEquipmentList({
     branchId: currentBranch?._id,
     category: selectedCategory || undefined,
-    limit: 100 // Increase limit to get all for filtering
+    page: currentPage,
+    limit: itemsPerPage
   });
 
   // Get unique locations from equipment list
@@ -87,9 +98,19 @@ export const EquipmentManagement: React.FC = () => {
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       const category = e.target.value as EquipmentCategory | '';
       setSelectedCategory(category);
-      updateFilters({ category: category || undefined });
+      setCurrentPage(1); // Reset to first page when filter changes
+      updateFilters({ category: category || undefined, page: 1 });
     },
     [updateFilters]
+  );
+
+  // Handle page change
+  const handlePageChange = useCallback(
+    (page: number) => {
+      setCurrentPage(page);
+      goToPage(page);
+    },
+    [goToPage]
   );
 
   // Handle location filter change
@@ -200,9 +221,29 @@ export const EquipmentManagement: React.FC = () => {
             return <div className="text-center py-10 text-sm text-gray-500">{t('common.loading', 'Đang tải...')}</div>;
           }
           if (error) {
-            return <div className="text-center py-10 text-sm text-red-500">{t('common.error', 'Có lỗi xảy ra')}</div>;
+            return (
+              <div className="text-center py-10">
+                <div className="text-sm text-red-500 font-medium mb-2">{t('common.error', 'Có lỗi xảy ra')}</div>
+                <div className="text-xs text-gray-500">{error}</div>
+              </div>
+            );
           }
           if (equipmentData.length === 0) {
+            if (selectedLocation) {
+              return (
+                <div className="text-center py-10">
+                  <div className="text-sm text-gray-500 mb-1">
+                    {t('dashboard.no_equipment_at_location', 'Không có thiết bị tại vị trí này')}
+                  </div>
+                  <button
+                    onClick={() => setSelectedLocation('')}
+                    className="text-xs text-orange-500 hover:text-orange-600 underline"
+                  >
+                    {t('dashboard.clear_location_filter', 'Xóa bộ lọc vị trí')}
+                  </button>
+                </div>
+              );
+            }
             return <div className="text-center py-10 text-sm text-gray-500">—</div>;
           }
           return equipmentData.map((item, index) => (
@@ -221,6 +262,75 @@ export const EquipmentManagement: React.FC = () => {
           ));
         })()}
       </div>
+
+      {/* Pagination Controls */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-sm text-gray-500">
+            {t('dashboard.showing')} {(pagination.currentPage - 1) * pagination.itemsPerPage + 1} -{' '}
+            {Math.min(
+              pagination.currentPage * pagination.itemsPerPage,
+              selectedLocation ? filteredEquipments.length : pagination.totalItems
+            )}{' '}
+            {t('dashboard.of_total')} {selectedLocation ? filteredEquipments.length : pagination.totalItems}{' '}
+            {t('equipment.equipment', 'thiết bị')}
+          </div>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (pagination.hasPrevPage) {
+                      handlePageChange(pagination.currentPage - 1);
+                    }
+                  }}
+                  className={!pagination.hasPrevPage ? 'pointer-events-none opacity-50' : ''}
+                />
+              </PaginationItem>
+              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                let pageNum;
+                if (pagination.totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (pagination.currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                  pageNum = pagination.totalPages - 4 + i;
+                } else {
+                  pageNum = pagination.currentPage - 2 + i;
+                }
+                return (
+                  <PaginationItem key={pageNum}>
+                    <PaginationLink
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handlePageChange(pageNum);
+                      }}
+                      isActive={pagination.currentPage === pageNum}
+                    >
+                      {pageNum}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              })}
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (pagination.hasNextPage) {
+                      handlePageChange(pagination.currentPage + 1);
+                    }
+                  }}
+                  className={!pagination.hasNextPage ? 'pointer-events-none opacity-50' : ''}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
     </div>
   );
 };

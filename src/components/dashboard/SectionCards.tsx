@@ -1,15 +1,16 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { useDashboardSummary } from '@/hooks/useDashboard';
 import { useBranch } from '@/contexts/BranchContext';
-import { formatCurrency } from '@/utils/currency';
-import { formatNumber } from '@/utils/currency';
+import { formatCurrency, formatNumber } from '@/utils/currency';
 
 const TotalRevenueCard: React.FC<{ revenue: number; growth: number; loading: boolean }> = ({
   revenue,
   growth,
   loading
 }) => {
+  const { t } = useTranslation();
   const isPositive = growth >= 0;
   const GrowthIcon = isPositive ? TrendingUp : TrendingDown;
 
@@ -17,7 +18,7 @@ const TotalRevenueCard: React.FC<{ revenue: number; growth: number; loading: boo
     <div className="bg-white rounded-xl p-6 h-full shadow-lg border border-gray-200">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
-          <span className="text-sm font-medium text-gray-600">Total Revenue</span>
+          <span className="text-sm font-medium text-gray-600">{t('dashboard.cards.total_revenue')}</span>
         </div>
         {!loading && (
           <div
@@ -42,9 +43,12 @@ const TotalRevenueCard: React.FC<{ revenue: number; growth: number; loading: boo
             <>
               <div className={`flex items-center text-sm mb-1 ${isPositive ? 'text-orange-500' : 'text-red-500'}`}>
                 <GrowthIcon className="w-4 h-4 mr-1" />
-                <span>{isPositive ? 'Trending up' : 'Trending down'} this month</span>
+                <span>
+                  {isPositive ? t('dashboard.cards.trending_up') : t('dashboard.cards.trending_down')}{' '}
+                  {t('dashboard.cards.this_month')}
+                </span>
               </div>
-              <div className="text-xs text-gray-500">Revenue for the current period</div>
+              <div className="text-xs text-gray-500">{t('dashboard.cards.revenue_current_period')}</div>
             </>
           )}
         </div>
@@ -58,6 +62,7 @@ const NewCustomersCard: React.FC<{ count: number; growth: number; loading: boole
   growth,
   loading
 }) => {
+  const { t } = useTranslation();
   const isPositive = growth >= 0;
   const GrowthIcon = isPositive ? TrendingUp : TrendingDown;
 
@@ -65,7 +70,7 @@ const NewCustomersCard: React.FC<{ count: number; growth: number; loading: boole
     <div className="bg-white rounded-xl p-6 h-full shadow-lg border border-gray-200">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
-          <span className="text-sm font-medium text-gray-600">New Customers</span>
+          <span className="text-sm font-medium text-gray-600">{t('dashboard.cards.new_customers')}</span>
         </div>
         {!loading && (
           <div
@@ -91,11 +96,14 @@ const NewCustomersCard: React.FC<{ count: number; growth: number; loading: boole
               <div className={`flex items-center text-sm mb-1 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
                 <GrowthIcon className="w-4 h-4 mr-1" />
                 <span>
-                  {isPositive ? 'Up' : 'Down'} {Math.abs(growth).toFixed(1)}% this period
+                  {isPositive ? t('dashboard.cards.up') : t('dashboard.cards.down')} {Math.abs(growth).toFixed(1)}%{' '}
+                  {t('dashboard.cards.this_period')}
                 </span>
               </div>
               <div className="text-xs text-gray-500">
-                {isPositive ? 'Strong acquisition' : 'Acquisition needs attention'}
+                {isPositive
+                  ? t('dashboard.cards.strong_acquisition')
+                  : t('dashboard.cards.acquisition_needs_attention')}
               </div>
             </>
           )}
@@ -110,6 +118,7 @@ const ActiveAccountsCard: React.FC<{ count: number; growth: number; loading: boo
   growth,
   loading
 }) => {
+  const { t } = useTranslation();
   const isPositive = growth >= 0;
   const GrowthIcon = isPositive ? TrendingUp : TrendingDown;
 
@@ -117,7 +126,7 @@ const ActiveAccountsCard: React.FC<{ count: number; growth: number; loading: boo
     <div className="bg-white rounded-xl p-6 h-full shadow-lg border border-gray-200">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
-          <span className="text-sm font-medium text-gray-600">Active Accounts</span>
+          <span className="text-sm font-medium text-gray-600">{t('dashboard.cards.active_accounts')}</span>
         </div>
         {!loading && (
           <div
@@ -142,10 +151,16 @@ const ActiveAccountsCard: React.FC<{ count: number; growth: number; loading: boo
             <>
               <div className={`flex items-center text-sm mb-1 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
                 <GrowthIcon className="w-4 h-4 mr-1" />
-                <span>{isPositive ? 'Strong user retention' : 'Retention needs attention'}</span>
+                <span>
+                  {isPositive
+                    ? t('dashboard.cards.strong_user_retention')
+                    : t('dashboard.cards.retention_needs_attention')}
+                </span>
               </div>
               <div className="text-xs text-gray-500">
-                {isPositive ? 'Engagement exceed targets' : 'Engagement below targets'}
+                {isPositive
+                  ? t('dashboard.cards.engagement_exceed_targets')
+                  : t('dashboard.cards.engagement_below_targets')}
               </div>
             </>
           )}

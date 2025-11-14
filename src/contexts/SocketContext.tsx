@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { notificationApi } from '@/services/api/notificationApi';
+import { translateNotificationTitle, translateNotificationMessage } from '@/utils/notificationTranslator';
 import type {
   WorkShiftNotificationData,
   TimeOffNotificationData,
@@ -370,15 +371,19 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
           const priority = notification.priority || 'medium';
 
+          // Translate notification title and message for toast display
+          const translatedTitle = translateNotificationTitle(notification, t);
+          const translatedMessage = translateNotificationMessage(notification, t);
+
           if (priority === 'high') {
-            toast.success(notification.title, {
-              description: notification.message,
+            toast.success(translatedTitle, {
+              description: translatedMessage,
               duration: 5000,
               id: notificationId // Use notification ID as toast ID to prevent duplicates
             });
           } else {
-            toast.info(notification.title, {
-              description: notification.message,
+            toast.info(translatedTitle, {
+              description: translatedMessage,
               duration: 4000,
               id: notificationId // Use notification ID as toast ID to prevent duplicates
             });

@@ -19,7 +19,7 @@ interface KPIModalProps {
 
 export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSuccess, kpiId, mode = 'create' }) => {
   const { t } = useTranslation();
-  const { branches, currentBranch } = useBranch();
+  const { currentBranch } = useBranch();
   const { createKPI, loading: createLoading, error: createError, resetError: resetCreateError } = useCreateKPI();
   const { updateKPI, loading: updateLoading, error: updateError, resetError: resetUpdateError } = useUpdateKPI();
   const { kpiConfig, loading: detailLoading } = useKPIDetails(mode === 'edit' ? kpiId || null : null);
@@ -64,7 +64,7 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
         notes: kpiConfig.notes || ''
       });
     } else {
-      // Create mode: Set defaults
+      // Create mode: Set defaults - always use currentBranch from context
       const defaultDates = getDefaultDates();
       setFormData({
         branchId: currentBranch?._id || '',
@@ -80,11 +80,19 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
     resetUpdateError();
   }, [open, isEditMode, kpiConfig, currentBranch, resetCreateError, resetUpdateError]);
 
+  useEffect(() => {
+    if (!isEditMode && open && currentBranch?._id) {
+      setFormData((prev) => ({
+        ...prev,
+        branchId: currentBranch._id
+      }));
+    }
+  }, [currentBranch, isEditMode, open]);
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Branch validation (only for create mode)
-    if (!isEditMode && formData.branchId === '') {
+    if (!isEditMode && !currentBranch?._id) {
       newErrors.branchId = t('kpi.form.branch_required', 'Vui lòng chọn chi nhánh');
     }
 
@@ -154,7 +162,7 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
 
         // Create KPI data - branch-wide (no staffId)
         const kpiData = {
-          branchId: formData.branchId,
+          branchId: currentBranch?._id || formData.branchId,
           periodType: periodType,
           startDate: formData.startDate,
           endDate: formData.endDate,
@@ -248,7 +256,7 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
             disabled={loading}
-            aria-label="Close modal"
+            aria-label={t('common.close_modal', 'Close modal')}
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -257,28 +265,21 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
         {/* Form - Scrollable content */}
         <div className="flex-1 overflow-y-auto">
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            {/* Branch Selection - Only show in create mode */}
+            {/* Branch Display - Auto-selected from current branch context */}
             {!isEditMode && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t('kpi.form.branch', 'Chi nhánh')} <span className="text-red-500">*</span>
                 </label>
-                <select
-                  value={formData.branchId}
-                  onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                  disabled={loading}
-                  className={`w-full px-3 py-2 border rounded-lg ${
-                    errors.branchId ? 'border-red-500' : 'border-gray-300'
-                  } ${loading ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                >
-                  <option value="">{t('kpi.form.select_branch', 'Chọn chi nhánh')}</option>
-                  {branches?.map((branch) => (
-                    <option key={branch._id} value={branch._id}>
-                      {branch.branchName}
-                    </option>
-                  ))}
-                </select>
+                <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
+                  {currentBranch?.branchName || t('kpi.form.no_branch_selected', 'Chưa chọn chi nhánh')}
+                </div>
                 {errors.branchId && <p className="mt-1 text-sm text-red-500">{errors.branchId}</p>}
+                {!currentBranch?._id && (
+                  <p className="mt-1 text-sm text-amber-600">
+                    {t('kpi.form.select_branch_first', 'Vui lòng chọn chi nhánh từ menu trên trước khi tạo KPI')}
+                  </p>
+                )}
               </div>
             )}
 
@@ -311,7 +312,7 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t('kpi.form.start_date', 'Ngày bắt đầu')}
                 {!isEditMode && <span className="text-red-500">*</span>}
-                {isEditMode && <span className="text-gray-500 text-xs ml-2">(Không thể thay đổi)</span>}
+                {isEditMode && <span className="text-gray-500 text-xs ml-2">({t('kpi.form.cannot_change')})</span>}
               </label>
               <Input
                 type="date"
@@ -328,7 +329,7 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t('kpi.form.end_date', 'Ngày kết thúc')}
                 {!isEditMode && <span className="text-red-500">*</span>}
-                {isEditMode && <span className="text-gray-500 text-xs ml-2">(Không thể thay đổi)</span>}
+                {isEditMode && <span className="text-gray-500 text-xs ml-2">({t('kpi.form.cannot_change')})</span>}
               </label>
               <Input
                 type="date"
