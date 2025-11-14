@@ -9,6 +9,7 @@ import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import type { Notification } from '@/contexts/SocketContext';
 import type { WorkShiftNotificationData } from '@/types/api/NotificationWorkShift';
 import { formatInVietnam } from '@/utils/datetime';
+import { translateNotificationTitle, translateNotificationMessage } from '@/utils/notificationTranslator';
 
 // Custom types for notification data
 interface TimeOffNotificationData {
@@ -138,7 +139,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
   };
 
   return (
-    <div className={`max-h-96 ${className}`}>
+    <div className={`${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center gap-2">
@@ -201,10 +202,14 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className="text-sm font-medium text-gray-900 truncate">{notification.title}</h4>
+                      <h4 className="text-sm font-medium text-gray-900 truncate">
+                        {translateNotificationTitle(notification, t)}
+                      </h4>
                       {!notification.read && <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />}
                     </div>
-                    <p className="text-xs text-gray-600 line-clamp-2">{notification.message}</p>
+                    <p className="text-xs text-gray-600 line-clamp-2">
+                      {translateNotificationMessage(notification, t)}
+                    </p>
 
                     {/* Display additional work shift details */}
                     {(notification.data as WorkShiftNotificationData)?.workShiftId && (

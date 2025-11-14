@@ -2,7 +2,6 @@
 import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -92,7 +91,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   console.log('[StaffScheduleCalendar] isMobile:', isMobile, 'width:', width);
 
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<'week' | 'month' | 'day'>('week');
+  const viewMode: 'week' | 'month' | 'day' = 'week';
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showCreateWorkShiftModal, setShowCreateWorkShiftModal] = useState(false);
@@ -235,8 +234,19 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     staffByRole.forEach((roleStaffList, role) => {
       // Get role config
       const roleConfig = role !== 'OTHER' ? branchConfig.roleConfigs?.find((rc) => rc.role === role) : null;
-      const workingDays = roleConfig?.workingDays || branchConfig.defaultWorkingDays || [1, 2, 3, 4, 5, 6];
-      const allowedShiftTypes = roleConfig?.shifts || branchConfig.defaultShifts?.map((s) => s.type) || [];
+
+      if (role !== 'OTHER' && !roleConfig) {
+        return;
+      }
+
+      const workingDays =
+        roleConfig?.workingDays || (role === 'OTHER' ? branchConfig.defaultWorkingDays || [1, 2, 3, 4, 5, 6] : []);
+      const allowedShiftTypes =
+        roleConfig?.shifts || (role === 'OTHER' ? branchConfig.defaultShifts?.map((s) => s.type) || [] : []);
+
+      if (!workingDays.length || !allowedShiftTypes.length) {
+        return;
+      }
 
       // Get available shifts for this role (sorted by startTime)
       const availableShifts = sortShiftsByStartTime(
@@ -1305,17 +1315,6 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                   </PopoverContent>
                 </Popover>
               )}
-
-              <Select value={viewMode} onValueChange={(value: 'week' | 'month' | 'day') => setViewMode(value)}>
-                <SelectTrigger className="w-24">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="week">{t('workshift.week')}</SelectItem>
-                  <SelectItem value="month">{t('workshift.month')}</SelectItem>
-                  <SelectItem value="day">{t('workshift.day')}</SelectItem>
-                </SelectContent>
-              </Select>
 
               {/* Create Dropdown - Replacing Time Off button */}
               <CreateDropdown
