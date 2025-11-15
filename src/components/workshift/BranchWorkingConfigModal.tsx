@@ -13,6 +13,7 @@ import { Trash2, Plus } from 'lucide-react';
 interface BranchWorkingConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
 const defaultShiftObj = (): ShiftConfig => ({
@@ -29,7 +30,7 @@ const defaultRoleConfig = (): RoleConfig => ({
   fixedSalary: 0
 });
 
-const BranchWorkingConfigModal: React.FC<BranchWorkingConfigModalProps> = ({ isOpen, onClose }) => {
+const BranchWorkingConfigModal: React.FC<BranchWorkingConfigModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const { t } = useTranslation();
   const { currentBranch } = useBranch();
   const branchId = currentBranch?._id;
@@ -72,6 +73,8 @@ const BranchWorkingConfigModal: React.FC<BranchWorkingConfigModalProps> = ({ isO
     customRestPattern: ''
   });
   const [error, setError] = useState('');
+  const [shiftError, setShiftError] = useState('');
+  const [roleError, setRoleError] = useState('');
 
   // Fetch initial config
   useEffect(() => {
@@ -82,9 +85,17 @@ const BranchWorkingConfigModal: React.FC<BranchWorkingConfigModalProps> = ({ isO
       .then((res) => {
         if (res?.data) setForm({ ...res.data, customRestPattern: res.data.customRestPattern || '' });
         setError('');
+        setShiftError('');
+        setRoleError('');
       })
       .catch(() => setError(t('branch_working_config.error.load_failed')))
       .finally(() => setLoading(false));
+
+    // Clear errors when modal closes
+    if (!isOpen) {
+      setShiftError('');
+      setRoleError('');
+    }
   }, [isOpen, branchId, t]);
 
   // HANDLERS
@@ -103,6 +114,10 @@ const BranchWorkingConfigModal: React.FC<BranchWorkingConfigModalProps> = ({ isO
 
   // Update shift
   const handleShiftChange = (idx: number, field: keyof ShiftConfig, value: ShiftConfig[keyof ShiftConfig]) => {
+    // Clear shift error when user makes changes
+    if (shiftError) {
+      setShiftError('');
+    }
     setForm((prev) => ({
       ...prev,
       defaultShifts: (prev.defaultShifts || []).map((shift, i) => {
@@ -125,6 +140,10 @@ const BranchWorkingConfigModal: React.FC<BranchWorkingConfigModalProps> = ({ isO
 
   // Role logic
   const handleRoleChange = (idx: number, field: keyof RoleConfig, value: RoleConfig[keyof RoleConfig]) => {
+    // Clear role error when user makes changes
+    if (roleError) {
+      setRoleError('');
+    }
     setForm((prev) => ({
       ...prev,
       roleConfigs: (prev.roleConfigs || []).map((role, i) => (i === idx ? { ...role, [field]: value } : role))
@@ -152,11 +171,49 @@ const BranchWorkingConfigModal: React.FC<BranchWorkingConfigModalProps> = ({ isO
       setError(t('branch_working_config.error.invalid_time_range'));
       return;
     }
+    // Validate duplicate shift names
+    const shiftNames = new Set<string>();
+    for (const shift of form.defaultShifts) {
+      // Get shift identifier: type for MORNING/AFTERNOON/EVENING, customName for CUSTOM
+      const shiftIdentifier = shift.type === 'CUSTOM' ? (shift.customName || '').trim().toLowerCase() : shift.type;
+
+      // Check if custom name is required when type is CUSTOM
+      if (shift.type === 'CUSTOM' && !shift.customName?.trim()) {
+        setShiftError(t('branch_working_config.error.shift_time_required'));
+        return;
+      }
+
+      // Check duplicate
+      if (shiftIdentifier && shiftNames.has(shiftIdentifier)) {
+        setShiftError(t('branch_working_config.error.duplicate_shift_name'));
+        return;
+      }
+      shiftNames.add(shiftIdentifier);
+    }
+    // Clear shift error if validation passes
+    setShiftError('');
+    // Validate duplicate roles
+    const roleTypes = new Set<string>();
+    for (const roleConfig of form.roleConfigs || []) {
+      if (roleConfig.role) {
+        if (roleTypes.has(roleConfig.role)) {
+          setRoleError(t('branch_working_config.error.duplicate_role'));
+          return;
+        }
+        roleTypes.add(roleConfig.role);
+      }
+    }
+    // Clear role error if validation passes
+    setRoleError('');
     setLoading(true);
     setError('');
     try {
       await branchApi.updateBranchWorkingConfig(branchId, submitData);
       toast.success(t('branch_working_config.success.save'));
+      // Trigger onSuccess callback to refresh calendar data
+      if (onSuccess) {
+        onSuccess();
+      }
       onClose();
     } catch {
       setError(t('branch_working_config.error.save_failed'));
@@ -167,7 +224,7 @@ const BranchWorkingConfigModal: React.FC<BranchWorkingConfigModalProps> = ({ isO
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end items-stretch bg-black/30">
-      <div className="relative bg-white h-full w-full md:w-[900px] xl:w-[1200px] max-w-full p-8 overflow-y-auto shadow-xl border-l">
+      <div className="relative bg-white h-full w-full md:w-[900px] xl:w-[900px] max-w-full p-8 overflow-y-auto shadow-xl border-l">
         <button
           className="absolute top-4 right-4 text-lg font-bold"
           onClick={onClose}
@@ -218,6 +275,7 @@ const BranchWorkingConfigModal: React.FC<BranchWorkingConfigModalProps> = ({ isO
             {/* Default Shifts */}
             <div>
               <div className="font-semibold mb-1">{t('branch_working_config.default_shift_config')}</div>
+              {shiftError && <div className="text-red-500 text-sm mb-2">{shiftError}</div>}
               <table className="w-full border mt-2 table-fixed">
                 <thead>
                   <tr>
@@ -371,6 +429,7 @@ const BranchWorkingConfigModal: React.FC<BranchWorkingConfigModalProps> = ({ isO
             {/* Role configs */}
             <div>
               <label className="font-semibold">{t('branch_working_config.role_config')}</label>
+              {roleError && <div className="text-red-500 text-sm mb-2">{roleError}</div>}
               <table className="w-full border mt-2 border-collapse" style={{ tableLayout: 'fixed' }}>
                 <thead>
                   <tr>

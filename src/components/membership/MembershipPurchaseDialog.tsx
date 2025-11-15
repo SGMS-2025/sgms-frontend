@@ -1,13 +1,15 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { staffApi } from '@/services/api/staffApi';
 import type { MembershipPaymentMethod, MembershipPlan } from '@/types/api/Membership';
 import type { Branch } from '@/types/api/Branch';
 
@@ -18,8 +20,13 @@ interface MembershipPurchaseDialogProps {
   plan: MembershipPlan;
   loading: boolean;
   error?: string | null;
-  onSubmit: (payload: { transactionCode?: string; note?: string; startDate?: string }) => Promise<void>;
-  onPayOSSubmit?: (payload: { note?: string; startDate?: string }) => Promise<void>;
+  onSubmit: (payload: {
+    transactionCode?: string;
+    note?: string;
+    startDate?: string;
+    referralCode?: string;
+  }) => Promise<void>;
+  onPayOSSubmit?: (payload: { note?: string; startDate?: string; referralCode?: string }) => Promise<void>;
 }
 
 export const MembershipPurchaseDialog: React.FC<MembershipPurchaseDialogProps> = ({
@@ -33,12 +40,19 @@ export const MembershipPurchaseDialog: React.FC<MembershipPurchaseDialogProps> =
   onPayOSSubmit
 }) => {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
   const [transactionCode, setTransactionCode] = useState('');
   const [note, setNote] = useState('');
   const [startDate, setStartDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [acknowledged, setAcknowledged] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'BANK_TRANSFER' | 'PAYOS'>('BANK_TRANSFER');
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // CASE 1: Referral code state
+  const [referralCode, setReferralCode] = useState('');
+  const [referralCodeValidating, setReferralCodeValidating] = useState(false);
+  const [referralCodeValid, setReferralCodeValid] = useState<boolean | null>(null);
+  const [referralStaffName, setReferralStaffName] = useState<string | null>(null);
 
   const formattedPrice = useMemo(() => {
     return new Intl.NumberFormat('vi-VN', {
@@ -59,13 +73,72 @@ export const MembershipPurchaseDialog: React.FC<MembershipPurchaseDialogProps> =
   const acknowledgementRequiredMessage = t('gymDetail.membership.purchase.transferConfirmationRequired');
   const notePlaceholder = t('gymDetail.membership.purchase.notePlaceholderBank');
 
+  // Validate referral code
+  const validateReferralCode = async (code: string) => {
+    if (!code || code.trim() === '') {
+      setReferralCodeValid(null);
+      setReferralStaffName(null);
+      return;
+    }
+
+    const normalizedCode = code.trim().toUpperCase();
+    setReferralCodeValidating(true);
+    setReferralCodeValid(null);
+    setReferralStaffName(null);
+
+    try {
+      const response = await staffApi.getStaffByReferralCode(normalizedCode);
+      if (response.success && response.data) {
+        setReferralCodeValid(true);
+        setReferralStaffName(response.data.userId?.fullName || 'PT');
+      } else {
+        setReferralCodeValid(false);
+      }
+    } catch (_error) {
+      setReferralCodeValid(false);
+    } finally {
+      setReferralCodeValidating(false);
+    }
+  };
+
+  const handleReferralCodeChange = (value: string) => {
+    const normalizedValue = value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    setReferralCode(normalizedValue);
+
+    if (normalizedValue.length >= 3) {
+      validateReferralCode(normalizedValue);
+    } else {
+      setReferralCodeValid(null);
+      setReferralStaffName(null);
+    }
+  };
+
   const resetForm = () => {
     setTransactionCode('');
     setNote('');
+    setReferralCode('');
+    setReferralCodeValid(null);
+    setReferralStaffName(null);
     setSubmitError(null);
     setAcknowledged(false);
     setStartDate(format(new Date(), 'yyyy-MM-dd'));
   };
+
+  // Get referral code from URL params if exists
+  useEffect(() => {
+    if (isOpen) {
+      const refFromUrl = searchParams.get('ref');
+      if (refFromUrl) {
+        const normalizedRef = refFromUrl.toUpperCase();
+        setReferralCode(normalizedRef);
+        // Only validate if code is long enough
+        if (normalizedRef.length >= 3) {
+          validateReferralCode(normalizedRef);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const handleClose = () => {
     if (loading) return;
@@ -90,7 +163,8 @@ export const MembershipPurchaseDialog: React.FC<MembershipPurchaseDialogProps> =
       if (paymentMethod === 'PAYOS' && onPayOSSubmit) {
         const payload = {
           note: note.trim() || undefined,
-          startDate
+          startDate,
+          referralCode: referralCode.trim() || undefined
         };
         await onPayOSSubmit(payload);
       } else {
@@ -98,7 +172,8 @@ export const MembershipPurchaseDialog: React.FC<MembershipPurchaseDialogProps> =
           paymentMethod: 'BANK_TRANSFER' as MembershipPaymentMethod,
           transactionCode: transactionCode.trim() || undefined,
           note: note.trim() || undefined,
-          startDate
+          startDate,
+          referralCode: referralCode.trim() || undefined
         };
         await onSubmit(payload);
       }
@@ -219,6 +294,45 @@ export const MembershipPurchaseDialog: React.FC<MembershipPurchaseDialogProps> =
                 onChange={(event) => setStartDate(event.target.value)}
                 className="w-full"
               />
+            </div>
+
+            {/* CASE 1: Referral Code Input */}
+            <div className="space-y-2">
+              <Label htmlFor="referralCode" className="text-sm font-medium text-foreground">
+                Mã giới thiệu PT (tùy chọn)
+              </Label>
+              <div className="relative">
+                <Input
+                  id="referralCode"
+                  value={referralCode}
+                  onChange={(e) => handleReferralCodeChange(e.target.value)}
+                  placeholder="VD: PT-A1B2"
+                  className="w-full uppercase"
+                  maxLength={20}
+                />
+                {referralCodeValidating && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+                {!referralCodeValidating && referralCodeValid === true && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  </div>
+                )}
+                {!referralCodeValidating && referralCodeValid === false && referralCode.length >= 3 && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <XCircle className="h-4 w-4 text-red-600" />
+                  </div>
+                )}
+              </div>
+              {referralCodeValid === true && referralStaffName && (
+                <p className="text-xs text-green-600">✓ Mã hợp lệ - PT: {referralStaffName}</p>
+              )}
+              {referralCodeValid === false && referralCode.length >= 3 && (
+                <p className="text-xs text-red-600">✗ Mã giới thiệu không hợp lệ hoặc không tìm thấy PT</p>
+              )}
+              <p className="text-xs text-muted-foreground">Nhập mã giới thiệu từ PT để họ nhận được hoa hồng</p>
             </div>
 
             {paymentMethod === 'BANK_TRANSFER' && (

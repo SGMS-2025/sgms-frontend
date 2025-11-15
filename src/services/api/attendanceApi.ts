@@ -11,7 +11,6 @@ export interface AttendanceRequest {
   username?: string;
   staffId?: string;
   branchId?: string;
-  workShiftId?: string;
   notes?: string;
 }
 

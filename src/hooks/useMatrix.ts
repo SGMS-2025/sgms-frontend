@@ -171,6 +171,7 @@ export function useMatrix(serviceType?: 'PT' | 'CLASS') {
       payload: Pick<LegacyService, 'name' | 'price' | 'durationInMonths'> & {
         minParticipants?: number;
         maxParticipants?: number;
+        sessionCount?: number;
       }
     ) => {
       const validation = validatePackageData({
@@ -194,6 +195,7 @@ export function useMatrix(serviceType?: 'PT' | 'CLASS') {
         type: serviceType || 'PT',
         defaultDurationMonths: payload.durationInMonths || 1,
         defaultPriceVND: payload.price || undefined,
+        sessionCount: payload.sessionCount || undefined,
         minParticipants: payload.minParticipants || defaultMinParticipants,
         maxParticipants: payload.maxParticipants || defaultMaxParticipants
       };
@@ -211,6 +213,7 @@ export function useMatrix(serviceType?: 'PT' | 'CLASS') {
         name: response.data.name,
         price: payload.price,
         durationInMonths: response.data.defaultDurationMonths,
+        sessionCount: response.data.sessionCount || payload.sessionCount,
         status: response.data.status === 'ACTIVE' ? 'active' : 'inactive'
       };
 

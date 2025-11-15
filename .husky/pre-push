@@ -1,3 +1,13 @@
+echo "🔨 Running build before push..."
+npm run build
+
+if [ $? -ne 0 ]; then
+  echo "❌ Build failed! Push aborted." >&2
+  exit 1
+fi
+
+echo "✅ Build successful!"
+
 branch_name=$(git symbolic-ref --short HEAD)
 
 if [ "$branch_name" = "main" ] || [ "$branch_name" = "dev" ]; then

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import type {
   CustomerDisplay,
   UseCustomerListOptions,
@@ -11,6 +12,7 @@ import type {
 import { customerApi } from '@/services/api/customerApi';
 
 export const useCustomerList = (options: UseCustomerListOptions = {}): UseCustomerListReturn => {
+  const { t } = useTranslation();
   const [customerList, setCustomerList] = useState<CustomerDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,11 +74,11 @@ export const useCustomerList = (options: UseCustomerListOptions = {}): UseCustom
         hasPrevPage: paginationData.hasPrevPage
       });
     } else {
-      setError(response.message || 'Failed to fetch customers');
+      setError(response.message || t('customer.error.failed_to_fetch'));
     }
 
     setLoading(false);
-  }, [params.limit, params.page, params.branchId]);
+  }, [params.limit, params.page, params.branchId, t]);
 
   const refetch = useCallback(async () => {
     await fetchCustomers();
@@ -102,6 +104,7 @@ export const useCustomerList = (options: UseCustomerListOptions = {}): UseCustom
 };
 
 export const useUpdateCustomerStatus = (): UseUpdateCustomerStatusReturn => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -114,9 +117,9 @@ export const useUpdateCustomerStatus = (): UseUpdateCustomerStatusReturn => {
     if (response.success) {
       setLoading(false);
     } else {
-      setError(response.message || 'Failed to update customer status');
+      setError(response.message || t('customer.error.failed_to_update_status'));
       setLoading(false);
-      throw new Error(response.message || 'Failed to update customer status');
+      throw new Error(response.message || t('customer.error.failed_to_update_status'));
     }
   };
 
@@ -130,28 +133,94 @@ export const useUpdateCustomerStatus = (): UseUpdateCustomerStatusReturn => {
 // Hook for customer Excel import
 
 export const useCustomerImport = (): UseCustomerImportReturn => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const importCustomers = useCallback(async (file: File, branchId: string) => {
-    setLoading(true);
-    setError(null);
+  const importCustomers = useCallback(
+    async (file: File, branchId: string) => {
+      setLoading(true);
+      setError(null);
 
-    const response = await customerApi.importCustomersFromFile(file, branchId);
+      const response = await customerApi.importCustomersFromFile(file, branchId).catch((error) => {
+        // Handle Excel validation errors - return error data instead of throwing
+        if (error.response?.status === 400 || error.response?.status === 422) {
+          const errorData = error.response.data;
+          const validationErrors = errorData?.error?.meta?.errors || errorData?.meta?.errors || [];
 
-    if (response.success) {
-      setLoading(false);
-      return {
-        successCount: response.data?.successCount || 0,
-        failedCount: response.data?.failedCount || 0,
-        errors: response.data?.errors || []
-      };
-    } else {
-      setError(response.message || 'Failed to import customers');
-      setLoading(false);
-      throw new Error(response.message || 'Failed to import customers');
-    }
-  }, []);
+          if (validationErrors.length > 0) {
+            setLoading(false);
+            const errorResult = {
+              successCount: 0,
+              failedCount: validationErrors.length,
+              errors: validationErrors
+            };
+            return { success: false, data: errorResult, message: errorData?.error?.message || 'VALIDATION_FAILED' };
+          } else {
+            setError(t('customer.error.excel_validation_errors'));
+            setLoading(false);
+            throw error;
+          }
+        } else if (error.response?.status === 500) {
+          // Handle 500 error for missing required columns
+          const errorMessage = error.response?.data?.error?.message || error.message || '';
+          if (errorMessage.includes('Missing required columns')) {
+            // Extract missing columns from error message
+            const missingColumnsMatch = errorMessage.match(/Missing required columns: (.+)/);
+            const missingColumns = missingColumnsMatch
+              ? missingColumnsMatch[1].split(', ').map((col: string) => col.trim())
+              : [];
+
+            // Create inline error similar to validation errors
+            const inlineErrors = [
+              {
+                row: 1,
+                errorKey: 'customer_import.error_missing_required_columns',
+                errorData: { missingColumns: missingColumns.join(', ') }
+              }
+            ];
+
+            setLoading(false);
+            const errorResult = {
+              successCount: 0,
+              failedCount: inlineErrors.length,
+              errors: inlineErrors
+            };
+            return { success: false, data: errorResult, message: 'VALIDATION_FAILED' };
+          }
+        }
+
+        if (error.code === 'ECONNABORTED') {
+          setError(t('customer.error.upload_timeout'));
+          setLoading(false);
+          throw error;
+        } else {
+          setError(t('customer.error.network_import_error'));
+          setLoading(false);
+          throw error;
+        }
+      });
+
+      // If response is from catch block (error data), return it directly
+      if (response && typeof response === 'object' && !response.success && 'data' in response) {
+        return response.data;
+      }
+
+      if (response.success) {
+        setLoading(false);
+        return {
+          successCount: response.data?.successCount || 0,
+          failedCount: response.data?.failedCount || 0,
+          errors: response.data?.errors || []
+        };
+      } else {
+        setError(response.message || t('customer.error.failed_to_import'));
+        setLoading(false);
+        throw new Error(response.message || t('customer.error.failed_to_import'));
+      }
+    },
+    [t]
+  );
 
   const downloadTemplate = useCallback(async () => {
     setLoading(true);
@@ -163,7 +232,7 @@ export const useCustomerImport = (): UseCustomerImportReturn => {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'customer-import-template.xlsx';
+    link.download = t('customer.import.template_filename');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

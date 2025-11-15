@@ -88,6 +88,7 @@ export default function ClassServiceManagement() {
       name: string;
       price?: number;
       durationInMonths?: number;
+      sessionCount?: number;
       minParticipants?: number;
       maxParticipants?: number;
     }
@@ -242,31 +243,95 @@ export default function ClassServiceManagement() {
               </div>
             ) : (
               <div className="bg-white border border-orange-200 rounded-lg overflow-hidden">
-                {/* Header row */}
-                <div
-                  className="grid gap-4 p-4 text-orange-500 text-sm font-semibold bg-orange-50"
-                  style={{
-                    gridTemplateColumns: `minmax(260px,1fr) repeat(${classServices.length}, minmax(160px, 1fr))`
-                  }}
-                >
-                  <div className="flex items-center justify-center">{t('class_service.features_services')}</div>
-                  {classServices.map((s) => (
-                    <div key={s.id} className="flex flex-col items-center gap-1">
-                      <div className="flex items-center gap-2 justify-center">
+                <div className="overflow-x-auto matrix-scroll-container">
+                  {/* Header row */}
+                  <div
+                    className="grid gap-[5px] p-4 text-orange-500 text-sm font-semibold bg-orange-50"
+                    style={{
+                      gridTemplateColumns: `minmax(260px,1fr) repeat(${classServices.length}, minmax(160px, 1fr))`,
+                      minWidth: `${260 + classServices.length * 160 + classServices.length * 5 + 32}px`,
+                      width: 'max-content'
+                    }}
+                  >
+                    <div className="flex items-center justify-center">{t('class_service.features_services')}</div>
+                    {classServices.map((s) => (
+                      <div key={s.id} className="flex flex-col items-center gap-1 min-w-0">
+                        <div className="flex items-center gap-2 justify-center w-full min-w-0">
+                          <button
+                            className="truncate font-semibold cursor-pointer hover:text-orange-600 transition-colors bg-transparent border-none p-0 text-inherit max-w-full min-w-0"
+                            onClick={() => !preview && handleEditService(s)}
+                            title={s.name || (!preview ? t('class_service.click_to_edit') : '')}
+                            disabled={preview}
+                            style={{
+                              maxWidth: '100%',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {s.name}
+                          </button>
+                          {!preview && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 flex-shrink-0 text-orange-500 hover:text-orange-700 hover:bg-orange-100"
+                              onClick={() => handleDeleteService(s)}
+                              disabled={loading}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Price and Duration */}
+                        <div className="flex flex-col items-center gap-1 text-xs text-orange-400">
+                          {s.price && s.price > 0 ? (
+                            <div className="font-medium text-green-600">{s.price.toLocaleString('vi-VN')}₫</div>
+                          ) : (
+                            <div className="text-orange-300 italic text-xs">{t('class_service.no_price')}</div>
+                          )}
+                          {s.durationInMonths && s.durationInMonths > 0 ? (
+                            <div className="text-blue-600">
+                              {s.durationInMonths} {t('class_service.months')}
+                            </div>
+                          ) : (
+                            <div className="text-orange-300 italic text-xs">{t('class_service.no_duration')}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Feature rows */}
+                  {features.map((f, index) => (
+                    <div
+                      key={f.id}
+                      className={`grid gap-[5px] p-4 text-sm border-t border-gray-200 ${
+                        index % 2 === 0 ? 'bg-gray-50' : 'bg-white'
+                      }`}
+                      style={{
+                        gridTemplateColumns: `minmax(260px,1fr) repeat(${classServices.length}, minmax(160px, 1fr))`,
+                        minWidth: `${260 + classServices.length * 160 + classServices.length * 5 + 32}px`,
+                        width: 'max-content'
+                      }}
+                    >
+                      {/* Feature name column */}
+                      <div className="flex items-center justify-center gap-2">
                         <button
-                          className="truncate font-semibold cursor-pointer hover:text-orange-600 transition-colors bg-transparent border-none p-0 text-inherit"
-                          onClick={() => !preview && handleEditService(s)}
+                          className="text-sm font-medium leading-5 text-center text-gray-800 cursor-pointer hover:text-orange-600 transition-colors bg-transparent border-none p-0"
+                          onClick={() => !preview && handleEditFeature(f)}
                           title={!preview ? t('class_service.click_to_edit') : ''}
                           disabled={preview}
                         >
-                          {s.name}
+                          {f.name}
                         </button>
                         {!preview && (
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6 flex-shrink-0 text-orange-500 hover:text-orange-700 hover:bg-orange-100"
-                            onClick={() => handleDeleteService(s)}
+                            onClick={() => handleDeleteFeature(f)}
                             disabled={loading}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -274,91 +339,39 @@ export default function ClassServiceManagement() {
                         )}
                       </div>
 
-                      {/* Price and Duration */}
-                      <div className="flex flex-col items-center gap-1 text-xs text-orange-400">
-                        {s.price && s.price > 0 ? (
-                          <div className="font-medium text-green-600">{s.price.toLocaleString('vi-VN')}₫</div>
-                        ) : (
-                          <div className="text-orange-300 italic text-xs">{t('class_service.no_price')}</div>
-                        )}
-                        {s.durationInMonths && s.durationInMonths > 0 ? (
-                          <div className="text-blue-600">
-                            {s.durationInMonths} {t('class_service.months')}
+                      {/* Service columns */}
+                      {classServices.map((s) => {
+                        const cellKey = `${s.id}__${f.id}`;
+                        const cell = cells[cellKey];
+                        return (
+                          <div key={cellKey} className="flex items-center justify-center">
+                            {preview ? (
+                              // render read-only preview
+                              <div className="flex items-center justify-center py-2">
+                                {cell?.isIncluded ? (
+                                  <div className="flex items-center justify-center w-6 h-6 bg-green-600 rounded-full">
+                                    <Check className="w-4 h-4 text-white" />
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-400 text-lg">—</span>
+                                )}
+                              </div>
+                            ) : (
+                              <MatrixCell
+                                feature={f}
+                                cell={cell}
+                                onChange={(patch: Partial<import('@/types/api/Matrix').MatrixCellData>) =>
+                                  updateCell(s.id, f.id, patch)
+                                }
+                                disabled={loading}
+                              />
+                            )}
                           </div>
-                        ) : (
-                          <div className="text-orange-300 italic text-xs">{t('class_service.no_duration')}</div>
-                        )}
-                      </div>
+                        );
+                      })}
                     </div>
                   ))}
                 </div>
-
-                {/* Feature rows */}
-                {features.map((f, index) => (
-                  <div
-                    key={f.id}
-                    className={`grid gap-4 p-4 text-sm border-t border-gray-200 ${
-                      index % 2 === 0 ? 'bg-gray-50' : 'bg-white'
-                    }`}
-                    style={{
-                      gridTemplateColumns: `minmax(260px,1fr) repeat(${classServices.length}, minmax(160px, 1fr))`
-                    }}
-                  >
-                    {/* Feature name column */}
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        className="text-sm font-medium leading-5 text-center text-gray-800 cursor-pointer hover:text-orange-600 transition-colors bg-transparent border-none p-0"
-                        onClick={() => !preview && handleEditFeature(f)}
-                        title={!preview ? t('class_service.click_to_edit') : ''}
-                        disabled={preview}
-                      >
-                        {f.name}
-                      </button>
-                      {!preview && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 flex-shrink-0 text-orange-500 hover:text-orange-700 hover:bg-orange-100"
-                          onClick={() => handleDeleteFeature(f)}
-                          disabled={loading}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-
-                    {/* Service columns */}
-                    {classServices.map((s) => {
-                      const cellKey = `${s.id}__${f.id}`;
-                      const cell = cells[cellKey];
-                      return (
-                        <div key={cellKey} className="flex items-center justify-center">
-                          {preview ? (
-                            // render read-only preview
-                            <div className="flex items-center justify-center py-2">
-                              {cell?.isIncluded ? (
-                                <div className="flex items-center justify-center w-6 h-6 bg-green-600 rounded-full">
-                                  <Check className="w-4 h-4 text-white" />
-                                </div>
-                              ) : (
-                                <span className="text-gray-400 text-lg">—</span>
-                              )}
-                            </div>
-                          ) : (
-                            <MatrixCell
-                              feature={f}
-                              cell={cell}
-                              onChange={(patch: Partial<import('@/types/api/Matrix').MatrixCellData>) =>
-                                updateCell(s.id, f.id, patch)
-                              }
-                              disabled={loading}
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
               </div>
             )}
           </div>

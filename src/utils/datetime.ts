@@ -53,6 +53,18 @@ export function formatVNTime(value: DateLike): string {
 }
 
 /**
+ * Convert UTC ISO to VN date string YYYY-MM-DD
+ */
+export function utcToVnDateString(utcISO: string | Date): string {
+  const date = typeof utcISO === 'string' ? new Date(utcISO) : utcISO;
+  const vnDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+  const year = vnDate.getFullYear();
+  const month = String(vnDate.getMonth() + 1).padStart(2, '0');
+  const day = String(vnDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Convert UTC ISO string to Vietnam local time string (HH:mm format)
  * This ensures frontend can match backend UTC times with VN time slots
  */

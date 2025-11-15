@@ -18,7 +18,8 @@ import {
   CalendarDays,
   ChevronDown,
   ShieldCheck as Shield,
-  User
+  User,
+  UserCheck
 } from 'lucide-react';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -36,6 +37,7 @@ import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
 import { Sidebar, type SidebarItem as SidebarItemType } from '@/components/common/Sidebar';
+import logoImage from '@/assets/images/logo2.png';
 
 interface DropdownSidebarItemProps {
   icon: React.ReactNode;
@@ -136,7 +138,7 @@ const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
         title={isCollapsed ? 'Mở sidebar' : undefined}
         aria-label={isCollapsed ? 'Mở sidebar' : undefined}
       >
-        <img src="/src/assets/images/logo2.png" alt="GYM SMART Logo" className="w-6 h-6 object-contain" />
+        <img src={logoImage} alt="GYM SMART Logo" className="w-6 h-6 object-contain" />
       </button>
 
       {!isCollapsed && (
@@ -380,6 +382,13 @@ export const PTSidebar: React.FC = () => {
       isActive: location.pathname.startsWith('/manage/pt/clients'),
       onClick: () => handleNavigation('/manage/pt/clients')
     },
+    {
+      icon: <UserCheck className="w-5 h-5" />,
+      label: t('pt.sidebar.registerPackage', 'Register Package'),
+      href: '/manage/pt/customers',
+      isActive: location.pathname.startsWith('/manage/pt/customers'),
+      onClick: () => handleNavigation('/manage/pt/customers')
+    },
     // Schedule and Time Off will be handled by dropdown
     {
       icon: <Calendar className="w-5 h-5" />,
@@ -422,6 +431,13 @@ export const PTSidebar: React.FC = () => {
       href: '/manage/pt/equipment-issues',
       isActive: location.pathname.startsWith('/manage/pt/equipment-issues'),
       onClick: () => handleNavigation('/manage/pt/equipment-issues')
+    },
+    {
+      icon: <TrendingUp className="w-5 h-5" />,
+      label: t('pt.sidebar.myKPI', 'My KPI'),
+      href: '/manage/pt/kpi',
+      isActive: location.pathname === '/manage/pt/kpi',
+      onClick: () => handleNavigation('/manage/pt/kpi')
     }
   ];
 

@@ -42,7 +42,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
           </div>
         </DialogHeader>
 
-        <DialogFooter className="flex gap-3 sm:gap-0">
+        <DialogFooter className="flex gap-3 sm:gap-3">
           <Button
             type="button"
             variant="outline"

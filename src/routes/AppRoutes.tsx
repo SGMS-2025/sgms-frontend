@@ -12,7 +12,6 @@ import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 import VerifyForgotPasswordOTPPage from '@/pages/auth/VerifyForgotPasswordOTPPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import ZaloCallbackPage from '@/pages/auth/ZaloCallbackPage';
-import HomePage from '@/pages/home-test';
 import LandingPage from '@/pages/landing/LandingPage';
 import OwnerLandingPage from '@/pages/landing/OwnerLandingPage';
 import GymListPage from '@/pages/gyms/GymListPage';
@@ -57,6 +56,7 @@ import TimeOffManagementPage from '@/pages/owner/TimeOffManagementPage';
 import PTTimeOffPage from '@/pages/pt/TimeOffPage';
 import TechnicianTimeOffPage from '@/pages/technician/TimeOffPage';
 import CustomerPaymentsPage from '@/pages/owner/CustomerPaymentsPage';
+import ContractsPage from '@/pages/owner/ContractsPage';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import AttendancePage from '@/pages/attendance/AttendancePage';
@@ -71,9 +71,16 @@ import { CustomerLayout } from '@/layouts/CustomerLayout';
 import BusinessVerificationPage from '@/pages/auth/BusinessVerificationPage';
 import BusinessVerificationManagementPage from '@/pages/admin/BusinessVerificationManagementPage';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
+import AdminSubscriptionsPage from '@/pages/admin/AdminSubscriptionsPage';
+import AdminSubscriptionPackagesPage from '@/pages/admin/AdminSubscriptionPackagesPage';
+import AdminAccountsPage from '@/pages/admin/AdminAccountsPage';
+import AdminOwnerDetailPage from '@/pages/admin/AdminOwnerDetailPage';
+import AdminBranchCustomersPage from '@/pages/admin/AdminBranchCustomersPage';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import OwnerSubscriptionGate from '@/components/guards/OwnerSubscriptionGate';
 import OwnerSubscriptionGateWithLayout from '@/components/guards/OwnerSubscriptionGateWithLayout';
+import KPIManagementPage from '@/pages/owner/KPIManagementPage';
+import MyKPIPage from '@/pages/pt/MyKPIPage';
 
 // WorkShift Calendar with Layout Component
 // Note: Layout is provided by OwnerSubscriptionGateWithLayout wrapper
@@ -211,47 +218,152 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, allowedJo
   return <Outlet />;
 };
 
+// Loading spinner component for routes
+const RouteLoadingSpinner: React.FC<{ message?: string }> = ({ message }) => {
+  const { t } = useTranslation();
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
+        <p className="mt-4 text-gray-600">{message || t('common.loading')}</p>
+      </div>
+    </div>
+  );
+};
+
+// Component to redirect authenticated users based on role
+// Reusable for root route and auth routes
+const AuthenticatedRedirect: React.FC = () => {
+  const { user, isLoading } = useAuthState();
+  const { currentStaff, loading: staffLoading } = useCurrentUserStaff();
+  const { t } = useTranslation();
+
+  // Show loading if checking auth or staff info for STAFF role
+  if (isLoading || (user?.role === 'STAFF' && staffLoading)) {
+    return (
+      <RouteLoadingSpinner
+        message={user?.role === 'STAFF' && staffLoading ? t('staff_modal.loading_details') : t('common.loading')}
+      />
+    );
+  }
+
+  if (!user) {
+    return null; // Should not happen if authenticated
+  }
+
+  // Redirect based on role
+  if (user.role === 'OWNER') {
+    return <Navigate to="/manage/staff" replace />;
+  } else if (user.role === 'CUSTOMER') {
+    return <Navigate to="/customer" replace />;
+  } else if (user.role === 'ADMIN') {
+    return <Navigate to="/admin/dashboard" replace />;
+  } else if (user.role === 'STAFF') {
+    if (currentStaff) {
+      if (currentStaff.jobTitle === 'Manager') {
+        return <Navigate to="/manage/staff" replace />;
+      } else if (currentStaff.jobTitle === 'Personal Trainer') {
+        return <Navigate to="/manage/pt" replace />;
+      } else if (currentStaff.jobTitle === 'Technician') {
+        return <Navigate to="/manage/technician" replace />;
+      }
+    }
+    // Default fallback for STAFF without known job title
+    return <Navigate to="/home" replace />;
+  }
+
+  // Unknown role, redirect to home as fallback
+  return <Navigate to="/home" replace />;
+};
+
+const RootRouteHandler: React.FC = () => {
+  const { isAuthenticated, isLoading } = useAuthState();
+
+  // Show loading while checking auth
+  if (isLoading) {
+    return <RouteLoadingSpinner />;
+  }
+
+  // Redirect authenticated users based on role
+  if (isAuthenticated) {
+    return <AuthenticatedRedirect />;
+  }
+
+  // Not authenticated, show landing page
+  return <LandingPage />;
+};
+
 const AppRoutes: React.FC = () => {
-  const { isAuthenticated } = useAuthState();
+  const { isAuthenticated, isLoading } = useAuthState();
 
   // Owner subscription gate will render a requirement page instead of redirect
 
   return (
     <Routes>
-      {/* Root Route - redirect based on auth status */}
-      <Route path="/" element={<LandingPage />} />
+      {/* Root Route - redirect based on auth status and role */}
+      <Route path="/" element={<RootRouteHandler />} />
       <Route path="/owners" element={<OwnerLandingPage />} />
 
       {/* Attendance Route */}
       <Route path="/attendance" element={<AttendancePage />} />
 
-      {/* Auth Routes - redirect to home if already authenticated */}
-      <Route path="/login" element={isAuthenticated ? <Navigate to="/home" replace /> : <LoginPage />} />
+      {/* Auth Routes - redirect based on role if already authenticated */}
+      <Route
+        path="/login"
+        element={isLoading ? <RouteLoadingSpinner /> : isAuthenticated ? <AuthenticatedRedirect /> : <LoginPage />}
+      />
 
-      {/* Auth Routes - redirect to home if already authenticated */}
-      <Route path="/register" element={isAuthenticated ? <Navigate to="/home" replace /> : <RegisterPage />} />
+      <Route
+        path="/register"
+        element={isLoading ? <RouteLoadingSpinner /> : isAuthenticated ? <AuthenticatedRedirect /> : <RegisterPage />}
+      />
 
-      {/* Verify OTP Route - redirect to home if already authenticated */}
-      <Route path="/verify-otp" element={isAuthenticated ? <Navigate to="/home" replace /> : <VerifyOTPPage />} />
+      <Route
+        path="/verify-otp"
+        element={isLoading ? <RouteLoadingSpinner /> : isAuthenticated ? <AuthenticatedRedirect /> : <VerifyOTPPage />}
+      />
 
       <Route path="/auth/zalo/callback" element={<ZaloCallbackPage />} />
 
       {/* Forgot Password Routes */}
       <Route
         path="/forgot-password"
-        element={isAuthenticated ? <Navigate to="/home" replace /> : <ForgotPasswordPage />}
+        element={
+          isLoading ? <RouteLoadingSpinner /> : isAuthenticated ? <AuthenticatedRedirect /> : <ForgotPasswordPage />
+        }
       />
       <Route
         path="/verify-forgot-password-otp"
-        element={isAuthenticated ? <Navigate to="/home" replace /> : <VerifyForgotPasswordOTPPage />}
+        element={
+          isLoading ? (
+            <RouteLoadingSpinner />
+          ) : isAuthenticated ? (
+            <AuthenticatedRedirect />
+          ) : (
+            <VerifyForgotPasswordOTPPage />
+          )
+        }
       />
       <Route
         path="/reset-password"
-        element={isAuthenticated ? <Navigate to="/home" replace /> : <ResetPasswordPage />}
+        element={
+          isLoading ? <RouteLoadingSpinner /> : isAuthenticated ? <AuthenticatedRedirect /> : <ResetPasswordPage />
+        }
       />
 
-      {/* Home Route - redirect to login if not authenticated */}
-      <Route path="/home" element={isAuthenticated ? <HomePage /> : <Navigate to="/login" replace />} />
+      {/* Home Route - redirect based on role if authenticated, otherwise redirect to login */}
+      <Route
+        path="/home"
+        element={
+          isLoading ? (
+            <RouteLoadingSpinner />
+          ) : isAuthenticated ? (
+            <AuthenticatedRedirect />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
 
       {/* Profile Route */}
       <Route path="/profile" element={isAuthenticated ? <UserProfile /> : <Navigate to="/login" replace />} />
@@ -312,6 +424,8 @@ const AppRoutes: React.FC = () => {
             <Route path="expenses" element={<ExpensesPage />} />
             {/* Testimonial Management Route */}
             <Route path="testimonials" element={<TestimonialPage />} />
+            {/* Contracts Management Route */}
+            <Route path="contracts" element={<ContractsPage />} />
             {/* Shared Equipment Routes for Manager */}
             <Route path="equipment" element={<EquipmentListPage />} />
             <Route path="equipment/add" element={<AddEquipmentPage />} />
@@ -324,6 +438,9 @@ const AppRoutes: React.FC = () => {
             {/* Time Off Management Routes */}
             <Route path="timeoff" element={<TimeOffPage />} />
             <Route path="timeoff/management" element={<TimeOffManagementPage />} />
+
+            {/* KPI Management Routes */}
+            <Route path="kpi" element={<KPIManagementPage />} />
           </Route>
           {/* Subscription Management Route (accessible without active subscription for OWNER) */}
           <Route path="subscriptions" element={<SubscriptionPackagesPage />} />
@@ -393,6 +510,12 @@ const AppRoutes: React.FC = () => {
           {/* Training Progress Detail Route for PT */}
           <Route path="clients/:id/progress" element={<TrainingProgressDetailPage />} />
 
+          {/* Customers Route for PT - to register packages for customers in branch */}
+          <Route path="customers" element={<CustomerManagementPage />} />
+
+          {/* Customer Detail Route for PT */}
+          <Route path="customers/:id/detail" element={<CustomerDetailPage />} />
+
           {/* Time Off Route for PT */}
           <Route path="timeoff" element={<PTTimeOffPage />} />
 
@@ -401,6 +524,9 @@ const AppRoutes: React.FC = () => {
 
           {/* Equipment Issue Report Route for PT */}
           <Route path="equipment-issues" element={<EquipmentIssueReportPage />} />
+
+          {/* My KPI Route for PT */}
+          <Route path="kpi" element={<MyKPIPage />} />
 
           <Route path="*" element={<Navigate to="/manage/pt" replace />} />
         </Route>
@@ -441,8 +567,16 @@ const AppRoutes: React.FC = () => {
           {/* Business Verification Management */}
           <Route path="business-verifications" element={<BusinessVerificationManagementPage />} />
 
+          {/* Subscriptions (Admin) */}
+          <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
+          <Route path="subscriptions/packages" element={<AdminSubscriptionPackagesPage />} />
+
+          {/* Account Management (Admin) */}
+          <Route path="accounts" element={<AdminAccountsPage />} />
+          <Route path="accounts/:userId/owner" element={<AdminOwnerDetailPage />} />
+          <Route path="branches/:branchId/customers" element={<AdminBranchCustomersPage />} />
+
           {/* TODO: Add more admin routes here */}
-          {/* <Route path="users" element={<UserManagementPage />} /> */}
           {/* <Route path="roles" element={<RoleManagementPage />} /> */}
           {/* <Route path="reports" element={<ReportsPage />} /> */}
           {/* <Route path="logs" element={<SystemLogsPage />} /> */}

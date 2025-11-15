@@ -1,5 +1,6 @@
 import type { ApiResponse } from '@/types/api/Api';
 import { api } from './api';
+import axios from 'axios';
 import type {
   CustomerDisplay,
   CustomerListParams,
@@ -100,7 +101,7 @@ export const customerApi = {
     ApiResponse<{
       successCount: number;
       failedCount: number;
-      errors: Array<{ row: number; field: string; message: string }>;
+      errors: Array<{ row: number; errorKey?: string; errorData?: Record<string, unknown> }>;
     }>
   > => {
     const formData = new FormData();
@@ -109,10 +110,13 @@ export const customerApi = {
       formData.append('branchId', branchId);
     }
 
-    const response = await api.post('/customers/import', formData, {
+    // Use direct axios call to bypass response interceptor for detailed error handling
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/customers/import`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      withCredentials: true,
+      timeout: 60000 // 60 seconds timeout for large files
     });
     return response.data;
   },

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -30,18 +30,22 @@ import { ExtendMembershipDialog } from '@/components/customer/ExtendMembershipDi
 import { CancelServiceContractDialog } from '@/components/customer/CancelServiceContractDialog';
 import { ExtendServiceContractDialog } from '@/components/customer/ExtendServiceContractDialog';
 import { CancelMembershipDialog } from '@/components/modals/CancelMembershipDialog';
+import { ContractDocumentsTab } from '@/components/customer/ContractDocumentsTab';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { customerApi } from '@/services/api/customerApi';
+import { useBranch } from '@/contexts/BranchContext';
+import { socketService } from '@/services/socket/socketService';
 import { cn } from '@/utils/utils';
 import type { CustomerDisplay } from '@/types/api/Customer';
 import type { MembershipContract } from '@/types/api/Membership';
+import type { MembershipContractUpdateEvent } from '@/types/api/Socket';
 import type { LucideIcon } from 'lucide-react';
 
-const formatDate = (value?: string) => {
+const formatDate = (value?: string, locale: string = 'vi-VN') => {
   if (!value) return '—';
   const parsed = new Date(value);
 
@@ -49,14 +53,14 @@ const formatDate = (value?: string) => {
     return '—';
   }
 
-  return parsed.toLocaleDateString('vi-VN', {
+  return parsed.toLocaleDateString(locale, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'
   });
 };
 
-const formatCurrency = (value?: string | number) => {
+const formatCurrency = (value?: string | number, locale: string = 'vi-VN') => {
   if (value === undefined || value === null || value === '') {
     return '—';
   }
@@ -67,21 +71,11 @@ const formatCurrency = (value?: string | number) => {
     return typeof value === 'string' ? value : '—';
   }
 
-  return new Intl.NumberFormat('vi-VN', {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'VND',
     maximumFractionDigits: 0
   }).format(amount);
-};
-
-const getGenderLabel = (gender?: string) => {
-  if (!gender) return '—';
-
-  const normalized = gender.toLowerCase();
-
-  if (normalized === 'male') return 'Nam';
-  if (normalized === 'female') return 'Nữ';
-  return gender;
 };
 
 const getStatusBadgeStyles = (status: string) => {
@@ -127,9 +121,11 @@ const PlaceholderCard = ({ icon: Icon, title, description }: PlaceholderCardProp
 );
 
 const CustomerDetailPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
+  const { currentBranch } = useBranch();
 
   const [customer, setCustomer] = useState<CustomerDisplay | null>(null);
   const [loading, setLoading] = useState(true);
@@ -151,33 +147,66 @@ const CustomerDetailPage: React.FC = () => {
   const [showExtendPT, setShowExtendPT] = useState(false);
   const [showExtendClass, setShowExtendClass] = useState(false);
 
-  useEffect(() => {
-    if (id) {
-      void fetchCustomerDetail();
-    }
-  }, [id]);
-
-  const fetchCustomerDetail = async () => {
+  const fetchCustomerDetail = useCallback(async () => {
     if (!id) return;
 
     try {
       setLoading(true);
       setError(null);
 
-      const response = await customerApi.getCustomerById(id);
+      // Pass branchId if available (for PT/Staff role to check branch access)
+      // If branchId is not available, backend will extract it from customer record
+      const branchId = currentBranch?._id;
+      console.log('[CustomerDetailPage] Fetching customer detail:', { customerId: id, branchId });
+      const response = await customerApi.getCustomerById(id, branchId);
 
       if (response.success && response.data) {
         setCustomer(response.data);
       } else {
-        setError(response.message || 'Failed to fetch customer details');
+        setError(response.message || t('customer_detail.error.fetch_failed'));
       }
-    } catch (fetchError) {
+    } catch (fetchError: unknown) {
       console.error('Error fetching customer detail:', fetchError);
-      setError('An error occurred while fetching customer details');
+      // Check if it's an axios error with response
+      if (fetchError && typeof fetchError === 'object' && 'response' in fetchError) {
+        const axiosError = fetchError as { response?: { data?: { message?: string } } };
+        const errorMessage = axiosError.response?.data?.message || t('customer_detail.error.fetch_error');
+        setError(errorMessage);
+      } else {
+        setError(t('customer_detail.error.fetch_error'));
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, currentBranch?._id, t]);
+
+  useEffect(() => {
+    if (id) {
+      void fetchCustomerDetail();
+    }
+  }, [id, fetchCustomerDetail]);
+
+  // Listen for membership contract updates (realtime)
+  useEffect(() => {
+    if (!id) return;
+
+    const handleMembershipContractUpdate = (data: MembershipContractUpdateEvent) => {
+      // Convert customerId to string for comparison
+      const updateCustomerId = data.customerId?.toString();
+      const currentCustomerId = customer?.id?.toString();
+
+      if (updateCustomerId === currentCustomerId || (!customer && id)) {
+        void fetchCustomerDetail();
+      }
+    };
+
+    // Listen for membership contract update events from socket
+    socketService.on('membership:contract:updated', handleMembershipContractUpdate);
+
+    return () => {
+      socketService.off('membership:contract:updated', handleMembershipContractUpdate);
+    };
+  }, [customer?.id, id, fetchCustomerDetail]); // Include fetchCustomerDetail in dependencies
 
   const getStatusText = (status: string) => {
     switch (status) {
@@ -197,7 +226,7 @@ const CustomerDetailPage: React.FC = () => {
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Đang tải thông tin khách hàng...</p>
+          <p className="text-sm text-muted-foreground">{t('customer_detail.loading')}</p>
         </div>
       </div>
     );
@@ -207,16 +236,16 @@ const CustomerDetailPage: React.FC = () => {
     return (
       <div className="space-y-4">
         <Alert variant="destructive" className="rounded-2xl border border-destructive/40 bg-destructive/10">
-          <AlertTitle>Không thể tải thông tin khách hàng</AlertTitle>
-          <AlertDescription>{error || 'Customer not found'}</AlertDescription>
+          <AlertTitle>{t('customer_detail.error.title')}</AlertTitle>
+          <AlertDescription>{error || t('customer_detail.error.not_found')}</AlertDescription>
         </Alert>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" className="rounded-full" onClick={fetchCustomerDetail}>
-            Thử tải lại
+            {t('customer_detail.error.retry')}
           </Button>
           <Button variant="outline" size="sm" className="rounded-full" onClick={() => navigate('/manage/customers')}>
             <ArrowLeft className="h-4 w-4" />
-            Quay lại danh sách
+            {t('customer_detail.error.back_to_list')}
           </Button>
         </div>
       </div>
@@ -238,7 +267,6 @@ const CustomerDetailPage: React.FC = () => {
     status?: string;
     servicePackageId?: { name?: string };
     paidAmount?: number;
-    debtAmount?: number;
     startDate?: string;
     endDate?: string;
   }
@@ -264,9 +292,10 @@ const CustomerDetailPage: React.FC = () => {
   const isActivePT = ptContract?.status && !['CANCELED', 'EXPIRED', 'SUSPENDED'].includes(ptContract.status);
   const isActiveClass = classContract?.status && !['CANCELED', 'EXPIRED', 'SUSPENDED'].includes(classContract.status);
 
+  const notUpdatedText = t('customer_detail.not_updated');
   const membershipPlanName = isActiveMembership
-    ? customer.latestMembershipContract?.membershipPlanId?.name || customer.membershipType || 'Chưa cập nhật'
-    : 'Chưa cập nhật';
+    ? customer.latestMembershipContract?.membershipPlanId?.name || customer.membershipType || notUpdatedText
+    : notUpdatedText;
   const ptPackageName = isActivePT ? ptContract.servicePackageId?.name || '—' : '—';
   const classPackageName = isActiveClass ? classContract.servicePackageId?.name || '—' : '—';
 
@@ -278,14 +307,14 @@ const CustomerDetailPage: React.FC = () => {
   // Check if customer has active membership (not canceled, expired, or suspended)
   const hasMembership =
     membershipPlanName &&
-    membershipPlanName !== 'Chưa cập nhật' &&
+    membershipPlanName !== notUpdatedText &&
     membershipContract?.status &&
     !['CANCELED', 'EXPIRED', 'SUSPENDED'].includes(membershipContract.status);
 
-  const totalSpentDisplay = formatCurrency(customer.totalSpent);
-  const totalSpentLabel = totalSpentDisplay === '—' ? 'Chưa cập nhật' : totalSpentDisplay;
-  const lastPaymentDisplay = formatDate(customer.lastPaymentDate);
-  const lastPaymentLabel = lastPaymentDisplay === '—' ? 'Chưa có giao dịch' : lastPaymentDisplay;
+  const totalSpentDisplay = formatCurrency(customer.totalSpent, locale);
+  const totalSpentLabel = totalSpentDisplay === '—' ? notUpdatedText : totalSpentDisplay;
+  const lastPaymentDisplay = formatDate(customer.lastPaymentDate, locale);
+  const lastPaymentLabel = lastPaymentDisplay === '—' ? t('customer_detail.no_transaction') : lastPaymentDisplay;
 
   // Get membership dates from contract if available and active, otherwise from customer
   const membershipJoinDate =
@@ -295,30 +324,23 @@ const CustomerDetailPage: React.FC = () => {
 
   // Get membership status from contract if available
   const getMembershipStatusLabel = (status?: string) => {
-    if (!status) return 'Chưa cập nhật';
-    switch (status) {
-      case 'ACTIVE':
-        return 'Đang hoạt động';
-      case 'PENDING_ACTIVATION':
-        return 'Chờ kích hoạt';
-      case 'EXPIRED':
-        return 'Đã hết hạn';
-      case 'SUSPENDED':
-        return 'Tạm ngưng';
-      case 'CANCELED':
-        return 'Đã hủy';
-      case 'PAST_DUE':
-        return 'Quá hạn';
-      default:
-        return status;
-    }
+    if (!status) return notUpdatedText;
+    return t(`membership.status.${status.toLowerCase()}`, { defaultValue: status });
   };
 
   const membershipStatusDisplay =
     isActiveMembership && membershipContract?.status
       ? getMembershipStatusLabel(membershipContract.status)
-      : 'Chưa có gói';
-  const branchDisplay = branchNames ?? 'Chưa gán chi nhánh';
+      : t('customer_detail.no_package');
+  const branchDisplay = branchNames ?? t('customer_detail.no_branch');
+
+  const getGenderLabel = (gender?: string) => {
+    if (!gender) return '—';
+    const normalized = gender.toLowerCase();
+    if (normalized === 'male') return t('customer_detail.gender.male');
+    if (normalized === 'female') return t('customer_detail.gender.female');
+    return gender;
+  };
 
   const contactChips: Array<{ icon: LucideIcon; label: string }> = [];
 
@@ -361,7 +383,7 @@ const CustomerDetailPage: React.FC = () => {
                   {customer.isLoyal && (
                     <Badge className="border-white/40 bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
                       <Crown className="h-3.5 w-3.5" />
-                      Khách hàng trung thành
+                      {t('customer_detail.loyal_customer')}
                     </Badge>
                   )}
                 </div>
@@ -384,16 +406,24 @@ const CustomerDetailPage: React.FC = () => {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
-              <span className="text-xs uppercase tracking-wide text-white/70">Gói hội viên</span>
-              <p className="mt-1 text-sm font-semibold">{isActiveMembership ? membershipPlanName : 'Chưa đăng ký'}</p>
+              <span className="text-xs uppercase tracking-wide text-white/70">
+                {t('customer_detail.header.membership')}
+              </span>
+              <p className="mt-1 text-sm font-semibold">
+                {isActiveMembership ? membershipPlanName : t('customer_detail.not_registered')}
+              </p>
             </div>
             <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
-              <span className="text-xs uppercase tracking-wide text-white/70">Ngày tham gia</span>
-              <p className="mt-1 text-sm font-semibold">{formatDate(membershipJoinDate)}</p>
+              <span className="text-xs uppercase tracking-wide text-white/70">
+                {t('customer_detail.header.join_date')}
+              </span>
+              <p className="mt-1 text-sm font-semibold">{formatDate(membershipJoinDate, locale)}</p>
             </div>
             <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
-              <span className="text-xs uppercase tracking-wide text-white/70">Ngày hết hạn</span>
-              <p className="mt-1 text-sm font-semibold">{formatDate(membershipExpiryDate)}</p>
+              <span className="text-xs uppercase tracking-wide text-white/70">
+                {t('customer_detail.header.expiry_date')}
+              </span>
+              <p className="mt-1 text-sm font-semibold">{formatDate(membershipExpiryDate, locale)}</p>
             </div>
           </div>
         </div>
@@ -407,43 +437,49 @@ const CustomerDetailPage: React.FC = () => {
                 value="general"
                 className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wide transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                Tổng quan
+                {t('customer_detail.tabs.general')}
               </TabsTrigger>
               <TabsTrigger
                 value="workouts"
                 className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wide transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                Luyện tập
+                {t('customer_detail.tabs.workouts')}
               </TabsTrigger>
               <TabsTrigger
                 value="attendance"
                 className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wide transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                Điểm danh
+                {t('customer_detail.tabs.attendance')}
               </TabsTrigger>
               <TabsTrigger
                 value="class-booking"
                 className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wide transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                Lịch lớp
+                {t('customer_detail.tabs.class_booking')}
               </TabsTrigger>
               <TabsTrigger
                 value="payment"
                 className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wide transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                Thanh toán
+                {t('customer_detail.tabs.payment')}
               </TabsTrigger>
               <TabsTrigger
                 value="fitness-calculator"
                 className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wide transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                Chỉ số
+                {t('customer_detail.tabs.fitness_calculator')}
               </TabsTrigger>
               <TabsTrigger
                 value="member-reports"
                 className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wide transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
-                Báo cáo
+                {t('customer_detail.tabs.member_reports')}
+              </TabsTrigger>
+              <TabsTrigger
+                value="contracts"
+                className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wide transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                {t('customer_detail.tabs.contracts')}
               </TabsTrigger>
             </TabsList>
           </div>
@@ -454,16 +490,22 @@ const CustomerDetailPage: React.FC = () => {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <IdCard className="h-5 w-5 text-primary" />
-                  Hồ sơ cá nhân
+                  {t('customer_detail.personal_info.title')}
                 </CardTitle>
-                <p className="text-sm text-muted-foreground">Thông tin nhận diện và trạng thái hội viên.</p>
+                <p className="text-sm text-muted-foreground">{t('customer_detail.personal_info.description')}</p>
               </CardHeader>
               <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <InfoField label="Mã hội viên" value={customer.id ? customer.id.slice(-8).toUpperCase() : '—'} />
-                <InfoField label="Giới tính" value={getGenderLabel(customer.gender)} />
-                <InfoField label="Ngày sinh" value={formatDate(customer.dateOfBirth)} />
                 <InfoField
-                  label="Tình trạng tài khoản"
+                  label={t('customer_detail.personal_info.member_id')}
+                  value={customer.id ? customer.id.slice(-8).toUpperCase() : '—'}
+                />
+                <InfoField label={t('customer_detail.personal_info.gender')} value={getGenderLabel(customer.gender)} />
+                <InfoField
+                  label={t('customer_detail.personal_info.date_of_birth')}
+                  value={formatDate(customer.dateOfBirth, locale)}
+                />
+                <InfoField
+                  label={t('customer_detail.personal_info.account_status')}
                   value={
                     <Badge
                       variant="outline"
@@ -476,10 +518,15 @@ const CustomerDetailPage: React.FC = () => {
                     </Badge>
                   }
                 />
-                <InfoField label="Ngày tạo hồ sơ" value={formatDate(customer.createdAt)} />
                 <InfoField
-                  label="Phân loại"
-                  value={customer.isLoyal ? 'Khách hàng trung thành' : 'Khách hàng tiêu chuẩn'}
+                  label={t('customer_detail.personal_info.created_at')}
+                  value={formatDate(customer.createdAt, locale)}
+                />
+                <InfoField
+                  label={t('customer_detail.personal_info.category')}
+                  value={
+                    customer.isLoyal ? t('customer_detail.loyal_customer') : t('customer_detail.standard_customer')
+                  }
                 />
               </CardContent>
             </Card>
@@ -491,16 +538,28 @@ const CustomerDetailPage: React.FC = () => {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CreditCard className="h-5 w-5 text-primary" />
-                    Gói hội viên
+                    {t('customer_detail.membership_card.title')}
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground">Thông tin gói hội viên và quyền lợi của khách hàng.</p>
+                  <p className="text-sm text-muted-foreground">{t('customer_detail.membership_card.description')}</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <InfoField label="Tên gói" value={hasMembership ? membershipPlanName : 'Chưa đăng ký'} />
-                    <InfoField label="Trạng thái" value={hasMembership ? membershipStatusDisplay : 'Chưa có gói'} />
-                    <InfoField label="Ngày tham gia" value={hasMembership ? formatDate(membershipJoinDate) : '—'} />
-                    <InfoField label="Ngày hết hạn" value={hasMembership ? formatDate(membershipExpiryDate) : '—'} />
+                    <InfoField
+                      label={t('customer_detail.membership_card.package_name')}
+                      value={hasMembership ? membershipPlanName : t('customer_detail.not_registered')}
+                    />
+                    <InfoField
+                      label={t('customer_detail.membership_card.status')}
+                      value={hasMembership ? membershipStatusDisplay : t('customer_detail.no_package')}
+                    />
+                    <InfoField
+                      label={t('customer_detail.membership_card.join_date')}
+                      value={hasMembership ? formatDate(membershipJoinDate, locale) : '—'}
+                    />
+                    <InfoField
+                      label={t('customer_detail.membership_card.expiry_date')}
+                      value={hasMembership ? formatDate(membershipExpiryDate, locale) : '—'}
+                    />
                   </div>
 
                   {hasMembership ? (
@@ -511,7 +570,7 @@ const CustomerDetailPage: React.FC = () => {
                         variant="default"
                       >
                         <Calendar className="h-4 w-4 mr-2" />
-                        Gia hạn
+                        {t('customer_detail.extend')}
                       </Button>
                       <Button
                         onClick={() => setShowCancelMembership(true)}
@@ -519,7 +578,7 @@ const CustomerDetailPage: React.FC = () => {
                         variant="destructive"
                       >
                         <AlertTriangle className="h-4 w-4 mr-2" />
-                        Hủy gói
+                        {t('customer_detail.cancel_package')}
                       </Button>
                     </div>
                   ) : (
@@ -529,7 +588,7 @@ const CustomerDetailPage: React.FC = () => {
                       variant="outline"
                     >
                       <CreditCard className="h-4 w-4 mr-2" />
-                      Đăng ký gói hội viên
+                      {t('customer_detail.register_membership')}
                     </Button>
                   )}
                 </CardContent>
@@ -540,24 +599,29 @@ const CustomerDetailPage: React.FC = () => {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Dumbbell className="h-5 w-5 text-primary" />
-                    Gói PT 1-1
+                    {t('customer_detail.pt_card.title')}
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground">Thông tin gói Personal Training của khách hàng.</p>
+                  <p className="text-sm text-muted-foreground">{t('customer_detail.pt_card.description')}</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <InfoField label="Gói PT" value={hasPTPackage ? ptPackageName : 'Chưa đăng ký'} />
                     <InfoField
-                      label="Trạng thái"
-                      value={hasPTPackage ? getMembershipStatusLabel(ptContract?.status) : 'Chưa có gói'}
+                      label={t('customer_detail.pt_card.package_name')}
+                      value={hasPTPackage ? ptPackageName : t('customer_detail.not_registered')}
                     />
                     <InfoField
-                      label="Ngày bắt đầu"
-                      value={hasPTPackage && ptContract?.startDate ? formatDate(ptContract.startDate) : '—'}
+                      label={t('customer_detail.pt_card.status')}
+                      value={
+                        hasPTPackage ? getMembershipStatusLabel(ptContract?.status) : t('customer_detail.no_package')
+                      }
                     />
                     <InfoField
-                      label="Ngày kết thúc"
-                      value={hasPTPackage && ptContract?.endDate ? formatDate(ptContract.endDate) : '—'}
+                      label={t('customer_detail.pt_card.start_date')}
+                      value={hasPTPackage && ptContract?.startDate ? formatDate(ptContract.startDate, locale) : '—'}
+                    />
+                    <InfoField
+                      label={t('customer_detail.pt_card.end_date')}
+                      value={hasPTPackage && ptContract?.endDate ? formatDate(ptContract.endDate, locale) : '—'}
                     />
                   </div>
 
@@ -565,7 +629,7 @@ const CustomerDetailPage: React.FC = () => {
                     <div className="flex gap-2">
                       <Button onClick={() => setShowExtendPT(true)} className="flex-1 rounded-full" variant="default">
                         <Calendar className="h-4 w-4 mr-2" />
-                        Gia hạn
+                        {t('customer_detail.extend')}
                       </Button>
                       <Button
                         onClick={() => setShowCancelPT(true)}
@@ -573,13 +637,13 @@ const CustomerDetailPage: React.FC = () => {
                         variant="destructive"
                       >
                         <XCircle className="h-4 w-4 mr-2" />
-                        Hủy gói
+                        {t('customer_detail.cancel_package')}
                       </Button>
                     </div>
                   ) : (
                     <Button onClick={() => setShowPTModal(true)} className="w-full rounded-full" variant="outline">
                       <Dumbbell className="h-4 w-4 mr-2" />
-                      Đăng ký gói PT
+                      {t('customer_detail.register_pt')}
                     </Button>
                   )}
                 </CardContent>
@@ -590,24 +654,35 @@ const CustomerDetailPage: React.FC = () => {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Users className="h-5 w-5 text-primary" />
-                    Gói lớp học
+                    {t('customer_detail.class_card.title')}
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground">Thông tin gói lớp học nhóm của khách hàng.</p>
+                  <p className="text-sm text-muted-foreground">{t('customer_detail.class_card.description')}</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <InfoField label="Gói lớp học" value={hasClassPackage ? classPackageName : 'Chưa đăng ký'} />
                     <InfoField
-                      label="Trạng thái"
-                      value={hasClassPackage ? getMembershipStatusLabel(classContract?.status) : 'Chưa có gói'}
+                      label={t('customer_detail.class_card.package_name')}
+                      value={hasClassPackage ? classPackageName : t('customer_detail.not_registered')}
                     />
                     <InfoField
-                      label="Ngày bắt đầu"
-                      value={hasClassPackage && classContract?.startDate ? formatDate(classContract.startDate) : '—'}
+                      label={t('customer_detail.class_card.status')}
+                      value={
+                        hasClassPackage
+                          ? getMembershipStatusLabel(classContract?.status)
+                          : t('customer_detail.no_package')
+                      }
                     />
                     <InfoField
-                      label="Ngày kết thúc"
-                      value={hasClassPackage && classContract?.endDate ? formatDate(classContract.endDate) : '—'}
+                      label={t('customer_detail.class_card.start_date')}
+                      value={
+                        hasClassPackage && classContract?.startDate ? formatDate(classContract.startDate, locale) : '—'
+                      }
+                    />
+                    <InfoField
+                      label={t('customer_detail.class_card.end_date')}
+                      value={
+                        hasClassPackage && classContract?.endDate ? formatDate(classContract.endDate, locale) : '—'
+                      }
                     />
                   </div>
 
@@ -619,7 +694,7 @@ const CustomerDetailPage: React.FC = () => {
                         variant="default"
                       >
                         <Calendar className="h-4 w-4 mr-2" />
-                        Gia hạn
+                        {t('customer_detail.extend')}
                       </Button>
                       <Button
                         onClick={() => setShowCancelClass(true)}
@@ -627,13 +702,13 @@ const CustomerDetailPage: React.FC = () => {
                         variant="destructive"
                       >
                         <XCircle className="h-4 w-4 mr-2" />
-                        Hủy gói
+                        {t('customer_detail.cancel_package')}
                       </Button>
                     </div>
                   ) : (
                     <Button onClick={() => setShowClassModal(true)} className="w-full rounded-full" variant="outline">
                       <Users className="h-4 w-4 mr-2" />
-                      Đăng ký gói lớp học
+                      {t('customer_detail.register_class')}
                     </Button>
                   )}
                 </CardContent>
@@ -646,17 +721,26 @@ const CustomerDetailPage: React.FC = () => {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <MapPin className="h-5 w-5 text-primary" />
-                    Liên hệ & chi nhánh
+                    {t('customer_detail.contact_card.title')}
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground">Giữ thông tin liên hệ thống nhất cho đội ngũ CSKH.</p>
+                  <p className="text-sm text-muted-foreground">{t('customer_detail.contact_card.description')}</p>
                 </CardHeader>
                 <CardContent className="grid gap-4 sm:grid-cols-2">
-                  <InfoField label="Số điện thoại" value={customer.phone || 'Chưa cập nhật'} />
-                  <InfoField label="Email" value={customer.email || 'Chưa cập nhật'} />
-                  <InfoField label="Địa chỉ" value={customer.address || 'Chưa cập nhật'} />
-                  <InfoField label="Chi nhánh" value={branchDisplay} />
-                  <InfoField label="Người giới thiệu" value={customer.referrerStaffName || 'Chưa cập nhật'} />
-                  <InfoField label="Mã thẻ" value={customer.cardCode || 'Chưa cập nhật'} />
+                  <InfoField label={t('customer_detail.contact_card.phone')} value={customer.phone || notUpdatedText} />
+                  <InfoField label={t('customer_detail.contact_card.email')} value={customer.email || notUpdatedText} />
+                  <InfoField
+                    label={t('customer_detail.contact_card.address')}
+                    value={customer.address || notUpdatedText}
+                  />
+                  <InfoField label={t('customer_detail.contact_card.branch')} value={branchDisplay} />
+                  <InfoField
+                    label={t('customer_detail.contact_card.referrer')}
+                    value={customer.referrerStaffName || notUpdatedText}
+                  />
+                  <InfoField
+                    label={t('customer_detail.contact_card.card_code')}
+                    value={customer.cardCode || notUpdatedText}
+                  />
                 </CardContent>
               </Card>
 
@@ -664,42 +748,26 @@ const CustomerDetailPage: React.FC = () => {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CreditCard className="h-5 w-5 text-primary" />
-                    Thông tin thanh toán
+                    {t('customer_detail.payment_card.title')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4 sm:grid-cols-2">
-                  <InfoField label="Tổng chi tiêu" value={totalSpentLabel} />
-                  <InfoField label="Thanh toán gần nhất" value={lastPaymentLabel} />
+                  <InfoField label={t('customer_detail.payment_card.total_spent')} value={totalSpentLabel} />
+                  <InfoField label={t('customer_detail.payment_card.last_payment')} value={lastPaymentLabel} />
                   <InfoField
-                    label="Công nợ hội viên"
+                    label={t('customer_detail.payment_card.paid_membership')}
                     value={
                       hasMembership && membershipContract
-                        ? formatCurrency(membershipContract.remainingDebt)
-                        : 'Chưa cập nhật'
+                        ? formatCurrency(membershipContract.initialPaidAmount, locale)
+                        : notUpdatedText
                     }
                   />
                   <InfoField
-                    label="Đã thanh toán (hội viên)"
-                    value={
-                      hasMembership && membershipContract
-                        ? formatCurrency(membershipContract.initialPaidAmount)
-                        : 'Chưa cập nhật'
-                    }
-                  />
-                  <InfoField
-                    label="Công nợ dịch vụ"
+                    label={t('customer_detail.payment_card.paid_service')}
                     value={
                       ptContract || classContract
-                        ? formatCurrency((ptContract?.debtAmount || 0) + (classContract?.debtAmount || 0))
-                        : 'Chưa cập nhật'
-                    }
-                  />
-                  <InfoField
-                    label="Đã thanh toán (dịch vụ)"
-                    value={
-                      ptContract || classContract
-                        ? formatCurrency((ptContract?.paidAmount || 0) + (classContract?.paidAmount || 0))
-                        : 'Chưa cập nhật'
+                        ? formatCurrency((ptContract?.paidAmount || 0) + (classContract?.paidAmount || 0), locale)
+                        : notUpdatedText
                     }
                   />
                 </CardContent>
@@ -711,7 +779,7 @@ const CustomerDetailPage: React.FC = () => {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <FileText className="h-5 w-5 text-primary" />
-                    Ghi chú nội bộ
+                    {t('customer_detail.notes.title')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -726,24 +794,24 @@ const CustomerDetailPage: React.FC = () => {
           <TabsContent value="workouts" className="pt-4">
             <PlaceholderCard
               icon={Dumbbell}
-              title="Nhật ký luyện tập"
-              description="Dữ liệu bài tập sẽ hiển thị tại đây khi tích hợp với ứng dụng luyện tập."
+              title={t('customer_detail.placeholders.workouts.title')}
+              description={t('customer_detail.placeholders.workouts.description')}
             />
           </TabsContent>
 
           <TabsContent value="attendance" className="pt-4">
             <PlaceholderCard
               icon={CalendarCheck}
-              title="Lịch sử điểm danh"
-              description="Theo dõi tần suất tham gia để tối ưu hiệu quả luyện tập cho khách hàng."
+              title={t('customer_detail.placeholders.attendance.title')}
+              description={t('customer_detail.placeholders.attendance.description')}
             />
           </TabsContent>
 
           <TabsContent value="class-booking" className="pt-4">
             <PlaceholderCard
               icon={CalendarDays}
-              title="Lịch đặt lớp"
-              description="Các lịch đặt lớp sẽ đồng bộ khi kết nối với hệ thống đặt lịch của phòng tập."
+              title={t('customer_detail.placeholders.class_booking.title')}
+              description={t('customer_detail.placeholders.class_booking.description')}
             />
           </TabsContent>
 
@@ -754,17 +822,21 @@ const CustomerDetailPage: React.FC = () => {
           <TabsContent value="fitness-calculator" className="pt-4">
             <PlaceholderCard
               icon={Activity}
-              title="Chỉ số thể chất"
-              description="Các chỉ số BMI, InBody và mục tiêu sức khỏe sẽ được hiển thị trong phiên bản sắp tới."
+              title={t('customer_detail.placeholders.fitness_calculator.title')}
+              description={t('customer_detail.placeholders.fitness_calculator.description')}
             />
           </TabsContent>
 
           <TabsContent value="member-reports" className="pt-4">
             <PlaceholderCard
               icon={FileText}
-              title="Báo cáo hội viên"
-              description="Báo cáo chuyên sâu về khách hàng sẽ sẵn sàng khi tính năng báo cáo được kích hoạt."
+              title={t('customer_detail.placeholders.member_reports.title')}
+              description={t('customer_detail.placeholders.member_reports.description')}
             />
+          </TabsContent>
+
+          <TabsContent value="contracts" className="pt-4">
+            {customer.id && <ContractDocumentsTab customerId={customer.id} />}
           </TabsContent>
         </Tabs>
       </div>
@@ -811,8 +883,7 @@ const CustomerDetailPage: React.FC = () => {
               discountAmount: 0,
               total: membershipContract.totalAmount || 0,
               paidAmount: membershipContract.initialPaidAmount || 0,
-              debtAmount: membershipContract.remainingDebt || 0,
-              status: 'ACTIVE',
+              status: membershipContract.status || 'ACTIVE',
               startDate: membershipContract.startDate,
               endDate: membershipContract.endDate || customer.expiryDate || '',
               notes: membershipContract.notes,

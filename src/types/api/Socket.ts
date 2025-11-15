@@ -16,7 +16,15 @@ export interface SocketConfig {
 // ===== NOTIFICATION TYPES =====
 
 export type NotificationPriority = 'low' | 'medium' | 'high';
-export type NotificationCategory = 'workshift' | 'staff' | 'branch' | 'system' | 'general' | 'timeoff' | 'reschedule';
+export type NotificationCategory =
+  | 'workshift'
+  | 'staff'
+  | 'branch'
+  | 'system'
+  | 'general'
+  | 'timeoff'
+  | 'reschedule'
+  | 'membership';
 
 export interface NotificationData {
   type: string;
@@ -146,12 +154,22 @@ export interface SocketEvents {
   'notification:branch:created': (data: BranchNotificationData) => void;
   'notification:branch:updated': (data: BranchNotificationData) => void;
   'notification:branch:deleted': (data: BranchNotificationData) => void;
+  'notification:membership:registered': (data: NotificationData) => void;
+  'notification:membership:purchased': (data: NotificationData) => void;
+  'notification:membership:owner_update': (data: NotificationData) => void;
+  'notification:membership:manager_update': (data: NotificationData) => void;
+  'notification:servicecontract:registered': (data: NotificationData) => void;
+  'notification:servicecontract:purchased': (data: NotificationData) => void;
+  'notification:servicecontract:assigned': (data: NotificationData) => void;
+  'notification:servicecontract:owner_update': (data: NotificationData) => void;
+  'notification:servicecontract:manager_update': (data: NotificationData) => void;
 
   // Custom events
   'workshift-notification': (data: WorkShiftNotificationData) => void;
   'timeoff-notification': (data: TimeOffNotificationData) => void;
   'reschedule-notification': (data: RescheduleNotificationData) => void;
   'payment:updated': (data: PaymentUpdateEvent) => void;
+  'membership:contract:updated': (data: MembershipContractUpdateEvent) => void;
 
   // Schedule events
   'schedule-created': (data: Record<string, unknown>) => void;
@@ -159,6 +177,10 @@ export interface SocketEvents {
   'schedule-deleted': (data: Record<string, unknown>) => void;
   'notification-received': (data: NotificationData) => void;
   'show-notifications': () => void;
+
+  // KPI events
+  'kpi:created': (data: KPIUpdateEvent) => void;
+  'kpi:updated': (data: KPIUpdateEvent) => void;
 }
 
 // ===== API REQUEST/RESPONSE TYPES =====
@@ -270,6 +292,78 @@ export interface PaymentUpdateEvent {
   contractId?: string;
   contractType?: 'service' | 'membership';
   metadata?: Record<string, unknown>;
+}
+
+export interface MembershipContractUpdateEvent {
+  contractId: string;
+  customerId: string;
+  branchId: string;
+  updateType: 'extended' | 'canceled' | 'updated' | 'activated';
+  contract: {
+    _id: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+    activationDate?: string;
+    paidAmount: number;
+    debtAmount: number;
+    total: number;
+    canceledAt?: string;
+    canceledBy?: string;
+  };
+  membershipPlan: {
+    _id: string;
+    name: string;
+  };
+  branch: {
+    _id: string;
+    branchName: string;
+  };
+  timestamp: string;
+}
+
+export interface KPIUpdateEvent {
+  kpiConfigId: string;
+  staffId?: string;
+  branchId: string;
+  ownerId: string;
+  achievement: {
+    actual: {
+      revenue: {
+        total: number;
+        newMember: number;
+        ptSession: number;
+        vipRevenue: number;
+      };
+      members: {
+        newMembers: number;
+        vipNewMembers: number;
+      };
+      sessions: {
+        ptSessions: number;
+        vipPtSessions: number;
+      };
+    };
+    commission: {
+      baseRate: number;
+      applicableRate: number;
+      amount: number;
+      breakdown: {
+        newMember: number;
+        ptSession: number;
+        vipBonus: number;
+      };
+    };
+    bonus: {
+      qualified: boolean;
+      amount: number;
+      reason?: string;
+    };
+    rankings: {
+      branch?: number;
+      owner?: number;
+    };
+  };
 }
 
 // ===== ERROR TYPES =====

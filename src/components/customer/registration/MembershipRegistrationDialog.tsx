@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { Calendar, DollarSign, CreditCard, FileText, MapPin } from 'lucide-react';
+import { Calendar, DollarSign, CreditCard, FileText, MapPin, User } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,10 +13,17 @@ import { useBranch } from '@/contexts/BranchContext';
 import { membershipApi } from '@/services/api/membershipApi';
 import { discountCampaignApi } from '@/services/api/discountApi';
 import { paymentApi, type PayOSPaymentData } from '@/services/api/paymentApi';
+import { contractDocumentApi } from '@/services/api/contractDocumentApi';
 import { PayOSPaymentModal } from '@/components/modals/PayOSPaymentModal';
+import PostPurchaseContractDialog from '@/components/contracts/PostPurchaseContractDialog';
+import EmbeddedDocumentViewer from '@/components/contracts/EmbeddedDocumentViewer';
 import type { MembershipPlan } from '@/types/api/Membership';
 import type { MembershipRegistrationFormData, MembershipContractResponse } from '@/types/api/Customer';
 import type { DiscountCampaign } from '@/types/api/Discount';
+import type { ContractDocument } from '@/types/api/ContractDocument';
+import { staffApi } from '@/services/api/staffApi';
+import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
+import type { Staff } from '@/types/api/Staff';
 
 interface MembershipRegistrationDialogProps {
   isOpen: boolean;
@@ -38,15 +46,25 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
   customerId,
   onSuccess
 }) => {
+  const { t } = useTranslation();
   const { currentBranch, branches } = useBranch();
+  const { currentStaff } = useCurrentUserStaff(); // CASE 2: Get current staff if logged in as staff
   const [loading, setLoading] = useState(false);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [promotions, setPromotions] = useState<DiscountCampaign[]>([]);
+  const [staffList, setStaffList] = useState<Staff[]>([]); // CASE 2: Staff list for selector
+  const [loadingStaff, setLoadingStaff] = useState(false);
 
   // PayOS states
   const [showPayOSModal, setShowPayOSModal] = useState(false);
   const [payOSData, setPayOSData] = useState<PayOSPaymentData | null>(null);
   const [createdContractId, setCreatedContractId] = useState<string | null>(null);
+
+  // Post-purchase contract states
+  const [showPostPurchaseDialog, setShowPostPurchaseDialog] = useState(false);
+  const [createdContractDocument, setCreatedContractDocument] = useState<ContractDocument | null>(null);
+  const [showSendingViewer, setShowSendingViewer] = useState(false);
+  const [sendingIframeUrl, setSendingIframeUrl] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<MembershipRegistrationFormData>({
     membershipPlanId: '',
@@ -67,7 +85,15 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
   const discountPercent = selectedPromotion?.discountPercentage || 0;
   const discountAmount = (basePrice * discountPercent) / 100;
   const totalPrice = basePrice - discountAmount;
-  const remainingDebt = Math.max(0, totalPrice - formData.initialPaidAmount);
+
+  useEffect(() => {
+    if (selectedPlan) {
+      setFormData((prev) => ({
+        ...prev,
+        initialPaidAmount: totalPrice
+      }));
+    }
+  }, [totalPrice, selectedPlan]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -75,30 +101,60 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
     const fetchData = async () => {
       if (!currentBranch?._id) return;
 
-      try {
-        const [plansRes, promotionsRes] = await Promise.all([
-          membershipApi.getMembershipPlans({ page: 1, limit: 100, status: 'ACTIVE' }, [currentBranch._id]),
-          discountCampaignApi.getActiveCampaignsByBranch(currentBranch._id)
-        ]);
+      const [plansRes, promotionsRes] = await Promise.all([
+        membershipApi.getMembershipPlans({ page: 1, limit: 100, status: 'ACTIVE' }, [currentBranch._id]),
+        discountCampaignApi.getActiveCampaignsByBranch(currentBranch._id)
+      ]);
 
-        if (plansRes.success && plansRes.data) {
-          setPlans(plansRes.data.plans || []);
-        }
+      if (plansRes.success && plansRes.data) {
+        setPlans(plansRes.data.plans || []);
+      }
 
-        if (promotionsRes.success && promotionsRes.data) {
-          setPromotions(promotionsRes.data);
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
+      if (promotionsRes.success && promotionsRes.data) {
+        setPromotions(promotionsRes.data);
       }
     };
 
     fetchData();
   }, [isOpen, currentBranch?._id]);
 
+  // CASE 2: Fetch staff list when branch changes
+  useEffect(() => {
+    if (!isOpen || !formData.branchId) return;
+
+    const fetchStaffList = async () => {
+      setLoadingStaff(true);
+      try {
+        const response = await staffApi.getStaffListByBranch(formData.branchId, {
+          limit: 100,
+          jobTitle: 'Personal Trainer' // Only show PT for KPI
+        });
+        if (response.success && response.data) {
+          setStaffList(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching staff list:', error);
+      } finally {
+        setLoadingStaff(false);
+      }
+    };
+
+    fetchStaffList();
+  }, [isOpen, formData.branchId]);
+
+  // CASE 2: Auto-set referrerStaffId if current user is PT (Personal Trainer)
+  // Only PT can receive KPI attribution, so only auto-select if current staff is PT
+  useEffect(() => {
+    if (currentStaff && currentStaff.userId?._id && currentStaff.jobTitle === 'Personal Trainer') {
+      setFormData((prev) => ({
+        ...prev,
+        referrerStaffId: currentStaff.userId._id
+      }));
+    }
+  }, [currentStaff]);
+
   const handlePayOSPayment = (contractId: string) => {
-    const amountToPayment = totalPrice - formData.initialPaidAmount;
-    const paymentAmount = amountToPayment > 0 ? amountToPayment : Math.max(totalPrice, 1000);
+    const paymentAmount = Math.max(totalPrice, 1000);
 
     paymentApi
       .createPayOSPaymentLink({
@@ -107,21 +163,21 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
         contractId: contractId,
         contractType: 'membership',
         amount: paymentAmount,
-        description: `Goi hoi vien`
+        description: t('membership_registration.package_description')
       })
       .then((paymentResponse) => {
         if (paymentResponse.success) {
           setCreatedContractId(contractId);
           setPayOSData(paymentResponse.data);
           setShowPayOSModal(true);
-          toast.success('Đăng ký gói hội viên thành công! Vui lòng thanh toán.');
+          toast.success(t('membership_registration.success_with_payment'));
         } else {
           handleRegistrationSuccess();
         }
       })
       .catch((paymentError) => {
         console.error('Error creating PayOS payment:', paymentError);
-        toast.warning('Đăng ký thành công nhưng không thể tạo link thanh toán PayOS');
+        toast.warning(t('membership_registration.warning_payos_failed'));
         handleRegistrationSuccess();
       })
       .finally(() => {
@@ -130,7 +186,7 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
   };
 
   const handleRegistrationSuccess = () => {
-    toast.success('Đăng ký gói hội viên thành công!');
+    toast.success(t('membership_registration.success'));
     setTimeout(() => {
       onSuccess?.();
       onClose();
@@ -139,29 +195,48 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
 
   const handleContractCreated = (response: MembershipContractResponse) => {
     if (!response.success) {
-      toast.error(response.message || 'Không thể đăng ký gói hội viên');
+      toast.error(response.message || t('membership_registration.error_register_failed'));
       setLoading(false);
       return;
     }
 
-    const contractId = response.data?.contract._id;
+    const contract = response.data?.contract;
+    const contractDocument = response.data?.contractDocument;
+    const contractId = contract?._id;
+
+    // Store contract document for post-purchase flow
+    if (contractDocument) {
+      setCreatedContractDocument(contractDocument);
+    } else {
+      // Warn if no template was found
+      toast.info('Hợp đồng đã tạo nhưng chưa có template. Vui lòng tạo hợp đồng thủ công sau.');
+    }
+
+    // Note: KPI update will be triggered automatically by backend via Socket.IO
+    // when transaction attribution is created and KPI is recalculated
 
     if (formData.paymentMethod === 'BANK_TRANSFER' && contractId) {
       handlePayOSPayment(contractId);
     } else {
-      handleRegistrationSuccess();
-      setLoading(false);
+      // Show post-purchase dialog if contract document exists
+      if (contractDocument) {
+        setLoading(false);
+        setShowPostPurchaseDialog(true);
+      } else {
+        handleRegistrationSuccess();
+        setLoading(false);
+      }
     }
   };
 
   const handleSubmit = () => {
     if (!formData.membershipPlanId) {
-      toast.error('Vui lòng chọn gói hội viên');
+      toast.error(t('membership_registration.error_select_plan'));
       return;
     }
 
     if (!formData.branchId) {
-      toast.error('Vui lòng chọn chi nhánh');
+      toast.error(t('membership_registration.error_select_branch'));
       return;
     }
 
@@ -171,15 +246,54 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
       .createMembershipContract(customerId, formData)
       .then(handleContractCreated)
       .catch(() => {
-        toast.error('Có lỗi xảy ra khi đăng ký gói hội viên');
+        toast.error(t('membership_registration.error_register'));
         setLoading(false);
       });
   };
 
   const handlePaymentSuccess = () => {
     setShowPayOSModal(false);
-    toast.success('Thanh toán thành công!');
-    // Delay to ensure backend has saved
+    toast.success(t('membership_registration.payment_success'));
+
+    // Show post-purchase dialog if contract document exists
+    if (createdContractDocument) {
+      setShowPostPurchaseDialog(true);
+    } else {
+      setTimeout(() => {
+        onSuccess?.();
+        onClose();
+      }, 500);
+    }
+  };
+
+  const handleSendNow = async () => {
+    if (!createdContractDocument) return;
+
+    const response = await contractDocumentApi.createEmbeddedSending(createdContractDocument._id, {
+      type: 'invite',
+      redirectUrl: `${window.location.origin}/manage/contracts`
+    });
+
+    if (response.success && response.data?.link) {
+      setSendingIframeUrl(response.data.link);
+      setShowSendingViewer(true);
+    } else {
+      toast.error('Không thể tạo link gửi hợp đồng');
+    }
+  };
+
+  const handleSendLater = () => {
+    toast.info('Bạn có thể gửi hợp đồng sau trong trang Quản lý hợp đồng');
+    setTimeout(() => {
+      onSuccess?.();
+      onClose();
+    }, 500);
+  };
+
+  const handleSendingViewerClose = () => {
+    setShowSendingViewer(false);
+    setSendingIframeUrl(null);
+    toast.success('Hợp đồng đã được gửi đi!');
     setTimeout(() => {
       onSuccess?.();
       onClose();
@@ -190,7 +304,7 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Đăng ký gói hội viên (Membership)</DialogTitle>
+          <DialogTitle>{t('membership_registration.title')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -198,15 +312,15 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <CreditCard className="h-5 w-5 text-primary" />
-                Thông tin đăng ký
+                {t('membership_registration.registration_info')}
               </CardTitle>
-              <CardDescription>Chọn gói hội viên, chi nhánh và thông tin thanh toán</CardDescription>
+              <CardDescription>{t('membership_registration.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-6 xl:grid-cols-2">
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Gói hội viên *</Label>
+                    <Label className="text-sm font-medium">{t('membership_registration.plan_label')}</Label>
                     <Select
                       value={formData.membershipPlanId}
                       onValueChange={(value) => {
@@ -214,13 +328,12 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
                         setSelectedPlan(plan || null);
                         setFormData((prev) => ({
                           ...prev,
-                          membershipPlanId: value,
-                          initialPaidAmount: plan?.price || 0
+                          membershipPlanId: value
                         }));
                       }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Chọn gói hội viên" />
+                        <SelectValue placeholder={t('membership_registration.plan_placeholder')} />
                       </SelectTrigger>
                       <SelectContent>
                         {plans.map((plan) => (
@@ -229,7 +342,9 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
                               <span>
                                 {plan.name} - {formatCurrency(plan.price)}
                               </span>
-                              <span className="text-xs text-muted-foreground">{plan.durationInMonths} tháng</span>
+                              <span className="text-xs text-muted-foreground">
+                                {plan.durationInMonths} {t('membership_registration.month')}
+                              </span>
                             </div>
                           </SelectItem>
                         ))}
@@ -240,7 +355,7 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
                     )}
                     {selectedPlan?.benefits && selectedPlan.benefits.length > 0 && (
                       <div className="rounded-xl border border-border bg-muted/30 p-3">
-                        <p className="text-xs font-semibold mb-2">Quyền lợi:</p>
+                        <p className="text-xs font-semibold mb-2">{t('membership_registration.benefits_label')}</p>
                         <ul className="text-xs space-y-1 list-disc list-inside text-muted-foreground">
                           {selectedPlan.benefits.map((benefit, idx) => (
                             <li key={idx}>{benefit}</li>
@@ -252,14 +367,14 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
 
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">
-                      <MapPin className="inline h-4 w-4" /> Chi nhánh *
+                      <MapPin className="inline h-4 w-4" /> {t('membership_registration.branch_label')}
                     </Label>
                     <Select
                       value={formData.branchId}
                       onValueChange={(value) => setFormData((prev) => ({ ...prev, branchId: value }))}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Chọn chi nhánh" />
+                        <SelectValue placeholder={t('membership_registration.branch_placeholder')} />
                       </SelectTrigger>
                       <SelectContent>
                         {branches.map((branch) => (
@@ -273,19 +388,19 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
 
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">
-                      <CreditCard className="inline h-4 w-4" /> Mã thẻ hội viên
+                      <CreditCard className="inline h-4 w-4" /> {t('membership_registration.card_code_label')}
                     </Label>
                     <Input
                       value={formData.cardCode}
                       onChange={(e) => setFormData((prev) => ({ ...prev, cardCode: e.target.value }))}
-                      placeholder="Nhập mã thẻ (tùy chọn)"
+                      placeholder={t('membership_registration.card_code_placeholder')}
                     />
-                    <p className="text-xs text-muted-foreground">Mã thẻ vật lý để truy cập vào phòng tập</p>
+                    <p className="text-xs text-muted-foreground">{t('membership_registration.card_code_helper')}</p>
                   </div>
 
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">
-                      <Calendar className="inline h-4 w-4" /> Ngày kích hoạt *
+                      <Calendar className="inline h-4 w-4" /> {t('membership_registration.activation_date_label')}
                     </Label>
                     <Input
                       type="date"
@@ -297,7 +412,7 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Khuyến mãi</Label>
+                    <Label className="text-sm font-medium">{t('membership_registration.promotion_label')}</Label>
                     <Select
                       value={formData.discountCampaignId || 'none'}
                       onValueChange={(value) => {
@@ -312,10 +427,10 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
                       }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Chọn khuyến mãi" />
+                        <SelectValue placeholder={t('membership_registration.promotion_placeholder')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Không áp dụng</SelectItem>
+                        <SelectItem value="none">{t('membership_registration.promotion_none')}</SelectItem>
                         {promotions.map((promo) => (
                           <SelectItem key={promo._id} value={promo._id}>
                             {promo.campaignName} (-{promo.discountPercentage}%)
@@ -325,28 +440,8 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
                     </Select>
                   </div>
 
-                  <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Giá gốc:</span>
-                      <span className="text-sm font-semibold">{formatCurrency(basePrice)}</span>
-                    </div>
-                    {discountAmount > 0 && (
-                      <div className="flex justify-between items-center text-green-600">
-                        <span className="text-sm">Giảm giá:</span>
-                        <span className="text-sm font-semibold">-{formatCurrency(discountAmount)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between items-center border-t border-border pt-3">
-                      <span className="text-sm font-semibold">Tổng cộng:</span>
-                      <span className="text-lg font-bold text-primary">{formatCurrency(totalPrice)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-blue-600 text-xs">
-                      <span>Thời hạn:</span>
-                      <span className="font-semibold">{selectedPlan?.durationInMonths || 0} tháng</span>
-                    </div>
-                  </div>
-
                   <div className="space-y-2">
+                    <Label className="text-sm font-medium">{t('membership_registration.payment_method_label')}</Label>
                     <Label className="text-sm font-medium">
                       <DollarSign className="inline h-4 w-4" /> Số tiền thanh toán
                     </Label>
@@ -362,6 +457,49 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
                     <p className="text-xs text-muted-foreground">Gói hội viên thường yêu cầu thanh toán toàn bộ</p>
                   </div>
 
+                  {/* CASE 2: Staff/PT Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <User className="h-4 w-4" /> PT/Staff hỗ trợ (tùy chọn)
+                    </Label>
+                    <Select
+                      value={formData.referrerStaffId || 'none'}
+                      onValueChange={(value) => {
+                        if (value === 'none') {
+                          setFormData((prev) => ({ ...prev, referrerStaffId: undefined }));
+                        } else {
+                          setFormData((prev) => ({ ...prev, referrerStaffId: value }));
+                        }
+                      }}
+                      disabled={loadingStaff}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn PT/Staff" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Không có</SelectItem>
+                        {staffList
+                          .filter((staff) => staff.userId?._id) // Only show staff with valid userId
+                          .map((staff) => (
+                            <SelectItem key={staff._id} value={staff.userId._id}>
+                              {staff.userId?.fullName || staff.userId?.username} ({staff.jobTitle})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    {currentStaff && currentStaff.jobTitle === 'Personal Trainer' && (
+                      <p className="text-xs text-blue-600">Đã tự động chọn bạn (PT): {currentStaff.userId?.fullName}</p>
+                    )}
+                    {currentStaff && currentStaff.jobTitle !== 'Personal Trainer' && (
+                      <p className="text-xs text-muted-foreground">
+                        Bạn đang đăng nhập với tư cách: {currentStaff.jobTitle}. Vui lòng chọn PT để attribute KPI.
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Chọn PT/Staff hỗ trợ khách hàng mua để họ nhận được hoa hồng
+                    </p>
+                  </div>
+
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Phương thức thanh toán</Label>
                     <Select
@@ -374,48 +512,58 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="CASH">Tiền mặt</SelectItem>
-                        <SelectItem value="BANK_TRANSFER">Chuyển khoản (PayOS)</SelectItem>
+                        <SelectItem value="CASH">{t('membership_registration.payment_cash')}</SelectItem>
+                        <SelectItem value="BANK_TRANSFER">{t('membership_registration.payment_transfer')}</SelectItem>
                       </SelectContent>
                     </Select>
                     {formData.paymentMethod === 'BANK_TRANSFER' && (
-                      <p className="text-xs text-blue-600">
-                        {remainingDebt > 0
-                          ? `Bạn sẽ thanh toán ${formatCurrency(remainingDebt)} qua QR Code sau khi đăng ký`
-                          : 'Bạn sẽ thanh toán toàn bộ gói qua QR Code sau khi đăng ký'}
-                      </p>
+                      <p className="text-xs text-blue-600">{t('membership_registration.payment_transfer_note')}</p>
                     )}
                   </div>
 
-                  {remainingDebt > 0 && (
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-amber-900">Công nợ:</span>
-                        <span className="text-lg font-bold text-amber-600">{formatCurrency(remainingDebt)}</span>
-                      </div>
+                  <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">{t('membership_registration.base_price')}</span>
+                      <span className="text-sm font-semibold">{formatCurrency(basePrice)}</span>
                     </div>
-                  )}
+                    {discountAmount > 0 && (
+                      <div className="flex justify-between items-center text-green-600">
+                        <span className="text-sm">{t('membership_registration.discount')}</span>
+                        <span className="text-sm font-semibold">-{formatCurrency(discountAmount)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center border-t border-border pt-3">
+                      <span className="text-sm font-semibold">{t('membership_registration.total')}</span>
+                      <span className="text-lg font-bold text-primary">{formatCurrency(totalPrice)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-blue-600 text-xs">
+                      <span>{t('membership_registration.duration')}</span>
+                      <span className="font-semibold">
+                        {selectedPlan?.durationInMonths || 0} {t('membership_registration.month')}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
-                  <FileText className="inline h-4 w-4" /> Ghi chú
+                  <FileText className="inline h-4 w-4" /> {t('membership_registration.notes_label')}
                 </Label>
                 <Textarea
                   value={formData.notes}
                   onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Ghi chú..."
+                  placeholder={t('membership_registration.notes_placeholder')}
                   rows={3}
                 />
               </div>
 
               <div className="flex justify-end gap-3">
                 <Button variant="outline" onClick={onClose}>
-                  Hủy
+                  {t('membership_registration.cancel')}
                 </Button>
                 <Button onClick={handleSubmit} disabled={loading}>
-                  {loading ? 'Đang xử lý...' : 'Đăng ký'}
+                  {loading ? t('membership_registration.processing') : t('membership_registration.register')}
                 </Button>
               </div>
             </CardContent>
@@ -429,7 +577,6 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
           isOpen={showPayOSModal}
           onClose={() => {
             setShowPayOSModal(false);
-            // Delay to ensure backend has saved
             setTimeout(() => {
               onSuccess?.();
               onClose();
@@ -443,6 +590,25 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
           contractType="membership"
         />
       )}
+
+      {/* Post-Purchase Contract Dialog */}
+      <PostPurchaseContractDialog
+        open={showPostPurchaseDialog}
+        onOpenChange={setShowPostPurchaseDialog}
+        contractDocument={createdContractDocument}
+        onSendNow={handleSendNow}
+        onSendLater={handleSendLater}
+      />
+
+      {/* Embedded Sending Viewer */}
+      <EmbeddedDocumentViewer
+        open={showSendingViewer}
+        onOpenChange={setShowSendingViewer}
+        documentTitle={createdContractDocument?.title || 'Contract Document'}
+        mode="sending"
+        iframeUrl={sendingIframeUrl}
+        onClose={handleSendingViewerClose}
+      />
     </Dialog>
   );
 };

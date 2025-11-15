@@ -290,10 +290,17 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
                       {/* Package & Status */}
                       <div className="mb-4 cursor-pointer" onClick={() => setSelectedCustomer(customer)}>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-foreground">{customer.package.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-foreground">{customer.package.name}</span>
+                            {customer.contractType === 'MEMBERSHIP_KPI' && (
+                              <Badge className="bg-blue-100 text-blue-700 border-0 text-xs font-medium">
+                                {t('pt_customer.kpi_badge')}
+                              </Badge>
+                            )}
+                          </div>
                           {getStatusBadge(customer)}
                         </div>
-                        {urgency === 'urgent' && (
+                        {urgency === 'urgent' && customer.contractType !== 'MEMBERSHIP_KPI' && (
                           <div className="text-sm font-medium text-[#F05A29] mt-1">
                             {customer.package.sessionsRemaining <= 3
                               ? t('pt_customer.sessions_remaining_count', { count: customer.package.sessionsRemaining })
@@ -302,27 +309,59 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
                                 : t('pt_customer.expires_today')}
                           </div>
                         )}
+                        {urgency === 'urgent' && customer.contractType === 'MEMBERSHIP_KPI' && remainingDays <= 7 && (
+                          <div className="text-sm font-medium text-[#F05A29] mt-1">
+                            {remainingDays > 0
+                              ? t('pt_customer.days_remaining', { count: remainingDays })
+                              : t('pt_customer.expires_today')}
+                          </div>
+                        )}
                       </div>
 
-                      {/* Progress */}
-                      <div className="mb-4 cursor-pointer" onClick={() => setSelectedCustomer(customer)}>
-                        <div className="flex items-center justify-between mb-2 text-sm">
-                          <span className="text-foreground">
-                            {t('pt_customer.sessions_completed', {
-                              used: customer.package.sessionsUsed,
-                              total: customer.package.totalSessions
-                            })}
-                          </span>
-                          <span className="font-medium text-foreground">
-                            {Math.round(calculateProgress(customer))}%
-                          </span>
+                      {/* Progress - Only show for PT_PACKAGE contracts */}
+                      {customer.contractType !== 'MEMBERSHIP_KPI' && (
+                        <div className="mb-4 cursor-pointer" onClick={() => setSelectedCustomer(customer)}>
+                          <div className="flex items-center justify-between mb-2 text-sm">
+                            <span className="text-foreground">
+                              {t('pt_customer.sessions_completed', {
+                                used: customer.package.sessionsUsed,
+                                total: customer.package.totalSessions
+                              })}
+                            </span>
+                            <span className="font-medium text-foreground">
+                              {Math.round(calculateProgress(customer))}%
+                            </span>
+                          </div>
+                          <Progress
+                            value={calculateProgress(customer)}
+                            className="h-2 w-full bg-gray-200"
+                            indicatorClassName="bg-orange-500"
+                          />
                         </div>
-                        <Progress
-                          value={calculateProgress(customer)}
-                          className="h-2 w-full bg-gray-200"
-                          indicatorClassName="bg-orange-500"
-                        />
-                      </div>
+                      )}
+                      {/* Payment Status for MEMBERSHIP_KPI */}
+                      {customer.contractType === 'MEMBERSHIP_KPI' && (
+                        <div className="mb-4 cursor-pointer" onClick={() => setSelectedCustomer(customer)}>
+                          <div className="flex items-center justify-between mb-2 text-sm">
+                            <span className="text-foreground">{t('pt_customer.payment_status')}:</span>
+                            <Badge
+                              className={`${
+                                customer.package.paymentStatus === 'PAID'
+                                  ? 'bg-green-100 text-green-700'
+                                  : customer.package.paymentStatus === 'PENDING'
+                                    ? 'bg-yellow-100 text-yellow-700'
+                                    : 'bg-orange-100 text-orange-700'
+                              } border-0 font-medium`}
+                            >
+                              {customer.package.paymentStatus === 'PAID'
+                                ? t('pt_customer.payment.paid')
+                                : customer.package.paymentStatus === 'PENDING'
+                                  ? t('pt_customer.payment.pending')
+                                  : t('pt_customer.payment.partial')}
+                            </Badge>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Expiration Date */}
                       <div

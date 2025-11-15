@@ -1,14 +1,16 @@
-import { createContext, useContext, useReducer, useEffect, useCallback, useMemo } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { socketService } from '@/services/socket/socketService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { notificationApi } from '@/services/api/notificationApi';
+import { translateNotificationTitle, translateNotificationMessage } from '@/utils/notificationTranslator';
 import type {
   WorkShiftNotificationData,
   TimeOffNotificationData,
-  RescheduleNotificationData
+  RescheduleNotificationData,
+  NotificationData
 } from '@/types/api/Socket';
 
 export interface Notification {
@@ -323,6 +325,9 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [authState.isAuthenticated, authState.user]);
 
+  // Track displayed toast IDs to prevent duplicates
+  const displayedToastIds = useRef<Set<string>>(new Set());
+
   // Memoize notification handler to prevent stale closures
   const handleWorkShiftNotification = useCallback(
     (data: Record<string, unknown>) => {
@@ -348,13 +353,51 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
       dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
 
+      // Show toast for membership and service contract notifications (realtime feedback)
+      // Use notification ID to prevent duplicate toasts
+      if (
+        notification.category === 'membership' ||
+        notification.type?.includes('membership') ||
+        notification.type?.includes('servicecontract')
+      ) {
+        // Check if we've already shown a toast for this notification
+        if (!displayedToastIds.current.has(notificationId)) {
+          displayedToastIds.current.add(notificationId);
+
+          // Clean up old IDs after 10 seconds to prevent memory leak
+          setTimeout(() => {
+            displayedToastIds.current.delete(notificationId);
+          }, 10000);
+
+          const priority = notification.priority || 'medium';
+
+          // Translate notification title and message for toast display
+          const translatedTitle = translateNotificationTitle(notification, t);
+          const translatedMessage = translateNotificationMessage(notification, t);
+
+          if (priority === 'high') {
+            toast.success(translatedTitle, {
+              description: translatedMessage,
+              duration: 5000,
+              id: notificationId // Use notification ID as toast ID to prevent duplicates
+            });
+          } else {
+            toast.info(translatedTitle, {
+              description: translatedMessage,
+              duration: 4000,
+              id: notificationId // Use notification ID as toast ID to prevent duplicates
+            });
+          }
+        }
+      }
+
       globalThis.dispatchEvent(
         new CustomEvent('realtime-notification', {
           detail: notification
         })
       );
     },
-    [dispatch]
+    [dispatch, t]
   );
 
   useEffect(() => {}, [dispatch]);
@@ -406,6 +449,14 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     [handleWorkShiftNotification]
   );
 
+  // Handle membership notifications
+  const handleMembershipSocketNotification = useCallback(
+    (data: NotificationData) => {
+      handleWorkShiftNotification(data as unknown as Record<string, unknown>);
+    },
+    [handleWorkShiftNotification]
+  );
+
   const handleTestNotification = useCallback(
     (event: CustomEvent) => {
       const notification: Notification = event.detail;
@@ -424,6 +475,39 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       if (!socket || !socket.connected) {
         return;
       }
+
+      // Clean up existing listeners before registering new ones to prevent duplicates
+      socketService.off('notification:workshift:created', handleSocketNotification);
+      socketService.off('notification:workshift:updated', handleSocketNotification);
+      socketService.off('notification:workshift:branch_update', handleSocketNotification);
+      socketService.off('notification:workshift:batch_created', handleSocketNotification);
+      socketService.off('notification:workshift:batch_assigned', handleSocketNotification);
+      socketService.off('notification:timeoff:created', handleTimeOffSocketNotification);
+      socketService.off('notification:timeoff:approved', handleTimeOffSocketNotification);
+      socketService.off('notification:timeoff:rejected', handleTimeOffSocketNotification);
+      socketService.off('notification:timeoff:cancelled', handleTimeOffSocketNotification);
+      socketService.off('notification:timeoff:branch_update', handleTimeOffSocketNotification);
+      socketService.off('notification:timeoff:owner_update', handleTimeOffSocketNotification);
+      socketService.off('notification:reschedule:created', handleRescheduleSocketNotification);
+      socketService.off('notification:reschedule:accepted', handleRescheduleSocketNotification);
+      socketService.off('notification:reschedule:approved', handleRescheduleSocketNotification);
+      socketService.off('notification:reschedule:rejected', handleRescheduleSocketNotification);
+      socketService.off('notification:reschedule:cancelled', handleRescheduleSocketNotification);
+      socketService.off('notification:reschedule:expired', handleRescheduleSocketNotification);
+      socketService.off('notification:reschedule:completed', handleRescheduleSocketNotification);
+      socketService.off('notification:reschedule:branch_update', handleRescheduleSocketNotification);
+      socketService.off('notification:reschedule:owner_update', handleRescheduleSocketNotification);
+      socketService.off('notification:reschedule:manager_update', handleRescheduleSocketNotification);
+      socketService.off('notification:reschedule:staff_update', handleRescheduleSocketNotification);
+      socketService.off('notification:membership:registered', handleMembershipSocketNotification);
+      socketService.off('notification:membership:purchased', handleMembershipSocketNotification);
+      socketService.off('notification:membership:owner_update', handleMembershipSocketNotification);
+      socketService.off('notification:membership:manager_update', handleMembershipSocketNotification);
+      socketService.off('notification:servicecontract:registered', handleMembershipSocketNotification);
+      socketService.off('notification:servicecontract:purchased', handleMembershipSocketNotification);
+      socketService.off('notification:servicecontract:assigned', handleMembershipSocketNotification);
+      socketService.off('notification:servicecontract:owner_update', handleMembershipSocketNotification);
+      socketService.off('notification:servicecontract:manager_update', handleMembershipSocketNotification);
 
       // WorkShift notifications
       socketService.on('notification:workshift:created', handleSocketNotification);
@@ -452,6 +536,23 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       socketService.on('notification:reschedule:owner_update', handleRescheduleSocketNotification);
       socketService.on('notification:reschedule:manager_update', handleRescheduleSocketNotification);
       socketService.on('notification:reschedule:staff_update', handleRescheduleSocketNotification);
+
+      // Membership notifications
+      socketService.on('notification:membership:registered', handleMembershipSocketNotification);
+      socketService.on('notification:membership:purchased', handleMembershipSocketNotification);
+      socketService.on('notification:membership:owner_update', handleMembershipSocketNotification);
+      socketService.on('notification:membership:manager_update', handleMembershipSocketNotification);
+
+      // Service contract notifications
+      socketService.on('notification:servicecontract:registered', handleMembershipSocketNotification);
+      socketService.on('notification:servicecontract:purchased', handleMembershipSocketNotification);
+      socketService.on('notification:servicecontract:assigned', handleMembershipSocketNotification);
+      socketService.on('notification:servicecontract:owner_update', handleMembershipSocketNotification);
+      socketService.on('notification:servicecontract:manager_update', handleMembershipSocketNotification);
+
+      // ✅ REMOVED: Membership contract update events are now handled directly by components
+      // Components listen to 'membership:contract:updated' socket event directly
+      // This removes the need for custom event dispatching
     };
 
     if (!state.isConnected) {
@@ -494,6 +595,19 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
         socketService.off('notification:reschedule:owner_update', handleRescheduleSocketNotification);
         socketService.off('notification:reschedule:manager_update', handleRescheduleSocketNotification);
         socketService.off('notification:reschedule:staff_update', handleRescheduleSocketNotification);
+
+        // Membership notifications
+        socketService.off('notification:membership:registered', handleMembershipSocketNotification);
+        socketService.off('notification:membership:purchased', handleMembershipSocketNotification);
+        socketService.off('notification:membership:owner_update', handleMembershipSocketNotification);
+        socketService.off('notification:membership:manager_update', handleMembershipSocketNotification);
+
+        // Service contract notifications
+        socketService.off('notification:servicecontract:registered', handleMembershipSocketNotification);
+        socketService.off('notification:servicecontract:purchased', handleMembershipSocketNotification);
+        socketService.off('notification:servicecontract:assigned', handleMembershipSocketNotification);
+        socketService.off('notification:servicecontract:owner_update', handleMembershipSocketNotification);
+        socketService.off('notification:servicecontract:manager_update', handleMembershipSocketNotification);
       }
 
       // Only clean up the remaining event listeners
@@ -505,6 +619,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     handleSocketNotification,
     handleTimeOffSocketNotification,
     handleRescheduleSocketNotification,
+    handleMembershipSocketNotification,
     handleFetchedNotification,
     handleTestNotification
   ]);

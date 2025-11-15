@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Search,
   Plus,
@@ -48,6 +48,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useCustomerList, useUpdateCustomerStatus } from '@/hooks/useCustomer';
 import { useTableSort } from '@/hooks/useTableSort';
+import { socketService } from '@/services/socket/socketService';
+import type { MembershipContractUpdateEvent } from '@/types/api/Socket';
 import { useUser } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { useBranch } from '@/contexts/BranchContext';
@@ -86,6 +88,7 @@ const customerSortConfig = {
 export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCustomer }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const currentUser = useUser();
   const { currentStaff } = useCurrentUserStaff();
   const { currentBranch } = useBranch();
@@ -141,22 +144,32 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
   const branchId = currentBranch?._id;
 
   React.useEffect(() => {
-    const handleRefresh = (event: Event) => {
-      const detail = (event as CustomEvent<{ branchId?: string }>).detail;
+    if (!branchId) return;
 
-      if (detail?.branchId && branchId && detail.branchId !== branchId) {
+    let debounceTimeout: NodeJS.Timeout | null = null;
+
+    const handleMembershipContractUpdate = (data: MembershipContractUpdateEvent) => {
+      if (data?.branchId && branchId && data.branchId.toString() !== branchId.toString()) {
         return;
       }
 
-      refetch();
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
+      }
+
+      debounceTimeout = setTimeout(() => {
+        refetch();
+      }, 500);
     };
 
-    window.addEventListener('membership:created', handleRefresh as EventListener);
-    window.addEventListener('membership:cancelled', handleRefresh as EventListener);
+    // Listen for membership contract update events from socket
+    socketService.on('membership:contract:updated', handleMembershipContractUpdate);
 
     return () => {
-      window.removeEventListener('membership:created', handleRefresh as EventListener);
-      window.removeEventListener('membership:cancelled', handleRefresh as EventListener);
+      socketService.off('membership:contract:updated', handleMembershipContractUpdate);
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
+      }
     };
   }, [branchId, refetch]);
 
@@ -264,8 +277,15 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
       return;
     }
 
-    // Navigate to the new customer detail page
-    navigate(`/manage/customers/${customer.id}/detail`);
+    // Determine the correct route based on current location
+    // If we're in PT route (/manage/pt/customers), navigate to PT customer detail route
+    // Otherwise, navigate to Manager/Owner customer detail route
+    const isPTRoute = location.pathname.includes('/manage/pt/customers');
+    const detailPath = isPTRoute
+      ? `/manage/pt/customers/${customer.id}/detail`
+      : `/manage/customers/${customer.id}/detail`;
+
+    navigate(detailPath);
   };
 
   const handleEditCustomer = async (customer: CustomerDisplay) => {
@@ -316,7 +336,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
     return (
       currentUser?.role === 'OWNER' ||
       currentUser?.role === 'ADMIN' ||
-      (currentStaff && currentStaff.jobTitle === 'Manager')
+      (currentStaff && (currentStaff.jobTitle === 'Manager' || currentStaff.jobTitle === 'Personal Trainer'))
     );
   };
 

@@ -25,7 +25,8 @@ import {
   CalendarDays,
   CreditCard,
   Building2,
-  Crown
+  FileText,
+  TrendingUp
 } from 'lucide-react';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -43,6 +44,7 @@ import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
 import { Sidebar, type SidebarItem as SidebarItemType } from '@/components/common/Sidebar';
 import BusinessVerificationModal from '@/components/business/BusinessVerificationModal';
+import logoImage from '@/assets/images/logo2.png';
 
 interface DropdownSidebarItemProps {
   icon: React.ReactNode;
@@ -146,7 +148,7 @@ const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
         title={isCollapsed ? t('sidebar.open_sidebar') : undefined}
         aria-label={isCollapsed ? t('sidebar.open_sidebar') : undefined}
       >
-        <img src="/src/assets/images/logo2.png" alt={t('sidebar.gym_smart_logo')} className="w-6 h-6 object-contain" />
+        <img src={logoImage} alt={t('sidebar.gym_smart_logo')} className="w-6 h-6 object-contain" />
       </button>
       {!isCollapsed && (
         <div className="flex-1 min-w-0">
@@ -180,7 +182,7 @@ const UpgradeCard: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    navigate('/pricing');
+    navigate('/manage/subscriptions');
   };
 
   if (isCollapsed) {
@@ -465,15 +467,6 @@ export const OwnerSidebar: React.FC = () => {
       }
     },
     {
-      icon: <Crown className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.subscriptions', { defaultValue: 'Gói dịch vụ' }),
-      href: '/manage/subscriptions',
-      isActive: location.pathname === '/manage/subscriptions',
-      onClick: () => {
-        navigate('/manage/subscriptions');
-      }
-    },
-    {
       icon: <CreditCard className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.payments', { defaultValue: 'Payments' }),
       isActive: location.pathname === '/manage/payments',
@@ -498,12 +491,21 @@ export const OwnerSidebar: React.FC = () => {
       onClick: () => {
         navigate('/manage/testimonials');
       }
+    },
+    {
+      icon: <FileText className="w-5 h-5 stroke-[1.75]" />,
+      label: t('sidebar.contracts', { defaultValue: 'Hợp đồng / Contracts' }),
+      href: '/manage/contracts',
+      isActive: location.pathname === '/manage/contracts',
+      onClick: () => {
+        navigate('/manage/contracts');
+      }
     }
   ];
 
   return (
     <div
-      className={`bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0 transition-all duration-300 ${
+      className={`bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0 self-start flex-shrink-0 transition-all duration-300 ${
         isCollapsed ? 'w-16 overflow-hidden' : 'w-64'
       }`}
       style={isCollapsed ? { maxWidth: '64px', minWidth: '64px' } : {}}
@@ -586,6 +588,12 @@ export const OwnerSidebar: React.FC = () => {
               label={t('sidebar.expenses') || 'Chi phí / Expenses'}
               isActive={location.pathname === '/manage/expenses'}
               onClick={() => navigate('/manage/expenses')}
+            />
+            <SubMenuItem
+              icon={<TrendingUp className="w-5 h-5 stroke-[1.75]" />}
+              label={t('sidebar.kpi', 'KPI Management')}
+              isActive={location.pathname === '/manage/kpi'}
+              onClick={() => navigate('/manage/kpi')}
             />
           </DropdownSidebarItem>
         </div>

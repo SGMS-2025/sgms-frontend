@@ -1,6 +1,7 @@
 import type { ServicePackage } from '@/types/api/Package';
 import type { DiscountCampaign } from '@/types/api/Discount';
 import type { Staff } from '@/types/api/Staff';
+import type { ContractDocument } from '@/types/api/ContractDocument';
 
 export interface CustomerDisplay {
   id: string;
@@ -26,6 +27,11 @@ export interface CustomerDisplay {
   lastPaymentDate?: string; // Ngày thanh toán gần nhất
   createdAt?: string; // Ngày tạo
   updatedAt?: string; // Ngày cập nhật
+  userId?: string; // User ID for lock/unlock operations
+  avatar?: {
+    publicId?: string;
+    url?: string;
+  }; // Avatar for display
 
   // Additional fields for detailed customer information
   gender?: string;
@@ -52,7 +58,6 @@ export interface CustomerDisplay {
     duration?: string;
     initialPaidAmount?: number;
     totalAmount?: number;
-    remainingDebt?: number;
     status?: 'ACTIVE' | 'EXPIRED' | 'CANCELED' | 'SUSPENDED';
     discountCampaignId?: {
       _id: string;
@@ -83,7 +88,6 @@ export interface CustomerDisplay {
     status?: string;
     initialPaidAmount?: number;
     totalAmount?: number;
-    remainingDebt?: number;
     discountCampaignId?: {
       _id: string;
       name: string;
@@ -303,11 +307,11 @@ export interface MembershipContractResponse {
       discountAmount: number;
       total: number;
       paidAmount: number;
-      debtAmount: number;
       status: string;
       activationDate?: string;
       createdAt: string;
     };
+    contractDocument?: ContractDocument;
   };
   message?: string;
 }
@@ -429,12 +433,15 @@ export interface CustomerListResponse {
 }
 
 // PT Customer specific types
+export type ContractType = 'PT_PACKAGE' | 'MEMBERSHIP_KPI';
+
 export interface PTCustomer {
   _id: string;
   fullName: string;
   phone: string;
   email?: string;
   avatar?: string;
+  contractType?: ContractType; // 'PT_PACKAGE' | 'MEMBERSHIP_KPI'
   package: {
     contractId: string;
     name: string;

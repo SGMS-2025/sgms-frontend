@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import type { MatrixDisplayData } from '@/types/api/Matrix';
+import { useFeatureForm } from './useFeatureForm';
+import { FeatureFormFields } from './FeatureFormFields';
 
 type MatrixFeature = MatrixDisplayData['features'][0];
 
@@ -19,52 +19,69 @@ interface EditFeatureDialogProps {
 export function EditFeatureDialog({ feature, onSubmit, loading, serviceType }: EditFeatureDialogProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
 
-  React.useEffect(() => {
+  const form = useFeatureForm({
+    serviceType,
+    validateOnBlur: false // EditFeatureDialog's validation timing
+  });
+
+  useEffect(() => {
     if (feature) {
-      setName(feature.name);
+      form.setFormValues({ name: feature.name });
       setOpen(true);
+      form.setIsClosing(false);
     }
-  }, [feature]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feature?.id]);
 
   const handleUpdate = () => {
-    if (!name.trim() || !feature) return;
-    onSubmit(feature.id, { name: name.trim() });
+    const isValid = form.validate();
+    if (!isValid || !feature) {
+      return;
+    }
+
+    onSubmit(feature.id, { name: form.name.trim() });
     setOpen(false);
   };
 
   const handleClose = () => {
+    form.setIsClosing(true);
+    form.resetForm();
     setOpen(false);
-    setName('');
+    setTimeout(() => form.setIsClosing(false), 100);
   };
 
-  const translationKey = serviceType === 'CLASS' ? 'class_service' : 'pt_service';
-
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          handleClose();
+        } else {
+          setOpen(isOpen);
+          form.setIsClosing(false);
+        }
+      }}
+    >
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto hide-scrollbar">
         <DialogHeader>
-          <DialogTitle>{t(`${translationKey}.edit_feature_dialog_title`)}</DialogTitle>
+          <DialogTitle>{t(`${form.translationKey}.edit_feature_dialog_title`)}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-2">
-          <div className="grid gap-2">
-            <Label htmlFor="name">{t(`${translationKey}.feature_name`)}</Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t(`${translationKey}.feature_name_placeholder`)}
-              disabled={loading}
-            />
-          </div>
-        </div>
+        <FeatureFormFields
+          translationKey={form.translationKey}
+          name={form.name}
+          error={form.error}
+          onNameChange={form.handleNameChange}
+          onBlur={form.handleBlur}
+          disabled={loading}
+        />
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={handleClose} disabled={loading}>
-            {t(`${translationKey}.cancel`)}
+            {t(`${form.translationKey}.cancel`)}
           </Button>
           <Button onClick={handleUpdate} className="bg-orange-500 hover:bg-orange-600 text-white" disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {t(`${translationKey}.update_feature`)}
+            {t(`${form.translationKey}.update_feature`)}
           </Button>
         </DialogFooter>
       </DialogContent>

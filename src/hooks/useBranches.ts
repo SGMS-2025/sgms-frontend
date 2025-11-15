@@ -104,15 +104,21 @@ export const useMyBranches = (params?: BranchListParams): UseMyBranchesResult =>
     const response = await branchApi.getMyBranches(params).catch(() => ({
       success: false,
       message: 'Network error - Không thể tải danh sách chi nhánh',
-      data: { data: { branches: [], pagination: null } }
+      data: {
+        branches: [],
+        pagination: null
+      }
     }));
 
-    if (response.success && response.data?.data?.branches) {
-      const displayBranches = response.data.data.branches.map(convertBranchToDisplay);
+    if (response.success && response.data) {
+      // Handle both cases: branches array exists or is empty
+      const branchesArray = response.data.branches || [];
+      const displayBranches = branchesArray.map(convertBranchToDisplay);
       setBranches(displayBranches);
-      setPagination(response.data.data.pagination);
+      setPagination(response.data.pagination || null);
     } else {
       setError(response.message || 'Không thể tải danh sách chi nhánh');
+      setBranches([]);
     }
 
     setLoading(false);

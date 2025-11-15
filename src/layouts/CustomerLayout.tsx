@@ -4,6 +4,7 @@ import { CustomerSidebar } from '@/components/layout/CustomerSidebar';
 import { SidebarProvider, useSidebar } from '@/contexts/SidebarContext';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import logoImage from '@/assets/images/logo2.png';
 
 const CustomerLayoutContent: React.FC = () => {
   const { isMobileOpen, setMobileOpen, isCollapsed } = useSidebar();
@@ -33,7 +34,7 @@ const CustomerLayoutContent: React.FC = () => {
             <Menu className="w-4 h-4" />
           </Button>
           <div className="flex items-center gap-1">
-            <img src="/src/assets/images/logo2.png" alt="GYM SMART Logo" className="w-5 h-5 object-contain" />
+            <img src={logoImage} alt="GYM SMART Logo" className="w-5 h-5 object-contain" />
             <span className="font-bold text-gray-900 text-sm">GYM SMART</span>
           </div>
           <div className="w-6" /> {/* Spacer for centering */}

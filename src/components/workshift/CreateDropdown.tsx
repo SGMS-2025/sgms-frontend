@@ -63,7 +63,7 @@ const CreateDropdown: React.FC<CreateDropdownProps> = ({ onCreateWorkShift, onBr
         </DropdownMenuItem> */}
         <DropdownMenuItem onClick={handleBranchConfig} className="cursor-pointer">
           <Settings className="mr-2 h-4 w-4" />
-          <span>Branch Working Config</span>
+          <span>{t('workshift.branch_working_config')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

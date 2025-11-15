@@ -11,7 +11,6 @@ export interface CancelMembershipPayload {
   refundAmount: number;
   refundMethod: 'CASH' | 'BANK_TRANSFER' | 'E_WALLET';
   notes?: string;
-  clearDebt?: boolean;
 }
 
 export interface MembershipContract {
@@ -35,7 +34,6 @@ export interface MembershipContract {
   discountAmount: number;
   total: number;
   paidAmount: number;
-  debtAmount: number;
   referrerStaffId?: string;
   createdBy?: string;
   status: 'PENDING_ACTIVATION' | 'ACTIVE' | 'EXPIRED' | 'SUSPENDED' | 'CANCELED' | 'PAST_DUE';
@@ -167,6 +165,7 @@ export interface CreatePublicMembershipContractPayload {
   startDate?: string;
   note?: string;
   transactionCode?: string;
+  referralCode?: string; // CASE 1: Referral code from PT
   proofImageUrls?: string[];
 }
 
@@ -197,6 +196,7 @@ export interface CreatePublicMembershipContractPayOSPayload {
   membershipPlanId: string;
   startDate?: string;
   note?: string;
+  referralCode?: string; // CASE 1: Referral code from PT
   returnUrl?: string;
   cancelUrl?: string;
 }

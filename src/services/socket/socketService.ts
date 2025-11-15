@@ -317,15 +317,24 @@ class SocketService implements SocketServiceInterface {
   }
 
   on<K extends keyof SocketEvents>(event: K, callback: SocketEvents[K]) {
-    if (this.socket) {
-      this.socket.on(event as string, callback as (...args: unknown[]) => void);
+    if (!this.socket) {
+      console.warn(`[SocketService] ⚠️ Cannot listen to event "${String(event)}" - socket not initialized`);
+      return;
     }
+
+    // Wrap callback to add logging
+    const wrappedCallback = ((...args: unknown[]) => {
+      (callback as (...args: unknown[]) => void)(...args);
+    }) as SocketEvents[K];
+
+    // Register with socket
+    this.socket.on(event as string, wrappedCallback as (...args: unknown[]) => void);
 
     // Also register for custom events
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
     }
-    this.listeners.get(event)!.push(callback as (...args: unknown[]) => void);
+    this.listeners.get(event)!.push(wrappedCallback as (...args: unknown[]) => void);
   }
 
   off<K extends keyof SocketEvents>(event: K, callback?: SocketEvents[K]) {

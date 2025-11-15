@@ -17,6 +17,7 @@ export const useUpdateService = () => {
         name: string;
         price?: number;
         durationInMonths?: number;
+        sessionCount?: number;
         minParticipants?: number;
         maxParticipants?: number;
         type: 'CLASS' | 'PT';
@@ -28,7 +29,9 @@ export const useUpdateService = () => {
       const response = await packageApi.updatePackage(id, {
         name: data.name,
         type: data.type,
+        defaultPriceVND: data.price,
         defaultDurationMonths: data.durationInMonths,
+        sessionCount: data.sessionCount,
         minParticipants: data.minParticipants || (data.type === 'CLASS' ? 5 : 1),
         maxParticipants: data.maxParticipants || (data.type === 'CLASS' ? 20 : 1)
       });

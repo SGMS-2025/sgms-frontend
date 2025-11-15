@@ -366,12 +366,6 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                           `${currentWorkShift.startTimeLocal || '08:00'} - ${currentWorkShift.endTimeLocal || '11:00'}`
                         )}
                       </p>
-                      {isVirtual && (
-                        <p className="text-xs text-gray-500 italic mt-1">
-                          (Virtual - Will be created when you request timeoff or reschedule)
-                        </p>
-                      )}
-                      <p className="text-sm text-gray-500">Timezone: Asia/Ho_Chi_Minh (VN) • No Repeat</p>
                     </div>
                   </div>
                 </div>
@@ -402,18 +396,72 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                       <p className="text-sm text-gray-500">
                         {currentWorkShift.branchId?.location || t('common.unknown')}
                       </p>
-                      <p className="text-sm text-gray-500">Timezone: Asia/Ho_Chi_Minh (VN)</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Calendar Details */}
+                {/* Shift Information - Dynamic */}
                 <div className="p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="h-5 w-5 text-gray-600" />
-                    <div>
-                      <p className="font-medium text-gray-900">{staffName} (VN Time)</p>
-                      <p className="text-sm text-gray-500">Busy • Default visibility • Notify 10 minutes before</p>
+                  <div className="flex items-start gap-3">
+                    <Calendar className="h-5 w-5 text-gray-600 mt-0.5" />
+                    <div className="flex-1 space-y-2">
+                      <p className="font-medium text-gray-900">{t('workshift.shift_information')}</p>
+
+                      {/* Total Hours */}
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock className="h-4 w-4 text-orange-500" />
+                        <span className="text-gray-600">{t('workshift.total_hours')}:</span>
+                        <span className="font-semibold text-gray-900">
+                          {(() => {
+                            const start = new Date(currentWorkShift.startTime);
+                            const end = new Date(currentWorkShift.endTime);
+                            const hours = Math.abs(end.getTime() - start.getTime()) / 36e5;
+                            return `${hours.toFixed(1)} ${t('workshift.hours')}`;
+                          })()}
+                        </span>
+                      </div>
+
+                      {/* Day of Week */}
+                      {currentWorkShift.dayOfTheWeek && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Calendar className="h-4 w-4 text-orange-500" />
+                          <span className="text-gray-600">{t('workshift.day_of_week')}:</span>
+                          <span className="font-semibold text-gray-900">
+                            {t(`workshift.day.${currentWorkShift.dayOfTheWeek.toLowerCase()}`)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Shift Type based on time */}
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-600">{t('workshift.shift_type')}:</span>
+                        <span className="font-semibold text-gray-900">
+                          {(() => {
+                            const startTime = currentWorkShift.startTimeLocal || '';
+                            const [hour] = startTime.split(':').map(Number);
+                            if (hour >= 5 && hour < 12) return t('workshift.shift_morning');
+                            if (hour >= 12 && hour < 18) return t('workshift.shift_afternoon');
+                            if (hour >= 18) return t('workshift.shift_evening');
+                            return t('workshift.shift_custom');
+                          })()}
+                        </span>
+                      </div>
+
+                      {/* Created Date - Only for real shifts */}
+                      {!isVirtual && currentWorkShift.createdAt && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-gray-600">{t('workshift.created_at')}:</span>
+                          <span className="text-gray-900">
+                            {formatInVietnam(currentWorkShift.createdAt, {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

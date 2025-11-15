@@ -21,8 +21,8 @@ export const useCanManageCustomer = () => {
         return false;
       }
 
-      // If user is a staff member but not a manager, they cannot manage customers
-      if (currentStaff.jobTitle !== 'Manager') {
+      // Manager and PT can manage customers in their branch
+      if (currentStaff.jobTitle !== 'Manager' && currentStaff.jobTitle !== 'Personal Trainer') {
         return false;
       }
 
