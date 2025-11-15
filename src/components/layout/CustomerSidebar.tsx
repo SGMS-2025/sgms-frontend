@@ -27,6 +27,7 @@ import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
 import { Sidebar, type SidebarItem } from '@/components/common/Sidebar';
+import logoImage from '@/assets/images/logo2.png';
 
 const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
   const { t } = useTranslation();
@@ -45,7 +46,7 @@ const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
         title={isCollapsed ? t('sidebar.open_sidebar') : undefined}
         aria-label={isCollapsed ? t('sidebar.open_sidebar') : undefined}
       >
-        <img src="/src/assets/images/logo2.png" alt={t('sidebar.gym_smart_logo')} className="w-6 h-6 object-contain" />
+        <img src={logoImage} alt={t('sidebar.gym_smart_logo')} className="w-6 h-6 object-contain" />
       </button>
       {!isCollapsed && (
         <div className="flex-1 min-w-0">
