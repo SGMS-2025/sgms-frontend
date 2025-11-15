@@ -155,6 +155,8 @@ export const PaymentInfo: React.FC<PaymentInfoProps> = ({
     })();
 
     const loadQrImage = async () => {
+      // Priority 1: Try to find QR code image URL from PayOS response
+      // This should be the VietQR image URL provided by PayOS
       const rawQrSource = pickFirstString(
         paymentData.qrCode,
         payosMeta?.['qrCode'],
@@ -163,7 +165,17 @@ export const PaymentInfo: React.FC<PaymentInfoProps> = ({
         payosMeta?.['qrCodeUrl'],
         payosMeta?.['qr_code_url'],
         payosMeta?.['qrDataUrl'],
-        payosMeta?.['qr_data_url']
+        payosMeta?.['qr_data_url'],
+        payosMeta?.['qrImageUrl'],
+        payosMeta?.['qr_image_url'],
+        payosMeta?.['qrCodeImage'],
+        payosMeta?.['qr_code_image'],
+        payosMeta?.['vietqr'],
+        payosMeta?.['vietQr'],
+        payosMeta?.['vietQrUrl'],
+        payosMeta?.['vietqr_url'],
+        payosMeta?.['vietqrImage'],
+        payosMeta?.['vietqr_image']
       );
 
       const normalizedSource = normalizeImageSource(rawQrSource);
@@ -172,33 +184,29 @@ export const PaymentInfo: React.FC<PaymentInfoProps> = ({
         return;
       }
 
-      const rawQrPayload =
-        pickFirstString(
-          paymentData.qrString,
-          payosMeta?.['qrString'],
-          payosMeta?.['qrContent'],
-          payosMeta?.['qr_data'],
-          payosMeta?.['qrRaw'],
-          payosMeta?.['qr_raw']
-        ) ??
-        pickFirstString(
-          paymentData.checkoutUrl,
-          payosMeta?.['checkoutUrl'],
-          payosMeta?.['paymentUrl'],
-          payosMeta?.['paymentLink']
-        );
+      // Priority 2: If no QR image URL, try to generate from QR string/data
+      // This is the raw QR data that can be used to generate QR code
+      const rawQrPayload = pickFirstString(
+        paymentData.qrString,
+        payosMeta?.['qrString'],
+        payosMeta?.['qrContent'],
+        payosMeta?.['qr_data'],
+        payosMeta?.['qrRaw'],
+        payosMeta?.['qr_raw']
+      );
 
       if (rawQrPayload) {
         try {
           const dataUrl = await QRCode.toDataURL(rawQrPayload, { width: 256, margin: 1 });
           if (isMounted) setQrImage(dataUrl);
         } catch (error) {
-          console.error('Failed to generate QR data URL:', error);
+          console.error('Failed to generate QR data URL from QR string:', error);
           if (isMounted) setQrImage(null);
         }
         return;
       }
 
+      // No QR code available - set to null
       if (isMounted) setQrImage(null);
     };
 

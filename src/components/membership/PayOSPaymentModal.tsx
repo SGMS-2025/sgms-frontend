@@ -149,6 +149,8 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
     };
 
     const loadQrImage = async () => {
+      // Priority 1: Try to find QR code image URL from PayOS response
+      // This should be the VietQR image URL provided by PayOS
       const rawQrSource = pickFirstString(
         paymentInfo.qrCode,
         payosMeta['qrCode'],
@@ -157,7 +159,17 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
         payosMeta['qrCodeUrl'],
         payosMeta['qr_code_url'],
         payosMeta['qrDataUrl'],
-        payosMeta['qr_data_url']
+        payosMeta['qr_data_url'],
+        payosMeta['qrImageUrl'],
+        payosMeta['qr_image_url'],
+        payosMeta['qrCodeImage'],
+        payosMeta['qr_code_image'],
+        payosMeta['vietqr'],
+        payosMeta['vietQr'],
+        payosMeta['vietQrUrl'],
+        payosMeta['vietqr_url'],
+        payosMeta['vietqrImage'],
+        payosMeta['vietqr_image']
       );
 
       const normalizedSource = normalizeImageSource(rawQrSource);
@@ -166,15 +178,16 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
         return;
       }
 
-      const rawQrPayload =
-        pickFirstString(
-          paymentInfo.qrString,
-          payosMeta['qrString'],
-          payosMeta['qrContent'],
-          payosMeta['qr_data'],
-          payosMeta['qrRaw'],
-          payosMeta['qr_raw']
-        ) ?? pickFirstString(paymentInfo.checkoutUrl, payosMeta['checkoutUrl'], payosMeta['paymentUrl']);
+      // Priority 2: If no QR image URL, try to generate from QR string/data
+      // This is the raw QR data that can be used to generate QR code
+      const rawQrPayload = pickFirstString(
+        paymentInfo.qrString,
+        payosMeta['qrString'],
+        payosMeta['qrContent'],
+        payosMeta['qr_data'],
+        payosMeta['qrRaw'],
+        payosMeta['qr_raw']
+      );
 
       if (rawQrPayload) {
         const dataUrl = await handleAsyncOperationWithOptions(
@@ -196,6 +209,7 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
         return;
       }
 
+      // No QR code available - set to null
       if (isMounted) setQrImage(null);
     };
 

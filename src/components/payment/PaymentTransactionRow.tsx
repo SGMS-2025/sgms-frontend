@@ -50,7 +50,6 @@ const mapToPaymentStatus = (status: string): PaymentStatus => {
     VOID: 'VOID',
     COMPLETED: 'COMPLETED',
     CANCELLED: 'CANCELLED',
-    REFUNDED: 'REFUNDED',
     PROCESSING: 'PROCESSING'
   };
   return statusMap[status] || 'PENDING';

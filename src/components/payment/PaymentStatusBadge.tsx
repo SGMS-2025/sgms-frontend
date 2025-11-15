@@ -1,14 +1,6 @@
 import { cn } from '@/utils/utils';
 
-export type PaymentStatus =
-  | 'PENDING'
-  | 'COMPLETED'
-  | 'FAILED'
-  | 'CANCELLED'
-  | 'REFUNDED'
-  | 'SETTLED'
-  | 'PROCESSING'
-  | 'VOID';
+export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'SETTLED' | 'PROCESSING' | 'VOID';
 
 interface PaymentStatusBadgeProps {
   status: PaymentStatus;
@@ -31,10 +23,6 @@ const statusConfig = {
   CANCELLED: {
     label: 'Đã hủy',
     className: 'bg-gray-100 text-gray-800 border-gray-200'
-  },
-  REFUNDED: {
-    label: 'Đã hoàn tiền',
-    className: 'bg-orange-100 text-orange-800 border-orange-200'
   },
   SETTLED: {
     label: 'Đã thanh toán',

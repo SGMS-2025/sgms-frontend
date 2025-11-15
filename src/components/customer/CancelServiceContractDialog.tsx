@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertTriangle, Info } from 'lucide-react';
 import { toast } from 'sonner';
@@ -36,8 +34,6 @@ export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogPr
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     cancelReason: '',
-    refundAmount: 0,
-    refundMethod: 'CASH',
     notes: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -63,14 +59,6 @@ export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogPr
       newErrors.cancelReason = 'Vui lòng nhập lý do hủy gói';
     }
 
-    if (formData.refundAmount < 0) {
-      newErrors.refundAmount = 'Số tiền hoàn trả không thể âm';
-    }
-
-    if (formData.refundAmount > paidAmount) {
-      newErrors.refundAmount = 'Số tiền hoàn trả không thể lớn hơn số tiền đã thanh toán';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -92,10 +80,7 @@ export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogPr
     serviceContractApi
       .cancelServiceContract(contractId, formData)
       .then(() => {
-        toast.success(`Hủy gói ${contractType === 'PT' ? 'PT' : 'lớp học'} thành công!`, {
-          description:
-            formData.refundAmount > 0 ? `Sẽ hoàn trả ${formatCurrency(formData.refundAmount)}` : 'Không có hoàn trả'
-        });
+        toast.success(`Hủy gói ${contractType === 'PT' ? 'PT' : 'lớp học'} thành công!`);
 
         onSuccess();
         handleClose();
@@ -115,8 +100,6 @@ export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogPr
     if (!loading) {
       setFormData({
         cancelReason: '',
-        refundAmount: 0,
-        refundMethod: 'CASH',
         notes: ''
       });
       setErrors({});
@@ -181,43 +164,6 @@ export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogPr
             />
             {errors.cancelReason && <p className="text-sm text-red-500">{errors.cancelReason}</p>}
           </div>
-
-          {/* Refund Amount */}
-          <div className="space-y-2">
-            <Label htmlFor="refundAmount">Số tiền hoàn trả (VND)</Label>
-            <Input
-              id="refundAmount"
-              type="number"
-              min={0}
-              max={paidAmount}
-              value={formData.refundAmount}
-              onChange={(e) => handleInputChange('refundAmount', Number.parseFloat(e.target.value) || 0)}
-              disabled={loading}
-            />
-            {errors.refundAmount && <p className="text-sm text-red-500">{errors.refundAmount}</p>}
-            <p className="text-xs text-muted-foreground">Tối đa: {formatCurrency(paidAmount)}</p>
-          </div>
-
-          {/* Refund Method */}
-          {formData.refundAmount > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="refundMethod">Phương thức hoàn trả</Label>
-              <Select
-                value={formData.refundMethod}
-                onValueChange={(value) => handleInputChange('refundMethod', value)}
-                disabled={loading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn phương thức" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CASH">Tiền mặt</SelectItem>
-                  <SelectItem value="BANK_TRANSFER">Chuyển khoản</SelectItem>
-                  <SelectItem value="CREDIT_TO_ACCOUNT">Ghi có vào tài khoản</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           {/* Notes */}
           <div className="space-y-2">

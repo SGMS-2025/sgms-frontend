@@ -1,15 +1,5 @@
-export interface RefundSuggestion {
-  suggestedAmount: number;
-  totalPaid: number;
-  daysUsed: number;
-  daysRemaining: number;
-  calculation: string;
-}
-
 export interface CancelMembershipPayload {
   cancelReason: string;
-  refundAmount: number;
-  refundMethod: 'CASH' | 'BANK_TRANSFER' | 'E_WALLET';
   notes?: string;
 }
 

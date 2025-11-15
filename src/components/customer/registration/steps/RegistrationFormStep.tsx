@@ -12,7 +12,6 @@ import type { DiscountCampaign } from '@/types/api/Discount';
 import type { Staff } from '@/types/api/Staff';
 import { PromotionSelector } from '../shared/PromotionSelector';
 import { PriceSummaryCard } from '../shared/PriceSummaryCard';
-import { PaymentAmountInput } from '../shared/PaymentAmountInput';
 import { PaymentMethodSelector } from '../shared/PaymentMethodSelector';
 import { NotesField } from '../shared/NotesField';
 
@@ -171,12 +170,6 @@ export const RegistrationFormStep: React.FC<RegistrationFormStepProps> = ({
               basePrice={priceCalculation.basePrice}
               discountAmount={priceCalculation.discountAmount}
               totalPrice={priceCalculation.totalPrice}
-            />
-
-            {/* Payment Amount */}
-            <PaymentAmountInput
-              value={formData.initialPaidAmount}
-              onChange={(value) => setFormData((prev) => ({ ...prev, initialPaidAmount: value }))}
             />
 
             {/* Payment Method */}
