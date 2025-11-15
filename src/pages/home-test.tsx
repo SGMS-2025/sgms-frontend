@@ -26,25 +26,18 @@ export default function HomePage() {
   // Redirect users to appropriate dashboards based on role and job title
   useEffect(() => {
     if (user && user.role === 'OWNER') {
-      console.log('Redirecting owner to /manage/owner dashboard');
-      console.log('User role:', user.role);
-      navigate('/manage/owner');
+      navigate('/manage/staff');
     } else if (user && user.role === 'CUSTOMER') {
-      console.log('Redirecting customer to /customer dashboard');
-      console.log('User role:', user.role);
       navigate('/customer');
     } else if (user && user.role === 'STAFF' && currentStaff) {
-      // Redirect STAFF based on job title
-      console.log('Staff job title:', currentStaff.jobTitle);
-
-      if (currentStaff.jobTitle === 'Personal Trainer') {
-        console.log('Redirecting Personal Trainer to /manage/pt dashboard');
+      if (currentStaff.jobTitle === 'Manager') {
+        navigate('/manage/staff');
+      } else if (currentStaff.jobTitle === 'Personal Trainer') {
         navigate('/manage/pt');
       } else if (currentStaff.jobTitle === 'Technician') {
-        console.log('Redirecting Technician to /manage/technician dashboard');
         navigate('/manage/technician');
       } else {
-        console.log('Staff with job title:', currentStaff.jobTitle, '- staying on home page');
+        navigate('/home');
       }
     }
   }, [user, currentStaff, navigate]);

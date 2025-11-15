@@ -37,6 +37,7 @@ import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
 import { Sidebar, type SidebarItem as SidebarItemType } from '@/components/common/Sidebar';
+import logoImage from '@/assets/images/logo2.png';
 
 interface DropdownSidebarItemProps {
   icon: React.ReactNode;
@@ -137,7 +138,7 @@ const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
         title={isCollapsed ? 'Mở sidebar' : undefined}
         aria-label={isCollapsed ? 'Mở sidebar' : undefined}
       >
-        <img src="/src/assets/images/logo2.png" alt="GYM SMART Logo" className="w-6 h-6 object-contain" />
+        <img src={logoImage} alt="GYM SMART Logo" className="w-6 h-6 object-contain" />
       </button>
 
       {!isCollapsed && (
