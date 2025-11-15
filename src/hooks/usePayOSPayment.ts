@@ -7,7 +7,6 @@ export interface UsePayOSPaymentOptions {
   customerId: string;
   branchId: string;
   totalPrice: number;
-  initialPaidAmount: number;
   packageDescription: string; // e.g., 'Goi PT 1-1' or 'Goi lop hoc'
   onSuccess?: () => void;
   onClose: () => void;
@@ -27,7 +26,6 @@ export const usePayOSPayment = ({
   customerId,
   branchId,
   totalPrice,
-  initialPaidAmount,
   packageDescription,
   onSuccess,
   onClose
@@ -38,8 +36,7 @@ export const usePayOSPayment = ({
   const [createdContractId, setCreatedContractId] = useState<string | null>(null);
 
   const handlePayOSPayment = (contractId: string) => {
-    const amountToPayment = totalPrice - initialPaidAmount;
-    const paymentAmount = amountToPayment > 0 ? amountToPayment : Math.max(totalPrice, 1000);
+    const paymentAmount = Math.max(totalPrice, 1000);
 
     paymentApi
       .createPayOSPaymentLink({

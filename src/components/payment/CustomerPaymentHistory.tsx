@@ -64,17 +64,10 @@ const CustomerPaymentHistory: React.FC<CustomerPaymentHistoryProps> = ({ data, l
     console.log('First transaction recordedBy:', data.transactions[0].recordedBy);
   }
 
-  // Calculate refunded amount from transactions with REFUNDED status
-  const refundedAmount = data.transactions
-    .filter((transaction) => transaction.status === 'REFUNDED')
-    .reduce((total, transaction) => total + transaction.amount, 0);
-
-  const refundedCount = data.transactions.filter((transaction) => transaction.status === 'REFUNDED').length;
-
   return (
     <div className="space-y-6">
       {/* Payment Summary */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <PaymentSummaryCard
           title="Tổng giao dịch"
           value={formatCurrency(data.summary.totalAmount)}
@@ -92,12 +85,6 @@ const CustomerPaymentHistory: React.FC<CustomerPaymentHistoryProps> = ({ data, l
           value={formatCurrency(data.summary.pendingAmount)}
           caption={`${data.pendingTransfers.length} giao dịch`}
           tone="warning"
-        />
-        <PaymentSummaryCard
-          title="Đã hoàn tiền"
-          value={formatCurrency(refundedAmount)}
-          caption={`${refundedCount} giao dịch`}
-          tone="danger"
         />
       </div>
 

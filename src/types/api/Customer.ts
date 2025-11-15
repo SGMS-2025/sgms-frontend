@@ -56,8 +56,8 @@ export interface CustomerDisplay {
     endDate?: string;
     customMonths?: number;
     duration?: string;
-    initialPaidAmount?: number;
     totalAmount?: number;
+    paidAmount?: number;
     status?: 'ACTIVE' | 'EXPIRED' | 'CANCELED' | 'SUSPENDED';
     discountCampaignId?: {
       _id: string;
@@ -86,8 +86,8 @@ export interface CustomerDisplay {
     endDate?: string;
     activationDate?: string;
     status?: string;
-    initialPaidAmount?: number;
     totalAmount?: number;
+    paidAmount?: number;
     discountCampaignId?: {
       _id: string;
       name: string;
@@ -210,7 +210,6 @@ export interface ServiceContract {
   customMonths?: number;
   duration?: string;
   startDate: string;
-  initialPaidAmount?: number;
   notes?: string;
 }
 
@@ -226,7 +225,6 @@ export interface MembershipContract {
     _id: string;
   };
   startDate: string;
-  initialPaidAmount?: number;
   notes?: string;
 }
 
@@ -284,7 +282,6 @@ export interface MembershipRegistrationFormData {
   cardCode?: string;
   startDate: string;
   discountCampaignId?: string;
-  initialPaidAmount: number;
   paymentMethod: 'CASH' | 'BANK_TRANSFER';
   referrerStaffId?: string;
   notes?: string;

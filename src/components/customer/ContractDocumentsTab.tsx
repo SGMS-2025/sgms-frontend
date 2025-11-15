@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   FileText,
   Loader2,
@@ -39,25 +40,28 @@ interface ContractWithoutDocument {
   total: number;
 }
 
-const formatDate = (dateString?: string) => {
+const formatDate = (dateString?: string, locale: string = 'vi-VN') => {
   if (!dateString) return '—';
   const date = new Date(dateString);
   if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleDateString('vi-VN', {
+  return date.toLocaleDateString(locale, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'
   });
 };
 
-const getStatusBadge = (status: string) => {
+const getStatusBadge = (status: string, t: (key: string) => string) => {
   const statusConfig: Record<string, { label: string; className: string }> = {
-    uploaded: { label: 'Đã tải lên', className: 'bg-blue-500/10 text-blue-700 border-blue-200' },
-    processing: { label: 'Đang xử lý', className: 'bg-amber-500/10 text-amber-700 border-amber-200' },
-    ready: { label: 'Sẵn sàng', className: 'bg-green-500/10 text-green-700 border-green-200' },
-    signed: { label: 'Đã ký', className: 'bg-emerald-500/10 text-emerald-700 border-emerald-200' },
-    archived: { label: 'Đã lưu trữ', className: 'bg-gray-500/10 text-gray-700 border-gray-200' },
-    deleted: { label: 'Đã xóa', className: 'bg-red-500/10 text-red-700 border-red-200' }
+    uploaded: { label: t('contracts.status.uploaded'), className: 'bg-blue-500/10 text-blue-700 border-blue-200' },
+    processing: {
+      label: t('contracts.status.processing'),
+      className: 'bg-amber-500/10 text-amber-700 border-amber-200'
+    },
+    ready: { label: t('contracts.status.ready'), className: 'bg-green-500/10 text-green-700 border-green-200' },
+    signed: { label: t('contracts.status.signed'), className: 'bg-emerald-500/10 text-emerald-700 border-emerald-200' },
+    archived: { label: t('contracts.status.archived'), className: 'bg-gray-500/10 text-gray-700 border-gray-200' },
+    deleted: { label: t('contracts.status.deleted'), className: 'bg-red-500/10 text-red-700 border-red-200' }
   };
 
   const config = statusConfig[status] || statusConfig.uploaded;
@@ -68,13 +72,13 @@ const getStatusBadge = (status: string) => {
   );
 };
 
-const getContractTypeBadge = (type?: string) => {
+const getContractTypeBadge = (t: (key: string) => string, type?: string) => {
   if (!type) return null;
   const typeConfig: Record<string, { label: string; className: string }> = {
-    membership: { label: 'Gói hội viên', className: 'bg-primary/10 text-primary border-primary/20' },
-    service_class: { label: 'Gói lớp học', className: 'bg-blue-500/10 text-blue-700 border-blue-200' },
-    service_pt: { label: 'Gói PT', className: 'bg-purple-500/10 text-purple-700 border-purple-200' },
-    custom: { label: 'Tùy chỉnh', className: 'bg-gray-500/10 text-gray-700 border-gray-200' }
+    membership: { label: t('contracts.type_membership'), className: 'bg-primary/10 text-primary border-primary/20' },
+    service_class: { label: t('contracts.type_class'), className: 'bg-blue-500/10 text-blue-700 border-blue-200' },
+    service_pt: { label: t('contracts.type_pt'), className: 'bg-purple-500/10 text-purple-700 border-purple-200' },
+    custom: { label: t('contracts.type_custom'), className: 'bg-gray-500/10 text-gray-700 border-gray-200' }
   };
 
   const config = typeConfig[type] || typeConfig.custom;
@@ -86,6 +90,8 @@ const getContractTypeBadge = (type?: string) => {
 };
 
 export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ customerId }) => {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
   const { currentBranch } = useBranch();
   const [contracts, setContracts] = useState<ContractDocument[]>([]);
   const [loading, setLoading] = useState(false);
@@ -122,7 +128,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
     if (response.success && response.data) {
       setContracts(response.data);
     } else {
-      setError(response.message || 'Không thể tải danh sách hợp đồng');
+      setError(response.message || t('customer_detail.contracts.error.fetch_failed'));
     }
 
     setLoading(false);
@@ -149,7 +155,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
           );
           if (!hasDocument && membership.status === 'ACTIVE') {
             // Handle populated membershipPlanId (can be string or populated object)
-            let planName = 'Gói hội viên';
+            let planName = t('contracts.type_membership');
             const planId = membership.membershipPlanId;
             if (planId && typeof planId === 'object' && planId !== null && 'name' in planId) {
               const planIdObj = planId as { name?: string };
@@ -211,7 +217,9 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
             const servicePackageName =
               typeof serviceItem.servicePackageId === 'object' && serviceItem.servicePackageId?.name
                 ? serviceItem.servicePackageId.name
-                : `Gói ${serviceItem.packageType || ''}`;
+                : serviceItem.packageType === 'PT'
+                  ? t('contracts.type_pt')
+                  : t('contracts.type_class');
             missingContracts.push({
               _id: serviceItem._id,
               type: contractType,
@@ -260,7 +268,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
       setIframeUrl(response.data.link);
       setEmbeddedViewerOpen(true);
     } else {
-      toast.error(response.message || 'Không thể tạo liên kết gửi hợp đồng');
+      toast.error(response.message || t('customer_detail.contracts.error.send_link_failed'));
     }
   };
 
@@ -287,7 +295,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
       }
       setTemplates(filteredTemplates);
     } else {
-      toast.error(response.message || 'Không thể tải danh sách template');
+      toast.error(response.message || t('contracts.fetch_templates_error'));
     }
 
     setLoadingTemplates(false);
@@ -295,7 +303,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
 
   const handleCreateFromTemplate = async (templateId: string) => {
     if (!selectedContractForCreation) {
-      toast.error('Không tìm thấy thông tin contract cần tạo');
+      toast.error(t('customer_detail.contracts.error.create_failed'));
       return;
     }
 
@@ -308,13 +316,13 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
     });
 
     if (response.success && response.data) {
-      toast.success('Tạo hợp đồng từ template thành công');
+      toast.success(t('customer_detail.contracts.success.created'));
       setTemplateDialogOpen(false);
       setSelectedContractForCreation(null);
       fetchContracts();
       fetchContractsWithoutDocuments();
     } else {
-      toast.error(response.message || 'Không thể tạo hợp đồng từ template');
+      toast.error(response.message || t('customer_detail.contracts.error.create_error'));
     }
 
     setCreatingContract(false);
@@ -325,7 +333,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
       <div className="flex min-h-[40vh] items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Đang tải danh sách hợp đồng...</p>
+          <p className="text-sm text-muted-foreground">{t('customer_detail.contracts.loading')}</p>
         </div>
       </div>
     );
@@ -335,17 +343,17 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
     return (
       <Alert variant="destructive" className="rounded-2xl">
         <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Không thể tải danh sách hợp đồng</AlertTitle>
+        <AlertTitle>{t('customer_detail.contracts.error.title')}</AlertTitle>
         <AlertDescription>{error}</AlertDescription>
         <Button onClick={fetchContracts} variant="outline" size="sm" className="mt-3 rounded-full">
-          Thử lại
+          {t('customer_detail.contracts.error.retry')}
         </Button>
       </Alert>
     );
   }
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('vi-VN', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: 'VND',
       maximumFractionDigits: 0
@@ -355,11 +363,11 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
   const getTypeBadgeLabel = (type: string) => {
     switch (type) {
       case 'membership':
-        return 'Hội viên';
+        return t('contracts.type_membership');
       case 'service_pt':
-        return 'PT';
+        return t('contracts.type_pt');
       case 'service_class':
-        return 'Lớp học';
+        return t('contracts.type_class');
       default:
         return type;
     }
@@ -380,7 +388,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
     }
 
     fetchTemplates(templateType);
-    toast.info(`Đang tìm template cho ${contractData.name}`);
+    toast.info(t('customer_detail.contracts.searching_template', { name: contractData.name }));
   };
 
   return (
@@ -391,12 +399,14 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary" />
-              Tổng hợp đồng
+              {t('customer_detail.contracts.stats.total_contracts')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">{contracts.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Hợp đồng đã tạo</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t('customer_detail.contracts.stats.contracts_created')}
+            </p>
           </CardContent>
         </Card>
 
@@ -404,14 +414,16 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-amber-600" />
-              Chưa có hợp đồng
+              {t('customer_detail.contracts.stats.missing_contracts')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-amber-600">
               {loadingMissingContracts ? '...' : contractsWithoutDocuments.length}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Dịch vụ cần tạo hợp đồng</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t('customer_detail.contracts.stats.services_need_contract')}
+            </p>
           </CardContent>
         </Card>
 
@@ -419,7 +431,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-green-600" />
-              Hoàn thành
+              {t('customer_detail.contracts.stats.completion')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -429,7 +441,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                 : 0}
               %
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Tỷ lệ hoàn thành hợp đồng</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('customer_detail.contracts.stats.completion_rate')}</p>
           </CardContent>
         </Card>
       </div>
@@ -438,11 +450,10 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
       {!loadingMissingContracts && contractsWithoutDocuments.length > 0 && (
         <Alert className="rounded-2xl border-amber-200 bg-amber-50/50">
           <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertTitle className="text-amber-900">Cần tạo hợp đồng</AlertTitle>
+          <AlertTitle className="text-amber-900">{t('customer_detail.contracts.alert.title')}</AlertTitle>
           <AlertDescription className="text-amber-800">
             <p className="mb-3">
-              Khách hàng này có <strong>{contractsWithoutDocuments.length}</strong> dịch vụ đã thanh toán nhưng chưa có
-              hợp đồng (contract document). Vui lòng tạo hợp đồng để hoàn tất quy trình.
+              {t('customer_detail.contracts.alert.description', { count: contractsWithoutDocuments.length })}
             </p>
             <div className="space-y-2">
               {contractsWithoutDocuments.map((contract) => (
@@ -460,7 +471,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                     <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
                       <span>
                         <Calendar className="inline h-3 w-3 mr-1" />
-                        {formatDate(contract.startDate)}
+                        {formatDate(contract.startDate, locale)}
                       </span>
                       <span className="font-semibold text-amber-700">{formatCurrency(contract.total)}</span>
                     </div>
@@ -473,7 +484,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                     className="rounded-full border-amber-300 text-amber-700 hover:bg-amber-100"
                   >
                     <Plus className="h-3 w-3 mr-1" />
-                    Tạo hợp đồng
+                    {t('customer_detail.contracts.create_contract')}
                   </Button>
                 </div>
               ))}
@@ -483,8 +494,10 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
       )}
 
       <div>
-        <h3 className="text-lg font-semibold text-foreground">Danh sách hợp đồng ({contracts.length})</h3>
-        <p className="text-sm text-muted-foreground">Quản lý và xem các hợp đồng của khách hàng</p>
+        <h3 className="text-lg font-semibold text-foreground">
+          {t('customer_detail.contracts.list_title')} ({contracts.length})
+        </h3>
+        <p className="text-sm text-muted-foreground">{t('customer_detail.contracts.list_description')}</p>
       </div>
 
       {contracts.length === 0 ? (
@@ -492,8 +505,8 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
           <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <FileText className="h-12 w-12 text-muted-foreground" />
             <div>
-              <p className="font-semibold text-foreground">Chưa có hợp đồng</p>
-              <p className="text-sm text-muted-foreground">Các hợp đồng của khách hàng sẽ hiển thị ở đây sau khi tạo</p>
+              <p className="font-semibold text-foreground">{t('customer_detail.contracts.empty.title')}</p>
+              <p className="text-sm text-muted-foreground">{t('customer_detail.contracts.empty.description')}</p>
             </div>
           </CardContent>
         </Card>
@@ -510,14 +523,14 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex-1 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        {getContractTypeBadge(contract.contractType)}
-                        {getStatusBadge(contract.status)}
+                        {getContractTypeBadge(t, contract.contractType)}
+                        {getStatusBadge(contract.status, t)}
                         {contract.isTemplate && (
                           <Badge
                             variant="outline"
                             className="text-xs font-medium bg-purple-500/10 text-purple-700 border-purple-200"
                           >
-                            Mẫu
+                            {t('contracts.template')}
                           </Badge>
                         )}
                         {contract.signersCount !== undefined && contract.signersCount !== null && (
@@ -525,7 +538,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                             variant="outline"
                             className="text-xs font-medium bg-gray-100 text-gray-700 border-gray-200"
                           >
-                            Signers: {contract.signersCount}
+                            {t('customer_detail.contracts.details.signers', { count: contract.signersCount })}
                           </Badge>
                         )}
                       </div>
@@ -539,7 +552,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                     <div className="flex items-start gap-2 text-sm">
                       <FileText className="mt-0.5 h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="text-xs text-muted-foreground">File</p>
+                        <p className="text-xs text-muted-foreground">{t('customer_detail.contracts.details.file')}</p>
                         <p className="font-medium text-foreground">{contract.fileName}</p>
                       </div>
                     </div>
@@ -547,8 +560,10 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                     <div className="flex items-start gap-2 text-sm">
                       <Calendar className="mt-0.5 h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="text-xs text-muted-foreground">Ngày tạo</p>
-                        <p className="font-medium text-foreground">{formatDate(contract.createdAt)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t('customer_detail.contracts.details.created_date')}
+                        </p>
+                        <p className="font-medium text-foreground">{formatDate(contract.createdAt, locale)}</p>
                       </div>
                     </div>
 
@@ -556,7 +571,9 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                       <div className="flex items-start gap-2 text-sm">
                         <Tag className="mt-0.5 h-4 w-4 text-muted-foreground" />
                         <div>
-                          <p className="text-xs text-muted-foreground">Chi nhánh</p>
+                          <p className="text-xs text-muted-foreground">
+                            {t('customer_detail.contracts.details.branch')}
+                          </p>
                           <p className="font-medium text-foreground">
                             {typeof contract.branchId === 'object' ? contract.branchId.branchName : '—'}
                           </p>
@@ -568,7 +585,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                       <div className="flex items-start gap-2 text-sm">
                         <Tag className="mt-0.5 h-4 w-4 text-muted-foreground" />
                         <div>
-                          <p className="text-xs text-muted-foreground">Tags</p>
+                          <p className="text-xs text-muted-foreground">{t('customer_detail.contracts.details.tags')}</p>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {contract.tags.map((tag) => (
                               <Badge key={tag} variant="outline" className="text-xs">
@@ -591,7 +608,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                       className="rounded-full"
                     >
                       <Eye className="mr-1 h-3 w-3" />
-                      Xem
+                      {t('contracts.view')}
                     </Button>
                     <Button
                       variant="outline"
@@ -601,7 +618,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                       className="rounded-full"
                     >
                       <Edit className="mr-1 h-3 w-3" />
-                      Chỉnh sửa
+                      {t('contracts.edit')}
                     </Button>
                     <Button
                       variant="outline"
@@ -611,7 +628,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                       className="rounded-full bg-orange-500 text-white hover:bg-orange-600"
                     >
                       <Send className="mr-1 h-3 w-3" />
-                      Gửi ký
+                      {t('contracts.send')}
                     </Button>
                   </div>
                 </div>
@@ -639,7 +656,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
       <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Chọn template hợp đồng</DialogTitle>
+            <DialogTitle>{t('customer_detail.contracts.template_dialog.title')}</DialogTitle>
             <DialogDescription>
               {selectedContractForCreation ? (
                 <div className="flex items-center gap-2 mt-2">
@@ -647,11 +664,13 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                     {getTypeBadgeLabel(selectedContractForCreation.type)}
                   </Badge>
                   <span className="text-sm">
-                    Tạo hợp đồng cho: <strong>{selectedContractForCreation.name}</strong>
+                    {t('customer_detail.contracts.template_dialog.create_for', {
+                      name: selectedContractForCreation.name
+                    })}
                   </span>
                 </div>
               ) : (
-                'Chọn một template có sẵn để tạo hợp đồng mới cho khách hàng'
+                t('customer_detail.contracts.template_dialog.description')
               )}
             </DialogDescription>
           </DialogHeader>
@@ -660,18 +679,24 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
             <div className="flex min-h-[20vh] items-center justify-center">
               <div className="flex flex-col items-center gap-3 text-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Đang tải danh sách template...</p>
+                <p className="text-sm text-muted-foreground">
+                  {t('customer_detail.contracts.template_dialog.loading')}
+                </p>
               </div>
             </div>
           ) : templates.length === 0 ? (
             <div className="flex min-h-[20vh] items-center justify-center">
               <div className="text-center">
                 <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-                <p className="mt-3 font-semibold text-foreground">Chưa có template phù hợp</p>
+                <p className="mt-3 font-semibold text-foreground">
+                  {t('customer_detail.contracts.template_dialog.no_templates')}
+                </p>
                 <p className="text-sm text-muted-foreground">
                   {selectedContractForCreation
-                    ? `Chưa có template cho loại hợp đồng ${getTypeBadgeLabel(selectedContractForCreation.type)}`
-                    : 'Vui lòng tạo template trước khi tạo hợp đồng'}
+                    ? t('customer_detail.contracts.template_dialog.no_template_for_type', {
+                        type: getTypeBadgeLabel(selectedContractForCreation.type)
+                      })
+                    : t('customer_detail.contracts.template_dialog.create_template_first')}
                 </p>
               </div>
             </div>
@@ -687,13 +712,13 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          {getContractTypeBadge(template.contractType)}
+                          {getContractTypeBadge(t, template.contractType)}
                           {template.isTemplate && (
                             <Badge
                               variant="outline"
                               className="text-xs font-medium bg-purple-500/10 text-purple-700 border-purple-200"
                             >
-                              Mẫu
+                              {t('contracts.template')}
                             </Badge>
                           )}
                         </div>

@@ -1,6 +1,5 @@
 import { api } from './api';
 import type {
-  RefundSuggestion,
   CancelMembershipPayload,
   MembershipContract,
   MembershipPlan,
@@ -17,14 +16,6 @@ import type { MembershipRegistrationFormData, MembershipContractResponse } from 
 import type { BackendPaginationResponse } from '../../types/api/Branch';
 
 export const membershipApi = {
-  /**
-   * Get refund suggestion for a membership contract
-   */
-  getRefundSuggestion: async (contractId: string): Promise<RefundSuggestion> => {
-    const response = await api.get(`/membership-contracts/${contractId}/refund-suggestion`);
-    return response.data.data;
-  },
-
   /**
    * Cancel a membership contract
    */

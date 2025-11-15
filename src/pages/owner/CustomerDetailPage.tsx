@@ -267,6 +267,7 @@ const CustomerDetailPage: React.FC = () => {
     status?: string;
     servicePackageId?: { name?: string };
     paidAmount?: number;
+    total?: number;
     startDate?: string;
     endDate?: string;
   }
@@ -300,9 +301,28 @@ const CustomerDetailPage: React.FC = () => {
   const classPackageName = isActiveClass ? classContract.servicePackageId?.name || '—' : '—';
 
   // Determine if customer has active PT or CLASS package (not canceled, expired, or suspended)
-  const hasPTPackage = ptContract && ptContract.status && ['ACTIVE', 'PAST_DUE'].includes(ptContract.status);
+  // Also show PENDING_ACTIVATION if fully paid (paidAmount >= total)
+  const isPTFullyPaid =
+    ptContract &&
+    ptContract.paidAmount !== undefined &&
+    ptContract.total !== undefined &&
+    ptContract.paidAmount >= ptContract.total;
+  const isClassFullyPaid =
+    classContract &&
+    classContract.paidAmount !== undefined &&
+    classContract.total !== undefined &&
+    classContract.paidAmount >= classContract.total;
+
+  const hasPTPackage =
+    ptContract &&
+    ptContract.status &&
+    (['ACTIVE', 'PAST_DUE'].includes(ptContract.status) ||
+      (ptContract.status === 'PENDING_ACTIVATION' && isPTFullyPaid));
   const hasClassPackage =
-    classContract && classContract.status && ['ACTIVE', 'PAST_DUE'].includes(classContract.status);
+    classContract &&
+    classContract.status &&
+    (['ACTIVE', 'PAST_DUE'].includes(classContract.status) ||
+      (classContract.status === 'PENDING_ACTIVATION' && isClassFullyPaid));
 
   // Check if customer has active membership (not canceled, expired, or suspended)
   const hasMembership =
@@ -758,7 +778,7 @@ const CustomerDetailPage: React.FC = () => {
                     label={t('customer_detail.payment_card.paid_membership')}
                     value={
                       hasMembership && membershipContract
-                        ? formatCurrency(membershipContract.initialPaidAmount, locale)
+                        ? formatCurrency(membershipContract.paidAmount || membershipContract.totalAmount || 0, locale)
                         : notUpdatedText
                     }
                   />
@@ -882,7 +902,7 @@ const CustomerDetailPage: React.FC = () => {
               price: membershipContract.totalAmount || 0,
               discountAmount: 0,
               total: membershipContract.totalAmount || 0,
-              paidAmount: membershipContract.initialPaidAmount || 0,
+              paidAmount: membershipContract.paidAmount || membershipContract.totalAmount || 0,
               status: membershipContract.status || 'ACTIVE',
               startDate: membershipContract.startDate,
               endDate: membershipContract.endDate || customer.expiryDate || '',

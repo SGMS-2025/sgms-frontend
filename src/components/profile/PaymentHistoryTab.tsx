@@ -22,7 +22,6 @@ import { PaymentHistoryItem } from './PaymentHistoryItem';
 const STATUS_BADGE_CLASS: Record<string, string> = {
   SETTLED: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   PAID: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  REFUNDED: 'bg-indigo-100 text-indigo-700 border-indigo-200',
   PENDING: 'bg-amber-100 text-amber-700 border-amber-200',
   PROCESSING: 'bg-sky-100 text-sky-700 border-sky-200',
   FAILED: 'bg-red-100 text-red-700 border-red-200',
@@ -214,8 +213,6 @@ export const PaymentHistoryTab: React.FC<PaymentHistoryTabProps> = ({ customerId
         return t('payment_history.status.settled');
       case 'PAID':
         return t('payment_history.status.paid');
-      case 'REFUNDED':
-        return t('payment_history.status.refunded');
       case 'PENDING':
         return t('payment_history.status.pending');
       case 'PROCESSING':
@@ -387,7 +384,6 @@ export const PaymentHistoryTab: React.FC<PaymentHistoryTabProps> = ({ customerId
                   <SelectItem value="ALL">{t('payment_history.filter.all_statuses')}</SelectItem>
                   <SelectItem value="SETTLED">{t('payment_history.status.settled')}</SelectItem>
                   <SelectItem value="PAID">{t('payment_history.status.paid')}</SelectItem>
-                  <SelectItem value="REFUNDED">{t('payment_history.status.refunded')}</SelectItem>
                   <SelectItem value="PENDING">{t('payment_history.status.pending')}</SelectItem>
                   <SelectItem value="PROCESSING">{t('payment_history.status.processing')}</SelectItem>
                   <SelectItem value="FAILED">{t('payment_history.status.failed')}</SelectItem>

@@ -23,14 +23,11 @@ export const serviceContractApi = {
 
   /**
    * Cancel a service contract
-   * Note: This endpoint is not yet implemented on the backend
    */
   cancelServiceContract: async (
     contractId: string,
     payload: {
       cancelReason: string;
-      refundAmount: number;
-      refundMethod: string;
       notes?: string;
     }
   ): Promise<{ success: boolean; message?: string }> => {

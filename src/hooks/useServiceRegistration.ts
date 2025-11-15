@@ -8,7 +8,6 @@ export interface ServiceRegistrationFormData {
   startDate: string;
   branchId: string;
   discountCampaignId?: string;
-  initialPaidAmount: number;
   paymentMethod: 'CASH' | 'BANK_TRANSFER';
   referrerStaffId?: string;
   notes?: string;
@@ -46,7 +45,6 @@ export const useServiceRegistration = (
     startDate: new Date().toISOString().split('T')[0],
     branchId: initialBranchId,
     discountCampaignId: undefined,
-    initialPaidAmount: 0,
     paymentMethod: 'CASH',
     referrerStaffId: undefined,
     notes: '',
