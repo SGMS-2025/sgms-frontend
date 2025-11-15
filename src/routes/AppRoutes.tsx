@@ -57,6 +57,7 @@ import PTTimeOffPage from '@/pages/pt/TimeOffPage';
 import TechnicianTimeOffPage from '@/pages/technician/TimeOffPage';
 import CustomerPaymentsPage from '@/pages/owner/CustomerPaymentsPage';
 import ContractsPage from '@/pages/owner/ContractsPage';
+import ClassManagementPage from '@/pages/owner/ClassManagementPage';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import AttendancePage from '@/pages/attendance/AttendancePage';
@@ -438,6 +439,9 @@ const AppRoutes: React.FC = () => {
             {/* Time Off Management Routes */}
             <Route path="timeoff" element={<TimeOffPage />} />
             <Route path="timeoff/management" element={<TimeOffManagementPage />} />
+
+            {/* Classes Management Route */}
+            <Route path="classes" element={<ClassManagementPage />} />
 
             {/* KPI Management Routes */}
             <Route path="kpi" element={<KPIManagementPage />} />

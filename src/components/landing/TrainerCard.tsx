@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import type { Trainer } from '@/types/pages/landing';
 import { getTrainerColorScheme } from '@/constants/landing-data';
-import { renderCustomStars } from '@/utils/rating';
+import { renderCustomStars } from '@/utils/ratingHelpers';
 import styles from '@/assets/css/trainers-section.module.css';
 
 interface TrainerCardProps {

@@ -575,6 +575,12 @@ export const OwnerSidebar: React.FC = () => {
               isActive={location.pathname.startsWith('/manage/timeoff')}
               onClick={() => navigate('/manage/timeoff')}
             />
+            <SubMenuItem
+              icon={<UsersRound className="w-5 h-5 stroke-[1.75]" />}
+              label={t('sidebar.classes') || 'Classes'}
+              isActive={location.pathname === '/manage/classes'}
+              onClick={() => navigate('/manage/classes')}
+            />
           </DropdownSidebarItem>
 
           {/* Finance Dropdown */}

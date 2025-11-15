@@ -1933,6 +1933,7 @@
   "pt_registration.unknown": "Không xác định",
   "pt_registration.package_type_name": "gói PT",
   "pt_registration.package_description": "Gói PT 1-1",
+  "pt_registration.sessions": "buổi",
   "shared_form.cancel": "Hủy",
   "shared_form.register": "Đăng ký",
   "shared_form.processing": "Đang xử lý...",
