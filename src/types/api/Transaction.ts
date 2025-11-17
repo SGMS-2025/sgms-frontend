@@ -3,7 +3,7 @@ import type { BaseEntity, PaginationParams, PaginationResponse, SortOrder } from
 export type TransactionStatus = 'PENDING' | 'SETTLED' | 'FAILED' | 'VOID';
 export type TransactionMethod = 'CASH' | 'BANK_TRANSFER';
 export type TransactionSubjectType = 'MEMBERSHIP' | 'SERVICE';
-export type TransactionType = 'RECEIPT' | 'REFUND' | 'ADJUSTMENT' | 'EXPENSE';
+export type TransactionType = 'RECEIPT' | 'ADJUSTMENT' | 'EXPENSE' | 'REFUND';
 
 export interface TransactionCustomerUser {
   _id: string;

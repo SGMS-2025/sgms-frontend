@@ -38,10 +38,11 @@ export interface DiscountCampaign {
 }
 
 export interface DiscountCampaignStats {
-  totalCampaigns: number;
-  activeCampaigns: number;
-  expiredCampaigns: number;
-  pendingCampaigns: number;
+  total: number;
+  active: number;
+  inactive: number;
+  pending: number;
+  expired: number;
 }
 
 export interface DiscountCampaignListResponse {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { Calendar, DollarSign, CreditCard, FileText, MapPin, User } from 'lucide-react';
+import { Calendar, CreditCard, FileText, MapPin, User } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,7 +72,6 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
     cardCode: '',
     startDate: new Date().toISOString().split('T')[0],
     discountCampaignId: undefined,
-    initialPaidAmount: 0,
     paymentMethod: 'CASH',
     referrerStaffId: undefined,
     notes: ''
@@ -87,12 +86,7 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
   const totalPrice = basePrice - discountAmount;
 
   useEffect(() => {
-    if (selectedPlan) {
-      setFormData((prev) => ({
-        ...prev,
-        initialPaidAmount: totalPrice
-      }));
-    }
+    // No need to set initialPaidAmount anymore
   }, [totalPrice, selectedPlan]);
 
   useEffect(() => {
@@ -438,23 +432,6 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">{t('membership_registration.payment_method_label')}</Label>
-                    <Label className="text-sm font-medium">
-                      <DollarSign className="inline h-4 w-4" /> Số tiền thanh toán
-                    </Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={formData.initialPaidAmount}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, initialPaidAmount: parseFloat(e.target.value) || 0 }))
-                      }
-                      placeholder="Nhập số tiền"
-                    />
-                    <p className="text-xs text-muted-foreground">Gói hội viên thường yêu cầu thanh toán toàn bộ</p>
                   </div>
 
                   {/* CASE 2: Staff/PT Selector */}

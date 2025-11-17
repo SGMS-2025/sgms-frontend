@@ -216,10 +216,59 @@ export const paymentApi = {
       bankDetailsFromBin?.shortName
     );
 
+    // Extract QR code image URL - try multiple field names to match PayOS response
     const qrCode =
-      resolveString(backendData.qrCode, payosMeta.qrCode, payosMeta.qrImage, payosMeta.qr_code_url) ?? null;
+      resolveString(
+        backendData.qrCode,
+        backendData.qrcode,
+        backendData.qrCodeUrl,
+        backendData.qr_code_url,
+        backendData.qrImage,
+        backendData.qr_image,
+        backendData.qrImageUrl,
+        backendData.qr_image_url,
+        backendData.vietqr,
+        backendData.vietQr,
+        backendData.vietQrUrl,
+        backendData.vietqr_url,
+        payosMeta.qrCode,
+        payosMeta.qrcode,
+        payosMeta.qrCodeUrl,
+        payosMeta.qr_code_url,
+        payosMeta.qrImage,
+        payosMeta.qr_image,
+        payosMeta.qrImageUrl,
+        payosMeta.qr_image_url,
+        payosMeta.qrCodeImage,
+        payosMeta.qr_code_image,
+        payosMeta.vietqr,
+        payosMeta.vietQr,
+        payosMeta.vietQrUrl,
+        payosMeta.vietqr_url,
+        payosMeta.vietqrImage,
+        payosMeta.vietqr_image
+      ) ?? null;
+
+    // Extract QR string/data - raw QR data for generating QR code
     const qrString =
-      resolveString(backendData.qrString, payosMeta.qrString, payosMeta.qrContent, payosMeta.qr_data) ?? null;
+      resolveString(
+        backendData.qrString,
+        backendData.qr_string,
+        backendData.qrContent,
+        backendData.qr_content,
+        backendData.qrData,
+        backendData.qr_data,
+        backendData.qrRaw,
+        backendData.qr_raw,
+        payosMeta.qrString,
+        payosMeta.qr_string,
+        payosMeta.qrContent,
+        payosMeta.qr_content,
+        payosMeta.qrData,
+        payosMeta.qr_data,
+        payosMeta.qrRaw,
+        payosMeta.qr_raw
+      ) ?? null;
 
     const paymentLinkId =
       resolveString(

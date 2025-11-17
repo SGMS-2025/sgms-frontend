@@ -127,8 +127,7 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
   const handlePayOSPayment = React.useCallback(
     async (contractId: string) => {
       const { paymentApi } = await import('@/services/api/paymentApi');
-      const amountToPayment = priceCalculation.totalPrice - formData.initialPaidAmount;
-      const paymentAmount = amountToPayment > 0 ? amountToPayment : Math.max(priceCalculation.totalPrice, 1000);
+      const paymentAmount = Math.max(priceCalculation.totalPrice, 1000);
 
       try {
         const paymentResponse = await paymentApi.createPayOSPaymentLink({
@@ -150,7 +149,7 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
         );
       }
     },
-    [customerId, formData.branchId, priceCalculation.totalPrice, formData.initialPaidAmount, packageType, t]
+    [customerId, formData.branchId, priceCalculation.totalPrice, packageType, t]
   );
 
   // Handle payment success

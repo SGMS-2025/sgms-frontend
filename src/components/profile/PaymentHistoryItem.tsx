@@ -16,7 +16,6 @@ const STATUS_BADGE_CLASS: Record<string, string> = {
   PENDING: 'bg-amber-100 text-amber-700 border-amber-200',
   PROCESSING: 'bg-sky-100 text-sky-700 border-sky-200',
   PAID: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  REFUNDED: 'bg-indigo-100 text-indigo-700 border-indigo-200',
   FAILED: 'bg-red-100 text-red-700 border-red-200',
   CANCELED: 'bg-gray-100 text-gray-600 border-gray-200'
 };

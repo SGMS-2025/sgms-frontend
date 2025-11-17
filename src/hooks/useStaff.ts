@@ -29,7 +29,6 @@ const transformStaffToDisplay = (staff: Staff): StaffDisplay => ({
 
 export const useStaffList = (initialParams: StaffListParams = {}): UseStaffListReturn => {
   const [staffList, setStaffList] = useState<StaffDisplay[]>([]);
-  const [stats, setStats] = useState<StaffStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<UseStaffListReturn['pagination']>(null);
@@ -44,10 +43,7 @@ export const useStaffList = (initialParams: StaffListParams = {}): UseStaffListR
       ...params
     };
 
-    const [staffResponse, statsResponse] = await Promise.all([
-      staffApi.getStaffList(requestParams),
-      staffApi.getStaffStats()
-    ]);
+    const staffResponse = await staffApi.getStaffList(requestParams);
 
     // Handle staff list response
     if (staffResponse.success) {
@@ -67,14 +63,6 @@ export const useStaffList = (initialParams: StaffListParams = {}): UseStaffListR
       setPagination(transformedPagination);
     } else {
       setError(staffResponse.message || 'Failed to fetch staff list');
-    }
-
-    // Handle stats response
-    if (statsResponse.success) {
-      setStats(statsResponse.data);
-    } else {
-      // Stats error is not critical, just log it
-      console.warn('Failed to fetch staff stats:', statsResponse.message);
     }
 
     setLoading(false);
@@ -98,7 +86,7 @@ export const useStaffList = (initialParams: StaffListParams = {}): UseStaffListR
 
   return {
     staffList,
-    stats,
+    stats: null,
     loading,
     error,
     pagination,
@@ -109,16 +97,17 @@ export const useStaffList = (initialParams: StaffListParams = {}): UseStaffListR
 };
 
 // Hook for staff stats only
-export const useStaffStats = () => {
+export const useStaffStats = (params?: { branchId?: string }) => {
   const [stats, setStats] = useState<StaffStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const branchId = params?.branchId;
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
     setError(null);
 
-    const response = await staffApi.getStaffStats();
+    const response = await staffApi.getStaffStats(branchId ? { branchId } : undefined);
 
     if (response.success) {
       setStats(response.data);
@@ -127,7 +116,7 @@ export const useStaffStats = () => {
     }
 
     setLoading(false);
-  }, []);
+  }, [branchId]);
 
   useEffect(() => {
     fetchStats();

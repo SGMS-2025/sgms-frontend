@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import i18n from '@/configs/i18n';
 import type { ApiErrorResponse } from '@/types/api/Api';
 import { handleSpecificError } from '@/utils/permissionErrorHandler';
+import { convertMongoDecimalToNumbers } from '@/utils/mongodbDecimalConverter';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -180,7 +181,13 @@ api.interceptors.request.use(
 
 // Response interceptor
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Convert MongoDB Decimal values in response data
+    if (response.data) {
+      response.data = convertMongoDecimalToNumbers(response.data);
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as typeof error.config & { _retry?: boolean };
 

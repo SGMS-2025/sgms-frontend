@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { ServicePackage } from '@/types/api/Package';
 import type { DiscountCampaign } from '@/types/api/Discount';
 
@@ -8,7 +8,6 @@ export interface ServiceRegistrationFormData {
   startDate: string;
   branchId: string;
   discountCampaignId?: string;
-  initialPaidAmount: number;
   paymentMethod: 'CASH' | 'BANK_TRANSFER';
   referrerStaffId?: string;
   notes?: string;
@@ -46,7 +45,6 @@ export const useServiceRegistration = (
     startDate: new Date().toISOString().split('T')[0],
     branchId: initialBranchId,
     discountCampaignId: undefined,
-    initialPaidAmount: 0,
     paymentMethod: 'CASH',
     referrerStaffId: undefined,
     notes: '',
@@ -71,6 +69,17 @@ export const useServiceRegistration = (
     };
   }, [selectedPackage, selectedPromotion]);
 
+  // Automatically sync initialPaidAmount with totalPrice when totalPrice changes
+  // Only update when a package is selected to avoid setting 0 on initial load
+  useEffect(() => {
+    if (selectedPackage) {
+      setFormData((prev) => ({
+        ...prev,
+        initialPaidAmount: priceCalculation.totalPrice
+      }));
+    }
+  }, [priceCalculation.totalPrice, selectedPackage]);
+
   // Handle package selection
   const handlePackageChange = (packageId: string, packages: ServicePackage[]) => {
     const pkg = packages.find((p) => p._id === packageId);
@@ -78,7 +87,8 @@ export const useServiceRegistration = (
     setFormData((prev) => ({
       ...prev,
       servicePackageId: packageId,
-      customMonths: pkg?.defaultDurationMonths
+      customMonths: pkg?.defaultDurationMonths,
+      sessionCount: pkg?.sessionCount
     }));
   };
 

@@ -441,7 +441,7 @@ const DiscountCampaignForm: React.FC<DiscountCampaignFormProps> = ({
             <div className="mt-3">
               <p className="text-sm text-gray-600 mb-2">{t('discount.selected_services')}:</p>
               <TooltipProvider>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex flex-wrap gap-2">
                   {selectedPackages.map((pkgId) => {
                     const svc = services.find((s) => s.id === pkgId);
                     if (!svc) return null;
@@ -451,47 +451,48 @@ const DiscountCampaignForm: React.FC<DiscountCampaignFormProps> = ({
                       return Boolean(cell?.isIncluded);
                     });
                     return (
-                      <div key={pkgId} className="flex items-center gap-3 p-3 border rounded-lg">
-                        <Package className="w-5 h-5 text-gray-500" />
-                        <div className="min-w-0 w-full flex items-start justify-between gap-2">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <p className="font-medium text-gray-900 truncate cursor-help flex-1 min-w-0">
-                                {svc.name}
-                              </p>
-                            </TooltipTrigger>
-                            <TooltipContent
-                              align="start"
-                              className="max-w-sm whitespace-normal bg-white text-gray-900 border border-gray-200 shadow-lg rounded-md p-3"
-                            >
-                              <div className="text-xs text-gray-700 space-y-1">
-                                <p className="font-semibold text-gray-900">{svc.name}</p>
-                                {svc.durationInMonths ? (
-                                  <p>
-                                    {t('class_service.duration')}: {svc.durationInMonths}
-                                  </p>
-                                ) : null}
-                                {included.length > 0 ? (
-                                  <ul className="list-disc pl-4 space-y-1">
-                                    {included.map((f) => (
-                                      <li key={`${svc.id}-${f.id}`}>{f.name}</li>
-                                    ))}
-                                  </ul>
-                                ) : (
-                                  <p>{t('common.not_available')}</p>
-                                )}
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                          <button
-                            type="button"
-                            onClick={() => handlePackageToggle(pkgId)}
-                            className="shrink-0 text-gray-400 hover:text-red-500"
-                            aria-label="remove"
+                      <div
+                        key={pkgId}
+                        className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50/70 px-3 py-1 text-xs text-orange-700"
+                      >
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1 cursor-help">
+                              <Package className="w-3.5 h-3.5 text-orange-500" />
+                              <span className="font-medium truncate max-w-[140px]">{svc.name}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            align="start"
+                            className="max-w-sm whitespace-normal bg-white text-gray-900 border border-gray-200 shadow-lg rounded-md p-3"
                           >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
+                            <div className="text-xs text-gray-700 space-y-1">
+                              <p className="font-semibold text-gray-900">{svc.name}</p>
+                              {svc.durationInMonths ? (
+                                <p>
+                                  {t('class_service.duration')}: {svc.durationInMonths}
+                                </p>
+                              ) : null}
+                              {included.length > 0 ? (
+                                <ul className="list-disc pl-4 space-y-1">
+                                  {included.map((f) => (
+                                    <li key={`${svc.id}-${f.id}`}>{f.name}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p>{t('common.not_available')}</p>
+                              )}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                        <button
+                          type="button"
+                          onClick={() => handlePackageToggle(pkgId)}
+                          className="text-orange-400 hover:text-red-500 transition-colors"
+                          aria-label="remove"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     );
                   })}
