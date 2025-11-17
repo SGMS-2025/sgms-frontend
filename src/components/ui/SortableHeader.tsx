@@ -27,12 +27,13 @@ export function SortableHeader<T extends string = string>({
   };
 
   const isActive = sortState.field === field && !!sortState.order;
-  const baseClasses = 'px-4 py-3 text-left text-sm font-semibold first:rounded-l-2xl last:rounded-r-2xl';
+  const baseClasses = 'px-4 py-3 text-sm font-semibold first:rounded-l-2xl last:rounded-r-2xl';
+  const textClasses = className && className.includes('justify-') ? '' : 'text-left';
   const colorClasses = isActive ? 'bg-orange-100 text-orange-600' : 'text-orange-500';
   const sortableClasses = sortable
     ? 'cursor-pointer transition-colors hover:bg-orange-50 active:bg-orange-100 select-none'
     : '';
-  const combinedClasses = `${baseClasses} ${colorClasses} ${sortableClasses} ${className}`.trim();
+  const combinedClasses = `${baseClasses} ${textClasses} ${colorClasses} ${sortableClasses} ${className}`.trim();
 
   return (
     <th
@@ -40,7 +41,9 @@ export function SortableHeader<T extends string = string>({
       onClick={handleClick}
       aria-sort={isActive ? (sortState.order === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
-      <div className="flex items-center space-x-2">
+      <div
+        className={`flex items-center ${className && className.includes('justify-center') ? 'justify-center' : ''} space-x-2`}
+      >
         <span>{label}</span>
         {sortable && getSortIcon(field)}
       </div>

@@ -1,71 +1,96 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { classApi } from '@/services/api/classApi';
-import type { Class, ClassListParams, CreateClassRequest, UpdateClassRequest } from '@/types/api/Class';
-import type { UseDataReturn, UseCreateReturn, UseUpdateReturn, UseDeleteReturn } from '@/types/hooks/HookTypes';
+import type { CreateClassDTO, UpdateClassDTO } from '@/types/Class';
+import { toast } from 'sonner';
 
-export interface UseClassResult
-  extends UseDataReturn<Class>,
-    UseCreateReturn<Class, CreateClassRequest>,
-    UseUpdateReturn<Class, UpdateClassRequest>,
-    UseDeleteReturn {
-  fetchClasses: () => Promise<void>;
+interface UseClassOptions {
+  onSuccess?: () => void;
+  onError?: (error: Error) => void;
 }
 
-export const useClass = (params?: ClassListParams): UseClassResult => {
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [loading, setLoading] = useState(true);
+export const useClass = (options: UseClassOptions = {}) => {
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchClasses = useCallback(async () => {
-    setLoading(true);
+  /**
+   * Create new class
+   */
+  const createClass = useCallback(
+    async (data: CreateClassDTO) => {
+      setLoading(true);
+      setError(null);
+      const response = await classApi.createClass(data);
+      toast.success('Class created successfully');
+      options.onSuccess?.();
+      setLoading(false);
+      return response;
+    },
+    [options]
+  );
+
+  /**
+   * Update existing class
+   */
+  const updateClass = useCallback(
+    async (classId: string, data: UpdateClassDTO) => {
+      setLoading(true);
+      setError(null);
+      const response = await classApi.updateClass(classId, data);
+      toast.success('Class updated successfully');
+      options.onSuccess?.();
+      setLoading(false);
+      return response;
+    },
+    [options]
+  );
+
+  /**
+   * Toggle class status (ACTIVE <-> INACTIVE)
+   */
+  const toggleStatus = useCallback(
+    async (classId: string) => {
+      setLoading(true);
+      setError(null);
+      const response = await classApi.toggleClassStatus(classId);
+      const newStatus = response.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+      toast.success(`Class status updated to ${newStatus}`);
+      options.onSuccess?.();
+      setLoading(false);
+      return response;
+    },
+    [options]
+  );
+
+  /**
+   * Delete class
+   */
+  const deleteClass = useCallback(
+    async (classId: string) => {
+      setLoading(true);
+      setError(null);
+      const response = await classApi.deleteClass(classId);
+      toast.success('Class deleted successfully');
+      options.onSuccess?.();
+      setLoading(false);
+      return response;
+    },
+    [options]
+  );
+
+  /**
+   * Clear error message
+   */
+  const clearError = useCallback(() => {
     setError(null);
-
-    const response = await classApi.getClasses(params);
-    setClasses(response.data.classes);
-    setLoading(false);
-  }, [params]);
-
-  const createClass = useCallback(async (data: CreateClassRequest): Promise<Class> => {
-    setLoading(true);
-    setError(null);
-
-    const response = await classApi.createClass(data);
-    setClasses((prev) => [response.data, ...prev]);
-    setLoading(false);
-    return response.data;
   }, []);
-
-  const updateClass = useCallback(async (id: string, data: UpdateClassRequest): Promise<Class> => {
-    setLoading(true);
-    setError(null);
-
-    const response = await classApi.updateClass(id, data);
-    setClasses((prev) => prev.map((cls) => (cls._id === id ? response.data : cls)));
-    setLoading(false);
-    return response.data;
-  }, []);
-
-  const deleteClass = useCallback(async (id: string): Promise<void> => {
-    setLoading(true);
-    setError(null);
-
-    await classApi.deleteClass(id);
-    setClasses((prev) => prev.filter((cls) => cls._id !== id));
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    fetchClasses();
-  }, [fetchClasses]);
 
   return {
-    data: classes,
+    createClass,
+    updateClass,
+    toggleStatus,
+    deleteClass,
     loading,
     error,
-    refetch: fetchClasses,
-    create: createClass,
-    update: updateClass,
-    delete: deleteClass,
-    fetchClasses
+    clearError
   };
 };
