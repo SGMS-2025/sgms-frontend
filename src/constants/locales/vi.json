@@ -1625,6 +1625,8 @@
   "class_service.update_feature_success": "Cập nhật quyền lợi \"{name}\" thành công!",
   "class_service.api_connection_error": "Backend API chưa khả dụng. Kiểm tra server có đang chạy?",
   "class_service.click_to_edit": "Click để chỉnh sửa",
+  "class_management.title": "Quản lý Lớp Học",
+  "class_management.select_branch": "Vui lòng chọn chi nhánh trước",
   "pt_service.title": "Bảng so sánh gói PT",
   "pt_service.subtitle": "Quản lý gói PT cho chi nhánh:",
   "pt_service.add_pt": "Thêm gói",

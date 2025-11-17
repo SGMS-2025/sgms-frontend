@@ -1629,6 +1629,8 @@
   "class_service.update_feature_success": "Feature updated successfully!",
   "class_service.api_connection_error": "Backend API is not available. Check if server is running?",
   "class_service.click_to_edit": "Click to edit",
+  "class_management.title": "Classes Management",
+  "class_management.select_branch": "Please select a branch first",
   "class_service.add_initial_data": "Add Initial Data",
   "class_service.add_initial_data_title": "Add Features and Class Packages",
   "class_service.add_feature_section": "Add Feature",
