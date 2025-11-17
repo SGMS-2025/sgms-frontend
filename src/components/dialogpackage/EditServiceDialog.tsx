@@ -1,12 +1,10 @@
-import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import type { LegacyService } from '@/types/api/Package';
-import { packageApi } from '@/services/api/packageApi';
-import { parsePriceInput, formatPriceForDisplay } from '@/utils/currency';
 import { useServiceForm } from './useServiceForm';
+import { useEditServiceDialog } from '@/hooks/useEditServiceDialog';
 import { ServiceFormFields } from './ServiceFormFields';
 
 interface EditServiceDialogProps {
@@ -37,8 +35,6 @@ export function EditServiceDialog({
   defaultMaxParticipants = 20
 }: EditServiceDialogProps) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const [loadingPackage, setLoadingPackage] = useState(false);
 
   const form = useServiceForm({
     serviceType,
@@ -47,105 +43,13 @@ export function EditServiceDialog({
     validateOnBlur: false // EditServiceDialog's validation timing
   });
 
-  useEffect(() => {
-    if (service) {
-      setOpen(true);
-      setLoadingPackage(true);
-      form.resetForm();
-      form.setIsClosing(false);
-
-      // Fetch full package details to get sessionCount, minParticipants, maxParticipants
-      packageApi
-        .getPackageById(service.id)
-        .then((response) => {
-          if (response.success && response.data) {
-            const packageData = response.data;
-            form.setFormValues({
-              name: packageData.name || service.name,
-              price: packageData.defaultPriceVND
-                ? formatPriceForDisplay(packageData.defaultPriceVND)
-                : service.price
-                  ? formatPriceForDisplay(service.price)
-                  : '',
-              duration: packageData.defaultDurationMonths
-                ? packageData.defaultDurationMonths.toString()
-                : service.durationInMonths
-                  ? service.durationInMonths.toString()
-                  : '1',
-              sessionCount: packageData.sessionCount ? packageData.sessionCount.toString() : '',
-              minParticipants: packageData.minParticipants
-                ? packageData.minParticipants.toString()
-                : defaultMinParticipants.toString(),
-              maxParticipants: packageData.maxParticipants
-                ? packageData.maxParticipants.toString()
-                : defaultMaxParticipants.toString()
-            });
-          } else {
-            // Fallback to service prop data if API fails
-            form.setFormValues({
-              name: service.name,
-              price: service.price ? formatPriceForDisplay(service.price) : '',
-              duration: service.durationInMonths ? service.durationInMonths.toString() : '1',
-              sessionCount: service.sessionCount ? service.sessionCount.toString() : '',
-              minParticipants: (service as { minParticipants?: number }).minParticipants
-                ? (service as { minParticipants?: number }).minParticipants!.toString()
-                : defaultMinParticipants.toString(),
-              maxParticipants: (service as { maxParticipants?: number }).maxParticipants
-                ? (service as { maxParticipants?: number }).maxParticipants!.toString()
-                : defaultMaxParticipants.toString()
-            });
-          }
-        })
-        .catch((error) => {
-          // Fallback to service prop data if API fails
-          console.error('Failed to fetch package details:', error);
-          form.setFormValues({
-            name: service.name,
-            price: service.price ? formatPriceForDisplay(service.price) : '',
-            duration: service.durationInMonths ? service.durationInMonths.toString() : '1',
-            sessionCount: service.sessionCount ? service.sessionCount.toString() : '',
-            minParticipants: (service as { minParticipants?: number }).minParticipants
-              ? (service as { minParticipants?: number }).minParticipants!.toString()
-              : defaultMinParticipants.toString(),
-            maxParticipants: (service as { maxParticipants?: number }).maxParticipants
-              ? (service as { maxParticipants?: number }).maxParticipants!.toString()
-              : defaultMaxParticipants.toString()
-          });
-        })
-        .finally(() => {
-          setLoadingPackage(false);
-        });
-    } else {
-      // Reset state when service is null
-      setOpen(false);
-      setLoadingPackage(false);
-      form.resetForm();
-      form.setIsClosing(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [service?.id, defaultMinParticipants, defaultMaxParticipants]);
-
-  const handleUpdate = () => {
-    if (!form.validateAll() || !service) return;
-
-    onSubmit(service.id, {
-      name: form.name.trim(),
-      price: form.price ? parsePriceInput(form.price) : undefined,
-      durationInMonths: form.duration ? Number(form.duration) : undefined,
-      sessionCount: form.sessionCount ? Number(form.sessionCount) : undefined,
-      minParticipants: form.minParticipants ? Number(form.minParticipants) : defaultMinParticipants,
-      maxParticipants: form.maxParticipants ? Number(form.maxParticipants) : defaultMaxParticipants
-    });
-    setOpen(false);
-  };
-
-  const handleClose = () => {
-    form.setIsClosing(true);
-    form.resetForm();
-    setOpen(false);
-    // Reset isClosing after a short delay to allow modal to close
-    setTimeout(() => form.setIsClosing(false), 100);
-  };
+  const { open, setOpen, loadingPackage, handleUpdate, handleClose } = useEditServiceDialog({
+    service,
+    form,
+    defaultMinParticipants,
+    defaultMaxParticipants,
+    onSubmit
+  });
 
   return (
     <Dialog
