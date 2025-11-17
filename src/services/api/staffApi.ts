@@ -15,8 +15,8 @@ export const staffApi = {
     return response.data;
   },
 
-  getStaffStats: async (): Promise<ApiResponse<StaffStats>> => {
-    const response = await api.get('/staff/stats');
+  getStaffStats: async (params?: { branchId?: string }): Promise<ApiResponse<StaffStats>> => {
+    const response = await api.get('/staff/stats', { params });
     return response.data;
   },
 

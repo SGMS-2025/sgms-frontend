@@ -9,15 +9,23 @@ import { useCanManageStaff } from '@/hooks/useCanManageStaff';
 import EditStaffForm from '@/components/forms/EditStaffForm';
 import type { StaffDisplay, Staff, StaffFormData, StaffJobTitle, StaffUpdateData } from '@/types/api/Staff';
 import { handleApiErrorForForm } from '@/utils/errorHandler';
+import { formatStaffSalary } from '@/utils/staffUtils';
 
-interface StaffProfileModalProps {
+export interface StaffProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   staff: StaffDisplay | null;
   initialEditMode?: boolean;
+  onDataChanged?: () => void;
 }
 
-export default function StaffProfileModal({ isOpen, onClose, staff, initialEditMode = false }: StaffProfileModalProps) {
+export default function StaffProfileModal({
+  isOpen,
+  onClose,
+  staff,
+  initialEditMode = false,
+  onDataChanged
+}: Readonly<StaffProfileModalProps>) {
   const { t } = useTranslation();
   const { canManageStaff } = useCanManageStaff();
   const [activeTab, setActiveTab] = useState<'personal' | 'branch'>('personal');
@@ -109,6 +117,9 @@ export default function StaffProfileModal({ isOpen, onClose, staff, initialEditM
         await refetch();
         setIsEditMode(false);
         setFormErrors({}); // Clear errors on success
+        if (onDataChanged) {
+          onDataChanged();
+        }
       })
       .catch(
         (
@@ -461,6 +472,8 @@ function PersonalInfo({
   onEdit: () => void;
   canEdit: boolean;
 }) {
+  const salaryDisplay = formatStaffSalary(staffDetails?.salary ?? staff.salary ?? '');
+
   return (
     <div className="space-y-6">
       <div>
@@ -571,7 +584,7 @@ function PersonalInfo({
                 <span className="font-medium">{t('staff_modal.salary')}</span>
               </div>
               <div className="bg-white p-3 rounded-lg">
-                <p className="text-gray-700">{staffDetails?.salary?.toLocaleString() || staff.salary}</p>
+                <p className="text-gray-700">{salaryDisplay}</p>
               </div>
             </div>
           </div>

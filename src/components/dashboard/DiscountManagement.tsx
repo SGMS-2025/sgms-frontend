@@ -51,7 +51,8 @@ import {
   useDiscountCampaignList,
   useCreateDiscountCampaign,
   useUpdateDiscountCampaign,
-  useDeleteDiscountCampaign
+  useDeleteDiscountCampaign,
+  useDiscountCampaignStats
 } from '@/hooks/useDiscount';
 import { formatDate } from '@/utils/utils';
 import { getStatusBadgeConfig } from '@/utils/discountUtils';
@@ -66,7 +67,7 @@ import type { DiscountCampaign, DiscountCampaignFormData, DiscountCampaignApiDat
 
 const DiscountManagement: React.FC = () => {
   const { t } = useTranslation();
-  const { campaigns, pagination, loading, error, refetch, statusFilter, setStatusFilter } = useDiscountCampaignList();
+  const { campaigns, loading, error, refetch, statusFilter, setStatusFilter } = useDiscountCampaignList();
   const { createCampaign, loading: createLoading } = useCreateDiscountCampaign();
   const { updateCampaign, loading: updateLoading } = useUpdateDiscountCampaign();
   const { deleteCampaign, loading: deleteLoading } = useDeleteDiscountCampaign();
@@ -75,6 +76,13 @@ const DiscountManagement: React.FC = () => {
   const currentUser = useUser();
   const { currentStaff } = useCurrentUserStaff();
   const { currentBranch, branches } = useBranch();
+
+  // Get stats from API - memoize params to prevent unnecessary re-fetches
+  const statsParams = React.useMemo(
+    () => (currentBranch ? { branchId: currentBranch._id } : undefined),
+    [currentBranch?._id]
+  );
+  const { stats: campaignStats, refetch: refetchStats } = useDiscountCampaignStats(statsParams);
 
   const [searchTerm, setSearchTerm] = React.useState('');
   const [showCreateForm, setShowCreateForm] = React.useState(false);
@@ -149,8 +157,9 @@ const DiscountManagement: React.FC = () => {
       toast.success(t('discount.create_success'));
       setShowCreateForm(false);
       refetch();
+      refetchStats();
     },
-    [createCampaign, refetch, t]
+    [createCampaign, refetch, refetchStats, t]
   );
 
   const handleUpdateCampaign = React.useCallback(
@@ -166,8 +175,9 @@ const DiscountManagement: React.FC = () => {
       setShowEditForm(false);
       setSelectedCampaign(null);
       refetch();
+      refetchStats();
     },
-    [updateCampaign, selectedCampaign, refetch, t]
+    [updateCampaign, selectedCampaign, refetch, refetchStats, t]
   );
 
   const handleDeleteCampaign = React.useCallback(async () => {
@@ -178,7 +188,8 @@ const DiscountManagement: React.FC = () => {
     setShowDeleteDialog(false);
     setCampaignToDelete(null);
     refetch();
-  }, [deleteCampaign, campaignToDelete, refetch, t]);
+    refetchStats();
+  }, [deleteCampaign, campaignToDelete, refetch, refetchStats, t]);
 
   const handleViewCampaign = React.useCallback((campaign: DiscountCampaign) => {
     setSelectedCampaign(campaign);
@@ -196,21 +207,6 @@ const DiscountManagement: React.FC = () => {
     setShowViewModal(false); // Đóng modal trước
     setShowDeleteDialog(true); // Mở dialog xác nhận
   }, []);
-
-  // Calculate stats for display (filtered by current branch)
-  const campaignStats = React.useMemo(() => {
-    const branchFilteredCampaigns = campaigns.filter((campaign) => {
-      // Filter by current branch if one is selected
-      return !currentBranch || campaign.branchId.some((branch) => branch._id === currentBranch._id);
-    });
-
-    return {
-      total: branchFilteredCampaigns.length,
-      active: branchFilteredCampaigns.filter((c) => c.status === 'ACTIVE').length,
-      expired: branchFilteredCampaigns.filter((c) => c.status === 'EXPIRED').length,
-      pending: branchFilteredCampaigns.filter((c) => c.status === 'PENDING').length
-    };
-  }, [campaigns, currentBranch]);
 
   // Use React.useMemo for better performance
   const filteredCampaigns = React.useMemo(() => {
@@ -326,8 +322,8 @@ const DiscountManagement: React.FC = () => {
           </div>
 
           {/* Stats Cards */}
-          {pagination && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {campaignStats && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center">
@@ -379,6 +375,20 @@ const DiscountManagement: React.FC = () => {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">{t('discount.pending_campaigns')}</p>
                       <p className="text-2xl font-bold text-gray-900">{campaignStats.pending}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-gray-100 rounded-lg">
+                      <Calendar className="w-6 h-6 text-gray-600" />
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-600">{t('discount.inactive_campaigns')}</p>
+                      <p className="text-2xl font-bold text-gray-900">{campaignStats.inactive}</p>
                     </div>
                   </div>
                 </CardContent>
