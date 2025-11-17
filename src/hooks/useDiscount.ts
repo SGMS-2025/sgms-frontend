@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { discountCampaignApi } from '@/services/api/discountApi';
 import type {
   DiscountCampaign,
@@ -83,37 +83,44 @@ export const useDiscountCampaignList = (
 };
 
 // Hook for discount campaign stats only
-export const useDiscountCampaignStats = () => {
+export const useDiscountCampaignStats = (params?: { branchId?: string }) => {
   const [stats, setStats] = useState<DiscountCampaignStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const fetchingRef = useRef(false);
+  const lastBranchIdRef = useRef<string | undefined>(undefined);
+
+  // Extract branchId to avoid object reference issues
+  const branchId = params?.branchId;
 
   const fetchStats = useCallback(async () => {
+    if (fetchingRef.current) {
+      return;
+    }
+
+    fetchingRef.current = true;
     setLoading(true);
     setError(null);
 
-    // Assuming there's a stats endpoint, if not, we can calculate from campaigns
-    const response = await discountCampaignApi.getCampaignList({ limit: 1000 });
+    const requestParams = branchId ? { branchId } : undefined;
+    const response = await discountCampaignApi.getCampaignStats(requestParams);
 
     if (response.success) {
-      const campaigns = response.data.campaigns;
-      const calculatedStats = {
-        totalCampaigns: campaigns.length,
-        activeCampaigns: campaigns.filter((c) => c.status === 'ACTIVE').length,
-        expiredCampaigns: campaigns.filter((c) => c.status === 'EXPIRED').length,
-        pendingCampaigns: campaigns.filter((c) => c.status === 'PENDING').length
-      };
-      setStats(calculatedStats);
+      setStats(response.data);
     } else {
       setError(response.message || 'Failed to fetch discount campaign stats');
     }
 
     setLoading(false);
-  }, []);
+    fetchingRef.current = false;
+  }, [branchId]);
 
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+    if (branchId !== lastBranchIdRef.current) {
+      lastBranchIdRef.current = branchId;
+      fetchStats();
+    }
+  }, [branchId, fetchStats]);
 
   return {
     stats,

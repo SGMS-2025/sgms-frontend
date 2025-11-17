@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { cn } from '@/utils/utils';
+import { formatStaffSalary } from '@/utils/staffUtils';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useBranch } from '@/contexts/BranchContext';
@@ -15,11 +16,11 @@ import { useBranch } from '@/contexts/BranchContext';
 import type { StaffFormData, StaffStatus, StaffJobTitle } from '@/types/api/Staff';
 import {
   validateFullName,
-  validatePhoneNumber,
-  validateAddress,
+  validatePhoneNumberEdit,
+  validateAddressEdit,
   validateEmail,
   validateJobTitle,
-  validateSalary,
+  validateSalaryEdit,
   validateBranchId,
   validateDateOfBirthStaff,
   type ValidationResult
@@ -84,10 +85,10 @@ export default function EditStaffForm({
         validation = validateFullName(value);
         break;
       case 'phoneNumber':
-        validation = validatePhoneNumber(value);
+        validation = validatePhoneNumberEdit(value);
         break;
       case 'address':
-        validation = validateAddress(value);
+        validation = validateAddressEdit(value);
         break;
       case 'email':
         validation = validateEmail(value);
@@ -96,7 +97,7 @@ export default function EditStaffForm({
         validation = validateJobTitle(value);
         break;
       case 'salary':
-        validation = validateSalary(value);
+        validation = validateSalaryEdit(value);
         break;
       case 'branchId':
         validation = validateBranchId(value);
@@ -123,7 +124,7 @@ export default function EditStaffForm({
       if (branchIds.length === 0) {
         setErrors((prev) => ({
           ...prev,
-          [field]: 'Branch is required'
+          [field]: t('validation.branch_required')
         }));
       } else {
         setErrors((prev) => ({
@@ -136,6 +137,12 @@ export default function EditStaffForm({
     }
   };
 
+  const handleSalaryChange = (rawValue: string) => {
+    const sanitized = rawValue.replaceAll(/\D+/g, '');
+    onInputChange('salary', sanitized);
+    validateField('salary', sanitized);
+  };
+
   const validateAllFields = () => {
     const newErrors: Record<string, string> = {};
 
@@ -145,12 +152,12 @@ export default function EditStaffForm({
       newErrors.fullName = fullNameValidation.error || '';
     }
 
-    const phoneValidation = validatePhoneNumber(formData.phoneNumber || '');
+    const phoneValidation = validatePhoneNumberEdit(formData.phoneNumber || '');
     if (!phoneValidation.isValid) {
       newErrors.phoneNumber = phoneValidation.error || '';
     }
 
-    const addressValidation = validateAddress(formData.address || '');
+    const addressValidation = validateAddressEdit(formData.address || '');
     if (!addressValidation.isValid) {
       newErrors.address = addressValidation.error || '';
     }
@@ -165,7 +172,7 @@ export default function EditStaffForm({
       newErrors.jobTitle = jobTitleValidation.error || '';
     }
 
-    const salaryValidation = validateSalary(formData.salary || '');
+    const salaryValidation = validateSalaryEdit(formData.salary || '');
     if (!salaryValidation.isValid) {
       newErrors.salary = salaryValidation.error || '';
     }
@@ -173,7 +180,7 @@ export default function EditStaffForm({
     // Handle branchId as array
     const branchIds = Array.isArray(formData.branchId) ? formData.branchId : [];
     if (branchIds.length === 0) {
-      newErrors.branchId = 'Branch is required';
+      newErrors.branchId = t('validation.branch_required');
     }
 
     const dobValidation = validateDateOfBirthStaff(formData.dateOfBirth || '');
@@ -363,9 +370,10 @@ export default function EditStaffForm({
             </Label>
             <Input
               id="salary"
-              type="number"
-              value={formData.salary}
-              onChange={(e) => handleInputChange('salary', e.target.value)}
+              type="text"
+              inputMode="numeric"
+              value={formData.salary ? formatStaffSalary(formData.salary) : ''}
+              onChange={(e) => handleSalaryChange(e.target.value)}
               className={cn(
                 'bg-white border-gray-200 focus:border-orange-500',
                 errors.salary && 'border-red-500 focus:border-red-500'

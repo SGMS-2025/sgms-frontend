@@ -50,5 +50,15 @@ export const discountCampaignApi = {
   getActiveCampaignsByBranch: async (branchId: string): Promise<ApiResponse<DiscountCampaign[]>> => {
     const response = await api.get<ApiResponse<DiscountCampaign[]>>(`/discount-campaigns/active/branch/${branchId}`);
     return response.data;
+  },
+
+  /**
+   * Get campaign statistics
+   */
+  getCampaignStats: async (params?: {
+    branchId?: string;
+  }): Promise<ApiResponse<import('@/types/api/Discount').DiscountCampaignStats>> => {
+    const response = await api.get('/discount-campaigns/stats', { params });
+    return response.data;
   }
 };
