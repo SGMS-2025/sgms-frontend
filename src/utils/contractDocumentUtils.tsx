@@ -54,7 +54,7 @@ export const getStatusBadgeConfig = (
   variant: 'default' | 'secondary' | 'destructive' | 'outline' = 'outline'
 ) => {
   const translate = (key: string, defaultValue?: string) => {
-    const result = t(key, defaultValue);
+    const result = defaultValue ? t(key, { defaultValue }) : t(key);
     return typeof result === 'string' ? result : String(result);
   };
   const statusConfig: Record<
@@ -123,7 +123,7 @@ export const getStatusBadge = (
 export const getContractTypeBadgeConfig = (t: TFunction, type?: string) => {
   if (!type) return null;
   const translate = (key: string, defaultValue?: string) => {
-    const result = t(key, defaultValue);
+    const result = defaultValue ? t(key, { defaultValue }) : t(key);
     return typeof result === 'string' ? result : String(result);
   };
 
