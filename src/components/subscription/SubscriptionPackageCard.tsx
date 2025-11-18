@@ -53,7 +53,10 @@ export const SubscriptionPackageCard = ({
       )}
 
       {/* Header */}
-      <CardHeader className="pt-6 pb-4 relative z-10">
+      <CardHeader className="pt-8 pb-4 relative z-10">
+        <div className="mb-3 text-xs font-semibold uppercase tracking-[0.35em] text-orange-500">
+          {t('subscription.card.planLabel')}
+        </div>
         <CardTitle className="text-2xl font-bold text-gray-900 group-hover:text-orange-600 transition-colors duration-300">
           {pkg.name}
         </CardTitle>

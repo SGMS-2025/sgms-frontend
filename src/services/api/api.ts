@@ -182,7 +182,13 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
-    // Convert MongoDB Decimal values in response data
+    // Skip MongoDB Decimal conversion for blob responses (file downloads)
+    // Blob responses should be returned as-is without any data transformation
+    if (response.config.responseType === 'blob') {
+      return response;
+    }
+
+    // Convert MongoDB Decimal values in response data for JSON responses only
     if (response.data) {
       response.data = convertMongoDecimalToNumbers(response.data);
     }
@@ -190,6 +196,30 @@ api.interceptors.response.use(
   },
   async (error: AxiosError) => {
     const originalRequest = error.config as typeof error.config & { _retry?: boolean };
+
+    // Skip error handling for blob responses - let them be handled by the calling code
+    if (originalRequest.responseType === 'blob') {
+      // For blob responses with error status, try to parse error message from blob
+      if (error.response && error.response.status >= 400) {
+        try {
+          const blob = error.response.data as Blob;
+          const text = await blob.text();
+          const errorData = JSON.parse(text);
+          // If it's a JSON error response, create a proper error
+          if (errorData.error) {
+            const apiError = new Error(errorData.error.message || 'Download failed');
+            // @ts-expect-error - Add custom properties
+            apiError.response = error.response;
+            return Promise.reject(apiError);
+          }
+        } catch {
+          // If parsing fails, it's likely a real blob error, throw it
+          return Promise.reject(error);
+        }
+      }
+      // For blob responses, reject to let caller handle
+      return Promise.reject(error);
+    }
 
     // Handle token refresh for 401 errors (except login endpoint)
     if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/login')) {

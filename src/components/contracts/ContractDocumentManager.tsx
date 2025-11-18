@@ -1,6 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Search, FileText, Edit, Trash2, Eye, Loader2, Send } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  FileText,
+  Edit,
+  Trash2,
+  Eye,
+  Loader2,
+  Send,
+  Mail,
+  CheckCircle2,
+  XCircle,
+  Download
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,6 +24,9 @@ import { toast } from 'sonner';
 import DocumentUploadDialog from './DocumentUploadDialog';
 import EmbeddedDocumentViewer from './EmbeddedDocumentViewer';
 import type { ContractDocument, DocumentStatus } from '@/types/api/ContractDocument';
+import { hasInvites, getStatusBadge, getContractTypeBadge } from '@/utils/contractDocumentUtils';
+import { useContractDocumentActions } from '@/hooks/useContractDocumentActions';
+import { useContractDocumentEvents, useVisibilityRefresh } from '@/hooks/useContractDocumentEvents';
 
 export default function ContractDocumentManager() {
   const { t } = useTranslation();
@@ -27,6 +43,7 @@ export default function ContractDocumentManager() {
   const [selectedDocument, setSelectedDocument] = useState<ContractDocument | null>(null);
   const [embeddedMode, setEmbeddedMode] = useState<'edit' | 'view' | 'sending'>('view');
   const [iframeUrl, setIframeUrl] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchDocuments = useCallback(async () => {
     setLoading(true);
@@ -58,6 +75,15 @@ export default function ContractDocumentManager() {
     fetchDocuments();
   }, [fetchDocuments]);
 
+  // Use shared hooks for event listeners
+  useContractDocumentEvents({
+    onDocumentUpdate: () => {
+      fetchDocuments();
+    }
+  });
+
+  useVisibilityRefresh(fetchDocuments);
+
   const handleUploaded = () => {
     fetchDocuments();
   };
@@ -74,39 +100,54 @@ export default function ContractDocumentManager() {
     setEmbeddedViewerOpen(true);
   };
 
-  const handleOpenSending = async (document: ContractDocument) => {
-    const redirectUrl = `${globalThis.location.origin}/manage/contracts`;
-    const response = await contractDocumentApi.createEmbeddedSending(document._id, {
-      type: 'document', // 'document' allows editing fields before sending, 'invite' opens invite page directly
-      redirectUrl,
-      linkExpiration: 45, // Max 45 minutes (SignNow API limit for embedded-sending)
-      redirectTarget: 'self'
-    });
+  // Use shared actions hook
+  const {
+    handleCancelInvite,
+    handleDownloadDocument,
+    handleOpenSending: handleOpenSendingAction
+  } = useContractDocumentActions({
+    onRefresh: fetchDocuments
+  });
 
-    if (response.success && response.data?.link) {
+  const handleOpenSending = async (document: ContractDocument) => {
+    const link = await handleOpenSendingAction(document);
+    if (link) {
       setSelectedDocument(document);
-      setEmbeddedMode('view'); // Reuse viewer component
-      setIframeUrl(response.data.link);
+      setEmbeddedMode('sending'); // Set mode to 'sending' for proper handling
+      setIframeUrl(link);
       setEmbeddedViewerOpen(true);
-    } else {
-      toast.error('Failed to create sending link');
     }
   };
 
   const handleEmbeddedClose = async () => {
-    // If we were editing a document, refresh its data from SignNow
-    if (embeddedMode === 'edit' && selectedDocument) {
+    // Prevent multiple simultaneous refresh calls
+    if (isRefreshing) {
+      return;
+    }
+
+    // If we were editing or sending a document, refresh its data from SignNow
+    if ((embeddedMode === 'edit' || embeddedMode === 'sending') && selectedDocument) {
+      setIsRefreshing(true);
       try {
         const response = await contractDocumentApi.refreshDocument(selectedDocument._id);
         if (response.success && response.data) {
-          const data = response.data as { updated?: boolean; message?: string };
+          const data = response.data as {
+            updated?: boolean;
+            message?: string;
+            status?: string;
+            signers?: Array<{ email: string; status?: string }>;
+          };
           if (data.updated) {
             toast.success(data.message || 'Document updated successfully');
           }
+          // Wait a bit to ensure DB is updated, then fetch fresh data
+          await new Promise((resolve) => setTimeout(resolve, 500));
         }
       } catch (error) {
         console.error('Failed to refresh document:', error);
         // Don't show error toast - just continue with normal refresh
+      } finally {
+        setIsRefreshing(false);
       }
     }
 
@@ -115,7 +156,7 @@ export default function ContractDocumentManager() {
     setSelectedDocument(null);
 
     // Refresh documents list after editing/viewing/sending
-    fetchDocuments();
+    await fetchDocuments();
   };
 
   const handleDelete = async (documentId: string) => {
@@ -130,45 +171,6 @@ export default function ContractDocumentManager() {
     } else {
       toast.error('Failed to delete document');
     }
-  };
-
-  const getStatusBadge = (status: DocumentStatus) => {
-    const statusConfig: Record<
-      DocumentStatus,
-      { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }
-    > = {
-      uploaded: { label: t('contracts.status.uploaded', 'Uploaded'), variant: 'default' },
-      processing: { label: t('contracts.status.processing', 'Processing'), variant: 'secondary' },
-      ready: { label: t('contracts.status.ready', 'Ready'), variant: 'default' },
-      signed: { label: t('contracts.status.signed', 'Signed'), variant: 'default' },
-      archived: { label: t('contracts.status.archived', 'Archived'), variant: 'secondary' },
-      deleted: { label: t('contracts.status.deleted', 'Deleted'), variant: 'destructive' }
-    };
-
-    const config = statusConfig[status] || statusConfig.uploaded;
-    return (
-      <Badge variant={config.variant} className="text-xs">
-        {config.label}
-      </Badge>
-    );
-  };
-
-  const getContractTypeBadge = (contractType?: string) => {
-    if (!contractType) return null;
-
-    const typeConfig: Record<string, { label: string; className: string }> = {
-      membership: { label: 'Membership', className: 'bg-blue-500/10 text-blue-700 border-blue-200' },
-      service_pt: { label: 'PT (1-on-1)', className: 'bg-green-500/10 text-green-700 border-green-200' },
-      service_class: { label: 'Class (Group)', className: 'bg-purple-500/10 text-purple-700 border-purple-200' },
-      custom: { label: 'Custom', className: 'bg-gray-500/10 text-gray-700 border-gray-200' }
-    };
-
-    const config = typeConfig[contractType] || typeConfig.custom;
-    return (
-      <Badge variant="outline" className={`text-xs font-medium ${config.className}`}>
-        {config.label}
-      </Badge>
-    );
   };
 
   return (
@@ -232,6 +234,9 @@ export default function ContractDocumentManager() {
             <SelectItem value="uploaded">{t('contracts.status.uploaded', 'Uploaded')}</SelectItem>
             <SelectItem value="processing">{t('contracts.status.processing', 'Processing')}</SelectItem>
             <SelectItem value="ready">{t('contracts.status.ready', 'Ready')}</SelectItem>
+            <SelectItem value="waiting_for_others">
+              {t('contracts.status.waiting_for_others', 'Waiting for Others')}
+            </SelectItem>
             <SelectItem value="signed">{t('contracts.status.signed', 'Signed')}</SelectItem>
             <SelectItem value="archived">{t('contracts.status.archived', 'Archived')}</SelectItem>
           </SelectContent>
@@ -260,9 +265,9 @@ export default function ContractDocumentManager() {
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <FileText className="h-5 w-5 text-orange-500" />
                       <h3 className="font-semibold text-gray-900">{doc.title}</h3>
-                      {getStatusBadge(doc.status)}
-                      {doc.isTemplate && doc.templateContractType && getContractTypeBadge(doc.templateContractType)}
-                      {!doc.isTemplate && doc.contractType && getContractTypeBadge(doc.contractType)}
+                      {getStatusBadge(doc.status, t, 'default')}
+                      {doc.isTemplate && doc.templateContractType && getContractTypeBadge(t, doc.templateContractType)}
+                      {!doc.isTemplate && doc.contractType && getContractTypeBadge(t, doc.contractType)}
                       {doc.isTemplate && (
                         <Badge
                           variant="outline"
@@ -300,6 +305,45 @@ export default function ContractDocumentManager() {
                         </>
                       )}
                     </div>
+                    {/* Signers Information */}
+                    {doc.signers && doc.signers.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <div className="flex items-start gap-2 text-sm">
+                          <Mail className="mt-0.5 h-4 w-4 text-gray-400" />
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-500 mb-2">
+                              {t('contracts.signers_emails', 'Signers Email')}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {doc.signers.map((signer, index) => {
+                                const isSigned = signer.status === 'signed';
+                                return (
+                                  <div
+                                    key={signer.email || index}
+                                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border ${
+                                      isSigned ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+                                    }`}
+                                  >
+                                    {isSigned ? (
+                                      <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                    ) : (
+                                      <Mail className="h-3 w-3 text-gray-400" />
+                                    )}
+                                    <span
+                                      className={`text-xs font-medium ${isSigned ? 'text-green-700' : 'text-gray-700'}`}
+                                    >
+                                      {index + 1}. {signer.email}
+                                    </span>
+                                    {signer.name && <span className="text-xs text-gray-500">({signer.name})</span>}
+                                    {isSigned && <span className="text-xs text-green-600 font-medium">✓</span>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 ml-4">
                     <Button
@@ -312,37 +356,68 @@ export default function ContractDocumentManager() {
                       <Eye className="mr-1 h-3 w-3" />
                       {t('contracts.view', 'View')}
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenEditor(doc)}
-                      disabled={doc.status === 'deleted'}
-                      title={t('contracts.edit_document', 'Edit Document')}
-                    >
-                      <Edit className="mr-1 h-3 w-3" />
-                      {t('contracts.edit', 'Edit')}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenSending(doc)}
-                      disabled={doc.status === 'deleted'}
-                      title={t('contracts.send_document', 'Send Document for Signature')}
-                      className="bg-orange-500 text-white hover:bg-orange-600"
-                    >
-                      <Send className="mr-1 h-3 w-3" />
-                      {t('contracts.send', 'Send')}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(doc._id)}
-                      disabled={doc.status === 'deleted'}
-                      className="text-red-600 hover:text-red-700"
-                      title={t('contracts.delete', 'Delete')}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                    {doc.status === 'signed' ? (
+                      // For signed documents, only show View and Download
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadDocument(doc)}
+                        disabled={false}
+                        title={t('contracts.download_document', 'Download Document')}
+                      >
+                        <Download className="mr-1 h-3 w-3" />
+                        {t('contracts.download', 'Download')}
+                      </Button>
+                    ) : (
+                      // For non-signed documents, show Edit, Send/Cancel Invite, and Delete
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenEditor(doc)}
+                          disabled={doc.status === 'deleted'}
+                          title={t('contracts.edit_document', 'Edit Document')}
+                        >
+                          <Edit className="mr-1 h-3 w-3" />
+                          {t('contracts.edit', 'Edit')}
+                        </Button>
+                        {hasInvites(doc) ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCancelInvite(doc)}
+                            disabled={doc.status === 'deleted'}
+                            title={t('contracts.cancel_invite', 'Cancel Invite')}
+                            className="bg-red-500 text-white hover:bg-red-600"
+                          >
+                            <XCircle className="mr-1 h-3 w-3" />
+                            {t('contracts.cancel_invite', 'Cancel Invite')}
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenSending(doc)}
+                            disabled={doc.status === 'deleted'}
+                            title={t('contracts.send_document', 'Send Document for Signature')}
+                            className="bg-orange-500 text-white hover:bg-orange-600"
+                          >
+                            <Send className="mr-1 h-3 w-3" />
+                            {t('contracts.send', 'Send')}
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(doc._id)}
+                          disabled={doc.status === 'deleted'}
+                          className="text-red-600 hover:text-red-700"
+                          title={t('contracts.delete', 'Delete')}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

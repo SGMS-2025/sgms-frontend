@@ -28,9 +28,14 @@ export const SendContractStep: React.FC<SendContractStepProps> = ({ contractDocu
 
     setIsSending(true);
     try {
+      // Use callback page to handle redirect and prevent nested dashboard
+      // Use 'document' type to allow editing fields before sending (same as ContractDocumentsTab)
+      const redirectUrl = `${globalThis.location.origin}/signnow/callback`;
       const response = await contractDocumentApi.createEmbeddedSending(contractDocument._id, {
-        type: 'invite',
-        redirectUrl: `${globalThis.location.origin}/manage/contracts`
+        type: 'document', // 'document' allows editing fields before sending, 'invite' opens invite page directly
+        redirectUrl,
+        linkExpiration: 45, // Max 45 minutes (SignNow API limit for embedded-sending)
+        redirectTarget: 'self' // Redirect in same iframe, but callback page will handle closing
       });
 
       if (response.success && response.data?.link) {
@@ -47,9 +52,28 @@ export const SendContractStep: React.FC<SendContractStepProps> = ({ contractDocu
   };
 
   const handleSendingViewerClose = () => {
+    // Prevent multiple calls (onSave and onClose both call this)
+    if (!showSendingViewer) {
+      return; // Already handled
+    }
+
+    // Close the viewer first
     setShowSendingViewer(false);
     setSendingIframeUrl(null);
+
+    // Show success message immediately
     toast.success(t('contracts.contract_sent', 'Hợp đồng đã được gửi đi!'));
+
+    // Refresh document in background (non-blocking) to update signers info
+    if (contractDocument) {
+      // Fire and forget - refresh in background without blocking UI
+      contractDocumentApi.refreshDocument(contractDocument._id).catch((error) => {
+        console.error('Failed to refresh document:', error);
+        // Silently fail - user already sees success step
+      });
+    }
+
+    // Move to success step immediately (only once)
     onSendNow();
   };
 
@@ -136,7 +160,8 @@ export const SendContractStep: React.FC<SendContractStepProps> = ({ contractDocu
           documentTitle={contractDocument.title || 'Contract Document'}
           mode="sending"
           iframeUrl={sendingIframeUrl}
-          onClose={handleSendingViewerClose}
+          onSave={handleSendingViewerClose}
+          // Don't pass onClose - onSave will handle everything to avoid double call
         />
       )}
     </>

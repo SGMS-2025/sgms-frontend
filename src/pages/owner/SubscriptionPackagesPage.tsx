@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Package, TrendingUp, CheckCircle2, Clock } from 'lucide-react';
+import { type LucideIcon, Package, TrendingUp, CheckCircle2, Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { SubscriptionPackageCard } from '@/components/subscription/SubscriptionPackageCard';
@@ -8,10 +8,30 @@ import { PurchaseSubscriptionModal } from '@/components/subscription/PurchaseSub
 import { BusinessVerificationAlert } from '@/components/business/BusinessVerificationAlert';
 import BusinessVerificationModal from '@/components/business/BusinessVerificationModal';
 import { useSubscriptionPackages } from '@/hooks/useSubscriptionPackages';
+import { Button } from '@/components/ui/button';
 
 export const SubscriptionPackagesPage = () => {
   const { t } = useTranslation();
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const packagesRef = useRef<HTMLDivElement | null>(null);
+
+  const heroHighlights: { icon: LucideIcon; title: string; description: string }[] = [
+    {
+      icon: Package,
+      title: t('subscription.hero.highlightMembers'),
+      description: t('subscription.hero.highlightMembersHint')
+    },
+    {
+      icon: TrendingUp,
+      title: t('subscription.hero.highlightStrategy'),
+      description: t('subscription.hero.highlightStrategyHint')
+    },
+    {
+      icon: CheckCircle2,
+      title: t('subscription.hero.highlightSupport'),
+      description: t('subscription.hero.highlightSupportHint')
+    }
+  ];
 
   const {
     packages,
@@ -28,6 +48,13 @@ export const SubscriptionPackagesPage = () => {
     getCustomerUsage
   } = useSubscriptionPackages();
 
+  const handleScrollToPackages = () => {
+    packagesRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50/30 to-white">
@@ -41,9 +68,61 @@ export const SubscriptionPackagesPage = () => {
 
   return (
     <div className="relative min-h-screen from-orange-50/30 via-orange-50/20 to-white">
-      <div className="relative container mx-auto px-4 pt-4 pb-12 max-w-7xl">
+      <div className="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-orange-100/40 via-orange-50/10 to-transparent blur-[120px] pointer-events-none"></div>
+      <div className="relative w-full max-w-[1920px] mx-auto px-2 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 pt-4 pb-12">
+        {/* Hero */}
+        <section className="relative overflow-hidden rounded-[32px] border border-orange-100/60 bg-gradient-to-r from-orange-50 via-white to-amber-50 px-6 py-10 md:px-16 md:py-14 shadow-[0_20px_80px_rgba(244,114,40,0.18)]">
+          <div className="absolute -top-12 -right-6 h-64 w-64 rounded-full bg-orange-200/40 blur-3xl"></div>
+          <div className="absolute bottom-8 right-14 hidden sm:block h-28 w-28 rounded-full border border-orange-200/60"></div>
+          <div className="absolute bottom-0 left-1/3 h-24 w-24 rounded-full bg-gradient-to-br from-amber-100/60 to-transparent blur-2xl"></div>
+          <div className="relative z-10 flex flex-col gap-6">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-orange-600 shadow-sm">
+              {t('subscription.hero.tag')}
+            </div>
+            <div className="space-y-4 max-w-3xl">
+              <h1 className="text-3xl font-bold text-gray-900 md:text-5xl md:leading-tight">
+                {t('subscription.hero.title')}
+              </h1>
+              <p className="text-base text-gray-600 md:text-lg">{t('subscription.hero.subtitle')}</p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                onClick={handleScrollToPackages}
+                className="h-12 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-8 text-base font-semibold shadow-lg shadow-orange-500/40 hover:scale-[1.02] hover:shadow-xl hover:shadow-orange-500/40"
+              >
+                {t('subscription.hero.ctaTrial')}
+              </Button>
+              <Button
+                variant="outline"
+                className="h-12 rounded-full border-2 border-orange-300 bg-white px-8 text-base font-semibold text-orange-600 shadow-none hover:border-orange-400 hover:bg-orange-50"
+                asChild
+              >
+                <a href="https://gymsmart.site/contact" target="_blank" rel="noreferrer">
+                  {t('subscription.hero.ctaContact')}
+                </a>
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 gap-4 pt-4 md:grid-cols-3">
+              {heroHighlights.map(({ icon: Icon, title, description }) => (
+                <div
+                  key={title}
+                  className="flex items-center gap-4 rounded-2xl border border-white/70 bg-white/80 p-4 shadow-inner shadow-orange-100/70 backdrop-blur-sm"
+                >
+                  <div className="rounded-2xl bg-gradient-to-br from-orange-100 to-amber-100 p-3 text-orange-600 shadow">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-semibold text-gray-900">{title}</p>
+                    <p className="text-xs text-gray-600">{description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Business Verification Alert */}
-        <div className="mb-8">
+        <div className="mt-8 mb-8">
           <BusinessVerificationAlert onOpenVerificationModal={() => setIsVerificationModalOpen(true)} />
         </div>
 
@@ -152,7 +231,12 @@ export const SubscriptionPackagesPage = () => {
         })()}
 
         {/* Packages Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+        <section
+          ref={packagesRef}
+          id="subscription-packages"
+          className="relative mb-12 mt-12 rounded-[32px] border border-orange-100/80 bg-white/80 p-6 shadow-[0_30px_80px_rgba(244,114,40,0.12)] backdrop-blur"
+        >
+          <div className="pointer-events-none absolute inset-x-12 -top-10 h-20 rounded-full bg-gradient-to-b from-orange-100/40 to-transparent blur-3xl"></div>
           <style>{`
             @keyframes fade-in {
               from {
@@ -168,24 +252,26 @@ export const SubscriptionPackagesPage = () => {
               animation: fade-in 0.5s ease-out;
             }
           `}</style>
-          {packages.map((pkg) => {
-            const isCurrentPackage = currentPackageTier === pkg.tier;
-            const isLowerTier = currentPackageTier !== null && pkg.tier < currentPackageTier;
-            // Allow renew (same tier) and upgrade (higher tier), but disable downgrade (lower tier)
-            const isDisabled = isLowerTier;
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {packages.map((pkg) => {
+              const isCurrentPackage = currentPackageTier === pkg.tier;
+              const isLowerTier = currentPackageTier !== null && pkg.tier < currentPackageTier;
+              // Allow renew (same tier) and upgrade (higher tier), but disable downgrade (lower tier)
+              const isDisabled = isLowerTier;
 
-            return (
-              <SubscriptionPackageCard
-                key={pkg._id}
-                package={pkg}
-                isCurrentPackage={isCurrentPackage}
-                isLowerTier={isLowerTier}
-                onSelect={handleSelectPackage}
-                disabled={isDisabled}
-              />
-            );
-          })}
-        </div>
+              return (
+                <SubscriptionPackageCard
+                  key={pkg._id}
+                  package={pkg}
+                  isCurrentPackage={isCurrentPackage}
+                  isLowerTier={isLowerTier}
+                  onSelect={handleSelectPackage}
+                  disabled={isDisabled}
+                />
+              );
+            })}
+          </div>
+        </section>
 
         {/* Purchase Modal */}
         <PurchaseSubscriptionModal

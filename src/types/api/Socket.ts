@@ -24,7 +24,8 @@ export type NotificationCategory =
   | 'general'
   | 'timeoff'
   | 'reschedule'
-  | 'membership';
+  | 'membership'
+  | 'contract';
 
 export interface NotificationData {
   type: string;
@@ -170,6 +171,10 @@ export interface SocketEvents {
   'reschedule-notification': (data: RescheduleNotificationData) => void;
   'payment:updated': (data: PaymentUpdateEvent) => void;
   'membership:contract:updated': (data: MembershipContractUpdateEvent) => void;
+
+  // Contract signing events
+  'contract:signer:signed': (data: ContractSignerSignedEvent) => void;
+  'contract:completed': (data: ContractCompletedEvent) => void;
 
   // Schedule events
   'schedule-created': (data: Record<string, unknown>) => void;
@@ -318,6 +323,46 @@ export interface MembershipContractUpdateEvent {
   branch: {
     _id: string;
     branchName: string;
+  };
+  timestamp: string;
+}
+
+export interface ContractSignerSignedEvent {
+  id?: string;
+  title: string;
+  message: string;
+  type: string;
+  priority: NotificationPriority;
+  category: string;
+  data: {
+    documentId: string;
+    documentTitle: string;
+    signerEmail: string;
+    signerName: string;
+    signerStatus: string;
+    totalSigners: number;
+    signedCount: number;
+  };
+  timestamp: string;
+}
+
+export interface ContractCompletedEvent {
+  id?: string;
+  title: string;
+  message: string;
+  type: string;
+  priority: NotificationPriority;
+  category: string;
+  data: {
+    documentId: string;
+    documentTitle: string;
+    totalSigners: number;
+    signedSigners: Array<{
+      email: string;
+      name: string;
+      status: string;
+    }>;
+    completedAt: string;
   };
   timestamp: string;
 }
