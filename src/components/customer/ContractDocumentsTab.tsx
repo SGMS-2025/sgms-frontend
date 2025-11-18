@@ -11,7 +11,12 @@ import {
   Tag,
   Plus,
   AlertTriangle,
-  TrendingUp
+  TrendingUp,
+  Mail,
+  CheckCircle2,
+  RefreshCw,
+  XCircle,
+  Download
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -25,6 +30,9 @@ import { useBranch } from '@/contexts/BranchContext';
 import { toast } from 'sonner';
 import type { ContractDocument } from '@/types/api/ContractDocument';
 import EmbeddedDocumentViewer from '@/components/contracts/EmbeddedDocumentViewer';
+import { hasInvites, getStatusBadge, getContractTypeBadge } from '@/utils/contractDocumentUtils';
+import { useContractDocumentActions } from '@/hooks/useContractDocumentActions';
+import { useContractDocumentEvents, useVisibilityRefresh } from '@/hooks/useContractDocumentEvents';
 
 interface ContractDocumentsTabProps {
   customerId: string;
@@ -51,44 +59,6 @@ const formatDate = (dateString?: string, locale: string = 'vi-VN') => {
   });
 };
 
-const getStatusBadge = (status: string, t: (key: string) => string) => {
-  const statusConfig: Record<string, { label: string; className: string }> = {
-    uploaded: { label: t('contracts.status.uploaded'), className: 'bg-blue-500/10 text-blue-700 border-blue-200' },
-    processing: {
-      label: t('contracts.status.processing'),
-      className: 'bg-amber-500/10 text-amber-700 border-amber-200'
-    },
-    ready: { label: t('contracts.status.ready'), className: 'bg-green-500/10 text-green-700 border-green-200' },
-    signed: { label: t('contracts.status.signed'), className: 'bg-emerald-500/10 text-emerald-700 border-emerald-200' },
-    archived: { label: t('contracts.status.archived'), className: 'bg-gray-500/10 text-gray-700 border-gray-200' },
-    deleted: { label: t('contracts.status.deleted'), className: 'bg-red-500/10 text-red-700 border-red-200' }
-  };
-
-  const config = statusConfig[status] || statusConfig.uploaded;
-  return (
-    <Badge variant="outline" className={`text-xs font-medium ${config.className}`}>
-      {config.label}
-    </Badge>
-  );
-};
-
-const getContractTypeBadge = (t: (key: string) => string, type?: string) => {
-  if (!type) return null;
-  const typeConfig: Record<string, { label: string; className: string }> = {
-    membership: { label: t('contracts.type_membership'), className: 'bg-primary/10 text-primary border-primary/20' },
-    service_class: { label: t('contracts.type_class'), className: 'bg-blue-500/10 text-blue-700 border-blue-200' },
-    service_pt: { label: t('contracts.type_pt'), className: 'bg-purple-500/10 text-purple-700 border-purple-200' },
-    custom: { label: t('contracts.type_custom'), className: 'bg-gray-500/10 text-gray-700 border-gray-200' }
-  };
-
-  const config = typeConfig[type] || typeConfig.custom;
-  return (
-    <Badge variant="outline" className={`text-xs font-medium ${config.className}`}>
-      {config.label}
-    </Badge>
-  );
-};
-
 export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ customerId }) => {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
@@ -112,14 +82,6 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
   const [contractsWithoutDocuments, setContractsWithoutDocuments] = useState<ContractWithoutDocument[]>([]);
   const [loadingMissingContracts, setLoadingMissingContracts] = useState(false);
 
-  useEffect(() => {
-    if (customerId) {
-      fetchContracts();
-      fetchContractsWithoutDocuments();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customerId]);
-
   const fetchContracts = async () => {
     setLoading(true);
     setError(null);
@@ -133,6 +95,23 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
 
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (customerId) {
+      fetchContracts();
+      fetchContractsWithoutDocuments();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerId]);
+
+  // Use shared hooks for event listeners
+  useContractDocumentEvents({
+    onDocumentUpdate: () => {
+      fetchContracts();
+    }
+  });
+
+  useVisibilityRefresh(fetchContracts);
 
   const fetchContractsWithoutDocuments = async () => {
     setLoadingMissingContracts(true);
@@ -253,29 +232,56 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
     setEmbeddedViewerOpen(true);
   };
 
-  const handleOpenSending = async (document: ContractDocument) => {
-    const redirectUrl = `${globalThis.location.origin}/manage/customers/${customerId}/detail`;
-    const response = await contractDocumentApi.createEmbeddedSending(document._id, {
-      type: 'document',
-      redirectUrl,
-      linkExpiration: 45,
-      redirectTarget: 'self'
-    });
+  // Use shared actions hook
+  const {
+    handleCancelInvite,
+    handleDownloadDocument,
+    handleOpenSending: handleOpenSendingAction,
+    handleRefreshDocument
+  } = useContractDocumentActions({
+    onRefresh: fetchContracts
+  });
 
-    if (response.success && response.data?.link) {
+  const handleOpenSending = async (document: ContractDocument) => {
+    const link = await handleOpenSendingAction(document);
+    if (link) {
       setSelectedDocument(document);
-      setEmbeddedMode('view');
-      setIframeUrl(response.data.link);
+      setEmbeddedMode('sending');
+      setIframeUrl(link);
       setEmbeddedViewerOpen(true);
-    } else {
-      toast.error(response.message || t('customer_detail.contracts.error.send_link_failed'));
     }
   };
 
-  const handleEmbeddedClose = () => {
+  const handleEmbeddedClose = async () => {
+    // If we were sending a document, refresh its data to get signers info
+    if (embeddedMode === 'sending' && selectedDocument) {
+      try {
+        const response = await contractDocumentApi.refreshDocument(selectedDocument._id);
+        if (response.success && response.data) {
+          const data = response.data as {
+            updated?: boolean;
+            message?: string;
+            status?: string;
+            signers?: Array<{ email: string; status?: string }>;
+          };
+          if (data.updated) {
+            toast.success(data.message || 'Document updated successfully');
+          }
+          // Wait a bit to ensure DB is updated, then fetch fresh data
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      } catch (error) {
+        console.error('Failed to refresh document:', error);
+        // Don't show error toast - just continue with normal refresh
+      }
+    }
+
     setIframeUrl(null);
     setSelectedDocument(null);
-    fetchContracts();
+    setEmbeddedViewerOpen(false);
+
+    // Fetch fresh data after closing
+    await fetchContracts();
     fetchContractsWithoutDocuments();
   };
 
@@ -524,7 +530,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                     <div className="flex-1 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         {getContractTypeBadge(t, contract.contractType)}
-                        {getStatusBadge(contract.status, t)}
+                        {getStatusBadge(contract.status, t, 'outline')}
                         {contract.isTemplate && (
                           <Badge
                             variant="outline"
@@ -598,6 +604,48 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                     )}
                   </div>
 
+                  {/* Signers Information */}
+                  {contract.signers && contract.signers.length > 0 && (
+                    <div className="pt-3 border-t border-border">
+                      <div className="flex items-start gap-2 text-sm">
+                        <Mail className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                        <div className="flex-1">
+                          <p className="text-xs text-muted-foreground mb-2">
+                            {t('customer_detail.contracts.details.signers_emails', 'Signers Email')}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {contract.signers.map((signer, index) => {
+                              const isSigned = signer.status === 'signed';
+                              return (
+                                <div
+                                  key={signer.email || index}
+                                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border ${
+                                    isSigned ? 'bg-green-50 border-green-200' : 'bg-muted/50 border-border'
+                                  }`}
+                                >
+                                  {isSigned ? (
+                                    <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                  ) : (
+                                    <Mail className="h-3 w-3 text-muted-foreground" />
+                                  )}
+                                  <span
+                                    className={`text-xs font-medium ${isSigned ? 'text-green-700' : 'text-foreground'}`}
+                                  >
+                                    {index + 1}. {signer.email}
+                                  </span>
+                                  {signer.name && (
+                                    <span className="text-xs text-muted-foreground">({signer.name})</span>
+                                  )}
+                                  {isSigned && <span className="text-xs text-green-600 font-medium">✓</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Actions */}
                   <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
                     <Button
@@ -610,26 +658,67 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                       <Eye className="mr-1 h-3 w-3" />
                       {t('contracts.view')}
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenEditor(contract)}
-                      disabled={contract.status === 'deleted'}
-                      className="rounded-full"
-                    >
-                      <Edit className="mr-1 h-3 w-3" />
-                      {t('contracts.edit')}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenSending(contract)}
-                      disabled={contract.status === 'deleted'}
-                      className="rounded-full bg-orange-500 text-white hover:bg-orange-600"
-                    >
-                      <Send className="mr-1 h-3 w-3" />
-                      {t('contracts.send')}
-                    </Button>
+                    {contract.status === 'signed' ? (
+                      // For signed documents, only show View and Download
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadDocument(contract)}
+                        disabled={false}
+                        className="rounded-full"
+                      >
+                        <Download className="mr-1 h-3 w-3" />
+                        {t('contracts.download', 'Download')}
+                      </Button>
+                    ) : (
+                      // For non-signed documents, show Edit, Send/Cancel Invite, and Refresh
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenEditor(contract)}
+                          disabled={contract.status === 'deleted'}
+                          className="rounded-full"
+                        >
+                          <Edit className="mr-1 h-3 w-3" />
+                          {t('contracts.edit')}
+                        </Button>
+                        {hasInvites(contract) ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCancelInvite(contract)}
+                            disabled={contract.status === 'deleted'}
+                            className="rounded-full bg-red-500 text-white hover:bg-red-600"
+                          >
+                            <XCircle className="mr-1 h-3 w-3" />
+                            {t('contracts.cancel_invite', 'Cancel Invite')}
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenSending(contract)}
+                            disabled={contract.status === 'deleted'}
+                            className="rounded-full bg-orange-500 text-white hover:bg-orange-600"
+                          >
+                            <Send className="mr-1 h-3 w-3" />
+                            {t('contracts.send')}
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRefreshDocument(contract._id)}
+                          disabled={contract.status === 'deleted'}
+                          className="rounded-full"
+                          title="Refresh document status from SignNow"
+                        >
+                          <RefreshCw className="mr-1 h-3 w-3" />
+                          Refresh
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -712,7 +801,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          {getContractTypeBadge(t, template.contractType)}
+                          {getContractTypeBadge(t, template.templateContractType || template.contractType)}
                           {template.isTemplate && (
                             <Badge
                               variant="outline"
