@@ -30,6 +30,9 @@ import { useBranch } from '@/contexts/BranchContext';
 import { toast } from 'sonner';
 import type { ContractDocument } from '@/types/api/ContractDocument';
 import EmbeddedDocumentViewer from '@/components/contracts/EmbeddedDocumentViewer';
+import { hasInvites, getStatusBadge, getContractTypeBadge } from '@/utils/contractDocumentUtils';
+import { useContractDocumentActions } from '@/hooks/useContractDocumentActions';
+import { useContractDocumentEvents, useVisibilityRefresh } from '@/hooks/useContractDocumentEvents';
 
 interface ContractDocumentsTabProps {
   customerId: string;
@@ -54,48 +57,6 @@ const formatDate = (dateString?: string, locale: string = 'vi-VN') => {
     month: '2-digit',
     year: 'numeric'
   });
-};
-
-const getStatusBadge = (status: string, t: (key: string) => string) => {
-  const statusConfig: Record<string, { label: string; className: string }> = {
-    uploaded: { label: t('contracts.status.uploaded'), className: 'bg-blue-500/10 text-blue-700 border-blue-200' },
-    processing: {
-      label: t('contracts.status.processing'),
-      className: 'bg-amber-500/10 text-amber-700 border-amber-200'
-    },
-    ready: { label: t('contracts.status.ready'), className: 'bg-green-500/10 text-green-700 border-green-200' },
-    waiting_for_others: {
-      label: t('contracts.status.waiting_for_others') || 'Waiting for Others',
-      className: 'bg-yellow-500/10 text-yellow-700 border-yellow-200'
-    },
-    signed: { label: t('contracts.status.signed'), className: 'bg-emerald-500/10 text-emerald-700 border-emerald-200' },
-    archived: { label: t('contracts.status.archived'), className: 'bg-gray-500/10 text-gray-700 border-gray-200' },
-    deleted: { label: t('contracts.status.deleted'), className: 'bg-red-500/10 text-red-700 border-red-200' }
-  };
-
-  const config = statusConfig[status] || statusConfig.uploaded;
-  return (
-    <Badge variant="outline" className={`text-xs font-medium ${config.className}`}>
-      {config.label}
-    </Badge>
-  );
-};
-
-const getContractTypeBadge = (t: (key: string) => string, type?: string) => {
-  if (!type) return null;
-  const typeConfig: Record<string, { label: string; className: string }> = {
-    membership: { label: t('contracts.type_membership'), className: 'bg-primary/10 text-primary border-primary/20' },
-    service_class: { label: t('contracts.type_class'), className: 'bg-blue-500/10 text-blue-700 border-blue-200' },
-    service_pt: { label: t('contracts.type_pt'), className: 'bg-purple-500/10 text-purple-700 border-purple-200' },
-    custom: { label: t('contracts.type_custom'), className: 'bg-gray-500/10 text-gray-700 border-gray-200' }
-  };
-
-  const config = typeConfig[type] || typeConfig.custom;
-  return (
-    <Badge variant="outline" className={`text-xs font-medium ${config.className}`}>
-      {config.label}
-    </Badge>
-  );
 };
 
 export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ customerId }) => {
@@ -143,61 +104,14 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerId]);
 
-  // Listen for contract signing events to refresh data
-  useEffect(() => {
-    const handleContractSignerSigned = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const data = customEvent.detail;
+  // Use shared hooks for event listeners
+  useContractDocumentEvents({
+    onDocumentUpdate: () => {
+      fetchContracts();
+    }
+  });
 
-      // Refresh contracts to show updated signer status
-      if (data?.data?.documentId) {
-        // Wait a bit for backend to fully update, then refresh
-        setTimeout(() => {
-          fetchContracts();
-        }, 500);
-      }
-    };
-
-    const handleContractCompleted = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const data = customEvent.detail;
-
-      // Refresh contracts to show completed status
-      if (data?.data?.documentId) {
-        // Wait a bit for backend to fully update, then refresh
-        setTimeout(() => {
-          fetchContracts();
-        }, 500);
-      }
-    };
-
-    // Listen for contract signing events
-    globalThis.addEventListener('contract:signer:signed', handleContractSignerSigned);
-    globalThis.addEventListener('contract:completed', handleContractCompleted);
-
-    return () => {
-      globalThis.removeEventListener('contract:signer:signed', handleContractSignerSigned);
-      globalThis.removeEventListener('contract:completed', handleContractCompleted);
-    };
-  }, [fetchContracts]);
-
-  // Refresh when window/tab becomes visible (user comes back to the page)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        // User returned to the page, refresh contracts to get latest status
-        fetchContracts();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleVisibilityChange);
-    };
-  }, [fetchContracts]);
+  useVisibilityRefresh(fetchContracts);
 
   const fetchContractsWithoutDocuments = async () => {
     setLoadingMissingContracts(true);
@@ -318,134 +232,23 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
     setEmbeddedViewerOpen(true);
   };
 
-  const handleOpenSending = async (document: ContractDocument) => {
-    // Use callback page to handle redirect and prevent nested dashboard
-    const redirectUrl = `${globalThis.location.origin}/signnow/callback`;
-    const response = await contractDocumentApi.createEmbeddedSending(document._id, {
-      type: 'document',
-      redirectUrl,
-      linkExpiration: 45,
-      redirectTarget: 'self' // Redirect in same iframe, but callback page will handle closing
-    });
+  // Use shared actions hook
+  const {
+    handleCancelInvite,
+    handleDownloadDocument,
+    handleOpenSending: handleOpenSendingAction,
+    handleRefreshDocument
+  } = useContractDocumentActions({
+    onRefresh: fetchContracts
+  });
 
-    if (response.success && response.data?.link) {
+  const handleOpenSending = async (document: ContractDocument) => {
+    const link = await handleOpenSendingAction(document);
+    if (link) {
       setSelectedDocument(document);
       setEmbeddedMode('sending');
-      setIframeUrl(response.data.link);
+      setIframeUrl(link);
       setEmbeddedViewerOpen(true);
-    } else {
-      toast.error(response.message || t('customer_detail.contracts.error.send_link_failed'));
-    }
-  };
-
-  /**
-   * Check if document has active invites (has been sent and not all cancelled)
-   * A document has invites if:
-   * - status is 'waiting_for_others' (actively waiting for signatures)
-   * - OR status is 'signed' (but this is final state, can't cancel)
-   * - OR signersCount > 0 AND status is not 'ready' (has been sent)
-   *
-   * Note: After cancelling invites, status should be 'ready' and signersCount = 0,
-   * which means no active invites, so user can send again.
-   */
-  const hasInvites = (document: ContractDocument): boolean => {
-    // If status is 'waiting_for_others', definitely has active invites
-    if (document.status === 'waiting_for_others') {
-      return true;
-    }
-
-    // If status is 'signed', document is complete (can't cancel)
-    if (document.status === 'signed') {
-      return false; // Can't cancel signed documents
-    }
-
-    // If status is 'ready', 'uploaded', or 'processing', no active invites
-    if (['ready', 'uploaded', 'processing'].includes(document.status || '')) {
-      return false;
-    }
-
-    // For other statuses, check if there are signers
-    // But only if status indicates invites were sent
-    if (document.signersCount && document.signersCount > 0) {
-      // Check if any signers are still pending (not all signed)
-      if (document.signers && document.signers.length > 0) {
-        const hasPendingSigners = document.signers.some(
-          (s) => s.status === 'pending' || s.status === 'sent' || !s.status || s.status === ''
-        );
-        return hasPendingSigners;
-      }
-      return true;
-    }
-
-    return false;
-  };
-
-  const handleCancelInvite = async (document: ContractDocument) => {
-    try {
-      const response = await contractDocumentApi.cancelInvite(document._id);
-      if (response.success) {
-        toast.success(response.message || t('contracts.cancel_invite_success', 'Invite cancelled successfully'));
-        // Wait a bit to ensure DB is updated, then fetch fresh data
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        await fetchContracts();
-      } else {
-        toast.error(response.message || t('contracts.cancel_invite_error', 'Failed to cancel invite'));
-      }
-    } catch (error) {
-      console.error('Failed to cancel invite:', error);
-      toast.error(t('contracts.cancel_invite_error', 'Failed to cancel invite'));
-    }
-  };
-
-  const handleDownloadDocument = async (contractDoc: ContractDocument) => {
-    try {
-      const blob = await contractDocumentApi.downloadDocument(contractDoc._id);
-
-      // Check if blob is valid
-      if (!blob || blob.size === 0) {
-        toast.error(t('contracts.download_error', 'Failed to download document: Empty file'));
-        return;
-      }
-
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const link = window.document.createElement('a');
-      link.href = url;
-      link.download = contractDoc.fileName || `${contractDoc.title}.pdf`;
-      window.document.body.appendChild(link);
-      link.click();
-      window.document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      toast.success(t('contracts.download_success', 'Document downloaded successfully'));
-    } catch (error) {
-      console.error('Failed to download document:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      toast.error(t('contracts.download_error', `Failed to download document: ${errorMessage}`));
-    }
-  };
-
-  const handleRefreshDocument = async (documentId: string) => {
-    try {
-      const response = await contractDocumentApi.refreshDocument(documentId);
-      if (response.success && response.data) {
-        const data = response.data as {
-          updated?: boolean;
-          message?: string;
-          status?: string;
-          signers?: Array<{ email: string; status?: string }>;
-        };
-        if (data.updated) {
-          toast.success(data.message || 'Document refreshed successfully');
-        } else {
-          toast.info('Document is up to date');
-        }
-        // Wait a bit to ensure DB is updated, then fetch fresh data
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        await fetchContracts();
-      }
-    } catch (error) {
-      console.error('Failed to refresh document:', error);
-      toast.error('Failed to refresh document');
     }
   };
 
@@ -727,7 +530,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                     <div className="flex-1 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         {getContractTypeBadge(t, contract.contractType)}
-                        {getStatusBadge(contract.status, t)}
+                        {getStatusBadge(contract.status, t, 'outline')}
                         {contract.isTemplate && (
                           <Badge
                             variant="outline"
@@ -998,7 +801,7 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          {getContractTypeBadge(t, template.contractType)}
+                          {getContractTypeBadge(t, template.templateContractType || template.contractType)}
                           {template.isTemplate && (
                             <Badge
                               variant="outline"
