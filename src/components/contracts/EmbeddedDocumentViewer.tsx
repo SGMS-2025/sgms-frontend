@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Loader2, AlertCircle } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -30,6 +30,7 @@ export default function EmbeddedDocumentViewer({
   const [iframeUrl, setIframeUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasHandledCloseRef = useRef(false);
 
   const loadEmbeddedLink = async () => {
     setLoading(true);
@@ -95,18 +96,55 @@ export default function EmbeddedDocumentViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, documentId, mode, externalIframeUrl]);
 
-  // Listen for messages from iframe (SignNow callbacks)
+  // Listen for messages from iframe (SignNow callbacks and callback page)
   useEffect(() => {
+    // Reset close handler flag when opening
+    if (open) {
+      hasHandledCloseRef.current = false;
+    }
+
     const handleMessage = (event: MessageEvent) => {
-      // Verify origin for security
-      if (!event.origin.includes('signnow.com')) {
+      // Prevent multiple close handlers
+      if (hasHandledCloseRef.current) {
         return;
       }
 
+      // Verify origin for security - allow messages from same origin (callback page) and SignNow
+      const isSameOrigin = event.origin === window.location.origin;
+      const isSignNow = event.origin.includes('signnow.com');
+
+      if (!isSameOrigin && !isSignNow) {
+        return;
+      }
+
+      // Handle messages from callback page (same origin)
+      if (isSameOrigin && event.data && typeof event.data === 'object') {
+        if (event.data.type === 'signnow-callback') {
+          if (event.data.action === 'close-iframe') {
+            // Callback page is requesting to close the iframe
+            hasHandledCloseRef.current = true;
+            onSave?.();
+            handleClose();
+            return;
+          }
+          if (event.data.action === 'redirect') {
+            // Callback page is requesting redirect (handled by callback page itself)
+            return;
+          }
+        }
+      }
+
       // Handle SignNow events
-      if (event.data && typeof event.data === 'object') {
+      if (isSignNow && event.data && typeof event.data === 'object') {
         // Document saved/closed
         if (event.data.event === 'document.saved' || event.data.event === 'editor.closed') {
+          hasHandledCloseRef.current = true;
+          onSave?.();
+          handleClose();
+        }
+        // Document sent successfully
+        if (event.data.event === 'document.sent' || event.data.event === 'invite.sent') {
+          hasHandledCloseRef.current = true;
           onSave?.();
           handleClose();
         }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CreditCard, DollarSign, Building2, Check, Calendar } from 'lucide-react';
+import { CreditCard, DollarSign, Building2, Check, Calendar, Copy, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { subscriptionApi } from '@/services/api/subscriptionApi';
 import type { SubscriptionPackage } from '@/types/api/Subscription';
 
@@ -47,7 +49,7 @@ export const PurchaseSubscriptionModal = ({
       label: t('subscription.modal.payment.bankTransfer'),
       description: t('subscription.modal.payment.bankTransferDesc'),
       icon: Building2,
-      available: false
+      available: true
     },
     {
       value: 'CREDIT_CARD' as PaymentMethod,
@@ -60,6 +62,7 @@ export const PurchaseSubscriptionModal = ({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
   const [months, setMonths] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [transactionId, setTransactionId] = useState<string>('');
 
   const allowedMonths = [1, 3, 6, 9, 12];
 
@@ -68,6 +71,7 @@ export const PurchaseSubscriptionModal = ({
     if (!open) {
       setMonths(1);
       setPaymentMethod('CASH');
+      setTransactionId('');
     }
   }, [open]);
 
@@ -81,12 +85,19 @@ export const PurchaseSubscriptionModal = ({
   const handleSubmit = async () => {
     if (!pkg) return;
 
+    // Validate transaction ID for bank transfer
+    if (paymentMethod === 'BANK_TRANSFER' && !transactionId.trim()) {
+      toast.error(t('subscription.modal.bankTransfer.error.transactionIdRequired'));
+      return;
+    }
+
     setIsSubmitting(true);
 
     const result = await subscriptionApi.purchaseSubscription({
       packageId: pkg._id,
       paymentMethod,
-      months: Number(months) // Ensure it's a number
+      months: Number(months), // Ensure it's a number
+      transactionId: paymentMethod === 'BANK_TRANSFER' ? transactionId.trim() : undefined
     });
 
     setIsSubmitting(false);
@@ -98,6 +109,13 @@ export const PurchaseSubscriptionModal = ({
       onOpenChange(false);
       if (onSuccess) onSuccess();
     }
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(t('subscription.modal.bankTransfer.copied'), {
+      description: `${label}: ${text}`
+    });
   };
 
   if (!pkg) return null;
@@ -275,6 +293,146 @@ export const PurchaseSubscriptionModal = ({
                 </div>
               </RadioGroup>
             </div>
+
+            {/* Bank Transfer Information */}
+            {paymentMethod === 'BANK_TRANSFER' && (
+              <div className="space-y-4">
+                {/* Bank Account Details */}
+                <Alert className="border-orange-200 bg-orange-50/50">
+                  <AlertCircle className="h-4 w-4 text-orange-600" />
+                  <AlertDescription className="text-sm text-orange-900">
+                    {t('subscription.modal.bankTransfer.info')}
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-3 rounded-lg border-2 border-orange-200/60 bg-gradient-to-br from-orange-50/80 to-white p-4">
+                  <h4 className="font-bold text-orange-900 text-sm flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    {t('subscription.modal.bankTransfer.accountDetails')}
+                  </h4>
+
+                  {/* Bank Name */}
+                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-orange-100">
+                    <div>
+                      <p className="text-xs text-gray-500">{t('subscription.modal.bankTransfer.bankName')}</p>
+                      <p className="font-semibold text-gray-900">Vietcombank</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard('Vietcombank', t('subscription.modal.bankTransfer.bankName'))}
+                      className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  {/* Account Number */}
+                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-orange-100">
+                    <div>
+                      <p className="text-xs text-gray-500">{t('subscription.modal.bankTransfer.accountNumber')}</p>
+                      <p className="font-semibold text-gray-900 font-mono">1234567890</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard('1234567890', t('subscription.modal.bankTransfer.accountNumber'))}
+                      className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  {/* Account Holder */}
+                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-orange-100">
+                    <div>
+                      <p className="text-xs text-gray-500">{t('subscription.modal.bankTransfer.accountHolder')}</p>
+                      <p className="font-semibold text-gray-900">CONG TY GYMSMART</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        copyToClipboard('CONG TY GYMSMART', t('subscription.modal.bankTransfer.accountHolder'))
+                      }
+                      className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  {/* Transfer Amount */}
+                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-100 to-orange-50 rounded-lg border border-orange-200">
+                    <div>
+                      <p className="text-xs text-orange-700 font-medium">
+                        {t('subscription.modal.bankTransfer.transferAmount')}
+                      </p>
+                      <p className="font-bold text-orange-900 text-lg">{formatPrice(pkg.price * months)}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        copyToClipboard(String(pkg.price * months), t('subscription.modal.bankTransfer.transferAmount'))
+                      }
+                      className="text-orange-600 hover:text-orange-700 hover:bg-orange-100"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  {/* Transfer Content */}
+                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-orange-100">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-500">{t('subscription.modal.bankTransfer.transferContent')}</p>
+                      <p className="font-semibold text-gray-900 truncate">
+                        {t('subscription.modal.bankTransfer.contentTemplate', {
+                          packageName: pkg.name,
+                          months
+                        })}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        copyToClipboard(
+                          t('subscription.modal.bankTransfer.contentTemplate', {
+                            packageName: pkg.name,
+                            months
+                          }),
+                          t('subscription.modal.bankTransfer.transferContent')
+                        )
+                      }
+                      className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 flex-shrink-0"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Transaction ID Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="transactionId" className="text-sm font-bold flex items-center gap-2">
+                    {t('subscription.modal.bankTransfer.transactionId')}
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="transactionId"
+                    value={transactionId}
+                    onChange={(e) => setTransactionId(e.target.value)}
+                    placeholder={t('subscription.modal.bankTransfer.transactionIdPlaceholder')}
+                    className="border-orange-200 focus:border-orange-500 focus:ring-orange-500"
+                  />
+                  <p className="text-xs text-gray-500">{t('subscription.modal.bankTransfer.transactionIdHint')}</p>
+                </div>
+              </div>
+            )}
           </div>
         </ScrollArea>
 

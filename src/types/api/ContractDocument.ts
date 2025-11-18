@@ -1,6 +1,13 @@
 import type { PaginationResponse } from '@/types/common/BaseTypes';
 
-export type DocumentStatus = 'uploaded' | 'processing' | 'ready' | 'signed' | 'archived' | 'deleted';
+export type DocumentStatus =
+  | 'uploaded'
+  | 'processing'
+  | 'ready'
+  | 'waiting_for_others'
+  | 'signed'
+  | 'archived'
+  | 'deleted';
 
 export interface ContractDocument {
   _id: string;
@@ -26,6 +33,12 @@ export interface ContractDocument {
   documentOwner?: string;
   pageCount?: number;
   signersCount?: number;
+  signers?: Array<{
+    email: string;
+    name?: string;
+    role?: string;
+    status?: string;
+  }>;
   signNowData?: Record<string, unknown>;
   // New fields for customer contracts
   customerId?:

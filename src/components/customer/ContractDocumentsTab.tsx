@@ -11,7 +11,12 @@ import {
   Tag,
   Plus,
   AlertTriangle,
-  TrendingUp
+  TrendingUp,
+  Mail,
+  CheckCircle2,
+  RefreshCw,
+  XCircle,
+  Download
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -59,6 +64,10 @@ const getStatusBadge = (status: string, t: (key: string) => string) => {
       className: 'bg-amber-500/10 text-amber-700 border-amber-200'
     },
     ready: { label: t('contracts.status.ready'), className: 'bg-green-500/10 text-green-700 border-green-200' },
+    waiting_for_others: {
+      label: t('contracts.status.waiting_for_others') || 'Waiting for Others',
+      className: 'bg-yellow-500/10 text-yellow-700 border-yellow-200'
+    },
     signed: { label: t('contracts.status.signed'), className: 'bg-emerald-500/10 text-emerald-700 border-emerald-200' },
     archived: { label: t('contracts.status.archived'), className: 'bg-gray-500/10 text-gray-700 border-gray-200' },
     deleted: { label: t('contracts.status.deleted'), className: 'bg-red-500/10 text-red-700 border-red-200' }
@@ -112,14 +121,6 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
   const [contractsWithoutDocuments, setContractsWithoutDocuments] = useState<ContractWithoutDocument[]>([]);
   const [loadingMissingContracts, setLoadingMissingContracts] = useState(false);
 
-  useEffect(() => {
-    if (customerId) {
-      fetchContracts();
-      fetchContractsWithoutDocuments();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customerId]);
-
   const fetchContracts = async () => {
     setLoading(true);
     setError(null);
@@ -133,6 +134,70 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
 
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (customerId) {
+      fetchContracts();
+      fetchContractsWithoutDocuments();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerId]);
+
+  // Listen for contract signing events to refresh data
+  useEffect(() => {
+    const handleContractSignerSigned = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const data = customEvent.detail;
+
+      // Refresh contracts to show updated signer status
+      if (data?.data?.documentId) {
+        // Wait a bit for backend to fully update, then refresh
+        setTimeout(() => {
+          fetchContracts();
+        }, 500);
+      }
+    };
+
+    const handleContractCompleted = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const data = customEvent.detail;
+
+      // Refresh contracts to show completed status
+      if (data?.data?.documentId) {
+        // Wait a bit for backend to fully update, then refresh
+        setTimeout(() => {
+          fetchContracts();
+        }, 500);
+      }
+    };
+
+    // Listen for contract signing events
+    globalThis.addEventListener('contract:signer:signed', handleContractSignerSigned);
+    globalThis.addEventListener('contract:completed', handleContractCompleted);
+
+    return () => {
+      globalThis.removeEventListener('contract:signer:signed', handleContractSignerSigned);
+      globalThis.removeEventListener('contract:completed', handleContractCompleted);
+    };
+  }, [fetchContracts]);
+
+  // Refresh when window/tab becomes visible (user comes back to the page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // User returned to the page, refresh contracts to get latest status
+        fetchContracts();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
+    };
+  }, [fetchContracts]);
 
   const fetchContractsWithoutDocuments = async () => {
     setLoadingMissingContracts(true);
@@ -254,17 +319,18 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
   };
 
   const handleOpenSending = async (document: ContractDocument) => {
-    const redirectUrl = `${globalThis.location.origin}/manage/customers/${customerId}/detail`;
+    // Use callback page to handle redirect and prevent nested dashboard
+    const redirectUrl = `${globalThis.location.origin}/signnow/callback`;
     const response = await contractDocumentApi.createEmbeddedSending(document._id, {
       type: 'document',
       redirectUrl,
       linkExpiration: 45,
-      redirectTarget: 'self'
+      redirectTarget: 'self' // Redirect in same iframe, but callback page will handle closing
     });
 
     if (response.success && response.data?.link) {
       setSelectedDocument(document);
-      setEmbeddedMode('view');
+      setEmbeddedMode('sending');
       setIframeUrl(response.data.link);
       setEmbeddedViewerOpen(true);
     } else {
@@ -272,10 +338,147 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
     }
   };
 
-  const handleEmbeddedClose = () => {
+  /**
+   * Check if document has active invites (has been sent and not all cancelled)
+   * A document has invites if:
+   * - status is 'waiting_for_others' (actively waiting for signatures)
+   * - OR status is 'signed' (but this is final state, can't cancel)
+   * - OR signersCount > 0 AND status is not 'ready' (has been sent)
+   *
+   * Note: After cancelling invites, status should be 'ready' and signersCount = 0,
+   * which means no active invites, so user can send again.
+   */
+  const hasInvites = (document: ContractDocument): boolean => {
+    // If status is 'waiting_for_others', definitely has active invites
+    if (document.status === 'waiting_for_others') {
+      return true;
+    }
+
+    // If status is 'signed', document is complete (can't cancel)
+    if (document.status === 'signed') {
+      return false; // Can't cancel signed documents
+    }
+
+    // If status is 'ready', 'uploaded', or 'processing', no active invites
+    if (['ready', 'uploaded', 'processing'].includes(document.status || '')) {
+      return false;
+    }
+
+    // For other statuses, check if there are signers
+    // But only if status indicates invites were sent
+    if (document.signersCount && document.signersCount > 0) {
+      // Check if any signers are still pending (not all signed)
+      if (document.signers && document.signers.length > 0) {
+        const hasPendingSigners = document.signers.some(
+          (s) => s.status === 'pending' || s.status === 'sent' || !s.status || s.status === ''
+        );
+        return hasPendingSigners;
+      }
+      return true;
+    }
+
+    return false;
+  };
+
+  const handleCancelInvite = async (document: ContractDocument) => {
+    try {
+      const response = await contractDocumentApi.cancelInvite(document._id);
+      if (response.success) {
+        toast.success(response.message || t('contracts.cancel_invite_success', 'Invite cancelled successfully'));
+        // Wait a bit to ensure DB is updated, then fetch fresh data
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        await fetchContracts();
+      } else {
+        toast.error(response.message || t('contracts.cancel_invite_error', 'Failed to cancel invite'));
+      }
+    } catch (error) {
+      console.error('Failed to cancel invite:', error);
+      toast.error(t('contracts.cancel_invite_error', 'Failed to cancel invite'));
+    }
+  };
+
+  const handleDownloadDocument = async (contractDoc: ContractDocument) => {
+    try {
+      const blob = await contractDocumentApi.downloadDocument(contractDoc._id);
+
+      // Check if blob is valid
+      if (!blob || blob.size === 0) {
+        toast.error(t('contracts.download_error', 'Failed to download document: Empty file'));
+        return;
+      }
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = window.document.createElement('a');
+      link.href = url;
+      link.download = contractDoc.fileName || `${contractDoc.title}.pdf`;
+      window.document.body.appendChild(link);
+      link.click();
+      window.document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success(t('contracts.download_success', 'Document downloaded successfully'));
+    } catch (error) {
+      console.error('Failed to download document:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(t('contracts.download_error', `Failed to download document: ${errorMessage}`));
+    }
+  };
+
+  const handleRefreshDocument = async (documentId: string) => {
+    try {
+      const response = await contractDocumentApi.refreshDocument(documentId);
+      if (response.success && response.data) {
+        const data = response.data as {
+          updated?: boolean;
+          message?: string;
+          status?: string;
+          signers?: Array<{ email: string; status?: string }>;
+        };
+        if (data.updated) {
+          toast.success(data.message || 'Document refreshed successfully');
+        } else {
+          toast.info('Document is up to date');
+        }
+        // Wait a bit to ensure DB is updated, then fetch fresh data
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        await fetchContracts();
+      }
+    } catch (error) {
+      console.error('Failed to refresh document:', error);
+      toast.error('Failed to refresh document');
+    }
+  };
+
+  const handleEmbeddedClose = async () => {
+    // If we were sending a document, refresh its data to get signers info
+    if (embeddedMode === 'sending' && selectedDocument) {
+      try {
+        const response = await contractDocumentApi.refreshDocument(selectedDocument._id);
+        if (response.success && response.data) {
+          const data = response.data as {
+            updated?: boolean;
+            message?: string;
+            status?: string;
+            signers?: Array<{ email: string; status?: string }>;
+          };
+          if (data.updated) {
+            toast.success(data.message || 'Document updated successfully');
+          }
+          // Wait a bit to ensure DB is updated, then fetch fresh data
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      } catch (error) {
+        console.error('Failed to refresh document:', error);
+        // Don't show error toast - just continue with normal refresh
+      }
+    }
+
     setIframeUrl(null);
     setSelectedDocument(null);
-    fetchContracts();
+    setEmbeddedViewerOpen(false);
+
+    // Fetch fresh data after closing
+    await fetchContracts();
     fetchContractsWithoutDocuments();
   };
 
@@ -598,6 +801,48 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                     )}
                   </div>
 
+                  {/* Signers Information */}
+                  {contract.signers && contract.signers.length > 0 && (
+                    <div className="pt-3 border-t border-border">
+                      <div className="flex items-start gap-2 text-sm">
+                        <Mail className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                        <div className="flex-1">
+                          <p className="text-xs text-muted-foreground mb-2">
+                            {t('customer_detail.contracts.details.signers_emails', 'Signers Email')}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {contract.signers.map((signer, index) => {
+                              const isSigned = signer.status === 'signed';
+                              return (
+                                <div
+                                  key={signer.email || index}
+                                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border ${
+                                    isSigned ? 'bg-green-50 border-green-200' : 'bg-muted/50 border-border'
+                                  }`}
+                                >
+                                  {isSigned ? (
+                                    <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                  ) : (
+                                    <Mail className="h-3 w-3 text-muted-foreground" />
+                                  )}
+                                  <span
+                                    className={`text-xs font-medium ${isSigned ? 'text-green-700' : 'text-foreground'}`}
+                                  >
+                                    {index + 1}. {signer.email}
+                                  </span>
+                                  {signer.name && (
+                                    <span className="text-xs text-muted-foreground">({signer.name})</span>
+                                  )}
+                                  {isSigned && <span className="text-xs text-green-600 font-medium">✓</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Actions */}
                   <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
                     <Button
@@ -610,26 +855,67 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                       <Eye className="mr-1 h-3 w-3" />
                       {t('contracts.view')}
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenEditor(contract)}
-                      disabled={contract.status === 'deleted'}
-                      className="rounded-full"
-                    >
-                      <Edit className="mr-1 h-3 w-3" />
-                      {t('contracts.edit')}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenSending(contract)}
-                      disabled={contract.status === 'deleted'}
-                      className="rounded-full bg-orange-500 text-white hover:bg-orange-600"
-                    >
-                      <Send className="mr-1 h-3 w-3" />
-                      {t('contracts.send')}
-                    </Button>
+                    {contract.status === 'signed' ? (
+                      // For signed documents, only show View and Download
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadDocument(contract)}
+                        disabled={false}
+                        className="rounded-full"
+                      >
+                        <Download className="mr-1 h-3 w-3" />
+                        {t('contracts.download', 'Download')}
+                      </Button>
+                    ) : (
+                      // For non-signed documents, show Edit, Send/Cancel Invite, and Refresh
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenEditor(contract)}
+                          disabled={contract.status === 'deleted'}
+                          className="rounded-full"
+                        >
+                          <Edit className="mr-1 h-3 w-3" />
+                          {t('contracts.edit')}
+                        </Button>
+                        {hasInvites(contract) ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCancelInvite(contract)}
+                            disabled={contract.status === 'deleted'}
+                            className="rounded-full bg-red-500 text-white hover:bg-red-600"
+                          >
+                            <XCircle className="mr-1 h-3 w-3" />
+                            {t('contracts.cancel_invite', 'Cancel Invite')}
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenSending(contract)}
+                            disabled={contract.status === 'deleted'}
+                            className="rounded-full bg-orange-500 text-white hover:bg-orange-600"
+                          >
+                            <Send className="mr-1 h-3 w-3" />
+                            {t('contracts.send')}
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRefreshDocument(contract._id)}
+                          disabled={contract.status === 'deleted'}
+                          className="rounded-full"
+                          title="Refresh document status from SignNow"
+                        >
+                          <RefreshCw className="mr-1 h-3 w-3" />
+                          Refresh
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </CardContent>

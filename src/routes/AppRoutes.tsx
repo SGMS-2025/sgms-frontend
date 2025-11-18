@@ -12,6 +12,7 @@ import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 import VerifyForgotPasswordOTPPage from '@/pages/auth/VerifyForgotPasswordOTPPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import ZaloCallbackPage from '@/pages/auth/ZaloCallbackPage';
+import SignNowCallbackPage from '@/pages/contracts/SignNowCallbackPage';
 import LandingPage from '@/pages/landing/LandingPage';
 import OwnerLandingPage from '@/pages/landing/OwnerLandingPage';
 import GymListPage from '@/pages/gyms/GymListPage';
@@ -325,6 +326,9 @@ const AppRoutes: React.FC = () => {
       />
 
       <Route path="/auth/zalo/callback" element={<ZaloCallbackPage />} />
+
+      {/* SignNow Callback Route - for handling redirects from SignNow */}
+      <Route path="/signnow/callback" element={<SignNowCallbackPage />} />
 
       {/* Forgot Password Routes */}
       <Route

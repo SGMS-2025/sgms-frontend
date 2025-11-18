@@ -156,6 +156,16 @@ export const contractDocumentApi = {
   },
 
   /**
+   * Cancel invites for a document
+   */
+  cancelInvite: async (documentId: string): Promise<ApiResponse<Record<string, unknown>>> => {
+    const response = await api.post<ApiResponse<Record<string, unknown>>>(
+      `/signnow/documents/${documentId}/cancel-invite`
+    );
+    return response.data;
+  },
+
+  /**
    * Refresh document data from SignNow
    */
   refreshDocument: async (documentId: string): Promise<ApiResponse<Record<string, unknown>>> => {
@@ -168,6 +178,16 @@ export const contractDocumentApi = {
    */
   updateDocument: async (documentId: string, data: UpdateDocumentRequest): Promise<ApiResponse<ContractDocument>> => {
     const response = await api.patch<ApiResponse<ContractDocument>>(`/signnow/documents/${documentId}`, data);
+    return response.data;
+  },
+
+  /**
+   * Download document as PDF
+   */
+  downloadDocument: async (documentId: string): Promise<Blob> => {
+    const response = await api.get(`/signnow/documents/${documentId}/download`, {
+      responseType: 'blob'
+    });
     return response.data;
   },
 

@@ -7,6 +7,8 @@ import type {
   WorkShiftNotificationData,
   TimeOffNotificationData,
   RescheduleNotificationData,
+  ContractSignerSignedEvent,
+  ContractCompletedEvent,
   SocketEvents,
   SocketServiceInterface,
   SocketConnectionStatus,
@@ -229,6 +231,15 @@ class SocketService implements SocketServiceInterface {
       this.handleRescheduleNotification(data);
     });
 
+    // Contract signing notifications
+    this.socket.on('contract:signer:signed', (data: ContractSignerSignedEvent) => {
+      this.handleContractSignerSigned(data);
+    });
+
+    this.socket.on('contract:completed', (data: ContractCompletedEvent) => {
+      this.handleContractCompleted(data);
+    });
+
     // Ping/pong for connection health
     this.socket.on('pong', () => {});
 
@@ -296,6 +307,46 @@ class SocketService implements SocketServiceInterface {
     // Don't show toast here - let the notification panel handle display
     // SocketContext will handle the notification directly from socket events
     console.log('🔔 Reschedule notification received in socketService:', data);
+  }
+
+  private handleContractSignerSigned(data: ContractSignerSignedEvent) {
+    // Show toast notification immediately
+    toast.success(data.message, {
+      id: `contract-signer-signed-${data.data.documentId}-${data.data.signerEmail}`,
+      duration: 5000
+    });
+
+    // Dispatch custom event for components to listen and refresh data
+    // Use a small delay to ensure backend has fully updated
+    setTimeout(() => {
+      globalThis.dispatchEvent(
+        new CustomEvent('contract:signer:signed', {
+          detail: data
+        })
+      );
+    }, 300);
+
+    console.log('🔔 Contract signer signed notification received:', data);
+  }
+
+  private handleContractCompleted(data: ContractCompletedEvent) {
+    // Show toast notification immediately
+    toast.success(data.message, {
+      id: `contract-completed-${data.data.documentId}`,
+      duration: 5000
+    });
+
+    // Dispatch custom event for components to listen and refresh data
+    // Use a small delay to ensure backend has fully updated
+    setTimeout(() => {
+      globalThis.dispatchEvent(
+        new CustomEvent('contract:completed', {
+          detail: data
+        })
+      );
+    }, 300);
+
+    console.log('🔔 Contract completed notification received:', data);
   }
 
   // Removed emitCustomEvent to prevent duplicate notifications
