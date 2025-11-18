@@ -1,4 +1,5 @@
 import React from 'react';
+import type { TFunction } from 'i18next';
 import { Badge } from '@/components/ui/badge';
 import type { ContractDocument, DocumentStatus } from '@/types/api/ContractDocument';
 
@@ -49,45 +50,49 @@ export const hasInvites = (document: ContractDocument): boolean => {
  */
 export const getStatusBadgeConfig = (
   status: DocumentStatus,
-  t: (key: string, defaultValue?: string) => string,
+  t: TFunction,
   variant: 'default' | 'secondary' | 'destructive' | 'outline' = 'outline'
 ) => {
+  const translate = (key: string, defaultValue?: string) => {
+    const result = t(key, defaultValue);
+    return typeof result === 'string' ? result : String(result);
+  };
   const statusConfig: Record<
     DocumentStatus,
     { label: string; className: string; badgeVariant?: 'default' | 'secondary' | 'destructive' | 'outline' }
   > = {
     uploaded: {
-      label: t('contracts.status.uploaded', 'Uploaded'),
+      label: translate('contracts.status.uploaded', 'Uploaded'),
       className: 'bg-blue-500/10 text-blue-700 border-blue-200',
       badgeVariant: variant === 'outline' ? 'outline' : 'default'
     },
     processing: {
-      label: t('contracts.status.processing', 'Processing'),
+      label: translate('contracts.status.processing', 'Processing'),
       className: 'bg-amber-500/10 text-amber-700 border-amber-200',
       badgeVariant: variant === 'outline' ? 'outline' : 'secondary'
     },
     ready: {
-      label: t('contracts.status.ready', 'Ready'),
+      label: translate('contracts.status.ready', 'Ready'),
       className: 'bg-green-500/10 text-green-700 border-green-200',
       badgeVariant: variant === 'outline' ? 'outline' : 'default'
     },
     waiting_for_others: {
-      label: t('contracts.status.waiting_for_others', 'Waiting for Others'),
+      label: translate('contracts.status.waiting_for_others', 'Waiting for Others'),
       className: 'bg-yellow-500/10 text-yellow-700 border-yellow-200',
       badgeVariant: variant === 'outline' ? 'outline' : 'secondary'
     },
     signed: {
-      label: t('contracts.status.signed', 'Signed'),
+      label: translate('contracts.status.signed', 'Signed'),
       className: 'bg-emerald-500/10 text-emerald-700 border-emerald-200',
       badgeVariant: variant === 'outline' ? 'outline' : 'default'
     },
     archived: {
-      label: t('contracts.status.archived', 'Archived'),
+      label: translate('contracts.status.archived', 'Archived'),
       className: 'bg-gray-500/10 text-gray-700 border-gray-200',
       badgeVariant: variant === 'outline' ? 'outline' : 'secondary'
     },
     deleted: {
-      label: t('contracts.status.deleted', 'Deleted'),
+      label: translate('contracts.status.deleted', 'Deleted'),
       className: 'bg-red-500/10 text-red-700 border-red-200',
       badgeVariant: 'destructive'
     }
@@ -101,7 +106,7 @@ export const getStatusBadgeConfig = (
  */
 export const getStatusBadge = (
   status: DocumentStatus,
-  t: (key: string, defaultValue?: string) => string,
+  t: TFunction,
   variant: 'default' | 'secondary' | 'destructive' | 'outline' = 'outline'
 ) => {
   const config = getStatusBadgeConfig(status, t, variant);
@@ -115,23 +120,30 @@ export const getStatusBadge = (
 /**
  * Get contract type badge config
  */
-export const getContractTypeBadgeConfig = (t: (key: string, defaultValue?: string) => string, type?: string) => {
+export const getContractTypeBadgeConfig = (t: TFunction, type?: string) => {
   if (!type) return null;
+  const translate = (key: string, defaultValue?: string) => {
+    const result = t(key, defaultValue);
+    return typeof result === 'string' ? result : String(result);
+  };
 
   const typeConfig: Record<string, { label: string; className: string }> = {
     membership: {
-      label: t('contracts.type_membership', 'Membership'),
+      label: translate('contracts.type_membership', 'Membership'),
       className: 'bg-primary/10 text-primary border-primary/20'
     },
     service_pt: {
-      label: t('contracts.type_pt', 'PT (1-on-1)'),
+      label: translate('contracts.type_pt', 'PT (1-on-1)'),
       className: 'bg-purple-500/10 text-purple-700 border-purple-200'
     },
     service_class: {
-      label: t('contracts.type_class', 'Class (Group)'),
+      label: translate('contracts.type_class', 'Class (Group)'),
       className: 'bg-blue-500/10 text-blue-700 border-blue-200'
     },
-    custom: { label: t('contracts.type_custom', 'Custom'), className: 'bg-gray-500/10 text-gray-700 border-gray-200' }
+    custom: {
+      label: translate('contracts.type_custom', 'Custom'),
+      className: 'bg-gray-500/10 text-gray-700 border-gray-200'
+    }
   };
 
   return typeConfig[type] || typeConfig.custom;
@@ -140,10 +152,7 @@ export const getContractTypeBadgeConfig = (t: (key: string, defaultValue?: strin
 /**
  * Get contract type badge component
  */
-export const getContractTypeBadge = (
-  t: (key: string, defaultValue?: string) => string,
-  type?: string
-): React.ReactElement | null => {
+export const getContractTypeBadge = (t: TFunction, type?: string): React.ReactElement | null => {
   const config = getContractTypeBadgeConfig(t, type);
   if (!config) return null;
 
