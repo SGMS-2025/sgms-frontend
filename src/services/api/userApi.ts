@@ -89,6 +89,20 @@ export const userApi = {
   getOwnerDetail: async (ownerId: string): Promise<ApiResponse<{ owner: User; branches: Branch[] }>> => {
     const response = await api.get(`/users/admin/accounts/${ownerId}/owner-detail`);
     return response.data;
+  },
+
+  /**
+   * Create owner account (admin only)
+   */
+  createOwnerAccount: async (ownerData: {
+    username: string;
+    email: string;
+    password: string;
+    fullName?: string;
+    phoneNumber?: string;
+  }): Promise<ApiResponse<User>> => {
+    const response = await api.post('/users/admin/accounts/owner', ownerData);
+    return response.data;
   }
 };
 

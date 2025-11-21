@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Search, Lock, Unlock, ChevronLeft, ChevronRight, User as UserIcon, Building2, Eye } from 'lucide-react';
+import { Search, Lock, Unlock, ChevronLeft, ChevronRight, User as UserIcon, Building2, Eye, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { userApi } from '@/services/api/userApi';
 import type { User, AccountsListQuery } from '@/types/api/User';
 import { format } from 'date-fns';
+import { CreateOwnerDialog } from '@/components/admin/CreateOwnerDialog';
 
 const AdminAccountsPage = () => {
   const { t } = useTranslation();
@@ -51,6 +52,7 @@ const AdminAccountsPage = () => {
   const [actionType, setActionType] = useState<'lock' | 'unlock' | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCreateOwnerDialogOpen, setIsCreateOwnerDialogOpen] = useState(false);
 
   const statusLabels: Record<string, string> = {
     ACTIVE: t('common.status.active'),
@@ -243,6 +245,13 @@ const AdminAccountsPage = () => {
           <h1 className="text-3xl font-bold text-gray-900">{t('admin.accounts.title')}</h1>
           <p className="text-gray-500 mt-1">{t('admin.accounts.subtitle')}</p>
         </div>
+        <Button
+          onClick={() => setIsCreateOwnerDialogOpen(true)}
+          className="bg-orange-500 hover:bg-orange-600 text-white"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          {t('admin.accounts.create.button')}
+        </Button>
       </div>
 
       {/* Filters */}
@@ -476,6 +485,16 @@ const AdminAccountsPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create Owner Dialog */}
+      <CreateOwnerDialog
+        open={isCreateOwnerDialogOpen}
+        onOpenChange={setIsCreateOwnerDialogOpen}
+        onSuccess={() => {
+          // Refresh accounts list
+          fetchAccounts();
+        }}
+      />
     </div>
   );
 };
