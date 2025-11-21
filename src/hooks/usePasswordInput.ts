@@ -75,12 +75,12 @@ export const usePasswordInput = (options: UsePasswordInputOptions = {}): UsePass
   const passwordValidation = validatePasswordStrength(password);
 
   // Confirm password validation
+  const confirmPasswordValidationResult = hasConfirmPassword
+    ? validateConfirmPassword(password, confirmPassword)
+    : { isValid: true };
   const confirmPasswordValidation = {
-    isValid: !hasConfirmPassword || validateConfirmPassword(password, confirmPassword),
-    error:
-      hasConfirmPassword && confirmPassword && !validateConfirmPassword(password, confirmPassword)
-        ? 'password_mismatch'
-        : null
+    isValid: confirmPasswordValidationResult.isValid,
+    error: confirmPasswordValidationResult.error || null
   };
 
   // Combined form validation

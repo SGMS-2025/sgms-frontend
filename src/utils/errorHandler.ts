@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 import type { AsyncOperation, SuccessCallback, ErrorCallback, ErrorHandlerOptions } from '@/types/errorHandler';
+import type { ApiErrorResponse } from '@/types/api/Api';
 import { mapBackendToFrontendField, type FieldMappingContext } from './fieldMapper';
 
 /**
@@ -258,4 +259,79 @@ export const handleApiErrorForForm = (
     }
   }
   return fieldErrors;
+};
+
+/**
+ * Extract error message from API error response for toast notifications
+ * Handles various error response formats and returns a normalized error key
+ *
+ * @param response - API response that may contain error information
+ * @param defaultErrorKey - Default error key to use if extraction fails
+ * @returns Normalized error key string
+ *
+ * @example
+ * const errorKey = extractApiErrorMessage(response, 'register_failed');
+ * toast.error(t(`error.${errorKey}`, { defaultValue: errorKey }));
+ */
+export const extractApiErrorMessage = (response: unknown, defaultErrorKey: string = 'operation_failed'): string => {
+  const errorResponse = response as ApiErrorResponse;
+  let errorKey = defaultErrorKey;
+
+  // Check for error details from backend (409 conflict errors)
+  if (
+    errorResponse.error?.meta?.details &&
+    Array.isArray(errorResponse.error.meta.details) &&
+    errorResponse.error.meta.details.length > 0
+  ) {
+    // Get first error detail
+    const detail = errorResponse.error.meta.details[0];
+    errorKey = detail.message || detail.field || defaultErrorKey;
+  } else if (errorResponse.error?.code) {
+    // Use error code from backend
+    errorKey = errorResponse.error.code;
+  } else if (errorResponse.error?.message) {
+    // Use error message
+    errorKey = errorResponse.error.message;
+  } else if (
+    typeof response === 'object' &&
+    response !== null &&
+    'message' in response &&
+    typeof (response as { message: unknown }).message === 'string'
+  ) {
+    // Use response message
+    errorKey = (response as { message: string }).message;
+  } else if (
+    typeof response === 'object' &&
+    response !== null &&
+    'code' in response &&
+    typeof (response as { code: unknown }).code === 'string'
+  ) {
+    // Use response code
+    errorKey = (response as { code: string }).code;
+  }
+
+  // Normalize error key (uppercase, replace spaces with underscores)
+  return normalizeErrorKey(errorKey);
+};
+
+/**
+ * Extract and translate error message from API response for toast notifications
+ * Combines extraction and translation in one function
+ *
+ * @param response - API response that may contain error information
+ * @param t - Translation function
+ * @param defaultErrorKey - Default error key to use if extraction fails
+ * @returns Translated error message
+ *
+ * @example
+ * const errorMessage = extractAndTranslateApiError(response, t, 'register_failed');
+ * toast.error(errorMessage);
+ */
+export const extractAndTranslateApiError = (
+  response: unknown,
+  t: (key: string, options?: { defaultValue?: string }) => string,
+  defaultErrorKey: string = 'operation_failed'
+): string => {
+  const errorKey = extractApiErrorMessage(response, defaultErrorKey);
+  return t(`error.${errorKey}`, { defaultValue: errorKey });
 };
