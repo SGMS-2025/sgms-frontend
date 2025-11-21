@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { validateRegistrationForm } from '@/utils/authValidation';
+import { extractAndTranslateApiError } from '@/utils/errorHandler';
 import type { RegisterRequest } from '@/types/api/Auth';
 import { FORM_ANIMATION_DELAYS as ANIMATION_DELAYS } from '@/constants/animations';
 
@@ -78,6 +79,11 @@ export function RegisterForm() {
       navigate('/verify-otp', {
         state: { email: formData.email }
       });
+    } else {
+      // Handle error response (409 conflict or other errors)
+      // API interceptor returns error object, doesn't throw
+      const errorMessage = extractAndTranslateApiError(response, t, 'register_failed');
+      toast.error(errorMessage);
     }
 
     setIsLoading(false);

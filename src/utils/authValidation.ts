@@ -1,40 +1,93 @@
 /**
  * Authentication validation utilities
+ * Synchronized with backend validation rules
  */
 
+// Validation constants (matching backend)
+const VALIDATION_CONSTANTS = {
+  USERNAME_MIN_LENGTH: 3,
+  USERNAME_MAX_LENGTH: 30, // Updated from 20 to match backend
+  EMAIL_MAX_LENGTH: 100, // Added to match backend
+  PASSWORD_MIN_LENGTH: 8,
+  PASSWORD_MAX_LENGTH: 128, // Added to match backend
+  FULL_NAME_MAX_LENGTH: 100
+} as const;
+
 // Email validation
-export const validateEmail = (email: string): boolean => {
+export const validateEmail = (email: string): { isValid: boolean; error?: string } => {
+  if (!email) {
+    return { isValid: false, error: 'email_required' };
+  }
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  if (!emailRegex.test(email)) {
+    return { isValid: false, error: 'email_invalid' };
+  }
+
+  if (email.length > VALIDATION_CONSTANTS.EMAIL_MAX_LENGTH) {
+    return { isValid: false, error: 'email_max_length' };
+  }
+
+  return { isValid: true };
 };
 
-// Phone number validation (Vietnamese format)
-export const validatePhoneNumber = (phone: string): boolean => {
+// Phone number validation (Vietnamese format - keeping VN format for better UX)
+export const validatePhoneNumber = (phone: string): { isValid: boolean; error?: string } => {
+  if (!phone) {
+    return { isValid: false, error: 'phone_required' };
+  }
+
+  // Vietnamese phone format: 10-11 digits
   const phoneRegex = /^[0-9]{10,11}$/;
-  return phoneRegex.test(phone);
+  if (!phoneRegex.test(phone)) {
+    return { isValid: false, error: 'phone_invalid' };
+  }
+
+  return { isValid: true };
 };
 
 // Full name validation (Vietnamese characters + spaces + length check)
-export const validateFullName = (fullName: string): boolean => {
-  // Check length first
-  if (fullName.length > 100) {
-    return false;
+export const validateFullName = (fullName: string): { isValid: boolean; error?: string } => {
+  if (!fullName) {
+    return { isValid: false, error: 'fullname_required' };
   }
 
-  // Check characters
-  const fullnameRegex = /^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÂÊÔưăâêô\s]+$/;
-  return fullnameRegex.test(fullName);
+  // Check length first
+  if (fullName.length > VALIDATION_CONSTANTS.FULL_NAME_MAX_LENGTH) {
+    return { isValid: false, error: 'fullname_too_long' };
+  }
+
+  // Check characters (Vietnamese characters + spaces)
+  // Using Unicode property escapes to match all Vietnamese letters (including all diacritics)
+  // This includes: a-z, A-Z, and all Vietnamese accented characters (àáảãạăằắẳẵặâầấẩẫậèéẻẽẵêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ)
+  // Also allows spaces, hyphens, and apostrophes for names like "Nguyễn Văn A" or "O'Brien"
+  const fullnameRegex = /^[\p{L}\s'-]+$/u;
+  if (!fullnameRegex.test(fullName)) {
+    return { isValid: false, error: 'fullname_invalid_characters' };
+  }
+
+  return { isValid: true };
 };
 
 // Password strength validation
 export const validatePasswordStrength = (password: string): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
 
-  if (password.length < 8) {
+  if (!password) {
+    errors.push('password_required');
+    return { isValid: false, errors };
+  }
+
+  if (password.length < VALIDATION_CONSTANTS.PASSWORD_MIN_LENGTH) {
     errors.push('password_min_length');
   }
 
-  const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  if (password.length > VALIDATION_CONSTANTS.PASSWORD_MAX_LENGTH) {
+    errors.push('password_max_length');
+  }
+
+  // Strong password regex: at least 1 lowercase, 1 uppercase, 1 number, 1 special character
+  const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
   if (!strongPasswordRegex.test(password)) {
     errors.push('password_requirements');
   }
@@ -52,15 +105,34 @@ export const validateOTP = (otp: string): boolean => {
 };
 
 // Confirm password validation
-export const validateConfirmPassword = (password: string, confirmPassword: string): boolean => {
-  return password === confirmPassword;
+export const validateConfirmPassword = (
+  password: string,
+  confirmPassword: string
+): { isValid: boolean; error?: string } => {
+  if (!confirmPassword) {
+    return { isValid: false, error: 'confirm_password_required' };
+  }
+
+  if (password !== confirmPassword) {
+    return { isValid: false, error: 'password_mismatch' };
+  }
+
+  return { isValid: true };
 };
 
-// Username validation
-export const validateUsername = (username: string): boolean => {
-  // Username should be 3-20 characters, alphanumeric and underscores only
-  const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
-  return usernameRegex.test(username);
+// Username validation (updated to match backend: 3-30 characters)
+export const validateUsername = (username: string): { isValid: boolean; error?: string } => {
+  if (!username) {
+    return { isValid: false, error: 'username_required' };
+  }
+
+  // Username should be 3-30 characters, alphanumeric and underscores only (updated from 3-20)
+  const usernameRegex = /^[a-zA-Z0-9_]{3,30}$/;
+  if (!usernameRegex.test(username)) {
+    return { isValid: false, error: 'username_invalid' };
+  }
+
+  return { isValid: true };
 };
 // Combined form validation for registration
 export const validateRegistrationForm = (formData: {
@@ -74,48 +146,43 @@ export const validateRegistrationForm = (formData: {
 }): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
 
-  // Check required fields
-  if (
-    !formData.username ||
-    !formData.fullName ||
-    !formData.email ||
-    !formData.phoneNumber ||
-    !formData.password ||
-    !formData.confirmPassword
-  ) {
-    errors.push('fill_all_fields');
+  // Validate username
+  const usernameValidation = validateUsername(formData.username);
+  if (!usernameValidation.isValid && usernameValidation.error) {
+    errors.push(usernameValidation.error);
   }
 
-  // Validate individual fields
-  if (formData.username && !validateUsername(formData.username)) {
-    errors.push('invalid_username');
+  // Validate full name
+  const fullNameValidation = validateFullName(formData.fullName);
+  if (!fullNameValidation.isValid && fullNameValidation.error) {
+    errors.push(fullNameValidation.error);
   }
 
-  if (formData.fullName && !validateFullName(formData.fullName)) {
-    errors.push('fullname_invalid_characters');
+  // Validate email
+  const emailValidation = validateEmail(formData.email);
+  if (!emailValidation.isValid && emailValidation.error) {
+    errors.push(emailValidation.error);
   }
 
-  if (formData.email && !validateEmail(formData.email)) {
-    errors.push('invalid_email');
+  // Validate phone number
+  const phoneValidation = validatePhoneNumber(formData.phoneNumber);
+  if (!phoneValidation.isValid && phoneValidation.error) {
+    errors.push(phoneValidation.error);
   }
 
-  if (formData.phoneNumber && !validatePhoneNumber(formData.phoneNumber)) {
-    errors.push('invalid_phone');
-  }
-
-  if (formData.password) {
-    const passwordValidation = validatePasswordStrength(formData.password);
+  // Validate password strength
+  const passwordValidation = validatePasswordStrength(formData.password);
+  if (!passwordValidation.isValid) {
     errors.push(...passwordValidation.errors);
   }
 
-  if (
-    formData.password &&
-    formData.confirmPassword &&
-    !validateConfirmPassword(formData.password, formData.confirmPassword)
-  ) {
-    errors.push('password_mismatch');
+  // Validate confirm password
+  const confirmPasswordValidation = validateConfirmPassword(formData.password, formData.confirmPassword);
+  if (!confirmPasswordValidation.isValid && confirmPasswordValidation.error) {
+    errors.push(confirmPasswordValidation.error);
   }
 
+  // Validate terms agreement
   if (!formData.agreeTerms) {
     errors.push('agree_terms');
   }
