@@ -10,7 +10,8 @@ import {
   LogOut,
   User,
   PanelLeft,
-  ShieldCheck as Shield
+  ShieldCheck as Shield,
+  FileText
 } from 'lucide-react';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -306,6 +307,13 @@ export const CustomerSidebar: React.FC = () => {
       href: '/customer/security',
       isActive: location.pathname.startsWith('/customer/security'),
       onClick: () => handleNavigation('/customer/security')
+    },
+    {
+      icon: <FileText className="w-5 h-5 stroke-[1.75]" />,
+      label: t('customer.sidebar.contracts', 'Hợp đồng'),
+      href: '/customer/contracts',
+      isActive: location.pathname.startsWith('/customer/contracts'),
+      onClick: () => handleNavigation('/customer/contracts')
     }
   ];
 
