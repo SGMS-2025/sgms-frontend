@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -39,7 +39,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { customerApi } from '@/services/api/customerApi';
 import { useBranch } from '@/contexts/BranchContext';
 import { socketService } from '@/services/socket/socketService';
-import { cn } from '@/utils/utils';
+import { cn, debounce } from '@/utils/utils';
 import type { CustomerDisplay } from '@/types/api/Customer';
 import type { MembershipContract } from '@/types/api/Membership';
 import type { MembershipContractUpdateEvent } from '@/types/api/Socket';
@@ -147,8 +147,19 @@ const CustomerDetailPage: React.FC = () => {
   const [showExtendPT, setShowExtendPT] = useState(false);
   const [showExtendClass, setShowExtendClass] = useState(false);
 
+  // Ref to abort previous requests (prevent race conditions)
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const fetchCustomerDetail = useCallback(async () => {
     if (!id) return;
+
+    // Abort previous request if still in flight
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
 
     try {
       setLoading(true);
@@ -160,12 +171,24 @@ const CustomerDetailPage: React.FC = () => {
       console.log('[CustomerDetailPage] Fetching customer detail:', { customerId: id, branchId });
       const response = await customerApi.getCustomerById(id, branchId);
 
+      // Check if request was aborted
+      if (abortControllerRef.current?.signal.aborted) {
+        console.log('[CustomerDetailPage] Request was aborted');
+        return;
+      }
+
       if (response.success && response.data) {
         setCustomer(response.data);
       } else {
         setError(response.message || t('customer_detail.error.fetch_failed'));
       }
     } catch (fetchError: unknown) {
+      // Don't show error if request was aborted
+      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+        console.log('[CustomerDetailPage] Request aborted');
+        return;
+      }
+
       console.error('Error fetching customer detail:', fetchError);
       // Check if it's an axios error with response
       if (fetchError && typeof fetchError === 'object' && 'response' in fetchError) {
@@ -180,25 +203,45 @@ const CustomerDetailPage: React.FC = () => {
     }
   }, [id, currentBranch?._id, t]);
 
+  // Debounced version of fetchCustomerDetail (1 second delay)
+  // This prevents multiple rapid API calls when socket events fire in quick succession
+  const debouncedFetchCustomerDetail = useMemo(
+    () => debounce(() => fetchCustomerDetail(), 1000),
+    [fetchCustomerDetail]
+  );
+
   useEffect(() => {
     if (id) {
       void fetchCustomerDetail();
     }
+
+    // Cleanup: abort any pending requests when component unmounts
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [id, fetchCustomerDetail]);
 
   // Listen for membership contract updates (realtime)
-  useEffect(() => {
-    if (!id) return;
-
-    const handleMembershipContractUpdate = (data: MembershipContractUpdateEvent) => {
+  // useCallback ensures stable reference to prevent memory leaks
+  const handleMembershipContractUpdate = useCallback(
+    (data: MembershipContractUpdateEvent) => {
       // Convert customerId to string for comparison
       const updateCustomerId = data.customerId?.toString();
       const currentCustomerId = customer?.id?.toString();
 
       if (updateCustomerId === currentCustomerId || (!customer && id)) {
-        void fetchCustomerDetail();
+        console.log('[CustomerDetailPage] Membership contract updated, refreshing data (debounced)');
+        // Use debounced version to prevent rapid successive calls
+        debouncedFetchCustomerDetail();
       }
-    };
+    },
+    [customer?.id, id, debouncedFetchCustomerDetail]
+  );
+
+  useEffect(() => {
+    if (!id) return;
 
     // Listen for membership contract update events from socket
     socketService.on('membership:contract:updated', handleMembershipContractUpdate);
@@ -206,7 +249,7 @@ const CustomerDetailPage: React.FC = () => {
     return () => {
       socketService.off('membership:contract:updated', handleMembershipContractUpdate);
     };
-  }, [customer?.id, id, fetchCustomerDetail]); // Include fetchCustomerDetail in dependencies
+  }, [id, handleMembershipContractUpdate]); // Stable dependencies
 
   const getStatusText = (status: string) => {
     switch (status) {
@@ -866,21 +909,21 @@ const CustomerDetailPage: React.FC = () => {
         isOpen={showPTModal}
         onClose={() => setShowPTModal(false)}
         customerId={customer.id}
-        onSuccess={fetchCustomerDetail}
+        onSuccess={() => debouncedFetchCustomerDetail()}
       />
 
       <ClassRegistrationDialog
         isOpen={showClassModal}
         onClose={() => setShowClassModal(false)}
         customerId={customer.id}
-        onSuccess={fetchCustomerDetail}
+        onSuccess={() => debouncedFetchCustomerDetail()}
       />
 
       <MembershipRegistrationDialog
         isOpen={showMembershipModal}
         onClose={() => setShowMembershipModal(false)}
         customerId={customer.id}
-        onSuccess={fetchCustomerDetail}
+        onSuccess={() => debouncedFetchCustomerDetail()}
       />
 
       {/* Cancel Dialogs */}
@@ -888,7 +931,7 @@ const CustomerDetailPage: React.FC = () => {
         <CancelMembershipDialog
           isOpen={showCancelMembership}
           onClose={() => setShowCancelMembership(false)}
-          onSuccess={fetchCustomerDetail}
+          onSuccess={() => debouncedFetchCustomerDetail()}
           contract={
             {
               _id: membershipContract._id,
@@ -918,7 +961,7 @@ const CustomerDetailPage: React.FC = () => {
         <CancelServiceContractDialog
           isOpen={showCancelPT}
           onClose={() => setShowCancelPT(false)}
-          onSuccess={fetchCustomerDetail}
+          onSuccess={() => debouncedFetchCustomerDetail()}
           contractId={ptContract._id || ''}
           contractType="PT"
           serviceName={ptPackageName}
@@ -932,7 +975,7 @@ const CustomerDetailPage: React.FC = () => {
         <CancelServiceContractDialog
           isOpen={showCancelClass}
           onClose={() => setShowCancelClass(false)}
-          onSuccess={fetchCustomerDetail}
+          onSuccess={() => debouncedFetchCustomerDetail()}
           contractId={classContract._id || ''}
           contractType="CLASS"
           serviceName={classPackageName}
@@ -947,7 +990,7 @@ const CustomerDetailPage: React.FC = () => {
         <ExtendMembershipDialog
           isOpen={showExtendMembership}
           onClose={() => setShowExtendMembership(false)}
-          onSuccess={fetchCustomerDetail}
+          onSuccess={() => debouncedFetchCustomerDetail()}
           contractId={membershipContract._id || ''}
           currentEndDate={customer.expiryDate}
           planName={membershipPlanName}
@@ -958,7 +1001,7 @@ const CustomerDetailPage: React.FC = () => {
         <ExtendServiceContractDialog
           isOpen={showExtendPT}
           onClose={() => setShowExtendPT(false)}
-          onSuccess={fetchCustomerDetail}
+          onSuccess={() => debouncedFetchCustomerDetail()}
           contractId={ptContract._id || ''}
           contractType="PT"
           serviceName={ptPackageName}
@@ -970,7 +1013,7 @@ const CustomerDetailPage: React.FC = () => {
         <ExtendServiceContractDialog
           isOpen={showExtendClass}
           onClose={() => setShowExtendClass(false)}
-          onSuccess={fetchCustomerDetail}
+          onSuccess={() => debouncedFetchCustomerDetail()}
           contractId={classContract._id || ''}
           contractType="CLASS"
           serviceName={classPackageName}

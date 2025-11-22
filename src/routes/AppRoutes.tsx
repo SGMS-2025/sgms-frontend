@@ -69,6 +69,7 @@ import CustomerSchedule from '@/pages/customer/CustomerSchedule';
 import CustomerMembership from '@/pages/customer/CustomerMembership';
 import CustomerProfile from '@/pages/customer/CustomerProfile';
 import CustomerDashboard from '@/pages/customer/CustomerDashboard';
+import CustomerContracts from '@/pages/customer/CustomerContracts';
 import { CustomerLayout } from '@/layouts/CustomerLayout';
 import BusinessVerificationPage from '@/pages/auth/BusinessVerificationPage';
 import BusinessVerificationManagementPage from '@/pages/admin/BusinessVerificationManagementPage';
@@ -560,6 +561,9 @@ const AppRoutes: React.FC = () => {
 
           {/* Security Route */}
           <Route path="security" element={<CustomerSecurity />} />
+
+          {/* Contracts Route */}
+          <Route path="contracts" element={<CustomerContracts />} />
 
           <Route path="*" element={<Navigate to="/customer" replace />} />
         </Route>

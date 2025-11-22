@@ -11,9 +11,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { cn } from '@/utils/utils';
+import { formatPriceInput, parsePriceInput } from '@/utils/currency';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { Calendar, Upload, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
+import { Calendar, Upload, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useCreateStaff } from '@/hooks/useStaff';
 import { useUser } from '@/hooks/useAuth';
 import { useBranch } from '@/contexts/BranchContext';
@@ -36,6 +37,17 @@ import {
   validateAddress
 } from '@/utils/validation';
 
+const PANEL_SURFACE_CLASS =
+  'border border-orange-100/70 bg-gradient-to-br from-white via-orange-50/30 to-white shadow-[0_30px_60px_rgba(240,90,41,0.08)] backdrop-blur-sm !rounded-[32px]';
+const PANEL_CONTENT_CLASS = 'px-8 py-8 sm:px-10 sm:py-10';
+const INPUT_BASE_CLASS =
+  '!h-12 !rounded-2xl border border-orange-100 bg-white/95 px-4 text-[15px] text-slate-900 placeholder:text-slate-400 shadow-sm shadow-orange-100/80 transition-all focus-visible:border-orange-500 focus-visible:ring-4 focus-visible:ring-orange-100 focus-visible:ring-offset-0';
+const INPUT_ERROR_CLASS = '!border-red-400 !bg-red-50/80 focus-visible:border-red-500 focus-visible:ring-red-100';
+const LABEL_CLASS = 'text-[13px] font-semibold text-slate-600';
+const EYEBROW_CLASS = 'text-xs font-semibold uppercase tracking-[0.3em] text-orange-400';
+const CTA_BUTTON_CLASS =
+  'w-full !h-14 !rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 text-lg font-semibold text-white shadow-[0_25px_60px_rgba(240,90,41,0.45)] transition hover:from-orange-600 hover:to-orange-700 disabled:opacity-60';
+
 // Loading component
 const LoadingView: React.FC<{ message: string }> = ({ message }) => (
   <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -52,81 +64,65 @@ const RoleSelection: React.FC<{
   setUserType: (type: string) => void;
   isLoading: boolean;
   t: (key: string) => string;
-}> = ({ userType, setUserType, isLoading, t }) => (
-  <div className="mb-6">
-    <div className="flex flex-wrap gap-4">
+}> = ({ userType, setUserType, isLoading, t }) => {
+  const roleDescriptions: Record<string, string> = {
+    manager: t('staff.branch_manager_desc'),
+    device: t('staff.equipment_manager_desc'),
+    pt: t('staff.personal_trainer_desc')
+  };
+
+  return (
+    <div className="grid gap-3 md:grid-cols-3">
       {[
         { value: 'manager', label: t('staff.branch_manager') },
         { value: 'device', label: t('staff.equipment_manager') },
         { value: 'pt', label: t('staff.personal_trainer') }
-      ].map(({ value, label }) => (
-        <label
-          key={value}
-          className={`flex items-center space-x-2 p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-            userType === value
-              ? 'border-orange-500 bg-orange-50'
-              : 'border-gray-200 hover:border-orange-300 hover:bg-orange-25'
-          }`}
-        >
-          <input
-            type="radio"
-            name="role"
-            value={value}
-            className="text-orange-500 focus:ring-orange-500"
-            checked={userType === value}
-            onChange={(e) => setUserType(e.target.value)}
-            disabled={isLoading}
-          />
-          <span className={userType === value ? 'text-orange-600 font-medium' : 'text-gray-700'}>{label}</span>
-        </label>
-      ))}
-    </div>
-  </div>
-);
+      ].map(({ value, label }) => {
+        const isActive = userType === value;
 
-// Profile Photo Section Component
-const ProfilePhotoSection: React.FC<{
-  profileImage: string | null;
-  handleImageUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  isLoading: boolean;
-  t: (key: string) => string;
-}> = ({ profileImage, handleImageUpload, isLoading, t }) => (
-  <Card>
-    <CardContent className="p-6">
-      <div className="bg-orange-500 text-white px-4 py-2 rounded-lg font-medium mb-4 inline-block">
-        {t('staff.profile_photo')}
-      </div>
-
-      <div className="flex items-center space-x-4">
-        <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-          {profileImage ? (
-            <img src={profileImage || '/placeholder.svg'} alt="Profile" className="w-full h-full object-cover" />
-          ) : (
-            <Upload className="w-8 h-8 text-orange-500" />
-          )}
-        </div>
-        <div className="space-x-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => document.getElementById('photo-upload')?.click()}
-            disabled={isLoading}
+        return (
+          <label
+            key={value}
+            className={cn(
+              'relative flex min-h-[112px] cursor-pointer flex-col justify-between rounded-2xl border px-4 py-4 text-left transition-all duration-200',
+              isActive
+                ? 'border-transparent bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-[0_25px_50px_rgba(240,90,41,0.25)]'
+                : 'border-orange-100 bg-white/90 text-slate-600 hover:border-orange-200 hover:bg-orange-50/40'
+            )}
           >
-            {t('staff.upload_from_device')}
-          </Button>
-          <input
-            id="photo-upload"
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleImageUpload}
-            disabled={isLoading}
-          />
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-);
+            <input
+              type="radio"
+              name="role"
+              value={value}
+              className="sr-only"
+              checked={isActive}
+              onChange={(e) => setUserType(e.target.value)}
+              disabled={isLoading}
+            />
+            <div className="space-y-2">
+              <p
+                className={cn(
+                  'text-[12px] font-semibold uppercase tracking-[0.25em]',
+                  isActive ? 'text-white/70' : 'text-orange-400'
+                )}
+              >
+                {t('staff.staff_type')}
+              </p>
+              <p className="text-xl font-semibold leading-tight">{label}</p>
+              <p className={cn('text-sm text-slate-500', isActive && 'text-white/80')}>{roleDescriptions[value]}</p>
+            </div>
+            {isActive && (
+              <span className="inline-flex w-fit items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white/80">
+                <span className="h-2 w-2 rounded-full bg-green-400" />
+                {t('common.status.active')}
+              </span>
+            )}
+          </label>
+        );
+      })}
+    </div>
+  );
+};
 
 // Account Security Section Component
 const AccountSecuritySection: React.FC<{
@@ -150,32 +146,40 @@ const AccountSecuritySection: React.FC<{
   isLoading,
   t
 }) => (
-  <Card>
-    <CardContent className="p-6">
-      <div className="bg-orange-500 text-white px-4 py-2 rounded-lg font-medium mb-4 inline-block">
-        {t('staff.account_security')}
+  <Card className={PANEL_SURFACE_CLASS}>
+    <CardContent className={cn(PANEL_CONTENT_CLASS, 'space-y-8')}>
+      <div className="space-y-2">
+        <p className={EYEBROW_CLASS}>{t('staff.account_security')}</p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h3 className="text-2xl font-semibold text-slate-900">{t('staff.sign_in_method')}</h3>
+            <p className="text-sm text-slate-500">{t('staff.security_hint')}</p>
+          </div>
+          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-orange-400">
+            * {t('common.required')}
+          </span>
+        </div>
       </div>
-      <div className="text-sm text-gray-600 mb-4">* {t('common.required')}</div>
 
-      <div className="mb-4">
-        <Label htmlFor="username" className="mb-1 block">
+      <div className="space-y-2">
+        <Label htmlFor="username" className={LABEL_CLASS}>
           * {t('staff.username')}
         </Label>
         <Input
           id="username"
           placeholder={t('staff.enter_username')}
-          className={`${errors.username ? 'border-red-500' : ''}`}
+          className={cn(INPUT_BASE_CLASS, errors.username && INPUT_ERROR_CLASS)}
           value={formData.username || ''}
           onChange={(e) => handleInputChange('username', e.target.value)}
           disabled={isLoading}
           required
         />
-        {errors.username && <p className="text-sm text-red-500 mt-1">{errors.username}</p>}
+        {errors.username && <p className="text-xs font-medium text-red-500">{errors.username}</p>}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="password" className="mb-1 block">
+      <div className="grid gap-5 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="password" className={LABEL_CLASS}>
             * {t('staff.password')}
           </Label>
           <div className="relative">
@@ -183,7 +187,7 @@ const AccountSecuritySection: React.FC<{
               id="password"
               type={showPassword ? 'text' : 'password'}
               placeholder={t('staff.password_requirement')}
-              className={`${errors.password ? 'border-red-500' : ''}`}
+              className={cn(INPUT_BASE_CLASS, errors.password && INPUT_ERROR_CLASS)}
               value={formData.password || ''}
               onChange={(e) => handleInputChange('password', e.target.value)}
               disabled={isLoading}
@@ -192,16 +196,16 @@ const AccountSecuritySection: React.FC<{
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-3"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600 disabled:opacity-40"
               disabled={isLoading}
             >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
-          {errors.password && <p className="text-sm text-red-500 mt-1">{errors.password}</p>}
+          {errors.password && <p className="text-xs font-medium text-red-500">{errors.password}</p>}
         </div>
-        <div>
-          <Label htmlFor="confirmPassword" className="mb-1 block">
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword" className={LABEL_CLASS}>
             * {t('staff.confirm_password')}
           </Label>
           <div className="relative">
@@ -209,7 +213,7 @@ const AccountSecuritySection: React.FC<{
               id="confirmPassword"
               type={showConfirmPassword ? 'text' : 'password'}
               placeholder={t('staff.enter_password_again')}
-              className={`${errors.confirmPassword ? 'border-red-500' : ''}`}
+              className={cn(INPUT_BASE_CLASS, errors.confirmPassword && INPUT_ERROR_CLASS)}
               value={formData.confirmPassword || ''}
               onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
               disabled={isLoading}
@@ -218,13 +222,13 @@ const AccountSecuritySection: React.FC<{
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-3"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600 disabled:opacity-40"
               disabled={isLoading}
             >
-              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
-          {errors.confirmPassword && <p className="text-sm text-red-500 mt-1">{errors.confirmPassword}</p>}
+          {errors.confirmPassword && <p className="text-xs font-medium text-red-500">{errors.confirmPassword}</p>}
         </div>
       </div>
     </CardContent>
@@ -233,7 +237,7 @@ const AccountSecuritySection: React.FC<{
 
 export const AddStaffForm: React.FC<AddStaffFormProps> = ({
   onSubmit,
-  onCancel,
+  onCancel: _onCancel,
   isLoading: externalLoading = false
 }) => {
   const { t } = useTranslation();
@@ -462,6 +466,16 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
     }
   };
 
+  const handleSalaryChange = (inputValue: string) => {
+    if (!inputValue) {
+      handleInputChange('salary', '');
+      return;
+    }
+
+    const parsedValue = parsePriceInput(inputValue);
+    handleInputChange('salary', parsedValue.toString());
+  };
+
   // Helper function to map user type to job title
   const mapUserTypeToJobTitle = (userType: string): string => {
     const jobTitleMapping: Record<string, string> = {
@@ -546,51 +560,56 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
       );
   };
 
-  const handleCancel = () => {
-    if (onCancel) {
-      onCancel();
-    } else {
-      navigate('/manage/staff');
-    }
-  };
-
   // Check if user has permission
   if (!user) {
     return <LoadingView message={t('common.loading')} />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Main Content */}
-      <div className="p-6 max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <div className="bg-orange-500 text-white px-4 py-2 rounded-lg font-medium">+</div>
-            <h1 className="text-2xl font-bold text-orange-500">{t('staff.register_staff')}</h1>
-          </div>
-          <Button
-            variant="outline"
-            className="flex items-center space-x-2 bg-[#0D1523] text-white border-[#0D1523] hover:bg-[#2a3441] hover:border-[#2a3441] hover:text-white transition-colors duration-200 shadow-md hover:shadow-lg"
-            onClick={handleCancel}
-            disabled={isLoading}
-          >
-            <ArrowLeft size={16} />
-            <span>{t('common.back_to_list')}</span>
-          </Button>
-        </div>
-
+    <div className="min-h-screen bg-gray-100 px-4 py-10">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Personal Information Section */}
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="bg-orange-500 text-white px-4 py-2 rounded-lg font-medium">
-                  {t('staff.personal_info')}
+          <Card className={PANEL_SURFACE_CLASS}>
+            <CardContent className={cn(PANEL_CONTENT_CLASS, 'space-y-8')}>
+              <div className="flex flex-col gap-6 text-left lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex-1 space-y-1">
+                  <p className={EYEBROW_CLASS}>{t('staff.personal_info')}</p>
+                  <div className="space-y-1">
+                    <h2 className="text-2xl font-semibold text-slate-900">{t('staff.personal_info')}</h2>
+                    <p className="text-sm font-semibold text-orange-500">* {t('common.required')}</p>
+                  </div>
+                </div>
+                <div className="flex w-full justify-start lg:max-w-sm lg:justify-end">
+                  <div className="flex flex-col items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById('photo-upload')?.click()}
+                      disabled={isLoading}
+                      className="group relative flex h-28 w-28 items-center justify-center rounded-full border-2 border-dashed border-orange-200 bg-gradient-to-br from-orange-50 via-white to-orange-100 text-orange-400 shadow-inner shadow-white/70 ring-8 ring-orange-50/80 transition hover:border-orange-400 hover:text-orange-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-orange-100 disabled:opacity-50"
+                    >
+                      {profileImage ? (
+                        <img
+                          src={profileImage || '/placeholder.svg'}
+                          alt="Profile"
+                          className="h-full w-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <Upload className="h-8 w-8" />
+                      )}
+                      <span className="sr-only">{t('staff.upload_from_device')}</span>
+                    </button>
+                    <input
+                      id="photo-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Role Selection */}
               <RoleSelection
                 userType={formData.userType || 'manager'}
                 setUserType={(value) => handleInputChange('userType', value)}
@@ -598,111 +617,109 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
                 t={t}
               />
 
-              {/* Basic Information */}
               <div className="space-y-6">
-                {/* Row 2: Full Name (full width) */}
-                <div className="grid grid-cols-1 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="fullname" className="text-sm font-medium text-gray-700">
-                      * {t('staff.full_name')}
-                    </Label>
-                    <Input
-                      id="fullname"
-                      placeholder={t('staff.enter_full_name')}
-                      className={`${errors.fullName ? 'border-red-500' : ''}`}
-                      value={formData.fullName || ''}
-                      onChange={(e) => handleInputChange('fullName', e.target.value)}
-                      disabled={isLoading}
-                      required
-                    />
-                    {errors.fullName && <p className="text-sm text-red-500 mt-1">{errors.fullName}</p>}
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fullname" className={LABEL_CLASS}>
+                    * {t('staff.full_name')}
+                  </Label>
+                  <Input
+                    id="fullname"
+                    placeholder={t('staff.enter_full_name')}
+                    className={cn(INPUT_BASE_CLASS, errors.fullName && INPUT_ERROR_CLASS)}
+                    value={formData.fullName || ''}
+                    onChange={(e) => handleInputChange('fullName', e.target.value)}
+                    disabled={isLoading}
+                    required
+                  />
+                  {errors.fullName && <p className="text-xs font-medium text-red-500">{errors.fullName}</p>}
                 </div>
 
-                {/* Row 3: Email (1/2 width, left) | Phone Number (1/2 width, right) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="email" className={LABEL_CLASS}>
                       * {t('staff.email')}
                     </Label>
                     <Input
                       id="email"
                       type="email"
                       placeholder="example@email.com"
-                      className={` ${errors.email ? 'border-red-500' : ''}`}
+                      className={cn(INPUT_BASE_CLASS, errors.email && INPUT_ERROR_CLASS)}
                       value={formData.email || ''}
                       onChange={(e) => handleInputChange('email', e.target.value)}
                       disabled={isLoading}
                       required
                     />
-                    {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email}</p>}
+                    {errors.email && <p className="text-xs font-medium text-red-500">{errors.email}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="phone" className={LABEL_CLASS}>
                       {t('staff.phone_number')}
                     </Label>
                     <Input
                       id="phone"
                       placeholder="0123456789"
-                      className={` ${errors.phone ? 'border-red-500' : ''}`}
+                      className={cn(INPUT_BASE_CLASS, errors.phone && INPUT_ERROR_CLASS)}
                       value={formData.phone || ''}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
                       disabled={isLoading}
                     />
-                    {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone}</p>}
+                    {errors.phone && <p className="text-xs font-medium text-red-500">{errors.phone}</p>}
                   </div>
                 </div>
 
-                {/* Row 4: Address (full width) */}
-                <div className="grid grid-cols-1 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="address" className="text-sm font-medium text-gray-700">
-                      {t('staff.address')}
-                    </Label>
-                    <Input
-                      id="address"
-                      placeholder={t('staff.enter_address')}
-                      className={` ${errors.address ? 'border-red-500' : ''}`}
-                      value={formData.address || ''}
-                      onChange={(e) => handleInputChange('address', e.target.value)}
-                      disabled={isLoading}
-                    />
-                    {errors.address && <p className="text-sm text-red-500 mt-1">{errors.address}</p>}
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address" className={LABEL_CLASS}>
+                    {t('staff.address')}
+                  </Label>
+                  <Input
+                    id="address"
+                    placeholder={t('staff.enter_address')}
+                    className={cn(INPUT_BASE_CLASS, errors.address && INPUT_ERROR_CLASS)}
+                    value={formData.address || ''}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    disabled={isLoading}
+                  />
+                  {errors.address && <p className="text-xs font-medium text-red-500">{errors.address}</p>}
                 </div>
 
-                {/* Row 5: Date of Birth (1/2) | Branch (1/2) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="birthdate" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="birthdate" className={LABEL_CLASS}>
                       {t('staff.birth_date')}
                     </Label>
                     <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                       <PopoverTrigger asChild>
                         <Button
+                          type="button"
                           variant="outline"
                           className={cn(
-                            'w-full justify-start text-left font-normal bg-white border-gray-200 hover:bg-gray-50 focus:border-orange-500',
-                            !formData.birthDate && 'text-muted-foreground',
-                            errors.birthDate && 'border-red-500 focus:border-red-500'
+                            INPUT_BASE_CLASS,
+                            'flex items-center justify-between text-left font-normal',
+                            !formData.birthDate && 'text-slate-400',
+                            errors.birthDate && INPUT_ERROR_CLASS
                           )}
                           disabled={isLoading}
                         >
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {formData.birthDate
-                            ? format(new Date(formData.birthDate + 'T00:00:00'), 'dd/MM/yyyy', { locale: vi })
-                            : t('staff.select_birth_date')}
+                          <span className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            {formData.birthDate
+                              ? format(new Date(formData.birthDate + 'T00:00:00'), 'dd/MM/yyyy', { locale: vi })
+                              : t('staff.select_birth_date')}
+                          </span>
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 bg-white border-gray-200 shadow-lg" align="start">
+                      <PopoverContent
+                        className="w-auto rounded-2xl border border-slate-200/80 bg-white p-0 shadow-2xl"
+                        align="start"
+                      >
                         <CalendarComponent
                           mode="single"
                           selected={formData.birthDate ? new Date(formData.birthDate + 'T00:00:00') : undefined}
                           onSelect={handleDateSelect}
                           initialFocus
                           locale={vi}
-                          className="bg-white border-0"
+                          className="bg-white"
                           fromYear={1950}
                           toYear={new Date().getFullYear()}
                           captionLayout="dropdown"
@@ -710,11 +727,11 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
                         />
                       </PopoverContent>
                     </Popover>
-                    {errors.birthDate && <p className="text-sm text-red-500 mt-1">{errors.birthDate}</p>}
+                    {errors.birthDate && <p className="text-xs font-medium text-red-500">{errors.birthDate}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="branch" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="branch" className={LABEL_CLASS}>
                       * {t('staff.branch')}
                     </Label>
                     <MultiSelect
@@ -725,40 +742,49 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
                       selected={Array.isArray(formData.branchId) ? formData.branchId : []}
                       onChange={(selected) => handleInputChange('branchId', selected)}
                       placeholder={loadingBranches ? t('common.loading') : t('staff.select_branch')}
-                      className={errors.branchId ? 'border-red-500' : ''}
+                      className={cn(
+                        'w-full justify-between !h-12 !rounded-2xl border border-orange-100 bg-white/95 px-4 text-left text-[15px] text-slate-900 shadow-sm shadow-orange-100/80',
+                        errors.branchId && '!border-red-400 !bg-red-50/80'
+                      )}
                       disabled={isLoading || loadingBranches}
                     />
-                    {errors.branchId && <p className="text-sm text-red-500 mt-1">{errors.branchId}</p>}
+                    {errors.branchId && <p className="text-xs font-medium text-red-500">{errors.branchId}</p>}
                   </div>
                 </div>
 
-                {/* Row 6: Salary (1/2) | Gender (1/2) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid gap-6 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="salary" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="salary" className={LABEL_CLASS}>
                       {t('staff.salary')} (VND)
                     </Label>
                     <Input
                       id="salary"
-                      type="number"
-                      placeholder="5000000"
-                      className={` ${errors.salary ? 'border-red-500' : ''}`}
-                      value={formData.salary || ''}
-                      onChange={(e) => handleInputChange('salary', e.target.value)}
+                      type="text"
+                      inputMode="numeric"
+                      placeholder={formatPriceInput('5000000')}
+                      className={cn(INPUT_BASE_CLASS, errors.salary && INPUT_ERROR_CLASS)}
+                      value={formatPriceInput(formData.salary || '')}
+                      onChange={(e) => handleSalaryChange(e.target.value)}
                       disabled={isLoading}
                     />
-                    {errors.salary && <p className="text-sm text-red-500 mt-1">{errors.salary}</p>}
+                    {errors.salary && <p className="text-xs font-medium text-red-500">{errors.salary}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="gender" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="gender" className={LABEL_CLASS}>
                       {t('staff.gender')}
                     </Label>
-                    <Select onValueChange={(value) => handleInputChange('gender', value)} disabled={isLoading}>
-                      <SelectTrigger className="">
+                    <Select
+                      value={formData.gender || undefined}
+                      onValueChange={(value) => handleInputChange('gender', value)}
+                      disabled={isLoading}
+                    >
+                      <SelectTrigger
+                        className={cn('w-full text-left', INPUT_BASE_CLASS, errors.gender && INPUT_ERROR_CLASS)}
+                      >
                         <SelectValue placeholder={t('staff.select_gender')} />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="border border-slate-200/80 bg-white shadow-xl">
                         <SelectItem value="male">{t('staff.male')}</SelectItem>
                         <SelectItem value="female">{t('staff.female')}</SelectItem>
                         <SelectItem value="other">{t('staff.other')}</SelectItem>
@@ -770,15 +796,6 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
             </CardContent>
           </Card>
 
-          {/* Profile Photo Section */}
-          <ProfilePhotoSection
-            profileImage={profileImage}
-            handleImageUpload={handleImageUpload}
-            isLoading={isLoading}
-            t={t}
-          />
-
-          {/* Account Security Section */}
           <AccountSecuritySection
             formData={formData}
             errors={errors}
@@ -791,24 +808,16 @@ export const AddStaffForm: React.FC<AddStaffFormProps> = ({
             t={t}
           />
 
-          {/* Error Display */}
           {createError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-center">
-                <div className="text-red-600 text-sm">{createError}</div>
-              </div>
+            <div className="rounded-2xl border border-red-200 bg-red-50/70 p-4 text-sm font-medium text-red-600 shadow-inner shadow-white/70">
+              {createError}
             </div>
           )}
 
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white py-4 text-lg font-medium disabled:opacity-50"
-            disabled={isLoading}
-          >
+          <Button type="submit" className={CTA_BUTTON_CLASS} disabled={isLoading}>
             {isLoading ? (
-              <div className="flex items-center space-x-2">
-                <Loader2 className="w-5 h-5 animate-spin" />
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
                 <span>{t('common.loading')}</span>
               </div>
             ) : (

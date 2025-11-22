@@ -68,3 +68,29 @@ export function formatDate(dateString: string | Date): string {
 
   return `${day}/${month}/${year}`;
 }
+
+/**
+ * Debounce function - delays execution until after wait milliseconds have elapsed
+ * since the last time it was invoked
+ * @param func - The function to debounce
+ * @param wait - The number of milliseconds to delay
+ * @returns Debounced function
+ */
+export function debounce<T extends (...args: unknown[]) => unknown>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null;
+
+  return function executedFunction(...args: Parameters<T>) {
+    const later = () => {
+      timeout = null;
+      func(...args);
+    };
+
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(later, wait);
+  };
+}
