@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   BarChart3,
@@ -45,6 +45,7 @@ import type { User as ApiUser } from '@/types/api/User';
 import { Sidebar, type SidebarItem as SidebarItemType } from '@/components/common/Sidebar';
 import BusinessVerificationModal from '@/components/business/BusinessVerificationModal';
 import logoImage from '@/assets/images/logo2.png';
+import { subscriptionApi } from '@/services/api/subscriptionApi';
 
 interface DropdownSidebarItemProps {
   icon: React.ReactNode;
@@ -180,10 +181,37 @@ const SidebarHeader: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
 const UpgradeCard: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [subscriptionName, setSubscriptionName] = useState<string | null>(null);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await subscriptionApi.getSubscriptionStats();
+        if (!mounted || !res?.success) return;
+        setHasActiveSubscription(Boolean(res.data?.hasActiveSubscription));
+        setSubscriptionName(res.data?.packageName || null);
+      } catch (error) {
+        console.error('[OwnerSidebar] Failed to load subscription stats', error);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleClick = () => {
     navigate('/manage/subscriptions');
   };
+
+  const headline = hasActiveSubscription
+    ? t('sidebar.current_plan', { defaultValue: 'Current plan' })
+    : t('sidebar.upgrade_subtitle', { defaultValue: 'For more features' });
+
+  const ctaLabel = hasActiveSubscription
+    ? subscriptionName || t('subscription.card.planLabel')
+    : t('sidebar.upgrade_cta', { defaultValue: 'Upgrade to Pro' });
 
   if (isCollapsed) {
     return (
@@ -195,7 +223,7 @@ const UpgradeCard: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
         >
           <span className="pointer-events-none absolute inset-0 bg-white/20 opacity-0 blur-lg transition-opacity duration-300 group-hover:opacity-40" />
           <Sparkles className="relative h-4 w-4 drop-shadow" />
-          <span className="sr-only">{t('sidebar.upgrade_cta', { defaultValue: 'Upgrade to Pro' })}</span>
+          <span className="sr-only">{ctaLabel}</span>
         </button>
       </div>
     );
@@ -206,18 +234,17 @@ const UpgradeCard: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
       <button
         type="button"
         onClick={handleClick}
-        className="group relative w-full overflow-hidden rounded-xl border border-orange-100 bg-gradient-to-br from-orange-500 via-orange-400 to-amber-400 px-4 py-[10px] text-left text-white shadow-md outline-none transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-orange-300"
+        className="group relative w-full overflow-hidden rounded-xl border border-orange-100 bg-gradient-to-br from-orange-500 via-orange-400 to-amber-400 px-4 py-3 text-left text-white shadow-md outline-none transition-transform duration-300 hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-orange-300"
       >
-        <span className="pointer-events-none absolute -left-8 -top-8 h-20 w-20 rounded-full bg-white/20 blur-2xl transition-all duration-500 group-hover:scale-110" />
-        <span className="pointer-events-none absolute right-4 top-3 h-10 w-10 rounded-full border border-white/40 bg-white/30 opacity-60 mix-blend-screen transition-transform duration-500 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-        <div className="relative flex flex-col gap-2.5">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-white/70">
-              {t('sidebar.upgrade_subtitle', { defaultValue: 'For more features' })}
-            </p>
-            <p className="text-base font-semibold leading-tight">
-              {t('sidebar.upgrade_cta', { defaultValue: 'Upgrade to Pro' })}
-            </p>
+        <span className="pointer-events-none absolute -left-6 -top-6 h-16 w-16 rounded-full bg-white/20 blur-xl transition-all duration-500 group-hover:scale-110" />
+        <span className="pointer-events-none absolute right-2 top-2 h-10 w-10 rounded-full border border-white/30 bg-white/20 opacity-70 mix-blend-screen transition-transform duration-500 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+        <div className="relative flex items-center justify-between gap-2">
+          <div className="flex flex-col gap-1">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-white/75">{headline}</p>
+            <p className="text-sm font-semibold leading-tight">{ctaLabel}</p>
+          </div>
+          <div className="relative h-9 w-9 rounded-full border border-white/40 bg-white/25 text-white shadow-inner shadow-orange-500/30 backdrop-blur flex items-center justify-center">
+            <Sparkles className="h-4 w-4 drop-shadow" />
           </div>
         </div>
       </button>
