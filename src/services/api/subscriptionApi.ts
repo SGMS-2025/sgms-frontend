@@ -98,9 +98,9 @@ export const subscriptionApi = {
   /**
    * Check payment status for subscription payment transaction
    */
-  checkPaymentStatus: async (paymentTransactionId: string): Promise<PaymentStatusResponse['data']> => {
+  checkPaymentStatus: async (paymentTransactionId: string): Promise<PaymentStatusResponse> => {
     const response = await api.get<PaymentStatusResponse>(`${BASE_URL}/payment/${paymentTransactionId}/status`);
-    return response.data.data;
+    return response.data;
   },
 
   // Admin endpoints

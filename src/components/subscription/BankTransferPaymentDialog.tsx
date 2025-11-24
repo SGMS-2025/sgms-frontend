@@ -111,7 +111,7 @@ export const BankTransferPaymentDialog = ({
       setIsPolling(true);
       try {
         const result = await subscriptionApi.checkPaymentStatus(paymentTransaction._id);
-        if (result.success && result.data.paymentStatus === 'PAID') {
+        if (result.success && result.data.status === 'PAID') {
           console.log('[Dialog] Payment paid via polling:', result.data);
           setPaymentStatus('paid');
           setCurrentStep('success');

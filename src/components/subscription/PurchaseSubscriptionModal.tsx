@@ -170,7 +170,7 @@ export const PurchaseSubscriptionModal = ({
       setIsPolling(true);
       try {
         const result = await subscriptionApi.checkPaymentStatus(paymentTransaction._id);
-        if (result.success && result.data.paymentStatus === 'PAID') {
+        if (result.success && result.data.status === 'PAID') {
           setPaymentStatus('paid');
           setCurrentStep('bank-success');
           toast.success(t('subscription.payment.success'));
