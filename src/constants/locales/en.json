@@ -3335,6 +3335,7 @@
   "customer.profile.email": "Email",
   "customer.profile.bio": "Bio",
   "customer.profile.bio_placeholder": "Tell us about yourself...",
+  "customer.profile.security_settings": "Security & Account Linking",
   "customer.profile.gender": "Gender",
   "customer.profile.gender_male": "Male",
   "customer.profile.gender_female": "Female",
@@ -4772,5 +4773,21 @@
       "sessions_label": "Sessions: {{used}}/{{total}} ({{remaining}} remaining)",
       "button_remove": "Remove"
     }
+  },
+  "profile": {
+    "zalo_account": "Zalo Account",
+    "zalo_linked_description": "Your account is linked with Zalo for quick login",
+    "zalo_link_description": "Link your Zalo account for faster login and better experience",
+    "zalo_status_linked": "Zalo Account Linked",
+    "zalo_status_not_linked": "Zalo Account Not Linked",
+    "zalo_benefits_linked": "You can now use Zalo to quickly login to your account",
+    "zalo_benefits_not_linked": "Link your Zalo account to enable quick login",
+    "zalo_link_note": "You will be redirected to Zalo to authorize the linking",
+    "link_zalo_account": "Link Zalo Account",
+    "zalo_id": "Zalo ID",
+    "why_link_zalo": "Why link Zalo account?",
+    "zalo_benefit_1": "Quick login with one tap using Zalo",
+    "zalo_benefit_2": "No need to remember password",
+    "zalo_benefit_3": "Secure authentication via Zalo"
   }
 }

@@ -14,7 +14,8 @@ import type {
   SocketConnectionStatus,
   PendingNotificationsResponse,
   NotificationListResponse,
-  DeliverNotificationsResponse
+  DeliverNotificationsResponse,
+  NotificationData
 } from '@/types/api/Socket';
 
 class SocketService implements SocketServiceInterface {
@@ -231,6 +232,11 @@ class SocketService implements SocketServiceInterface {
       this.handleRescheduleNotification(data);
     });
 
+    // Branch working config notifications
+    this.socket.on('notification:branch-working-config:updated', (data: NotificationData) => {
+      this.handleBranchWorkingConfigNotification(data);
+    });
+
     // Contract signing notifications
     this.socket.on('contract:signer:signed', (data: ContractSignerSignedEvent) => {
       this.handleContractSignerSigned(data);
@@ -307,6 +313,12 @@ class SocketService implements SocketServiceInterface {
     // Don't show toast here - let the notification panel handle display
     // SocketContext will handle the notification directly from socket events
     console.log('🔔 Reschedule notification received in socketService:', data);
+  }
+
+  private handleBranchWorkingConfigNotification(data: NotificationData) {
+    // Don't show toast here - let the notification panel handle display
+    // SocketContext will handle the notification directly from socket events
+    console.log('🔔 Branch Working Config notification received in socketService:', data);
   }
 
   private handleContractSignerSigned(data: ContractSignerSignedEvent) {

@@ -457,6 +457,13 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     [handleWorkShiftNotification]
   );
 
+  const handleBranchWorkingConfigSocketNotification = useCallback(
+    (data: NotificationData) => {
+      handleWorkShiftNotification(data as unknown as Record<string, unknown>);
+    },
+    [handleWorkShiftNotification]
+  );
+
   const handleTestNotification = useCallback(
     (event: CustomEvent) => {
       const notification: Notification = event.detail;
@@ -508,6 +515,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       socketService.off('notification:servicecontract:assigned', handleMembershipSocketNotification);
       socketService.off('notification:servicecontract:owner_update', handleMembershipSocketNotification);
       socketService.off('notification:servicecontract:manager_update', handleMembershipSocketNotification);
+      socketService.off('notification:branch-working-config:updated', handleBranchWorkingConfigSocketNotification);
 
       // WorkShift notifications
       socketService.on('notification:workshift:created', handleSocketNotification);
@@ -549,6 +557,9 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       socketService.on('notification:servicecontract:assigned', handleMembershipSocketNotification);
       socketService.on('notification:servicecontract:owner_update', handleMembershipSocketNotification);
       socketService.on('notification:servicecontract:manager_update', handleMembershipSocketNotification);
+
+      // Branch working config notifications
+      socketService.on('notification:branch-working-config:updated', handleBranchWorkingConfigSocketNotification);
 
       // ✅ REMOVED: Membership contract update events are now handled directly by components
       // Components listen to 'membership:contract:updated' socket event directly

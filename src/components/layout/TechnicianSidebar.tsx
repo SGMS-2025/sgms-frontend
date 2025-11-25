@@ -230,6 +230,25 @@ const formatRole = (role?: string) => {
   return `${role.charAt(0)}${role.slice(1).toLowerCase()}`;
 };
 
+// Helper function to translate jobTitle
+const translateJobTitle = (jobTitle: string, t: (key: string) => string): string => {
+  const jobTitleMap: Record<string, string> = {
+    Manager: 'staff.manager',
+    Admin: 'staff.admin',
+    Owner: 'staff.owner',
+    'Personal Trainer': 'staff_modal.role_personal_trainer',
+    Technician: 'staff.technician'
+  };
+
+  const translationKey = jobTitleMap[jobTitle];
+  if (translationKey) {
+    const translated = t(translationKey);
+    // Return translated text if it exists, otherwise return original jobTitle
+    return translated !== translationKey ? translated : jobTitle;
+  }
+  return jobTitle;
+};
+
 const UserProfile: React.FC<{
   isCollapsed: boolean;
   user: ApiUser | null;
@@ -241,21 +260,23 @@ const UserProfile: React.FC<{
   const navigate = useNavigate();
 
   const displayName = user?.fullName || user?.username || t('sidebar.account') || 'User';
-  const roleKey = user?.role ? `roles.${user.role.toLowerCase()}` : '';
-  const translatedRole = roleKey ? t(roleKey) : '';
 
-  let roleLabel = t('sidebar.technician') || 'Technician';
-  if (user?.role) {
-    if (translatedRole && translatedRole !== roleKey) {
-      roleLabel = translatedRole;
-    } else {
-      roleLabel = formatRole(user.role);
-    }
-  }
-
-  // Override with job title if available
+  // Prioritize jobTitle over role
+  let roleLabel: string;
   if (currentStaff?.jobTitle) {
-    roleLabel = currentStaff.jobTitle;
+    roleLabel = translateJobTitle(currentStaff.jobTitle, t);
+  } else {
+    const roleKey = user?.role ? `roles.${user.role.toLowerCase()}` : '';
+    const translatedRole = roleKey ? t(roleKey) : '';
+
+    roleLabel = t('sidebar.technician') || 'Technician';
+    if (user?.role) {
+      if (translatedRole && translatedRole !== roleKey) {
+        roleLabel = translatedRole;
+      } else {
+        roleLabel = formatRole(user.role);
+      }
+    }
   }
 
   const avatarUrl = user?.avatar?.url;

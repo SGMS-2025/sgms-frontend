@@ -89,5 +89,9 @@ export const authApi = {
   getSocketAuth: async (): Promise<ApiResponse<SocketAuthResponse>> => {
     const response = await api.get('/auth/socket-auth');
     return response.data;
+  },
+
+  linkZaloAccount: (): void => {
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/zalo/link`;
   }
 };

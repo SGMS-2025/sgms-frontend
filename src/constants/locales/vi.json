@@ -3335,6 +3335,7 @@
   "customer.profile.email": "Email",
   "customer.profile.bio": "Tiểu sử",
   "customer.profile.bio_placeholder": "Hãy kể về bản thân bạn...",
+  "customer.profile.security_settings": "Bảo Mật & Liên Kết Tài Khoản",
   "customer.profile.gender": "Giới tính",
   "customer.profile.gender_male": "Nam",
   "customer.profile.gender_female": "Nữ",
@@ -4772,5 +4773,21 @@
       "sessions_label": "Buổi học: {{used}}/{{total}} ({{remaining}} còn lại)",
       "button_remove": "Xóa"
     }
+  },
+  "profile": {
+    "zalo_account": "Tài Khoản Zalo",
+    "zalo_linked_description": "Tài khoản của bạn đã được liên kết với Zalo để đăng nhập nhanh",
+    "zalo_link_description": "Liên kết tài khoản Zalo để đăng nhập nhanh hơn và trải nghiệm tốt hơn",
+    "zalo_status_linked": "Đã Liên Kết Zalo",
+    "zalo_status_not_linked": "Chưa Liên Kết Zalo",
+    "zalo_benefits_linked": "Bạn có thể sử dụng Zalo để đăng nhập nhanh vào tài khoản",
+    "zalo_benefits_not_linked": "Liên kết tài khoản Zalo để kích hoạt đăng nhập nhanh",
+    "zalo_link_note": "Bạn sẽ được chuyển đến Zalo để xác thực liên kết",
+    "link_zalo_account": "Liên Kết Tài Khoản Zalo",
+    "zalo_id": "Zalo ID",
+    "why_link_zalo": "Tại sao liên kết tài khoản Zalo?",
+    "zalo_benefit_1": "Đăng nhập nhanh chóng chỉ với một chạm qua Zalo",
+    "zalo_benefit_2": "Không cần nhớ mật khẩu",
+    "zalo_benefit_3": "Xác thực an toàn thông qua Zalo"
   }
 }

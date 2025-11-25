@@ -33,6 +33,14 @@ export const useStaffList = (initialParams: StaffListParams = {}): UseStaffListR
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<UseStaffListReturn['pagination']>(null);
   const [params, setParams] = useState<StaffListParams>(initialParams);
+  const [hasFetched, setHasFetched] = useState(false);
+
+  useEffect(() => {
+    // Only sync if branchId changes from undefined to a value (branch just loaded)
+    if (initialParams.branchId !== undefined && params.branchId === undefined && !hasFetched) {
+      setParams((prev) => ({ ...prev, branchId: initialParams.branchId }));
+    }
+  }, [initialParams.branchId, params.branchId, hasFetched]);
 
   const fetchStaffList = useCallback(async () => {
     setLoading(true);
@@ -66,6 +74,7 @@ export const useStaffList = (initialParams: StaffListParams = {}): UseStaffListR
     }
 
     setLoading(false);
+    setHasFetched(true);
   }, [params]);
 
   const refetch = useCallback(async () => {
@@ -74,6 +83,8 @@ export const useStaffList = (initialParams: StaffListParams = {}): UseStaffListR
 
   const updateFilters = useCallback((newFilters: Partial<StaffListParams>) => {
     setParams((prev) => ({ ...prev, ...newFilters }));
+    // Reset hasFetched when filters change to allow fetch
+    setHasFetched(false);
   }, []);
 
   const goToPage = useCallback((page: number) => {
@@ -81,8 +92,17 @@ export const useStaffList = (initialParams: StaffListParams = {}): UseStaffListR
   }, []);
 
   useEffect(() => {
+    // On initial mount, if branchId is undefined (waiting for branch to load),
+    // don't fetch yet to avoid fetching all staff
+    // Only fetch if branchId is explicitly set (even if null/undefined after branch loads)
+    if (!hasFetched && params.branchId === undefined) {
+      // Keep loading state while waiting for branch
+      setLoading(true);
+      return;
+    }
+
     fetchStaffList();
-  }, [fetchStaffList]);
+  }, [fetchStaffList, hasFetched, params.branchId]);
 
   return {
     staffList,
@@ -104,6 +124,16 @@ export const useStaffStats = (params?: { branchId?: string }) => {
   const branchId = params?.branchId;
 
   const fetchStats = useCallback(async () => {
+    // If params is undefined, it means we're waiting for branch to load
+    // Keep loading state true and don't fetch stats yet to avoid fetching all branches
+    if (params === undefined) {
+      // Keep loading state to indicate we're waiting for branch
+      setLoading(true);
+      setStats(null);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -116,7 +146,7 @@ export const useStaffStats = (params?: { branchId?: string }) => {
     }
 
     setLoading(false);
-  }, [branchId]);
+  }, [branchId, params]);
 
   useEffect(() => {
     fetchStats();

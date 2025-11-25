@@ -76,7 +76,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
   const currentUser = useUser();
   const { currentStaff } = useCurrentUserStaff();
   const navigate = useNavigate();
-  const { currentBranch } = useBranch();
+  const { currentBranch, loading: branchLoading } = useBranch();
   const { canManageStaff } = useCanManageStaff();
   const [filters, setFilters] = useState<StaffFilters>({
     searchTerm: '',
@@ -101,13 +101,20 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
 
   // Use the custom hook to fetch data (without search parameter)
   const { staffList, loading, error, pagination, refetch, goToPage, updateFilters } = useStaffList({
-    limit: 10
+    limit: 10,
+    branchId: branchLoading ? undefined : currentBranch?._id
   });
 
-  const statsParams = React.useMemo(
-    () => (currentBranch ? { branchId: currentBranch._id } : undefined),
-    [currentBranch]
-  );
+  const statsParams = React.useMemo(() => {
+    if (branchLoading) {
+      return undefined;
+    }
+    if (currentBranch?._id) {
+      return { branchId: currentBranch._id };
+    }
+    return undefined;
+  }, [currentBranch, branchLoading]);
+
   const { stats: staffStats, refetch: refetchStaffStats } = useStaffStats(statsParams);
 
   // Use the hook for updating staff status
@@ -116,14 +123,21 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
   const selectedCount = filters.selectedIds.length;
 
   React.useEffect(() => {
-    if (currentBranch?._id) {
-      updateFilters({ branchId: currentBranch._id });
-    } else {
-      updateFilters({ branchId: undefined });
+    // Only update filters when branch is loaded (not during initial loading)
+    // This prevents fetching all staff when branch is still loading
+    if (branchLoading) {
+      return; // Wait for branch to load
     }
-  }, [currentBranch?._id, updateFilters]);
 
-  // Filter out current user's staff record, filter by current branch, search, and sort staff list using the utility function
+    if (currentBranch?._id) {
+      updateFilters({ branchId: currentBranch._id, page: 1 });
+    } else {
+      updateFilters({ branchId: undefined, page: 1 });
+    }
+  }, [currentBranch?._id, branchLoading, updateFilters]);
+
+  // Filter out current user's staff record, search, and sort staff list using the utility function
+  // Note: Branch filtering is already handled by API via branchId parameter, so we don't filter again here
   const sortedStaffList = useMemo(() => {
     let filteredStaffList = currentUser
       ? staffList.filter((staff) => {
@@ -131,14 +145,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
         })
       : staffList;
 
-    // Filter by current branch if one is selected
-    if (currentBranch) {
-      filteredStaffList = filteredStaffList.filter((staff) => {
-        return staff.branches.some((branch) => branch._id === currentBranch._id);
-      });
-    }
-
-    // Frontend search filter
+    // Frontend search filter (API search parameter may not cover all fields)
     if (filters.searchTerm) {
       const searchTerm = filters.searchTerm.toLowerCase();
       filteredStaffList = filteredStaffList.filter((staff) => {
@@ -157,7 +164,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
       const extractor = staffSortConfig[field as keyof typeof staffSortConfig];
       return extractor ? extractor(item) : '';
     });
-  }, [staffList, sortState, currentUser, currentBranch, filters.searchTerm]);
+  }, [staffList, sortState, currentUser, filters.searchTerm]);
 
   const totalStaffCount = staffStats?.totalStaff ?? sortedStaffList.length;
   const activeStaffCount =
@@ -782,7 +789,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
       {pagination && (
         <div className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="text-sm text-gray-500">
-            {`${t('dashboard.showing')} ${(pagination.currentPage - 1) * pagination.itemsPerPage + 1} - ${Math.min(pagination.currentPage * pagination.itemsPerPage, sortedStaffList.length)} ${t('dashboard.of_total')} ${sortedStaffList.length} ${t('dashboard.staff_members')}`}
+            {`${t('dashboard.showing')} ${(pagination.currentPage - 1) * pagination.itemsPerPage + 1} - ${Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} ${t('dashboard.of_total')} ${pagination.totalItems} ${t('dashboard.staff_members')}`}
           </div>
           <Pagination className="justify-end md:justify-center">
             <PaginationContent>

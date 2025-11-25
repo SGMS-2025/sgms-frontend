@@ -34,6 +34,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuthActions, useAuthState } from '@/hooks/useAuth';
+import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { userApi } from '@/services/api/userApi';
 import type { User as ApiUser } from '@/types/api/User';
 import { Sidebar, type SidebarItem as SidebarItemType } from '@/components/common/Sidebar';
@@ -180,25 +181,52 @@ const formatRole = (role: string): string => {
   return `${role.charAt(0)}${role.slice(1).toLowerCase()}`;
 };
 
+// Helper function to translate jobTitle
+const translateJobTitle = (jobTitle: string, t: (key: string) => string): string => {
+  const jobTitleMap: Record<string, string> = {
+    Manager: 'staff.manager',
+    Admin: 'staff.admin',
+    Owner: 'staff.owner',
+    'Personal Trainer': 'staff_modal.role_personal_trainer',
+    Technician: 'staff.technician'
+  };
+
+  const translationKey = jobTitleMap[jobTitle];
+  if (translationKey) {
+    const translated = t(translationKey);
+    // Return translated text if it exists, otherwise return original jobTitle
+    return translated !== translationKey ? translated : jobTitle;
+  }
+  return jobTitle;
+};
+
 const UserProfile: React.FC<{
   isCollapsed: boolean;
   user: ApiUser | null;
   isLoading: boolean;
   onLogout: () => void;
-}> = ({ isCollapsed, user, isLoading, onLogout }) => {
+  currentStaff?: { jobTitle?: string } | null;
+}> = ({ isCollapsed, user, isLoading, onLogout, currentStaff }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
   const displayName = user?.fullName || user?.username || t('sidebar.account') || 'User';
-  const roleKey = user?.role ? `roles.${user.role.toLowerCase()}` : '';
-  const translatedRole = roleKey ? t(roleKey) : '';
 
-  let roleLabel = t('sidebar.personalTrainer') || 'Personal Trainer';
-  if (user?.role) {
-    if (translatedRole && translatedRole !== roleKey) {
-      roleLabel = translatedRole;
-    } else {
-      roleLabel = formatRole(user.role);
+  // Prioritize jobTitle over role
+  let roleLabel: string;
+  if (currentStaff?.jobTitle) {
+    roleLabel = translateJobTitle(currentStaff.jobTitle, t);
+  } else {
+    const roleKey = user?.role ? `roles.${user.role.toLowerCase()}` : '';
+    const translatedRole = roleKey ? t(roleKey) : '';
+
+    roleLabel = t('sidebar.personalTrainer') || 'Personal Trainer';
+    if (user?.role) {
+      if (translatedRole && translatedRole !== roleKey) {
+        roleLabel = translatedRole;
+      } else {
+        roleLabel = formatRole(user.role);
+      }
     }
   }
 
@@ -315,6 +343,7 @@ export const PTSidebar: React.FC = () => {
   const { isCollapsed, setMobileOpen } = useSidebar();
   const { user: authUser, isAuthenticated } = useAuthState();
   const { updateUser, logout } = useAuthActions();
+  const { currentStaff } = useCurrentUserStaff();
   const [profile, setProfile] = React.useState<ApiUser | null>(authUser ?? null);
   const [isProfileLoading, setIsProfileLoading] = React.useState(false);
   const [hasInitiallyFetched, setHasInitiallyFetched] = React.useState(false);
@@ -486,7 +515,13 @@ export const PTSidebar: React.FC = () => {
       </div>
 
       {/* User Profile */}
-      <UserProfile isCollapsed={isCollapsed} user={profile} isLoading={isProfileLoading} onLogout={handleLogout} />
+      <UserProfile
+        isCollapsed={isCollapsed}
+        user={profile}
+        isLoading={isProfileLoading}
+        onLogout={handleLogout}
+        currentStaff={currentStaff ? { jobTitle: currentStaff.jobTitle } : null}
+      />
     </div>
   );
 };

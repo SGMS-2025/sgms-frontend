@@ -149,6 +149,7 @@ export interface SocketEvents {
   'notification:reschedule:owner_update': (data: RescheduleNotificationData) => void;
   'notification:reschedule:manager_update': (data: RescheduleNotificationData) => void;
   'notification:reschedule:staff_update': (data: RescheduleNotificationData) => void;
+  'notification:branch-working-config:updated': (data: NotificationData) => void;
   'notification:staff:created': (data: StaffNotificationData) => void;
   'notification:staff:updated': (data: StaffNotificationData) => void;
   'notification:staff:deleted': (data: StaffNotificationData) => void;
@@ -186,6 +187,15 @@ export interface SocketEvents {
   // KPI events
   'kpi:created': (data: KPIUpdateEvent) => void;
   'kpi:updated': (data: KPIUpdateEvent) => void;
+
+  // Branch working config events
+  'branch:working-config:updated': (data: {
+    branchId: string;
+    configId: string;
+    version: number;
+    updatedBy: string;
+    timestamp: string;
+  }) => void;
 }
 
 // ===== API REQUEST/RESPONSE TYPES =====
