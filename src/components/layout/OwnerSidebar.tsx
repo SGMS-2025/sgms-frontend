@@ -40,7 +40,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuthActions, useAuthState } from '@/hooks/useAuth';
+import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { userApi } from '@/services/api/userApi';
+import { staffApi } from '@/services/api/staffApi';
 import type { User as ApiUser } from '@/types/api/User';
 import { Sidebar, type SidebarItem as SidebarItemType } from '@/components/common/Sidebar';
 import BusinessVerificationModal from '@/components/business/BusinessVerificationModal';
@@ -257,26 +259,53 @@ const formatRole = (role?: string) => {
   return `${role.charAt(0)}${role.slice(1).toLowerCase()}`;
 };
 
+// Helper function to translate jobTitle
+const translateJobTitle = (jobTitle: string, t: (key: string) => string): string => {
+  const jobTitleMap: Record<string, string> = {
+    Manager: 'staff.manager',
+    Admin: 'staff.admin',
+    Owner: 'staff.owner',
+    'Personal Trainer': 'staff_modal.role_personal_trainer',
+    Technician: 'staff.technician'
+  };
+
+  const translationKey = jobTitleMap[jobTitle];
+  if (translationKey) {
+    const translated = t(translationKey);
+    // Return translated text if it exists, otherwise return original jobTitle
+    return translated !== translationKey ? translated : jobTitle;
+  }
+  return jobTitle;
+};
+
 const UserProfile: React.FC<{
   isCollapsed: boolean;
   user: ApiUser | null;
   isLoading: boolean;
   onLogout: () => void;
   onOpenVerificationModal: () => void;
-}> = ({ isCollapsed, user, isLoading, onLogout, onOpenVerificationModal }) => {
+  currentStaff?: { jobTitle?: string } | null;
+}> = ({ isCollapsed, user, isLoading, onLogout, onOpenVerificationModal, currentStaff }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
   const displayName = user?.fullName || user?.username || t('sidebar.account') || 'User';
-  const roleKey = user?.role ? `roles.${user.role.toLowerCase()}` : '';
-  const translatedRole = roleKey ? t(roleKey) : '';
 
-  let roleLabel = t('sidebar.owner') || 'Owner';
-  if (user?.role) {
-    if (translatedRole && translatedRole !== roleKey) {
-      roleLabel = translatedRole;
-    } else {
-      roleLabel = formatRole(user.role);
+  // Prioritize jobTitle over role
+  let roleLabel: string;
+  if (currentStaff?.jobTitle) {
+    roleLabel = translateJobTitle(currentStaff.jobTitle, t);
+  } else {
+    const roleKey = user?.role ? `roles.${user.role.toLowerCase()}` : '';
+    const translatedRole = roleKey ? t(roleKey) : '';
+
+    roleLabel = t('sidebar.owner') || 'Owner';
+    if (user?.role) {
+      if (translatedRole && translatedRole !== roleKey) {
+        roleLabel = translatedRole;
+      } else {
+        roleLabel = formatRole(user.role);
+      }
     }
   }
 
@@ -423,9 +452,59 @@ export const OwnerSidebar: React.FC = () => {
   const [hasInitiallyFetched, setHasInitiallyFetched] = React.useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = React.useState(false);
 
+  // Use hook for STAFF users, and fetch separately for OWNER/ADMIN
+  const { currentStaff: currentStaffFromHook } = useCurrentUserStaff();
+  const [currentStaffForOwner, setCurrentStaffForOwner] = React.useState<{ jobTitle?: string } | null>(null);
+
   React.useEffect(() => {
     setProfile(authUser ?? null);
   }, [authUser]);
+
+  React.useEffect(() => {
+    let ignore = false;
+
+    // Skip if user is STAFF (handled by hook)
+    if (authUser?.role === 'STAFF') {
+      setCurrentStaffForOwner(null);
+      return;
+    }
+
+    const fetchStaffInfo = async () => {
+      try {
+        const response = await staffApi.getMyStaffInfo();
+        if (!ignore && response.success && response.data) {
+          // Check if jobTitle exists and is valid
+          if (response.data.jobTitle) {
+            setCurrentStaffForOwner({
+              jobTitle: response.data.jobTitle
+            });
+          }
+        }
+      } catch (error) {
+        console.debug('Failed to fetch staff info:', error);
+        setCurrentStaffForOwner(null);
+      }
+    };
+
+    if (isAuthenticated && authUser) {
+      fetchStaffInfo();
+    }
+
+    return () => {
+      ignore = true;
+    };
+  }, [isAuthenticated, authUser]);
+
+  // Determine which currentStaff to use: from hook (STAFF) or from fetch (OWNER/ADMIN)
+  const currentStaff = React.useMemo(() => {
+    if (currentStaffFromHook?.jobTitle) {
+      return { jobTitle: currentStaffFromHook.jobTitle };
+    }
+    if (currentStaffForOwner?.jobTitle) {
+      return currentStaffForOwner;
+    }
+    return null;
+  }, [currentStaffFromHook, currentStaffForOwner]);
 
   React.useEffect(() => {
     let ignore = false;
@@ -642,6 +721,7 @@ export const OwnerSidebar: React.FC = () => {
         isLoading={isProfileLoading}
         onLogout={logout}
         onOpenVerificationModal={() => setIsVerificationModalOpen(true)}
+        currentStaff={currentStaff}
       />
 
       {/* Collapse Toggle removed; controlled via header button */}

@@ -29,11 +29,38 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null);
   const [isSwitchingBranch, setIsSwitchingBranch] = useState(false);
   const isFetchingRef = useRef(false);
+  const previousUserRef = useRef<typeof user | undefined>(undefined);
 
   // Check if user can access my-branches API
   // OWNER, ADMIN can always access
   // STAFF can access if they have the right permissions (handled by backend)
   const canAccessMyBranches = user && ['OWNER', 'ADMIN', 'STAFF'].includes(user.role);
+
+  // Reset branch state when user changes or logs out
+  useEffect(() => {
+    // Only clear localStorage when user actually logs out (had user before, now null)
+    // Don't clear when initial loading (undefined -> user)
+    const hadUserBefore = previousUserRef.current !== undefined && previousUserRef.current !== null;
+    const isNowLoggedOut = user === null;
+
+    if (hadUserBefore && isNowLoggedOut) {
+      // User logged out - clear everything including localStorage
+      setCurrentBranch(null);
+      setBranches([]);
+      setError(null);
+      setLoading(false);
+      localStorage.removeItem('selectedBranchId');
+    } else if (user && !canAccessMyBranches) {
+      // User exists but doesn't have permission - reset state but keep localStorage
+      setCurrentBranch(null);
+      setBranches([]);
+      setError(null);
+      setLoading(false);
+    }
+
+    // Update previous user ref
+    previousUserRef.current = user;
+  }, [user, canAccessMyBranches]);
 
   // Fetch branches on mount - chỉ chạy một lần
   useEffect(() => {
@@ -63,12 +90,29 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
         if (branchData.branches && Array.isArray(branchData.branches)) {
           const displayBranches = branchData.branches.map(convertBranchToDisplay);
           setBranches(displayBranches);
-          // Only set current branch if there isn't one already
+
+          // Always try to restore from localStorage first, then check if current branch is still valid
+          const savedBranchId = localStorage.getItem('selectedBranchId');
           setCurrentBranch((prev) => {
-            if (!prev && displayBranches.length > 0) {
+            // If we have a saved branch ID, try to restore it
+            if (savedBranchId && displayBranches.length > 0) {
+              const savedBranch = displayBranches.find((b) => b._id === savedBranchId);
+              if (savedBranch) {
+                return savedBranch;
+              }
+            }
+
+            // If current branch is still valid in the new list, keep it
+            if (prev && displayBranches.some((b) => b._id === prev._id)) {
+              return prev;
+            }
+
+            // Otherwise, use first branch
+            if (displayBranches.length > 0) {
               return displayBranches[0];
             }
-            return prev;
+
+            return null;
           });
         } else {
           setError('No branches data found');
@@ -111,10 +155,29 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
       if (branchData.branches && Array.isArray(branchData.branches)) {
         const displayBranches = branchData.branches.map(convertBranchToDisplay);
         setBranches(displayBranches);
-        // Refetch - không cần check currentBranch
-        if (displayBranches.length > 0) {
-          setCurrentBranch(displayBranches[0]);
-        }
+
+        // Refetch - preserve current branch if still valid, otherwise restore from localStorage
+        setCurrentBranch((prev) => {
+          // If current branch is still valid in the new list, keep it
+          if (prev && displayBranches.some((b) => b._id === prev._id)) {
+            return prev;
+          }
+
+          // Try to restore from localStorage
+          if (displayBranches.length > 0) {
+            const savedBranchId = localStorage.getItem('selectedBranchId');
+            if (savedBranchId) {
+              const savedBranch = displayBranches.find((b) => b._id === savedBranchId);
+              if (savedBranch) {
+                return savedBranch;
+              }
+            }
+            // No saved branch or saved branch not found, use first branch
+            return displayBranches[0];
+          }
+
+          return null;
+        });
       } else {
         setError('No branches data found');
       }
@@ -242,25 +305,49 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
     const branchDetail = await fetchBranchDetail(branchId);
     if (branchDetail) {
       setCurrentBranch(branchDetail);
+      // Save selected branch ID to localStorage
+      localStorage.setItem('selectedBranchId', branchId);
     }
 
     setIsSwitchingBranch(false);
   };
 
-  const value: BranchContextType = {
-    currentBranch,
-    branches,
-    loading: loading || isSwitchingBranch,
-    error,
-    setCurrentBranch,
-    setBranches,
-    fetchBranches,
-    fetchBranchDetail,
-    createBranch,
-    updateBranchApi,
-    toggleBranchStatus,
-    switchBranch
-  };
+  // Save branch ID to localStorage whenever currentBranch changes
+  useEffect(() => {
+    if (currentBranch?._id) {
+      localStorage.setItem('selectedBranchId', currentBranch._id);
+    }
+  }, [currentBranch?._id]);
+
+  const value: BranchContextType = React.useMemo(
+    () => ({
+      currentBranch,
+      branches,
+      loading: loading || isSwitchingBranch,
+      error,
+      setCurrentBranch,
+      setBranches,
+      fetchBranches,
+      fetchBranchDetail,
+      createBranch,
+      updateBranchApi,
+      toggleBranchStatus,
+      switchBranch
+    }),
+    [
+      currentBranch,
+      branches,
+      loading,
+      isSwitchingBranch,
+      error,
+      fetchBranches,
+      fetchBranchDetail,
+      createBranch,
+      updateBranchApi,
+      toggleBranchStatus,
+      switchBranch
+    ]
+  );
 
   return <BranchContext.Provider value={value}>{children}</BranchContext.Provider>;
 };

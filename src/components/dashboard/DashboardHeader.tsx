@@ -23,7 +23,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { unreadCount } = useSocketNotifications();
-  const { currentBranch, branches, setCurrentBranch, switchBranch } = useBranch();
+  const { currentBranch, branches, switchBranch } = useBranch();
 
   const computedTitle = React.useMemo(() => {
     if (title) return title;
@@ -50,8 +50,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title }) => {
   }, [location.pathname, t, title]);
 
   // Branch switching handlers
-  const handleBranchSelect = (branch: BranchDisplay) => {
-    setCurrentBranch(branch);
+  const handleBranchSelect = async (branch: BranchDisplay) => {
+    await switchBranch(branch._id);
   };
 
   const handleAddBranch = () => {
@@ -116,7 +116,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title }) => {
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80 p-0">
+            <DropdownMenuContent align="end" className="w-96 p-0">
               <NotificationDropdown showBadge={false} />
             </DropdownMenuContent>
           </DropdownMenu>

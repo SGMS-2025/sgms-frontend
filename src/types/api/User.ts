@@ -24,6 +24,7 @@ export interface User {
     branchId?: string | string[];
     status?: string;
   } | null;
+  zaloUserId?: string;
   createdAt: string;
   updatedAt: string;
 }
