@@ -11,7 +11,11 @@ const resources = {
 i18n.use(initReactI18next).init({
   resources,
   lng: 'en', // default language
-  fallbackLng: 'vi',
+  fallbackLng: {
+    en: ['en', 'vi'],
+    vi: ['vi', 'en'],
+    default: ['en', 'vi']
+  },
   interpolation: {
     escapeValue: false, // react already safes from xss
     formatSeparator: ',',

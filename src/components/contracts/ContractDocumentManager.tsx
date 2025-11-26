@@ -12,7 +12,8 @@ import {
   Mail,
   CheckCircle2,
   XCircle,
-  Download
+  Download,
+  HelpCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,9 +28,11 @@ import type { ContractDocument, DocumentStatus } from '@/types/api/ContractDocum
 import { hasInvites, getStatusBadge, getContractTypeBadge } from '@/utils/contractDocumentUtils';
 import { useContractDocumentActions } from '@/hooks/useContractDocumentActions';
 import { useContractDocumentEvents, useVisibilityRefresh } from '@/hooks/useContractDocumentEvents';
+import { useContractsTour } from '@/hooks/useContractsTour';
 
 export default function ContractDocumentManager() {
   const { t } = useTranslation();
+  const { startContractsTour } = useContractsTour();
   const [documents, setDocuments] = useState<ContractDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -183,10 +186,25 @@ export default function ContractDocumentManager() {
             {t('contracts.subtitle', 'Manage and edit your contract documents')}
           </p>
         </div>
-        <Button onClick={() => setUploadDialogOpen(true)} className="bg-orange-500 hover:bg-orange-600">
-          <Plus className="mr-2 h-4 w-4" />
-          {t('contracts.upload_document', 'Upload Document')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className="border-gray-300 hover:bg-gray-50"
+            onClick={startContractsTour}
+            title={t('contracts.tour.button', 'Hướng dẫn')}
+          >
+            <HelpCircle className="w-4 h-4 text-gray-500 hover:text-orange-500" />
+          </Button>
+          <Button
+            onClick={() => setUploadDialogOpen(true)}
+            className="bg-orange-500 hover:bg-orange-600"
+            data-tour="contracts-upload-button"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            {t('contracts.upload_document', 'Upload Document')}
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -197,7 +215,7 @@ export default function ContractDocumentManager() {
           setPage(1);
         }}
       >
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-md grid-cols-2" data-tour="contracts-tabs">
           <TabsTrigger value="templates">{t('contracts.templates', 'Templates')}</TabsTrigger>
           <TabsTrigger value="contracts">{t('contracts.customer_contracts', 'Customer Contracts')}</TabsTrigger>
         </TabsList>
@@ -216,6 +234,7 @@ export default function ContractDocumentManager() {
                 setPage(1);
               }}
               className="pl-10"
+              data-tour="contracts-search-input"
             />
           </div>
         </div>
@@ -226,7 +245,7 @@ export default function ContractDocumentManager() {
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-48" data-tour="contracts-status-filter">
             <SelectValue placeholder={t('contracts.filter_by_status', 'Filter by status')} />
           </SelectTrigger>
           <SelectContent>
@@ -257,7 +276,7 @@ export default function ContractDocumentManager() {
       )}
       {!loading && documents.length > 0 && (
         <>
-          <div className="bg-white rounded-lg border border-gray-200 divide-y">
+          <div className="bg-white rounded-lg border border-gray-200 divide-y" data-tour="contracts-documents-list">
             {documents.map((doc) => (
               <div key={doc._id} className="p-4 hover:bg-gray-50 transition-colors">
                 <div className="flex items-start justify-between">
@@ -345,7 +364,7 @@ export default function ContractDocumentManager() {
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 ml-4">
+                  <div className="flex items-center gap-2 ml-4" data-tour="contracts-actions-buttons">
                     <Button
                       variant="outline"
                       size="sm"
@@ -426,7 +445,7 @@ export default function ContractDocumentManager() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between" data-tour="contracts-pagination">
               <p className="text-sm text-gray-600">
                 {t('common.showing', 'Showing')} {(page - 1) * 10 + 1}-{Math.min(page * 10, total)}{' '}
                 {t('common.of', 'of')} {total} {t('common.results', 'results')}

@@ -211,14 +211,14 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
 
   // Trainer display (show first 2 + count)
   const trainerDisplay = useMemo(() => {
-    const selected = trainers.filter((t) => selectedTrainers?.includes(t._id));
+    const selected = trainers.filter((t) => selectedTrainers?.includes(t._id) && t.userId);
     if (selected.length === 0) return 'Select trainers...';
     if (selected.length <= 2) {
-      return selected.map((t) => t.userId.fullName).join(', ');
+      return selected.map((t) => t.userId?.fullName || 'N/A').join(', ');
     }
     return `${selected
       .slice(0, 2)
-      .map((t) => t.userId.fullName)
+      .map((t) => t.userId?.fullName || 'N/A')
       .join(', ')} +${selected.length - 2}`;
   }, [selectedTrainers, trainers]);
 
@@ -510,12 +510,14 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
                         <CommandInput placeholder={t('class.form.search_trainers')} />
                         <CommandEmpty>{t('class.form.no_trainers_found')}</CommandEmpty>
                         <CommandGroup className="max-h-[200px] overflow-y-auto">
-                          {trainers.map((trainer) => (
-                            <CommandItem key={trainer._id} onSelect={() => handleTrainerToggle(trainer._id)}>
-                              <Checkbox checked={selectedTrainers?.includes(trainer._id) || false} className="mr-2" />
-                              <span className="flex-1">{trainer.userId.fullName}</span>
-                            </CommandItem>
-                          ))}
+                          {trainers
+                            .filter((trainer) => trainer.userId)
+                            .map((trainer) => (
+                              <CommandItem key={trainer._id} onSelect={() => handleTrainerToggle(trainer._id)}>
+                                <Checkbox checked={selectedTrainers?.includes(trainer._id) || false} className="mr-2" />
+                                <span className="flex-1">{trainer.userId?.fullName || 'N/A'}</span>
+                              </CommandItem>
+                            ))}
                         </CommandGroup>
                       </Command>
                     </PopoverContent>

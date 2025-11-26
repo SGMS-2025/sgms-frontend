@@ -167,19 +167,20 @@ export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
         <Card className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Search */}
-            <div className="relative">
+            <div className="relative" data-tour="expense-search-container">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder={t('expenses.search_placeholder', 'Tìm kiếm chi phí...')}
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
                 className="pl-10"
+                data-tour="expense-search-input"
               />
             </div>
 
             {/* Category */}
             <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)}>
-              <SelectTrigger>
+              <SelectTrigger data-tour="expense-category-filter">
                 <SelectValue placeholder={t('expenses.filter_category', 'Danh mục')} />
               </SelectTrigger>
               <SelectContent>
@@ -264,7 +265,7 @@ export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" data-tour="expense-actions-menu">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>

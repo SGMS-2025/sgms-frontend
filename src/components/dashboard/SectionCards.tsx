@@ -20,7 +20,7 @@ const TotalRevenueCard: React.FC<{ revenue: number; periodRevenue: number; growt
   const GrowthIcon = isPositive ? TrendingUp : TrendingDown;
 
   return (
-    <div className="bg-white rounded-xl p-6 h-full shadow-lg border border-gray-200">
+    <div className="bg-white rounded-xl p-6 h-full shadow-lg border border-gray-200" data-tour="overview-revenue-card">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
           <span className="text-sm font-medium text-gray-600">{t('dashboard.cards.total_revenue')}</span>
@@ -112,7 +112,10 @@ const NewCustomersCard: React.FC<{
   );
 
   return (
-    <div className="bg-white rounded-xl p-4 h-full shadow-lg border border-gray-200 flex flex-col gap-3">
+    <div
+      className="bg-white rounded-xl p-4 h-full shadow-lg border border-gray-200 flex flex-col gap-3"
+      data-tour="overview-customers-card"
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <span className="text-sm font-medium text-gray-600">{t('dashboard.cards.new_customers')}</span>
@@ -135,9 +138,7 @@ const NewCustomersCard: React.FC<{
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-wide text-gray-500">
-                {t('dashboard.total_customers', { defaultValue: 'Total customers' })}
-              </p>
+              <p className="text-xs uppercase tracking-wide text-gray-500">{t('dashboard.total_customers')}</p>
               <div className="text-3xl font-bold text-gray-900">{loading ? '...' : formatNumber(total)}</div>
             </div>
             {!loading && (
@@ -218,21 +219,21 @@ const ActiveAccountsChart: React.FC<{
     () => [
       {
         role: 'manager',
-        label: t('staff.manager', { defaultValue: 'Manager' }),
+        label: t('staff.manager'),
         value: breakdown?.manager || 0,
         fill: 'url(#managerGradient)',
         legendColor: '#f97316'
       },
       {
         role: 'pt',
-        label: t('staff.pt', { defaultValue: 'PT' }),
+        label: t('staff.pt'),
         value: breakdown?.pt || 0,
         fill: 'url(#ptGradient)',
         legendColor: '#0ea5e9'
       },
       {
         role: 'technician',
-        label: t('staff.technician', { defaultValue: 'Technician' }),
+        label: t('staff.technician'),
         value: breakdown?.technician || 0,
         fill: 'url(#technicianGradient)',
         legendColor: '#1f2937'
@@ -244,7 +245,7 @@ const ActiveAccountsChart: React.FC<{
   const total = breakdown?.total ?? chartData.reduce((acc, curr) => acc + (curr.value || 0), 0);
 
   return (
-    <div className="bg-white rounded-xl p-4 h-full shadow-lg border border-gray-200">
+    <div className="bg-white rounded-xl p-4 h-full shadow-lg border border-gray-200" data-tour="overview-roles-card">
       <div className="flex items-center gap-4 justify-center">
         <PieChart width={200} height={200}>
           <defs>
@@ -293,7 +294,7 @@ const ActiveAccountsChart: React.FC<{
           <Tooltip />
         </PieChart>
         <div className="flex flex-col gap-3 text-sm min-w-[160px] rounded-lg border border-gray-100 bg-gray-50/60 p-3">
-          <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">Roles</div>
+          <div className="text-xs uppercase tracking-wide text-gray-400 mb-1">{t('dashboard.roles')}</div>
           {chartData.map((item) => {
             return (
               <div key={item.role} className="flex items-center gap-2">

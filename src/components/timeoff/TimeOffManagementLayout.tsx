@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTimeOffList, useTimeOffOperations } from '@/hooks/useTimeOff';
+import { useTimeOffTour } from '@/hooks/useTimeOffTour';
 import CreateTimeOffModal from './CreateTimeOffModal';
 import TimeOffDetailModal from './TimeOffDetailModal';
 import TimeOffApprovalModal from './TimeOffApprovalModal';
@@ -13,6 +14,7 @@ interface TimeOffManagementLayoutProps {
 }
 
 const TimeOffManagementLayout: React.FC<TimeOffManagementLayoutProps> = ({ staffId, showStats = true, onExport }) => {
+  const { startTimeOffTour } = useTimeOffTour();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTimeOff, setSelectedTimeOff] = useState<TimeOff | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -156,6 +158,7 @@ const TimeOffManagementLayout: React.FC<TimeOffManagementLayoutProps> = ({ staff
         stats={calculatedStats}
         showFilters={true}
         showHeader={true}
+        onStartTour={startTimeOffTour}
       />
 
       {/* Modals */}

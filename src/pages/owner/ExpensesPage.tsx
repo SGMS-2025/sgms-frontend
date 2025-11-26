@@ -11,12 +11,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
-import { DollarSign, MapPin, Plus } from 'lucide-react';
+import { DollarSign, MapPin, Plus, HelpCircle } from 'lucide-react';
 import { ExpenseList, type ExpenseListRef } from '@/components/expenses/ExpenseList';
 import { ExpenseModal } from '@/components/expenses/ExpenseModal';
 import { ExpenseForm } from '@/components/expenses/ExpenseForm';
 import { useExpenseOperations } from '@/hooks/useExpenses';
 import { useBranch } from '@/contexts/BranchContext';
+import { useExpensesTour } from '@/hooks/useExpensesTour';
 import type { Expense, ExpenseDisplay, CreateExpenseRequest, UpdateExpenseRequest } from '@/types/api/Expenses';
 
 export default function ExpensesPage() {
@@ -34,6 +35,9 @@ export default function ExpensesPage() {
 
   // API hooks
   const { createExpense, updateExpense, disableExpense, loading: operationLoading } = useExpenseOperations();
+
+  // Tour hook
+  const { startExpensesTour } = useExpensesTour();
 
   // Ref for ExpenseList
   const expenseListRef = useRef<ExpenseListRef>(null);
@@ -175,10 +179,23 @@ export default function ExpensesPage() {
               {t('expenses.subtitle', 'Theo dõi và quản lý các chi phí của phòng gym')}
             </p>
           </div>
-          <div className="flex-shrink-0">
-            <Button onClick={handleCreateExpense} className="bg-orange-500 hover:bg-orange-600 text-white">
+          <div className="flex-shrink-0 flex gap-2">
+            <Button
+              onClick={handleCreateExpense}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+              data-tour="create-expense-button"
+            >
               <Plus className="w-4 h-4 mr-2" />
               {t('expenses.create_new', 'Tạo chi phí mới')}
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="border-gray-300 hover:bg-gray-50"
+              onClick={startExpensesTour}
+              title={t('expenses.tour.button', 'Hướng dẫn')}
+            >
+              <HelpCircle className="w-4 h-4 text-gray-500 hover:text-orange-500" />
             </Button>
           </div>
         </div>

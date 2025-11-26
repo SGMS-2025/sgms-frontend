@@ -109,6 +109,13 @@ export function AddServiceDialog({
             size="sm"
             className="px-4 py-2 text-sm text-white border border-orange-500 rounded-full bg-orange-500 hover:bg-orange-600 hover:border-orange-600 transition-colors flex items-center leading-none"
             disabled={loading}
+            data-tour={
+              serviceType === 'PT'
+                ? 'pt-add-package-button'
+                : serviceType === 'CLASS'
+                  ? 'class-add-class-button'
+                  : undefined
+            }
           >
             <Plus className="h-4 w-4 mr-2" />
             {t(`${form.translationKey}.add_${serviceType.toLowerCase()}`)}

@@ -249,6 +249,18 @@ export interface RecalculateAllKPIsResponse {
   }>;
 }
 
+// KPI Leaderboard Item
+export interface KPILeaderboardItem {
+  id: string;
+  name: string;
+  role: string;
+  branch: string;
+  score: number;
+  completion: number;
+  revenue: number;
+  ranking?: number | null;
+}
+
 // Type guard for Branch-wide KPI Response
 export function isBranchWideKPIResponse(data: KPIConfig | BranchWideKPIResponse): data is BranchWideKPIResponse {
   return typeof data === 'object' && data !== null && 'count' in data && 'message' in data;

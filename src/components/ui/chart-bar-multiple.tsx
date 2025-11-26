@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from 'recharts';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
@@ -13,10 +14,69 @@ import { formatCurrency } from '@/utils/currency';
 
 export const description = 'Branch revenue by month';
 
-const formatRange = (data: Array<{ month: string }>) => {
+const formatRange = (data: Array<{ month: string }>, t: TFunction) => {
   if (!data?.length) return '';
-  const first = data[0].month;
-  const last = data[data.length - 1].month;
+
+  const formatMonth = (monthStr: string) => {
+    // Try to parse as date string (YYYY-MM format)
+    const parts = monthStr.split('-');
+    if (parts.length === 2) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      if (!Number.isNaN(year) && !Number.isNaN(month) && month >= 1 && month <= 12) {
+        // Use translation for month name
+        const monthKey = `common.month.${month}`;
+        const translatedMonth = t(monthKey);
+        return translatedMonth;
+      }
+    }
+
+    // Map English month names to translation keys
+    const monthMap: Record<string, string> = {
+      January: 'common.month.1',
+      February: 'common.month.2',
+      March: 'common.month.3',
+      April: 'common.month.4',
+      May: 'common.month.5',
+      June: 'common.month.6',
+      July: 'common.month.7',
+      August: 'common.month.8',
+      September: 'common.month.9',
+      October: 'common.month.10',
+      November: 'common.month.11',
+      December: 'common.month.12',
+      Jan: 'common.month.1',
+      Feb: 'common.month.2',
+      Mar: 'common.month.3',
+      Apr: 'common.month.4',
+      Jun: 'common.month.6',
+      Jul: 'common.month.7',
+      Aug: 'common.month.8',
+      Sep: 'common.month.9',
+      Oct: 'common.month.10',
+      Nov: 'common.month.11',
+      Dec: 'common.month.12'
+    };
+
+    // Check if it's an English month name
+    if (monthMap[monthStr]) {
+      return t(monthMap[monthStr]);
+    }
+
+    // If already formatted, try to parse as date
+    const parsed = new Date(monthStr);
+    if (!Number.isNaN(parsed.getTime())) {
+      const month = parsed.getMonth() + 1;
+      const monthKey = `common.month.${month}`;
+      return t(monthKey);
+    }
+
+    // Fallback to original string
+    return monthStr;
+  };
+
+  const first = formatMonth(data[0].month);
+  const last = formatMonth(data[data.length - 1].month);
   return first === last ? first : `${first} - ${last}`;
 };
 
@@ -53,13 +113,13 @@ export function ChartBarMultiple() {
     [t]
   );
 
-  const periodLabel = formatRange(aggregatedData as Array<{ month: string }>);
+  const periodLabel = formatRange(aggregatedData as Array<{ month: string }>, t);
   const trend = calcTrend(aggregatedData);
   const latestEntry = aggregatedData.at(-1);
   const previousEntry = aggregatedData.length > 1 ? aggregatedData[aggregatedData.length - 2] : null;
 
   return (
-    <Card className="bg-white border-gray-200 shadow-md flex flex-col">
+    <Card className="bg-white border-gray-200 shadow-md flex flex-col" data-tour="overview-revenue-chart">
       <CardHeader className="pb-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>

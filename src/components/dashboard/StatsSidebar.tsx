@@ -37,7 +37,7 @@ export const StatsSidebar: React.FC = () => {
   }, []);
 
   return (
-    <div className="h-full rounded-2xl border border-gray-200 bg-white shadow-md">
+    <div className="h-full rounded-2xl border border-gray-200 bg-white shadow-md" data-tour="overview-stats-sidebar">
       <div className="flex items-center gap-2 border-b border-gray-100 px-5 py-4 text-orange-500">
         <LayoutDashboard className="h-4 w-4" />
         <span className="text-xs font-semibold uppercase tracking-[0.12em]">{t('dashboard.customer_staff_stats')}</span>

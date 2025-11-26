@@ -3,13 +3,12 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
-import { ChevronLeft, ChevronRight, Building2, User, X, Check, ChevronsUpDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Building2, User, X, Check, ChevronsUpDown, HelpCircle } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useBranch } from '@/contexts/BranchContext';
@@ -33,6 +32,7 @@ import CreateWorkShiftModal from './CreateWorkShiftModal';
 import BranchWorkingConfigModal from './BranchWorkingConfigModal';
 import MobileCalendarView from './mobile/MobileCalendarView';
 import { ClassCalendarTab } from '@/components/class/ClassCalendarTab';
+import { useCalendarTour } from '@/hooks/useCalendarTour';
 
 // Custom type for realtime notification event
 interface RealtimeNotificationEvent extends Event {
@@ -91,12 +91,12 @@ const getBranchIds = (branchId: unknown): string[] => {
 const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedStaffId, onStaffSelect, userRole }) => {
   const { t } = useTranslation();
   const { isMobile, width } = useBreakpoint(); // Detect mobile device
+  const { startCalendarTour } = useCalendarTour();
 
   // Debug: Log breakpoint detection
   console.log('[StaffScheduleCalendar] isMobile:', isMobile, 'width:', width);
 
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<'week' | 'month' | 'day'>('week');
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showCreateWorkShiftModal, setShowCreateWorkShiftModal] = useState(false);
@@ -295,10 +295,10 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                 salary: staff.salary || 0,
                 status: staff.status || 'ACTIVE',
                 userId: {
-                  _id: staff.userId._id,
+                  _id: staff.userId?._id || '',
                   fullName: getStaffName(staff),
-                  email: staff.userId.email || '',
-                  phoneNumber: staff.userId.phoneNumber
+                  email: staff.userId?.email || '',
+                  phoneNumber: staff.userId?.phoneNumber
                 }
               },
               branchId: {
@@ -1511,141 +1511,138 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                   </Popover>
                 )}
 
-                <Select value={viewMode} onValueChange={(value: 'week' | 'month' | 'day') => setViewMode(value)}>
-                  <SelectTrigger className="w-24">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="week">{t('workshift.week')}</SelectItem>
-                    <SelectItem value="month">{t('workshift.month')}</SelectItem>
-                    <SelectItem value="day">{t('workshift.day')}</SelectItem>
-                  </SelectContent>
-                </Select>
-
                 {/* Create Dropdown - Replacing Time Off button */}
                 <CreateDropdown
                   onCreateWorkShift={handleCreateWorkShift}
                   onBranchConfig={() => setShowBranchConfig(true)}
                   className="w-auto"
+                  data-tour="create-workshift-button"
                 />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="border-gray-300 hover:bg-gray-50"
+                  onClick={startCalendarTour}
+                  title={t('calendar.tour.button', 'Hướng dẫn')}
+                >
+                  <HelpCircle className="w-4 h-4 text-gray-500 hover:text-orange-500" />
+                </Button>
               </div>
             </div>
           </div>
 
           {/* Calendar Grid */}
           <div className="flex-1 overflow-hidden bg-white">
-            {viewMode === 'week' && (
-              <div className="h-full flex flex-col">
-                {/* Week Header - Fixed */}
-                <div className="flex-shrink-0 bg-white border-b-2 border-gray-300 z-10">
-                  <div className="flex">
-                    {/* Time column header - Match sidebar width */}
-                    <div className="w-[90px] p-4 border-r border-gray-200 bg-gray-50 flex-shrink-0">
-                      {/* Empty header for time column */}
-                    </div>
-
-                    {/* Days header */}
-                    <div className="flex-1">
-                      <div className="grid grid-cols-7">
-                        {weekDates.map((date) => {
-                          const dayOfWeek = date.getDay();
-                          const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-                          const dayKey = dayKeys[dayOfWeek];
-
-                          return (
-                            <div
-                              key={`weekday-${date.getTime()}`}
-                              className="p-4 border-r border-gray-200 text-center bg-gray-50"
-                            >
-                              <div
-                                className={cn(
-                                  'text-sm font-semibold mb-1',
-                                  isToday(date) ? 'text-orange-600' : 'text-gray-900'
-                                )}
-                              >
-                                {t(`workshift.${dayKey}`)}
-                              </div>
-                              <div
-                                className={cn(
-                                  'text-lg font-bold',
-                                  isToday(date)
-                                    ? 'bg-orange-600 text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto'
-                                    : 'text-gray-900'
-                                )}
-                              >
-                                {date.getDate()}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
+            <div className="h-full flex flex-col">
+              {/* Week Header - Fixed */}
+              <div className="flex-shrink-0 bg-white border-b-2 border-gray-300 z-10">
+                <div className="flex">
+                  {/* Time column header - Match sidebar width */}
+                  <div className="w-[90px] p-4 border-r border-gray-200 bg-gray-50 flex-shrink-0">
+                    {/* Empty header for time column */}
                   </div>
-                </div>
 
-                {/* Time Slots - Scrollable */}
-                <div className="calendar-scrollable-area no-padding flex-1 overflow-y-auto relative">
-                  <div className="calendar-grid-wrapper">
-                    {/* Time sidebar with fixed labels on lines */}
-                    <div className="calendar-time-sidebar">
-                      {/* Show shift times for each shift column - auto distributed with flex */}
-                      {timeSlots.map((slot, index) => {
-                        const shiftTime = `${slot.startTime} - ${slot.endTime}`;
+                  {/* Days header */}
+                  <div className="flex-1">
+                    <div className="grid grid-cols-7">
+                      {weekDates.map((date) => {
+                        const dayOfWeek = date.getDay();
+                        const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+                        const dayKey = dayKeys[dayOfWeek];
+
                         return (
-                          <div key={`time-marker-${slot.type}-${index}`} className="time-marker">
-                            <div className="text-xl font-bold text-gray-900">{slot.display}</div>
-                            <div className="text-gray-600 text-sm font-semibold mt-2">{shiftTime}</div>
+                          <div
+                            key={`weekday-${date.getTime()}`}
+                            className="p-4 border-r border-gray-200 text-center bg-gray-50"
+                          >
+                            <div
+                              className={cn(
+                                'text-sm font-semibold mb-1',
+                                isToday(date) ? 'text-orange-600' : 'text-gray-900'
+                              )}
+                            >
+                              {t(`workshift.${dayKey}`)}
+                            </div>
+                            <div
+                              className={cn(
+                                'text-lg font-bold',
+                                isToday(date)
+                                  ? 'bg-orange-600 text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto'
+                                  : 'text-gray-900'
+                              )}
+                            >
+                              {date.getDate()}
+                            </div>
                           </div>
                         );
                       })}
                     </div>
-
-                    {/* Calendar content area */}
-                    <div className="calendar-content-area">
-                      {!currentBranch ? (
-                        <div className="flex items-center justify-center h-full">
-                          <div className="text-center">
-                            <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">
-                              {t('workshift.no_branch_selected')}
-                            </h3>
-                            <p className="text-sm text-gray-500">{t('workshift.select_branch_to_view_calendar')}</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="calendar-day-grid">
-                          {weekDates.map((date) => (
-                            <div key={`day-${date.getTime()}`} className="calendar-day-column-new">
-                              {/* Time cells for this day */}
-                              {timeSlots.map((slot, slotIndex) => (
-                                <div
-                                  key={`cell-${date.getTime()}-${slot.type}-${slotIndex}`}
-                                  className="calendar-time-cell relative"
-                                  onClick={() => {
-                                    // Click handler for shift cell
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                      e.preventDefault();
-                                    }
-                                  }}
-                                  role="button"
-                                  tabIndex={0}
-                                >
-                                  {renderShiftsForSlot(date, slot)}
-                                  {/* Time Off indicator for the first shift of each day */}
-                                  {slotIndex === 0 && renderTimeOffIndicator(date)}
-                                </div>
-                              ))}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
               </div>
-            )}
+
+              {/* Time Slots - Scrollable */}
+              <div className="calendar-scrollable-area no-padding flex-1 overflow-y-auto relative">
+                <div className="calendar-grid-wrapper">
+                  {/* Time sidebar with fixed labels on lines */}
+                  <div className="calendar-time-sidebar">
+                    {/* Show shift times for each shift column - auto distributed with flex */}
+                    {timeSlots.map((slot, index) => {
+                      const shiftTime = `${slot.startTime} - ${slot.endTime}`;
+                      return (
+                        <div key={`time-marker-${slot.type}-${index}`} className="time-marker">
+                          <div className="text-xl font-bold text-gray-900">{slot.display}</div>
+                          <div className="text-gray-600 text-sm font-semibold mt-2">{shiftTime}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Calendar content area */}
+                  <div className="calendar-content-area">
+                    {!currentBranch ? (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center">
+                          <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">
+                            {t('workshift.no_branch_selected')}
+                          </h3>
+                          <p className="text-sm text-gray-500">{t('workshift.select_branch_to_view_calendar')}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="calendar-day-grid">
+                        {weekDates.map((date) => (
+                          <div key={`day-${date.getTime()}`} className="calendar-day-column-new">
+                            {/* Time cells for this day */}
+                            {timeSlots.map((slot, slotIndex) => (
+                              <div
+                                key={`cell-${date.getTime()}-${slot.type}-${slotIndex}`}
+                                className="calendar-time-cell relative"
+                                onClick={() => {
+                                  // Click handler for shift cell
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                role="button"
+                                tabIndex={0}
+                              >
+                                {renderShiftsForSlot(date, slot)}
+                                {/* Time Off indicator for the first shift of each day */}
+                                {slotIndex === 0 && renderTimeOffIndicator(date)}
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
