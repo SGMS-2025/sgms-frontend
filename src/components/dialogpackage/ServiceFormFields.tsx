@@ -123,40 +123,43 @@ export const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({
         />
         {errors.sessionCount && <p className="text-sm text-red-500">{errors.sessionCount}</p>}
       </div>
-      <div className="grid gap-2 grid-cols-2 items-start">
-        <div className="grid gap-2">
-          <Label htmlFor="minParticipants">{t(`${translationKey}.min_participants`)}</Label>
-          <Input
-            id="minParticipants"
-            type="number"
-            value={minParticipants}
-            onChange={(e) => onMinParticipantsChange(e.target.value)}
-            onBlur={() => onBlur('minParticipants')}
-            placeholder={t(`${translationKey}.min_participants_placeholder`)}
-            disabled={disabled}
-            className={errors.minParticipants ? 'border-red-500' : ''}
-          />
-          <div className="min-h-[1.25rem]">
-            {errors.minParticipants && <p className="text-sm text-red-500">{errors.minParticipants}</p>}
+      {/* Min/Max Participants - Only show for CLASS type */}
+      {serviceType === 'CLASS' && (
+        <div className="grid gap-2 grid-cols-2 items-start">
+          <div className="grid gap-2">
+            <Label htmlFor="minParticipants">{t(`${translationKey}.min_participants`)}</Label>
+            <Input
+              id="minParticipants"
+              type="number"
+              value={minParticipants}
+              onChange={(e) => onMinParticipantsChange(e.target.value)}
+              onBlur={() => onBlur('minParticipants')}
+              placeholder={t(`${translationKey}.min_participants_placeholder`)}
+              disabled={disabled}
+              className={errors.minParticipants ? 'border-red-500' : ''}
+            />
+            <div className="min-h-[1.25rem]">
+              {errors.minParticipants && <p className="text-sm text-red-500">{errors.minParticipants}</p>}
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="maxParticipants">{t(`${translationKey}.max_participants`)}</Label>
+            <Input
+              id="maxParticipants"
+              type="number"
+              value={maxParticipants}
+              onChange={(e) => onMaxParticipantsChange(e.target.value)}
+              onBlur={() => onBlur('maxParticipants')}
+              placeholder={t(`${translationKey}.max_participants_placeholder`)}
+              disabled={disabled}
+              className={errors.maxParticipants ? 'border-red-500' : ''}
+            />
+            <div className="min-h-[1.25rem]">
+              {errors.maxParticipants && <p className="text-sm text-red-500">{errors.maxParticipants}</p>}
+            </div>
           </div>
         </div>
-        <div className="grid gap-2">
-          <Label htmlFor="maxParticipants">{t(`${translationKey}.max_participants`)}</Label>
-          <Input
-            id="maxParticipants"
-            type="number"
-            value={maxParticipants}
-            onChange={(e) => onMaxParticipantsChange(e.target.value)}
-            onBlur={() => onBlur('maxParticipants')}
-            placeholder={t(`${translationKey}.max_participants_placeholder`)}
-            disabled={disabled}
-            className={errors.maxParticipants ? 'border-red-500' : ''}
-          />
-          <div className="min-h-[1.25rem]">
-            {errors.maxParticipants && <p className="text-sm text-red-500">{errors.maxParticipants}</p>}
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -17,7 +17,6 @@ import LandingPage from '@/pages/landing/LandingPage';
 import OwnerLandingPage from '@/pages/landing/OwnerLandingPage';
 import GymListPage from '@/pages/gyms/GymListPage';
 import GymDetailPage from '@/pages/gyms/GymDetailPage';
-import { UserProfile } from '@/pages/profile/ProfilePage';
 import OwnerDashboard from '@/pages/owner/OwnerDashboard';
 import StaffPage from '@/pages/owner/StaffPage';
 import BranchDetailPage from '@/pages/owner/BranchDetailPage';
@@ -85,6 +84,7 @@ import OwnerSubscriptionGateWithLayout from '@/components/guards/OwnerSubscripti
 import KPIManagementPage from '@/pages/owner/KPIManagementPage';
 import MyKPIPage from '@/pages/pt/MyKPIPage';
 import ChatAiPage from '@/pages/pt/ChatAiPage';
+import ProfileAccountSettingsPage from '@/pages/profile/ProfileAccountSettingsPage';
 
 // WorkShift Calendar with Layout Component
 // Note: Layout is provided by OwnerSubscriptionGateWithLayout wrapper
@@ -372,8 +372,13 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* Profile Route */}
-      <Route path="/profile" element={isAuthenticated ? <UserProfile /> : <Navigate to="/login" replace />} />
+      {/* Profile Routes - unified to settings page */}
+      <Route
+        path="/profile"
+        element={isAuthenticated ? <ProfileAccountSettingsPage /> : <Navigate to="/login" replace />}
+      />
+      <Route path="/profile/settings" element={<Navigate to="/profile" replace />} />
+      <Route path="/profile/security" element={<Navigate to="/profile" replace />} />
 
       {/* Business Verification Route - for owners to verify their business */}
       <Route path="/business-verification" element={<BusinessVerificationPage />} />
@@ -454,6 +459,12 @@ const AppRoutes: React.FC = () => {
           </Route>
           {/* Subscription Management Route (accessible without active subscription for OWNER) */}
           <Route path="subscriptions" element={<SubscriptionPackagesPage />} />
+          {/* Unified owner settings page */}
+          <Route path="setting" element={<ProfileAccountSettingsPage />} />
+          <Route path="profile" element={<Navigate to="/manage/setting" replace />} />
+          <Route path="profile/settings" element={<Navigate to="/manage/setting" replace />} />
+          <Route path="profile/security" element={<Navigate to="/manage/setting" replace />} />
+          <Route path="security" element={<Navigate to="/manage/setting" replace />} />
         </Route>
       </Route>
 
@@ -491,6 +502,13 @@ const AppRoutes: React.FC = () => {
 
           {/* Equipment Issue History Route for Technician */}
           <Route path="equipment-issues" element={<EquipmentIssueHistoryPage />} />
+
+          {/* Profile & Settings for Technician */}
+          <Route path="setting" element={<ProfileAccountSettingsPage />} />
+          <Route path="profile" element={<Navigate to="/manage/technician/setting" replace />} />
+          <Route path="profile/settings" element={<Navigate to="/manage/technician/setting" replace />} />
+          <Route path="profile/security" element={<Navigate to="/manage/technician/setting" replace />} />
+          <Route path="security" element={<Navigate to="/manage/technician/setting" replace />} />
 
           <Route path="*" element={<Navigate to="/manage/technician" replace />} />
         </Route>
@@ -540,6 +558,12 @@ const AppRoutes: React.FC = () => {
 
           {/* AI Chat Route for PT */}
           <Route path="chat" element={<ChatAiPage />} />
+          {/* Profile & Settings for PT */}
+          <Route path="setting" element={<ProfileAccountSettingsPage />} />
+          <Route path="profile" element={<Navigate to="/manage/pt/setting" replace />} />
+          <Route path="profile/settings" element={<Navigate to="/manage/pt/setting" replace />} />
+          <Route path="profile/security" element={<Navigate to="/manage/pt/setting" replace />} />
+          <Route path="security" element={<Navigate to="/manage/pt/setting" replace />} />
 
           <Route path="*" element={<Navigate to="/manage/pt" replace />} />
         </Route>

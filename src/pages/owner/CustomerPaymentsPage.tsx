@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
@@ -227,7 +227,7 @@ const PaymentMethodBadge: React.FC<{ method: string }> = ({ method }) => {
 
 const CustomerPaymentsPage: React.FC = () => {
   const { t } = useTranslation();
-  const { branches } = useBranch();
+  const { branches, currentBranch } = useBranch();
   const [searchTerm, setSearchTerm] = useState('');
 
   // Get translated labels
@@ -236,7 +236,17 @@ const CustomerPaymentsPage: React.FC = () => {
   const methodLabels = getMethodLabels(t);
   const subjectLabels = getSubjectLabels(t);
 
-  const { transactions, loading, error, pagination, query, setQuery, goToPage, refetch } = useTransactions();
+  const {
+    transactions,
+    loading,
+    error,
+    pagination,
+    summary: apiSummary,
+    query,
+    setQuery,
+    goToPage,
+    refetch
+  } = useTransactions();
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   const branchNameById = useMemo(() => {
@@ -281,7 +291,7 @@ const CustomerPaymentsPage: React.FC = () => {
     return formatDisplay(selectedRange?.from || selectedRange?.to);
   }, [selectedRange, t]);
 
-  const summary = useMemo(() => {
+  const computedSummary = useMemo(() => {
     return transactions.reduce(
       (acc, transaction) => {
         const amount = transaction.amount || 0;
@@ -330,10 +340,7 @@ const CustomerPaymentsPage: React.FC = () => {
       }
     );
   }, [transactions]);
-
-  const handleBranchChange = (value: string) => {
-    setQuery({ branchId: value === 'ALL' ? undefined : value });
-  };
+  const summary = apiSummary || computedSummary;
 
   const handleStatusChange = (value: string) => {
     if (value === 'ALL') {
@@ -370,6 +377,13 @@ const CustomerPaymentsPage: React.FC = () => {
     setQuery({ startDate: undefined, endDate: undefined });
     setDatePickerOpen(false);
   };
+
+  const branchId = currentBranch?._id;
+
+  // Keep branch filter in sync with global branch switch
+  useEffect(() => {
+    setQuery({ branchId });
+  }, [branchId, setQuery]);
 
   // Generate pagination pages array with ellipsis
   const generatePaginationPages = useMemo(() => {
@@ -444,7 +458,11 @@ const CustomerPaymentsPage: React.FC = () => {
           <p className="text-sm font-medium">
             {t('payment.no_transactions_found', { defaultValue: 'Không có giao dịch nào' })}
           </p>
-          <p className="text-xs mt-1">Thử thay đổi bộ lọc để xem kết quả khác</p>
+          <p className="text-xs mt-1">
+            {t('payment.no_transactions_hint', {
+              defaultValue: 'Thử thay đổi bộ lọc để xem kết quả khác'
+            })}
+          </p>
         </div>
       );
     }
@@ -626,7 +644,7 @@ const CustomerPaymentsPage: React.FC = () => {
           </Button>
           <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
             <Download className="mr-2 h-4 w-4" />
-            Xuất dữ liệu
+            {t('payment.export_data', { defaultValue: 'Xuất dữ liệu' })}
           </Button>
         </div>
       </div>
@@ -685,7 +703,7 @@ const CustomerPaymentsPage: React.FC = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filters */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <div className="flex flex-col gap-2">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -704,20 +722,6 @@ const CustomerPaymentsPage: React.FC = () => {
                 />
               </div>
             </div>
-
-            <Select value={query.branchId || 'ALL'} onValueChange={handleBranchChange}>
-              <SelectTrigger>
-                <SelectValue placeholder={t('common.branch', { defaultValue: 'Chi nhánh' })} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">{t('common.all', { defaultValue: 'Tất cả' })}</SelectItem>
-                {branches.map((branch) => (
-                  <SelectItem key={branch._id} value={branch._id}>
-                    {branch.branchName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
 
             <Select value={query.status || 'ALL'} onValueChange={handleStatusChange}>
               <SelectTrigger>

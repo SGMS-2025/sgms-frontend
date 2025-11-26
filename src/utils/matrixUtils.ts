@@ -14,12 +14,37 @@ export const convertMatrixToLegacyFormat = (matrixData: MatrixResponse['data'] |
     };
   }
 
-  // Convert packages to legacy services using items data
+  // Convert packages to legacy services
+  // Use packages array as source of truth to show all packages, even without features
   const servicesMap = new Map<string, LegacyService>();
 
+  // First, create services from packages array (ensures all packages are shown)
+  (matrixData.packages || []).forEach((pkg) => {
+    if (!servicesMap.has(pkg._id)) {
+      servicesMap.set(pkg._id, {
+        id: pkg._id,
+        name: pkg.name,
+        type: pkg.type as 'PT' | 'CLASS' | undefined,
+        price: undefined, // Will be updated from items if available
+        durationInMonths: pkg.defaultDurationMonths,
+        status: pkg.status === 'ACTIVE' ? 'active' : 'inactive'
+      });
+    }
+  });
+
+  // Then, update services with data from items (price, duration overrides)
   (matrixData.items || []).forEach((item) => {
-    if (!servicesMap.has(item.packageId)) {
-      // Find the corresponding package info
+    if (servicesMap.has(item.packageId)) {
+      const service = servicesMap.get(item.packageId)!;
+      // Update price and duration from items if available (may have branch overrides)
+      if (item.priceVND !== null && item.priceVND !== undefined) {
+        service.price = item.priceVND;
+      }
+      if (item.durationMonths !== null && item.durationMonths !== undefined) {
+        service.durationInMonths = item.durationMonths;
+      }
+    } else {
+      // Fallback: if package not in packages array but exists in items, add it
       const pkg = matrixData.packages?.find((p) => p._id === item.packageId);
       servicesMap.set(item.packageId, {
         id: item.packageId,

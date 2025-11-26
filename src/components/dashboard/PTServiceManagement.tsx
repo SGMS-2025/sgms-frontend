@@ -154,12 +154,6 @@ export default function PTServiceManagement() {
                   {t('pt_service.subtitle')} <span className="font-medium">{currentBranch.branchName}</span>
                 </p>
               </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-2">
-                  <AddFeatureDialog onSubmit={addFeature} loading={loading} serviceType="PT" />
-                  <AddServiceDialog onSubmit={addService} loading={loading} serviceType="PT" />
-                </div>
-              </div>
             </div>
           </div>
 
@@ -252,7 +246,9 @@ export default function PTServiceManagement() {
                     <div
                       className="grid gap-[5px] p-4 text-orange-500 text-sm font-semibold bg-orange-50"
                       style={{
-                        gridTemplateColumns: `260px repeat(${ptServices.length}, 180px)`
+                        gridTemplateColumns: preview
+                          ? `260px repeat(${ptServices.length}, 180px)`
+                          : `260px repeat(${ptServices.length}, 180px) 180px`
                       }}
                     >
                       <div className="flex items-center justify-center px-2">{t('pt_service.features_services')}</div>
@@ -303,6 +299,12 @@ export default function PTServiceManagement() {
                           </div>
                         </div>
                       ))}
+                      {/* Add Package column */}
+                      {!preview && (
+                        <div className="flex items-center justify-center px-2">
+                          <AddServiceDialog onSubmit={addService} loading={loading} serviceType="PT" iconOnly />
+                        </div>
+                      )}
                     </div>
 
                     {/* Feature rows */}
@@ -313,7 +315,9 @@ export default function PTServiceManagement() {
                           index % 2 === 0 ? 'bg-gray-50' : 'bg-white'
                         }`}
                         style={{
-                          gridTemplateColumns: `260px repeat(${ptServices.length}, 180px)`
+                          gridTemplateColumns: preview
+                            ? `260px repeat(${ptServices.length}, 180px)`
+                            : `260px repeat(${ptServices.length}, 180px) 180px`
                         }}
                       >
                         {/* Feature name column */}
@@ -369,8 +373,29 @@ export default function PTServiceManagement() {
                             </div>
                           );
                         })}
+                        {/* Empty cell for Add Package column */}
+                        {!preview && <div className="flex items-center justify-center px-2"></div>}
                       </div>
                     ))}
+                    {/* Add Feature row */}
+                    {!preview && (
+                      <div
+                        className="grid gap-[5px] p-4 text-sm border-t border-gray-200 bg-gray-50"
+                        style={{
+                          gridTemplateColumns: `260px repeat(${ptServices.length}, 180px) 180px`
+                        }}
+                      >
+                        <div className="flex items-center justify-center px-2">
+                          <AddFeatureDialog onSubmit={addFeature} loading={loading} serviceType="PT" iconOnly />
+                        </div>
+                        {/* Empty cells for service columns */}
+                        {ptServices.map((s) => (
+                          <div key={s.id} className="flex items-center justify-center px-2"></div>
+                        ))}
+                        {/* Empty cell for Add Package column */}
+                        <div className="flex items-center justify-center px-2"></div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

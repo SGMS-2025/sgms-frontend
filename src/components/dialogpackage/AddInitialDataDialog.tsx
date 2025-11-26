@@ -232,8 +232,8 @@ export function AddInitialDataDialog({
       'price',
       'duration',
       'sessionCount',
-      'minParticipants',
-      'maxParticipants'
+      // Only validate min/max participants for CLASS type
+      ...(serviceType === 'CLASS' ? ['minParticipants', 'maxParticipants'] : [])
     ];
     const formValues = getFormValues();
 
@@ -272,8 +272,10 @@ export function AddInitialDataDialog({
       price: true,
       duration: true,
       sessionCount: true,
-      minParticipants: true,
-      maxParticipants: true
+      ...(serviceType === 'CLASS' && {
+        minParticipants: true,
+        maxParticipants: true
+      })
     });
     return Object.keys(newErrors).length === 0;
   };
@@ -290,8 +292,10 @@ export function AddInitialDataDialog({
       price: price ? parsePriceInput(price) : undefined,
       durationInMonths: Number(duration),
       sessionCount: sessionCount ? Number(sessionCount) : undefined,
-      minParticipants: Number(minParticipants),
-      maxParticipants: Number(maxParticipants)
+      // PT 1-1: min and max participants are always 1
+      // CLASS: use form values
+      minParticipants: serviceType === 'PT' ? 1 : Number(minParticipants),
+      maxParticipants: serviceType === 'PT' ? 1 : Number(maxParticipants)
     });
 
     // Reset form
@@ -454,44 +458,47 @@ export function AddInitialDataDialog({
                 />
                 {errors.sessionCount && <p className="text-sm text-red-500">{errors.sessionCount}</p>}
               </div>
-              <div className="grid gap-2 grid-cols-2 items-start">
-                <div className="grid gap-2">
-                  <Label htmlFor="minParticipants">
-                    {t(`${translationKey}.min_participants`)} <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="minParticipants"
-                    type="number"
-                    value={minParticipants}
-                    onChange={(e) => handleMinParticipantsChange(e.target.value)}
-                    onBlur={() => handleBlur('minParticipants')}
-                    placeholder={t(`${translationKey}.min_participants_placeholder`)}
-                    disabled={loading}
-                    className={errors.minParticipants ? 'border-red-500' : ''}
-                  />
-                  <div className="min-h-[1.25rem]">
-                    {errors.minParticipants && <p className="text-sm text-red-500">{errors.minParticipants}</p>}
+              {/* Min/Max Participants - Only show for CLASS type */}
+              {serviceType === 'CLASS' && (
+                <div className="grid gap-2 grid-cols-2 items-start">
+                  <div className="grid gap-2">
+                    <Label htmlFor="minParticipants">
+                      {t(`${translationKey}.min_participants`)} <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="minParticipants"
+                      type="number"
+                      value={minParticipants}
+                      onChange={(e) => handleMinParticipantsChange(e.target.value)}
+                      onBlur={() => handleBlur('minParticipants')}
+                      placeholder={t(`${translationKey}.min_participants_placeholder`)}
+                      disabled={loading}
+                      className={errors.minParticipants ? 'border-red-500' : ''}
+                    />
+                    <div className="min-h-[1.25rem]">
+                      {errors.minParticipants && <p className="text-sm text-red-500">{errors.minParticipants}</p>}
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="maxParticipants">
+                      {t(`${translationKey}.max_participants`)} <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="maxParticipants"
+                      type="number"
+                      value={maxParticipants}
+                      onChange={(e) => handleMaxParticipantsChange(e.target.value)}
+                      onBlur={() => handleBlur('maxParticipants')}
+                      placeholder={t(`${translationKey}.max_participants_placeholder`)}
+                      disabled={loading}
+                      className={errors.maxParticipants ? 'border-red-500' : ''}
+                    />
+                    <div className="min-h-[1.25rem]">
+                      {errors.maxParticipants && <p className="text-sm text-red-500">{errors.maxParticipants}</p>}
+                    </div>
                   </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="maxParticipants">
-                    {t(`${translationKey}.max_participants`)} <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="maxParticipants"
-                    type="number"
-                    value={maxParticipants}
-                    onChange={(e) => handleMaxParticipantsChange(e.target.value)}
-                    onBlur={() => handleBlur('maxParticipants')}
-                    placeholder={t(`${translationKey}.max_participants_placeholder`)}
-                    disabled={loading}
-                    className={errors.maxParticipants ? 'border-red-500' : ''}
-                  />
-                  <div className="min-h-[1.25rem]">
-                    {errors.maxParticipants && <p className="text-sm text-red-500">{errors.maxParticipants}</p>}
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

@@ -6,6 +6,7 @@ export interface ApiResponse<T> {
   data: T;
   requestId: string;
   timestamp: string;
+  meta?: Record<string, unknown>;
 }
 
 export interface PaginatedApiResponse<T> extends ApiResponse<T> {
