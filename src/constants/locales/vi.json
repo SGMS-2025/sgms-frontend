@@ -3026,6 +3026,7 @@
   "pt.sidebar.reports": "Báo cáo",
   "pt.sidebar.equipmentIssues": "Báo cáo lỗi thiết bị",
   "pt.sidebar.myKPI": "KPI Của Tôi",
+  "pt.sidebar.aiChat": "Chat AI",
   "common.all": "Tất cả",
   "common.pagination.showing": "Hiển thị",
   "common.pagination.of": "của",
@@ -4789,5 +4790,27 @@
     "zalo_benefit_1": "Đăng nhập nhanh chóng chỉ với một chạm qua Zalo",
     "zalo_benefit_2": "Không cần nhớ mật khẩu",
     "zalo_benefit_3": "Xác thực an toàn thông qua Zalo"
+  },
+  "chat": {
+    "conversations": "Đoạn chat của bạn",
+    "new_chat": "Đoạn chat mới",
+    "new_chat_room": "Đoạn chat mới",
+    "new_conversation": "Đoạn chat mới",
+    "no_conversations": "Chưa có đoạn chat nào",
+    "start_new": "Bắt đầu đoạn chat mới",
+    "pending": "Đang chờ...",
+    "conversation": "Cuộc trò chuyện",
+    "load_more": "Tải thêm",
+    "no_messages": "Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện!",
+    "type_message": "Nhập tin nhắn...",
+    "empty_state": {
+      "subtitle": "Chúng ta nên bắt đầu từ đâu?",
+      "title": "Chúng ta nên bắt đầu từ đâu?",
+      "placeholder": "Hỏi bất kỳ điều gì"
+    },
+    "send_message": "Gửi tin nhắn",
+    "clear_conversation": "Xóa cuộc trò chuyện",
+    "clear_conversation_description": "Bạn có chắc chắn muốn xóa {{roomName}}? Hành động này không thể hoàn tác.",
+    "yesterday": "Hôm qua"
   }
 }

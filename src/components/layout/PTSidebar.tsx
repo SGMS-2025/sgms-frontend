@@ -19,7 +19,8 @@ import {
   ChevronDown,
   ShieldCheck as Shield,
   User,
-  UserCheck
+  UserCheck,
+  Bot
 } from 'lucide-react';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -467,6 +468,13 @@ export const PTSidebar: React.FC = () => {
       href: '/manage/pt/kpi',
       isActive: location.pathname === '/manage/pt/kpi',
       onClick: () => handleNavigation('/manage/pt/kpi')
+    },
+    {
+      icon: <Bot className="w-5 h-5" />,
+      label: t('pt.sidebar.aiChat', 'AI Chat'),
+      href: '/manage/pt/chat',
+      isActive: location.pathname.startsWith('/manage/pt/chat'),
+      onClick: () => handleNavigation('/manage/pt/chat')
     }
   ];
 

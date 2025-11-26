@@ -3027,6 +3027,7 @@
   "pt.sidebar.reports": "Reports",
   "pt.sidebar.equipmentIssues": "Equipment Issues",
   "pt.sidebar.myKPI": "My KPI",
+  "pt.sidebar.aiChat": "AI Chat",
   "common.all": "All",
   "common.pagination.showing": "Showing",
   "common.pagination.of": "of",
@@ -4789,5 +4790,27 @@
     "zalo_benefit_1": "Quick login with one tap using Zalo",
     "zalo_benefit_2": "No need to remember password",
     "zalo_benefit_3": "Secure authentication via Zalo"
+  },
+  "chat": {
+    "conversations": "Conversations",
+    "new_chat": "New Chat",
+    "new_chat_room": "New Chat Room",
+    "new_conversation": "New Conversation",
+    "no_conversations": "No conversations yet",
+    "start_new": "Start New Chat",
+    "pending": "Pending...",
+    "conversation": "Conversation",
+    "load_more": "Load More",
+    "no_messages": "No messages yet. Start the conversation!",
+    "type_message": "Type your message...",
+    "empty_state": {
+      "subtitle": "Where should we start?",
+      "title": "Where should we start?",
+      "placeholder": "Ask anything"
+    },
+    "send_message": "Send message",
+    "clear_conversation": "Clear Conversation",
+    "clear_conversation_description": "Are you sure you want to delete {{roomName}}? This action cannot be undone.",
+    "yesterday": "Yesterday"
   }
 }
