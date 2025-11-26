@@ -84,6 +84,7 @@ import OwnerSubscriptionGate from '@/components/guards/OwnerSubscriptionGate';
 import OwnerSubscriptionGateWithLayout from '@/components/guards/OwnerSubscriptionGateWithLayout';
 import KPIManagementPage from '@/pages/owner/KPIManagementPage';
 import MyKPIPage from '@/pages/pt/MyKPIPage';
+import ChatAiPage from '@/pages/pt/ChatAiPage';
 
 // WorkShift Calendar with Layout Component
 // Note: Layout is provided by OwnerSubscriptionGateWithLayout wrapper
@@ -536,6 +537,9 @@ const AppRoutes: React.FC = () => {
 
           {/* My KPI Route for PT */}
           <Route path="kpi" element={<MyKPIPage />} />
+
+          {/* AI Chat Route for PT */}
+          <Route path="chat" element={<ChatAiPage />} />
 
           <Route path="*" element={<Navigate to="/manage/pt" replace />} />
         </Route>
