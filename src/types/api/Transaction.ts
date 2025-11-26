@@ -76,7 +76,19 @@ export interface TransactionListParams extends PaginationParams {
   sortBy?: 'occurredAt' | 'amount' | 'createdAt';
 }
 
+export interface TransactionSummary {
+  totalAmount: number;
+  settledAmount: number;
+  pendingAmount: number;
+  failedAmount: number;
+  totalCount: number;
+  settledCount: number;
+  pendingCount: number;
+  failedCount: number;
+}
+
 export interface TransactionListData {
   items: Transaction[];
   pagination: PaginationResponse;
+  summary?: TransactionSummary;
 }

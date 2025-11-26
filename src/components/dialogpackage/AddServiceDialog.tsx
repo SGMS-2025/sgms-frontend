@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { parsePriceInput } from '@/utils/currency';
 import { useServiceForm } from './useServiceForm';
 import { ServiceFormFields } from './ServiceFormFields';
@@ -20,6 +21,7 @@ interface AddServiceDialogProps {
   readonly serviceType: 'CLASS' | 'PT';
   readonly defaultMinParticipants?: number;
   readonly defaultMaxParticipants?: number;
+  readonly iconOnly?: boolean;
 }
 
 export function AddServiceDialog({
@@ -27,7 +29,8 @@ export function AddServiceDialog({
   loading,
   serviceType,
   defaultMinParticipants = 5,
-  defaultMaxParticipants = 20
+  defaultMaxParticipants = 20,
+  iconOnly = false
 }: AddServiceDialogProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -50,8 +53,12 @@ export function AddServiceDialog({
       price: form.price ? parsePriceInput(form.price) : undefined,
       durationInMonths: form.duration ? Number(form.duration) : undefined,
       sessionCount: form.sessionCount ? Number(form.sessionCount) : undefined,
-      minParticipants: form.minParticipants ? Number(form.minParticipants) : defaultMinParticipants,
-      maxParticipants: form.maxParticipants ? Number(form.maxParticipants) : defaultMaxParticipants
+      // PT 1-1: min and max participants are always 1
+      // CLASS: use form values or defaults
+      minParticipants:
+        serviceType === 'PT' ? 1 : form.minParticipants ? Number(form.minParticipants) : defaultMinParticipants,
+      maxParticipants:
+        serviceType === 'PT' ? 1 : form.maxParticipants ? Number(form.maxParticipants) : defaultMaxParticipants
     });
 
     // Reset form and close
@@ -79,16 +86,35 @@ export function AddServiceDialog({
         }
       }}
     >
-      <DialogTrigger asChild>
-        <Button
-          size="sm"
-          className="px-4 py-2 text-sm text-white border border-orange-500 rounded-full bg-orange-500 hover:bg-orange-600 hover:border-orange-600 transition-colors flex items-center leading-none"
-          disabled={loading}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          {t(`${form.translationKey}.add_${serviceType.toLowerCase()}`)}
-        </Button>
-      </DialogTrigger>
+      {iconOnly ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <Button
+                size="icon"
+                className="h-10 w-10 rounded-full bg-orange-500 hover:bg-orange-600 text-white border border-orange-500 hover:border-orange-600 transition-colors shadow-sm"
+                disabled={loading}
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{t(`${form.translationKey}.add_${serviceType.toLowerCase()}`)}</p>
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        <DialogTrigger asChild>
+          <Button
+            size="sm"
+            className="px-4 py-2 text-sm text-white border border-orange-500 rounded-full bg-orange-500 hover:bg-orange-600 hover:border-orange-600 transition-colors flex items-center leading-none"
+            disabled={loading}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            {t(`${form.translationKey}.add_${serviceType.toLowerCase()}`)}
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto hide-scrollbar">
         <DialogHeader>
           <DialogTitle>{t(`${form.translationKey}.add_${serviceType.toLowerCase()}_dialog_title`)}</DialogTitle>

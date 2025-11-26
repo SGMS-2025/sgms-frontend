@@ -12,7 +12,6 @@ import {
   ChevronUp,
   LogOut,
   UserCircle,
-  ShieldCheck as Shield,
   PanelLeft,
   X,
   FileText,
@@ -305,22 +304,12 @@ const UserProfile: React.FC<{
     <>
       <DropdownMenuItem
         onClick={() => {
-          navigate('/profile');
+          navigate('/manage/technician/setting');
         }}
         className="cursor-pointer"
       >
         <UserCircle className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.profile')}
-      </DropdownMenuItem>
-
-      <DropdownMenuItem
-        onClick={() => {
-          navigate('/security');
-        }}
-        className="cursor-pointer"
-      >
-        <Shield className="w-4 h-4 mr-3 stroke-[1.75]" />
-        {t('sidebar.security')}
       </DropdownMenuItem>
 
       <DropdownMenuSeparator />

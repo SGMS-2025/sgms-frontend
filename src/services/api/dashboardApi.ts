@@ -3,11 +3,20 @@ import { api } from './api';
 
 export interface DashboardSummary {
   totalRevenue: number;
+  periodRevenue?: number;
   revenueGrowth: number;
   newCustomers: number;
+  periodNewCustomers?: number;
   newCustomersGrowth: number;
   activeAccounts: number;
   activeAccountsGrowth: number;
+  staffBreakdown?: {
+    total: number;
+    period: number;
+    manager: number;
+    pt: number;
+    technician: number;
+  };
 }
 
 export interface RevenueChartDataPoint {

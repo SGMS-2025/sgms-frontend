@@ -5,7 +5,7 @@ import { SectionCards } from '@/components/dashboard/SectionCards';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { StatsSidebar } from '@/components/dashboard/StatsSidebar';
 import { BranchList } from '@/components/dashboard/BranchList';
-import { ServicesList } from '@/components/dashboard/ServicesList';
+import { KPILeaderboard } from '@/components/dashboard/KPILeaderboard';
 import { EquipmentManagement } from '@/components/dashboard/EquipmentManagement';
 
 const OwnerDashboard: React.FC = () => {
@@ -44,7 +44,7 @@ const OwnerDashboard: React.FC = () => {
       {/* Bottom Section */}
       <div className="grid grid-cols-2 gap-6 mb-6">
         <BranchList />
-        <ServicesList />
+        <KPILeaderboard />
       </div>
 
       {/* Equipment Management */}

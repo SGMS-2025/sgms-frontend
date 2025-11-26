@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Bell, LogOut, User, Settings, ChevronDown } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Bell, LogOut, User, ChevronDown } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -12,14 +12,18 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { useAuthActions, useUser } from '@/hooks/useAuth';
+import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
+import { getProfileSettingsPath } from '@/utils/navigation';
 import type { User as UserType } from '@/types/api/User';
 import type { AuthenticatedNavbarProps } from '@/types/components/navbar';
 
 export function AuthenticatedNavbar({ isScrolled }: AuthenticatedNavbarProps) {
   const [notificationCount] = useState(3); // Mock notification count
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout } = useAuthActions();
   const user = useUser();
+  const { currentStaff } = useCurrentUserStaff();
 
   const handleLogout = () => {
     logout();
@@ -57,6 +61,8 @@ export function AuthenticatedNavbar({ isScrolled }: AuthenticatedNavbarProps) {
   };
 
   if (!user) return null;
+
+  const settingsPath = getProfileSettingsPath(user.role, currentStaff?.jobTitle, location.pathname);
 
   return (
     <div className="flex items-center space-x-3">
@@ -105,14 +111,9 @@ export function AuthenticatedNavbar({ isScrolled }: AuthenticatedNavbarProps) {
 
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem onClick={() => navigate('/profile')}>
+          <DropdownMenuItem onClick={() => navigate(settingsPath)}>
             <User className="mr-2 h-4 w-4" />
-            <span>Hồ sơ cá nhân</span>
-          </DropdownMenuItem>
-
-          <DropdownMenuItem onClick={() => navigate('/settings')}>
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Cài đặt</span>
+            <span>Hồ sơ & Cài đặt</span>
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />

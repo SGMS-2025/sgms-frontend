@@ -91,11 +91,6 @@ const UserProfile: React.FC<{
         {t('sidebar.profile')}
       </DropdownMenuItem>
 
-      <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
-        <Settings className="w-4 h-4 mr-3 stroke-[1.75]" />
-        {t('sidebar.account_settings')}
-      </DropdownMenuItem>
-
       <DropdownMenuSeparator />
 
       <LanguageSwitcher variant="sidebar" />

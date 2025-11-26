@@ -6,7 +6,7 @@ import {
   Calendar,
   Users,
   LayoutDashboard,
-  Settings,
+  // Settings,
   ChevronUp,
   LogOut,
   UserCircle,
@@ -17,7 +17,7 @@ import {
   X,
   CalendarDays,
   ChevronDown,
-  ShieldCheck as Shield,
+  // ShieldCheck as Shield,
   User,
   UserCheck,
   Bot
@@ -255,19 +255,9 @@ const UserProfile: React.FC<{
 
   const menuItems = (
     <>
-      <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
+      <DropdownMenuItem onClick={() => navigate('/manage/pt/setting')} className="cursor-pointer">
         <UserCircle className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.profile')}
-      </DropdownMenuItem>
-
-      <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
-        <Settings className="w-4 h-4 mr-3 stroke-[1.75]" />
-        {t('sidebar.account_settings')}
-      </DropdownMenuItem>
-
-      <DropdownMenuItem onClick={() => navigate('/security')} className="cursor-pointer">
-        <Shield className="w-4 h-4 mr-3 stroke-[1.75]" />
-        {t('sidebar.security')}
       </DropdownMenuItem>
 
       <DropdownMenuSeparator />
