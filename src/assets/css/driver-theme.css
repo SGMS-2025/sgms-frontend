@@ -1,0 +1,154 @@
+/* Custom Driver.js Popover Theme - Orange Theme */
+
+/* Popover Container */
+.driver-popover {
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(249, 115, 22, 0.1) !important;
+  border: 1px solid rgba(249, 115, 22, 0.2) !important;
+  padding: 20px !important;
+  max-width: 400px !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+/* Popover Title */
+.driver-popover-title {
+  color: #ea580c !important;
+  font-weight: 700 !important;
+  font-size: 18px !important;
+  margin-bottom: 8px !important;
+  line-height: 1.4 !important;
+}
+
+/* Popover Description */
+.driver-popover-description {
+  color: #4b5563 !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  margin-bottom: 16px !important;
+}
+
+/* Popover Footer */
+.driver-popover-footer {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-top: 16px !important;
+  padding-top: 16px !important;
+  border-top: 1px solid #e5e7eb !important;
+}
+
+/* Progress Text */
+.driver-popover-progress-text {
+  color: #6b7280 !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+/* Navigation Buttons Container */
+.driver-popover-navigation-btns {
+  display: flex !important;
+  gap: 8px !important;
+}
+
+/* Button Base Styles */
+.driver-popover-btn {
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+  border: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Primary Button (Next) */
+.driver-popover-btn-primary {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3) !important;
+}
+
+.driver-popover-btn-primary:hover {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%) !important;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+.driver-popover-btn-primary:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 6px rgba(249, 115, 22, 0.3) !important;
+}
+
+/* Secondary Button (Previous) */
+.driver-popover-btn-secondary {
+  background: #f3f4f6 !important;
+  color: #374151 !important;
+}
+
+.driver-popover-btn-secondary:hover {
+  background: #e5e7eb !important;
+  color: #1f2937 !important;
+  transform: translateY(-1px) !important;
+}
+
+.driver-popover-btn-secondary:active {
+  transform: translateY(0) !important;
+}
+
+/* Close Button */
+.driver-popover-close-btn {
+  color: #9ca3af !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 4px !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.driver-popover-close-btn:hover {
+  color: #ea580c !important;
+  background: #fff7ed !important;
+}
+
+/* Popover Arrow */
+.driver-popover-arrow {
+  border-color: rgba(249, 115, 22, 0.1) !important;
+}
+
+.driver-popover-arrow-side-top::after {
+  border-top-color: #ffffff !important;
+}
+
+.driver-popover-arrow-side-bottom::after {
+  border-bottom-color: #ffffff !important;
+}
+
+.driver-popover-arrow-side-left::after {
+  border-left-color: #ffffff !important;
+}
+
+.driver-popover-arrow-side-right::after {
+  border-right-color: #ffffff !important;
+}
+
+/* Done Button (when it's the last step) */
+.driver-popover-btn.driver-popover-btn-primary[data-driver-action="done"] {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
+}
+
+.driver-popover-btn.driver-popover-btn-primary[data-driver-action="done"]:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
+}
+

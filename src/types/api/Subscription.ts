@@ -1,3 +1,28 @@
+// Payment Transaction Info for Bank Transfer
+export interface PaymentTransactionInfo {
+  _id: string;
+  paymentCode: string;
+  amount: number;
+  bankAccountNumber: string;
+  bankCode: string;
+  bankAccountName: string;
+  description: string;
+  expiresAt: string;
+  qrCodeUrl: string;
+  metadata?: {
+    packageName?: string;
+    packageId?: string;
+    packageTier?: number;
+    months?: number;
+    pricePerMonth?: number;
+    notes?: string;
+    requestedAt?: string;
+    transferContent?: string;
+    paymentCodePrefix?: string;
+    paymentCodeDigits?: number;
+  };
+}
+
 // Subscription Package Types
 export interface SubscriptionPackage {
   _id: string;
@@ -215,4 +240,29 @@ export interface GetSubscriptionsQuery {
 export interface GetSubscriptionHistoryQuery {
   includeExpired?: boolean;
   limit?: number;
+}
+
+// Purchase Subscription Response (can be success or pending payment)
+export interface PurchaseSubscriptionResponse {
+  success: boolean;
+  message: string;
+  data:
+    | OwnerSubscription
+    | {
+        status: 'PENDING_PAYMENT';
+        paymentTransaction: PaymentTransactionInfo;
+      };
+  statusCode: number;
+}
+
+// Payment Status Check Response
+export interface PaymentStatusResponse {
+  success: boolean;
+  message: string;
+  data: {
+    paymentTransaction: PaymentTransactionInfo;
+    subscription?: OwnerSubscription;
+    status: 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED';
+  };
+  statusCode: number;
 }

@@ -149,6 +149,7 @@ export interface SocketEvents {
   'notification:reschedule:owner_update': (data: RescheduleNotificationData) => void;
   'notification:reschedule:manager_update': (data: RescheduleNotificationData) => void;
   'notification:reschedule:staff_update': (data: RescheduleNotificationData) => void;
+  'notification:branch-working-config:updated': (data: NotificationData) => void;
   'notification:staff:created': (data: StaffNotificationData) => void;
   'notification:staff:updated': (data: StaffNotificationData) => void;
   'notification:staff:deleted': (data: StaffNotificationData) => void;
@@ -186,6 +187,20 @@ export interface SocketEvents {
   // KPI events
   'kpi:created': (data: KPIUpdateEvent) => void;
   'kpi:updated': (data: KPIUpdateEvent) => void;
+
+  // Branch working config events
+  'branch:working-config:updated': (data: {
+    branchId: string;
+    configId: string;
+    version: number;
+    updatedBy: string;
+    timestamp: string;
+  }) => void;
+
+  // Business verification events
+  'business-verification:submitted': (data: BusinessVerificationUpdateEvent) => void;
+  'business-verification:approved': (data: BusinessVerificationUpdateEvent) => void;
+  'business-verification:rejected': (data: BusinessVerificationUpdateEvent) => void;
 }
 
 // ===== API REQUEST/RESPONSE TYPES =====
@@ -365,6 +380,28 @@ export interface ContractCompletedEvent {
     completedAt: string;
   };
   timestamp: string;
+}
+
+export interface BusinessVerificationUpdateEvent {
+  verificationId: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  businessName: string;
+  approvedAt?: string;
+  rejectedAt?: string;
+  submittedAt?: string;
+  rejectionReason?: string;
+  adminNotes?: string | null;
+  skipToast?: boolean; // Flag to skip toast notification (for submit/resubmit)
+  verification?: {
+    _id: string;
+    businessName: string;
+    status: string;
+    approvedAt?: string;
+    rejectedAt?: string;
+    rejectionReason?: string;
+    adminNotes?: string;
+    [key: string]: unknown;
+  };
 }
 
 export interface KPIUpdateEvent {

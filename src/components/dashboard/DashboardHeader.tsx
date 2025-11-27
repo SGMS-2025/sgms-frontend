@@ -14,16 +14,17 @@ import type { BranchDisplay } from '@/types/api/Branch';
 
 interface DashboardHeaderProps {
   title?: string;
+  hideBranchSelector?: boolean;
 }
 
 const formatSegment = (segment: string) => segment.replace(/[-_]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 
-export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title }) => {
+export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, hideBranchSelector = false }) => {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const { unreadCount } = useSocketNotifications();
-  const { currentBranch, branches, setCurrentBranch, switchBranch } = useBranch();
+  const { currentBranch, branches, switchBranch } = useBranch();
 
   const computedTitle = React.useMemo(() => {
     if (title) return title;
@@ -50,8 +51,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title }) => {
   }, [location.pathname, t, title]);
 
   // Branch switching handlers
-  const handleBranchSelect = (branch: BranchDisplay) => {
-    setCurrentBranch(branch);
+  const handleBranchSelect = async (branch: BranchDisplay) => {
+    await switchBranch(branch._id);
   };
 
   const handleAddBranch = () => {
@@ -116,36 +117,40 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title }) => {
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80 p-0">
+            <DropdownMenuContent align="end" className="w-96 p-0">
               <NotificationDropdown showBadge={false} />
             </DropdownMenuContent>
           </DropdownMenu>
 
           {/* Branch Selector - Mobile */}
-          <div className="sm:hidden">
-            <BranchSelectorButton
-              currentBranch={currentBranch}
-              branches={branches}
-              onBranchSelect={handleBranchSelect}
-              onAddBranch={handleAddBranch}
-              onViewBranch={handleViewBranch}
-              collapsed
-            />
-          </div>
+          {!hideBranchSelector && (
+            <div className="sm:hidden">
+              <BranchSelectorButton
+                currentBranch={currentBranch}
+                branches={branches}
+                onBranchSelect={handleBranchSelect}
+                onAddBranch={handleAddBranch}
+                onViewBranch={handleViewBranch}
+                collapsed
+              />
+            </div>
+          )}
 
           {/* Separator (hidden on mobile) */}
-          <div className="hidden sm:block h-6 w-px bg-gray-200"></div>
+          {!hideBranchSelector && <div className="hidden sm:block h-6 w-px bg-gray-200"></div>}
 
           {/* Branch Selector */}
-          <div className="hidden sm:block w-64 flex-shrink-0">
-            <BranchSelectorButton
-              currentBranch={currentBranch}
-              branches={branches}
-              onBranchSelect={handleBranchSelect}
-              onAddBranch={handleAddBranch}
-              onViewBranch={handleViewBranch}
-            />
-          </div>
+          {!hideBranchSelector && (
+            <div className="hidden sm:block w-64 flex-shrink-0">
+              <BranchSelectorButton
+                currentBranch={currentBranch}
+                branches={branches}
+                onBranchSelect={handleBranchSelect}
+                onAddBranch={handleAddBranch}
+                onViewBranch={handleViewBranch}
+              />
+            </div>
+          )}
 
           {/* Settings icon (hidden on mobile) */}
           <Button

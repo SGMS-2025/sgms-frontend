@@ -1,15 +1,19 @@
-import { Bell, LogOut, User, Settings } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Bell, LogOut, User } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useAuthActions, useUser } from '@/hooks/useAuth';
+import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
+import { getProfileSettingsPath } from '@/utils/navigation';
 import type { User as UserType } from '@/types/api/User';
 import type { MobileAuthenticatedMenuProps } from '@/types/components/navbar';
 
 export function MobileAuthenticatedMenu({ onClose }: MobileAuthenticatedMenuProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout } = useAuthActions();
   const user = useUser();
+  const { currentStaff } = useCurrentUserStaff();
 
   const handleLogout = () => {
     logout();
@@ -35,6 +39,8 @@ export function MobileAuthenticatedMenu({ onClose }: MobileAuthenticatedMenuProp
   };
 
   if (!user) return null;
+
+  const settingsPath = getProfileSettingsPath(user.role, currentStaff?.jobTitle, location.pathname);
 
   return (
     <div className="pt-4 border-t border-gray-200">
@@ -62,19 +68,10 @@ export function MobileAuthenticatedMenu({ onClose }: MobileAuthenticatedMenuProp
         <Button
           variant="ghost"
           className="w-full justify-start text-left text-gray-700 hover:text-orange-500 hover:bg-orange-50 rounded-xl py-3"
-          onClick={() => handleNavigation('/profile')}
+          onClick={() => handleNavigation(settingsPath)}
         >
           <User className="mr-3 h-4 w-4" />
-          Hồ sơ cá nhân
-        </Button>
-
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-left text-gray-700 hover:text-orange-500 hover:bg-orange-50 rounded-xl py-3"
-          onClick={() => handleNavigation('/settings')}
-        >
-          <Settings className="mr-3 h-4 w-4" />
-          Cài đặt
+          Hồ sơ & Cài đặt
         </Button>
 
         <Button

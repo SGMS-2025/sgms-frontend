@@ -15,9 +15,15 @@ interface CreateDropdownProps {
   onCreateWorkShift: () => void;
   onBranchConfig: () => void;
   className?: string;
+  'data-tour'?: string;
 }
 
-const CreateDropdown: React.FC<CreateDropdownProps> = ({ onCreateWorkShift, onBranchConfig, className }) => {
+const CreateDropdown: React.FC<CreateDropdownProps> = ({
+  onCreateWorkShift,
+  onBranchConfig,
+  className,
+  'data-tour': dataTour
+}) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const { canCreateWorkshift } = useWorkshiftPermissions();
@@ -45,6 +51,7 @@ const CreateDropdown: React.FC<CreateDropdownProps> = ({ onCreateWorkShift, onBr
             'w-full bg-orange-50 hover:bg-orange-100 text-orange-600 border border-orange-200 hover:border-orange-300 transition-all duration-200 shadow-sm hover:shadow-md',
             className
           )}
+          data-tour={dataTour}
         >
           <Plus className="h-4 w-4 mr-2 text-orange-600" />
           {t('workshift.create')}
@@ -61,7 +68,7 @@ const CreateDropdown: React.FC<CreateDropdownProps> = ({ onCreateWorkShift, onBr
           <Calendar className="mr-2 h-4 w-4" />
           <span>{t('workshift.create_schedule')}</span>
         </DropdownMenuItem> */}
-        <DropdownMenuItem onClick={handleBranchConfig} className="cursor-pointer">
+        <DropdownMenuItem onClick={handleBranchConfig} className="cursor-pointer" data-tour="branch-config-menu-item">
           <Settings className="mr-2 h-4 w-4" />
           <span>{t('workshift.branch_working_config')}</span>
         </DropdownMenuItem>

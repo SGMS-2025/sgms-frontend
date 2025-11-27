@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import 'driver.js/dist/driver.css';
+@import './assets/css/driver-theme.css';
 @import './assets/css/animations.css';
 
 /* Custom styles for select elements to ensure borders are visible */
@@ -139,26 +141,79 @@ select:focus {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: manipulation;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+  
+  html::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+    width: 0;
+    height: 0;
+  }
+  
   body {
     @apply bg-background text-foreground;
-    /* Ensure body can scroll naturally */
-    overflow-x: hidden;
+    height: 100%;
     overflow-y: auto;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+  
+  body::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+    width: 0;
+    height: 0;
   }
 
   /* Ensure root container doesn't restrict height */
   #root {
-    min-height: 100vh;
     height: auto;
-  }
-
-  /* Global mobile scroll improvements */
-  html {
-    -webkit-overflow-scrolling: touch;
-    touch-action: manipulation;
+    min-height: 100vh;
+    overflow-y: auto;
     overflow-x: hidden;
   }
+
+  /* Block scroll only for dashboard layouts */
+  html.dashboard-layout-active,
+  body.dashboard-layout-active {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #root.dashboard-layout-active {
+    height: 100vh;
+    overflow: hidden;
+  }
+}
+
+/* Allow scrolling on landing page */
+.landing-page {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  min-height: 100vh;
+}
+
+/* When landing page is active, allow body and html to scroll */
+html.landing-page-active,
+body.landing-page-active {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+}
+
+#root.landing-page-active {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
 }
 
 /* Added custom animation for scrolling text */

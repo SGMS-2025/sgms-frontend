@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, RefreshCcw, Layers, CheckCircle2, Settings2, PauseCircle, Sparkles } from 'lucide-react';
+import { Plus, RefreshCcw, Layers, CheckCircle2, Settings2, PauseCircle, Sparkles, HelpCircle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -17,6 +17,7 @@ import { useMembershipPlanActions } from '@/hooks/useMembershipPlanActions';
 
 import { useBranch } from '@/contexts/BranchContext';
 import { useMembershipPlans } from '@/hooks/useMembershipPlans';
+import { useMembershipsTour } from '@/hooks/useMembershipsTour';
 import { resolvePlanData, calculateOverrideCount, getAssignedBranches } from '@/utils/membershipHelpers';
 import { membershipApi } from '@/services/api/membershipApi';
 import { parseBenefits } from '@/utils/membership';
@@ -47,6 +48,7 @@ interface PreviewContext {
 export default function MembershipPlansPage() {
   const { t } = useTranslation();
   const { currentBranch, branches } = useBranch();
+  const { startMembershipsTour } = useMembershipsTour();
   const skeletonId = useId();
 
   // State management
@@ -492,9 +494,19 @@ export default function MembershipPlansPage() {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <Button
                   variant="outline"
+                  size="icon"
+                  className="border-gray-300 hover:bg-gray-50"
+                  onClick={startMembershipsTour}
+                  title={t('membership.tour.button', 'Hướng dẫn')}
+                >
+                  <HelpCircle className="w-4 h-4 text-gray-500 hover:text-orange-500" />
+                </Button>
+                <Button
+                  variant="outline"
                   className="rounded-full border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:border-orange-300 hover:text-orange-500"
                   onClick={handleRefresh}
                   disabled={isLoading}
+                  data-tour="membership-refresh-button"
                 >
                   <RefreshCcw className="h-4 w-4" />
                   <span className="hidden sm:inline ml-2">{t('membershipManager.actions.refresh')}</span>
@@ -502,6 +514,7 @@ export default function MembershipPlansPage() {
                 <Button
                   className="h-11 rounded-full bg-orange-500 px-4 sm:px-6 text-sm font-semibold text-white shadow-sm hover:bg-orange-600"
                   onClick={handleCreate}
+                  data-tour="membership-create-plan-button"
                 >
                   <Plus className="h-4 w-4" />
                   <span className="ml-2">{t('membershipManager.actions.create')}</span>
@@ -510,7 +523,9 @@ export default function MembershipPlansPage() {
             </div>
 
             {/* Summary Statistics */}
-            <MembershipSummary stats={summaryStats} />
+            <div data-tour="membership-stats-cards">
+              <MembershipSummary stats={summaryStats} />
+            </div>
           </div>
 
           {/* Filters */}
@@ -529,7 +544,10 @@ export default function MembershipPlansPage() {
           </div>
 
           {/* Plans Grid */}
-          <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div
+            className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+            data-tour="membership-plans-grid"
+          >
             {filteredPlans.length === 0 ? (
               <div className="col-span-full rounded-2xl border border-gray-200 bg-gray-50 p-8 text-center text-sm text-gray-500">
                 {t('membershipManager.state.empty')}

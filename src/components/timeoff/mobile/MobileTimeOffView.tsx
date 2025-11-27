@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Calendar, RefreshCw, Plus, Download, CheckCircle, XCircle, Clock, MapPin } from 'lucide-react';
+import { Calendar, RefreshCw, Plus, CheckCircle, XCircle, Clock, MapPin } from 'lucide-react';
 import type { TimeOff } from '@/types/api/TimeOff';
 import { Badge } from '@/components/ui/badge';
 
@@ -12,7 +12,6 @@ interface MobileTimeOffViewProps {
   stats?: { total: number; pending: number; approved: number; rejected: number; cancelled: number };
   onCreateNew?: () => void;
   onRefresh?: () => void;
-  onExport?: () => void;
   onView?: (id: string) => void;
 }
 
@@ -22,7 +21,6 @@ const MobileTimeOffView: React.FC<MobileTimeOffViewProps> = ({
   stats,
   onCreateNew,
   onRefresh,
-  onExport,
   onView
 }) => {
   const { t } = useTranslation();
@@ -56,12 +54,6 @@ const MobileTimeOffView: React.FC<MobileTimeOffViewProps> = ({
           </Badge>
         </div>
         <div className="flex items-center gap-2">
-          {onExport && (
-            <Button variant="outline" size="sm" onClick={onExport}>
-              <Download className="w-4 h-4 mr-1" />
-              {t('timeoff.export') || 'Export'}
-            </Button>
-          )}
           {onRefresh && (
             <Button variant="outline" size="sm" onClick={onRefresh}>
               <RefreshCw className="w-4 h-4 mr-1" />

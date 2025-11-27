@@ -10,6 +10,7 @@ export interface SidebarItem {
   onClick?: () => void;
   badge?: number;
   testId?: string;
+  'data-tour'?: string;
 }
 
 interface SidebarItemProps {
@@ -40,6 +41,7 @@ const SidebarItemComponent: React.FC<SidebarItemProps> = ({ item, isCollapsed = 
       aria-current={item.isActive ? 'page' : undefined}
       title={isCollapsed ? item.label : undefined}
       data-testid={item.testId}
+      data-tour={item['data-tour']}
     >
       <span className="flex-shrink-0 w-5 h-5 relative">
         {item.icon}

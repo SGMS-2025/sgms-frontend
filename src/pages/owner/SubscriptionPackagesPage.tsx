@@ -1,8 +1,6 @@
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type LucideIcon, Package, TrendingUp, CheckCircle2, Clock } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { SubscriptionPackageCard } from '@/components/subscription/SubscriptionPackageCard';
 import { PurchaseSubscriptionModal } from '@/components/subscription/PurchaseSubscriptionModal';
 import { BusinessVerificationAlert } from '@/components/business/BusinessVerificationAlert';
@@ -71,52 +69,81 @@ export const SubscriptionPackagesPage = () => {
       <div className="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-orange-100/40 via-orange-50/10 to-transparent blur-[120px] pointer-events-none"></div>
       <div className="relative w-full max-w-[1920px] mx-auto px-2 sm:px-6 lg:px-10 xl:px-12 2xl:px-16 pt-4 pb-12">
         {/* Hero */}
-        <section className="relative overflow-hidden rounded-[32px] border border-orange-100/60 bg-gradient-to-r from-orange-50 via-white to-amber-50 px-6 py-10 md:px-16 md:py-14 shadow-[0_20px_80px_rgba(244,114,40,0.18)]">
-          <div className="absolute -top-12 -right-6 h-64 w-64 rounded-full bg-orange-200/40 blur-3xl"></div>
-          <div className="absolute bottom-8 right-14 hidden sm:block h-28 w-28 rounded-full border border-orange-200/60"></div>
-          <div className="absolute bottom-0 left-1/3 h-24 w-24 rounded-full bg-gradient-to-br from-amber-100/60 to-transparent blur-2xl"></div>
-          <div className="relative z-10 flex flex-col gap-6">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-orange-600 shadow-sm">
-              {t('subscription.hero.tag')}
+        <section className="relative overflow-hidden rounded-[28px] border border-orange-100/60 bg-gradient-to-r from-orange-50 via-white to-amber-50 px-5 py-8 md:px-12 md:py-10 shadow-[0_16px_60px_rgba(244,114,40,0.16)]">
+          <div className="absolute -top-12 -right-10 h-48 w-48 rounded-full bg-orange-200/40 blur-3xl"></div>
+          <div className="absolute bottom-4 left-1/2 h-16 w-16 -translate-x-1/2 rounded-full bg-amber-100/50 blur-2xl"></div>
+          <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-orange-600 shadow-sm">
+                {t('subscription.hero.tag')}
+              </div>
+              <div className="space-y-2">
+                <h1 className="text-2xl font-bold text-gray-900 md:text-4xl md:leading-tight">
+                  {t('subscription.hero.title')}
+                </h1>
+                <p className="text-sm text-gray-600 md:text-base">{t('subscription.hero.subtitle')}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {heroHighlights.map(({ icon: Icon, title }) => (
+                  <div
+                    key={title}
+                    className="inline-flex items-center gap-2 rounded-full border border-orange-100 bg-white/90 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm"
+                  >
+                    <Icon className="h-4 w-4 text-orange-600" />
+                    <span>{title}</span>
+                  </div>
+                ))}
+              </div>
+              {stats?.hasActiveSubscription && (
+                <div className="mt-1 flex flex-wrap items-center gap-2 rounded-2xl border border-orange-100 bg-white/80 px-3 py-2 text-xs font-medium text-gray-700 shadow-sm backdrop-blur">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-orange-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>{t('subscription.page.currentPackage')}</span>
+                    <span className="font-semibold text-gray-900">{stats.packageName}</span>
+                  </div>
+                  <div className="h-3 w-[1px] bg-orange-100" />
+                  <div className="inline-flex items-center gap-2 rounded-full bg-gray-50 px-3 py-1">
+                    <Clock className="h-3.5 w-3.5 text-orange-500" />
+                    <span className="text-gray-800 font-semibold">{getDaysRemaining()}</span>
+                    <span className="text-gray-500">{t('subscription.page.days')}</span>
+                  </div>
+                  {getBranchUsage() && (
+                    <div className="inline-flex items-center gap-2 rounded-full bg-gray-50 px-3 py-1">
+                      <Package className="h-3.5 w-3.5 text-orange-500" />
+                      <span className="text-gray-800 font-semibold">
+                        {getBranchUsage()?.current}/{getBranchUsage()?.max}
+                      </span>
+                      <span className="text-gray-500">{t('subscription.page.branches')}</span>
+                    </div>
+                  )}
+                  {getCustomerUsage() && (
+                    <div className="inline-flex items-center gap-2 rounded-full bg-gray-50 px-3 py-1">
+                      <TrendingUp className="h-3.5 w-3.5 text-orange-500" />
+                      <span className="text-gray-800 font-semibold">
+                        {getCustomerUsage()?.current}/{getCustomerUsage()?.max}
+                      </span>
+                      <span className="text-gray-500">{t('subscription.page.customers')}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <div className="space-y-4 max-w-3xl">
-              <h1 className="text-3xl font-bold text-gray-900 md:text-5xl md:leading-tight">
-                {t('subscription.hero.title')}
-              </h1>
-              <p className="text-base text-gray-600 md:text-lg">{t('subscription.hero.subtitle')}</p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Button
                 onClick={handleScrollToPackages}
-                className="h-12 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-8 text-base font-semibold shadow-lg shadow-orange-500/40 hover:scale-[1.02] hover:shadow-xl hover:shadow-orange-500/40"
+                className="h-11 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-6 text-sm font-semibold shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50"
               >
                 {t('subscription.hero.ctaTrial')}
               </Button>
               <Button
                 variant="outline"
-                className="h-12 rounded-full border-2 border-orange-300 bg-white px-8 text-base font-semibold text-orange-600 shadow-none hover:border-orange-400 hover:bg-orange-50"
+                className="h-11 rounded-full border border-orange-200 bg-white px-6 text-sm font-semibold text-orange-600 hover:border-orange-300 hover:bg-orange-50"
                 asChild
               >
                 <a href="https://gymsmart.site/contact" target="_blank" rel="noreferrer">
                   {t('subscription.hero.ctaContact')}
                 </a>
               </Button>
-            </div>
-            <div className="grid grid-cols-1 gap-4 pt-4 md:grid-cols-3">
-              {heroHighlights.map(({ icon: Icon, title, description }) => (
-                <div
-                  key={title}
-                  className="flex items-center gap-4 rounded-2xl border border-white/70 bg-white/80 p-4 shadow-inner shadow-orange-100/70 backdrop-blur-sm"
-                >
-                  <div className="rounded-2xl bg-gradient-to-br from-orange-100 to-amber-100 p-3 text-orange-600 shadow">
-                    <Icon className="h-6 w-6" />
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-sm font-semibold text-gray-900">{title}</p>
-                    <p className="text-xs text-gray-600">{description}</p>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         </section>
@@ -132,111 +159,14 @@ export const SubscriptionPackagesPage = () => {
           onOpenChange={(value: boolean) => setIsVerificationModalOpen(value)}
         />
 
-        {/* Current Subscription Status - Glassmorphism Design */}
-        {(() => {
-          if (!stats || !('hasActiveSubscription' in stats) || !stats.hasActiveSubscription) return null;
-
-          const daysRemaining = getDaysRemaining();
-          const branchUsage = getBranchUsage();
-          const customerUsage = getCustomerUsage();
-
-          return (
-            <Card className="mb-10 backdrop-blur-xl bg-gradient-to-br from-orange-50/90 via-amber-50/80 to-orange-50/90 border-orange-300/50 shadow-2xl shadow-orange-500/10 transition-all duration-500 hover:shadow-orange-500/20">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl shadow-lg shadow-orange-500/30">
-                      <CheckCircle2 className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-orange-900 text-xl font-bold mb-1">
-                        {t('subscription.page.currentPackage')}:{' '}
-                        {typeof stats.packageName === 'string' ? stats.packageName : ''}
-                      </CardTitle>
-                      <CardDescription className="text-orange-700">
-                        {t('subscription.page.activePackage')}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  {/* Days Remaining */}
-                  <div className="group relative bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-orange-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                    <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="relative">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="p-2 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg">
-                          <Clock className="w-4 h-4 text-white" />
-                        </div>
-                        <span className="text-sm font-medium text-gray-700">
-                          {t('subscription.page.daysRemaining')}
-                        </span>
-                      </div>
-                      <div className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
-                        {String(daysRemaining)}
-                      </div>
-                      <div className="text-sm text-gray-500 mt-1">{t('subscription.page.days')}</div>
-                    </div>
-                  </div>
-
-                  {/* Branch Usage */}
-                  {branchUsage && (
-                    <div className="group relative bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-orange-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                      <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <div className="relative">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="p-2 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg">
-                            <Package className="w-4 h-4 text-white" />
-                          </div>
-                          <span className="text-sm font-medium text-gray-700">{t('subscription.page.branches')}</span>
-                        </div>
-                        <div className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent mb-2">
-                          {String(branchUsage.current)} / {String(branchUsage.max)}
-                        </div>
-                        <Progress value={branchUsage.percentage} className="h-2.5 bg-orange-100" />
-                        <div className="text-xs text-gray-500 mt-1">
-                          {Math.round(branchUsage.percentage)}% {t('subscription.page.used')}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Customer Usage */}
-                  {customerUsage && (
-                    <div className="group relative bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-orange-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                      <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <div className="relative">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="p-2 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg">
-                            <TrendingUp className="w-4 h-4 text-white" />
-                          </div>
-                          <span className="text-sm font-medium text-gray-700">{t('subscription.page.customers')}</span>
-                        </div>
-                        <div className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent mb-2">
-                          {String(customerUsage.current)} / {String(customerUsage.max)}
-                        </div>
-                        <Progress value={customerUsage.percentage} className="h-2.5 bg-orange-100" />
-                        <div className="text-xs text-gray-500 mt-1">
-                          {Math.round(customerUsage.percentage)}% {t('subscription.page.used')}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })()}
-
         {/* Packages Grid */}
         <section
           ref={packagesRef}
           id="subscription-packages"
-          className="relative mb-12 mt-12 rounded-[32px] border border-orange-100/80 bg-white/80 p-6 shadow-[0_30px_80px_rgba(244,114,40,0.12)] backdrop-blur"
+          className="relative mb-12 mt-12 overflow-hidden rounded-[32px] border border-orange-100/70 bg-gradient-to-b from-white via-orange-50/50 to-orange-100/30 p-4 sm:p-6 lg:p-10 shadow-[0_32px_90px_rgba(244,114,40,0.12)] backdrop-blur"
         >
-          <div className="pointer-events-none absolute inset-x-12 -top-10 h-20 rounded-full bg-gradient-to-b from-orange-100/40 to-transparent blur-3xl"></div>
+          <div className="pointer-events-none absolute inset-x-10 -top-12 h-24 rounded-full bg-gradient-to-b from-orange-200/40 via-orange-100/30 to-transparent blur-3xl"></div>
+          <div className="pointer-events-none absolute inset-x-16 bottom-0 h-32 rounded-full bg-gradient-to-t from-orange-100/40 to-transparent blur-3xl"></div>
           <style>{`
             @keyframes fade-in {
               from {
@@ -252,24 +182,25 @@ export const SubscriptionPackagesPage = () => {
               animation: fade-in 0.5s ease-out;
             }
           `}</style>
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {packages.map((pkg) => {
-              const isCurrentPackage = currentPackageTier === pkg.tier;
-              const isLowerTier = currentPackageTier !== null && pkg.tier < currentPackageTier;
-              // Allow renew (same tier) and upgrade (higher tier), but disable downgrade (lower tier)
-              const isDisabled = isLowerTier;
+          <div className="relative">
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {packages.map((pkg) => {
+                const isCurrentPackage = currentPackageTier === pkg.tier;
+                const isLowerTier = currentPackageTier !== null && pkg.tier < currentPackageTier;
+                // Allow renew (same tier) and upgrade (higher tier), but disable downgrade (lower tier)
+                const isDisabled = isLowerTier;
 
-              return (
-                <SubscriptionPackageCard
-                  key={pkg._id}
-                  package={pkg}
-                  isCurrentPackage={isCurrentPackage}
-                  isLowerTier={isLowerTier}
-                  onSelect={handleSelectPackage}
-                  disabled={isDisabled}
-                />
-              );
-            })}
+                return (
+                  <SubscriptionPackageCard
+                    key={pkg._id}
+                    package={pkg}
+                    isCurrentPackage={isCurrentPackage}
+                    onSelect={handleSelectPackage}
+                    disabled={isDisabled}
+                  />
+                );
+              })}
+            </div>
           </div>
         </section>
 

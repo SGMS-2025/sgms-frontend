@@ -60,10 +60,10 @@ const TimeOffCard: React.FC<TimeOffCardProps> = ({
   // Helper functions moved to shared utilities
 
   return (
-    <Card className="hover:shadow-md transition-shadow duration-200 overflow-hidden">
+    <Card className="hover:shadow-md transition-shadow duration-200 overflow-hidden" data-tour="timeoff-card-item">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2 min-w-0">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="flex flex-col gap-2 min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
             <Avatar className="h-10 w-10 flex-shrink-0">
               <AvatarImage
                 src={
@@ -83,11 +83,11 @@ const TimeOffCard: React.FC<TimeOffCardProps> = ({
               </h3>
               <p className="text-xs text-gray-500 truncate">{timeOff.staffId.jobTitle}</p>
             </div>
+            {showActions && <ActionDropdown actions={actionItems} />}
           </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-wrap">
             <TypeBadge type={timeOff.type} badgeType="timeoff" t={t} />
             <StatusBadge status={timeOff.status} type="timeoff" t={t} />
-            {showActions && <ActionDropdown actions={actionItems} />}
           </div>
         </div>
       </CardHeader>

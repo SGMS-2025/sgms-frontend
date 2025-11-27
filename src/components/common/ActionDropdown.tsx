@@ -45,6 +45,7 @@ export const ActionDropdown: React.FC<ActionDropdownProps> = ({ actions, classNa
             'inline-flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-orange-200 hover:text-orange-500 flex-shrink-0'
           }
           title={t('common.more_actions')}
+          data-tour="timeoff-actions-menu"
         >
           <MoreHorizontal className="h-3 w-3" />
         </Button>

@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Search, Plus, Eye, Edit, Trash2, Building2, Download, ChevronDown, Check, MapPin } from 'lucide-react';
+import {
+  Search,
+  Plus,
+  Eye,
+  Edit,
+  Trash2,
+  Building2,
+  Download,
+  ChevronDown,
+  Check,
+  MapPin,
+  HelpCircle
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { QRCodeButton } from '../../components/QRCodeButton';
@@ -36,11 +48,14 @@ import { useBranch } from '../../contexts/BranchContext';
 import { useCurrentUserStaff } from '../../hooks/useCurrentUserStaff';
 import type { Equipment, EquipmentCategory, EquipmentStatus } from '../../types/api/Equipment';
 import { getEquipmentStatusDisplay, EQUIPMENT_CATEGORY_DISPLAY } from '../../types/api/Equipment';
+import { useEquipmentTour } from '../../hooks/useEquipmentTour';
+import { EquipmentCategoryCardsMobile } from '../../components/equipment/EquipmentCategoryCardsMobile';
 
 export const EquipmentListPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
+  const { startEquipmentTour } = useEquipmentTour();
 
   // Determine base path based on current location
   const getBasePath = () => {
@@ -265,8 +280,14 @@ export const EquipmentListPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Large TOTAL Card with Category Cards inside */}
-                <div className="mb-4">
+                {/* Mobile Category Cards - Simplified (no descriptions) */}
+                <EquipmentCategoryCardsMobile
+                  totalEquipments={stats.totalEquipments}
+                  categoryStats={stats.categoryStats}
+                />
+
+                {/* Desktop Category Cards - Full version with descriptions */}
+                <div className="hidden lg:block mb-4" data-tour="equipment-stats-cards">
                   <div className="rounded-xl border border-orange-100 bg-[#FFF6EE] p-6">
                     <div className="mb-6">
                       <div>
@@ -367,7 +388,7 @@ export const EquipmentListPage: React.FC = () => {
           {/* Tabs + actions + search */}
           <div className="mb-8 flex flex-col gap-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2" data-tour="equipment-tabs">
                 <button
                   onClick={() => setActiveTab('equipment')}
                   className={`inline-flex items-center rounded-full px-4 sm:px-6 py-2 text-sm font-medium transition-all ${
@@ -411,8 +432,16 @@ export const EquipmentListPage: React.FC = () => {
                   </span>
                 )}
                 <button
+                  className="h-11 w-11 rounded-full border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center transition-colors"
+                  onClick={startEquipmentTour}
+                  title={t('equipment.tour.button', 'Hướng dẫn')}
+                >
+                  <HelpCircle className="w-4 h-4 text-gray-500 hover:text-orange-500" />
+                </button>
+                <button
                   className="h-11 rounded-full bg-orange-500 px-4 sm:px-6 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 flex items-center gap-2"
                   onClick={() => navigate(`${getBasePath()}/add`)}
+                  data-tour="equipment-add-button"
                 >
                   <Plus className="h-4 w-4" />
                   <span className="hidden sm:inline">{t('equipment.add_equipment')}</span>
@@ -429,11 +458,12 @@ export const EquipmentListPage: React.FC = () => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="h-11 w-full rounded-full border border-transparent bg-gray-50 pl-12 pr-4 text-sm shadow-inner focus:border-orange-200 focus:bg-white focus:ring-orange-200"
+                  data-tour="equipment-search-input"
                 />
                 <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-2" data-tour="equipment-filters">
                 {/* Category Filter */}
                 <div className="relative dropdown-container">
                   <button
@@ -593,7 +623,10 @@ export const EquipmentListPage: React.FC = () => {
           </button>
 
           {/* Desktop Table */}
-          <div className="hidden lg:block mt-4 overflow-hidden rounded-2xl border border-orange-100 shadow-sm">
+          <div
+            className="hidden lg:block mt-4 overflow-hidden rounded-2xl border border-orange-100 shadow-sm"
+            data-tour="equipment-list"
+          >
             <table className="w-full text-left">
               <thead className="bg-[#FFF7EF]">
                 <tr>
@@ -718,7 +751,7 @@ export const EquipmentListPage: React.FC = () => {
           </div>
 
           {/* Mobile Cards */}
-          <div className="lg:hidden mt-4 space-y-3">
+          <div className="lg:hidden mt-4 space-y-3" data-tour="equipment-list">
             {loading ? (
               <div className="p-4 space-y-4">
                 {Array.from({ length: 3 }).map((_, index) => (
@@ -844,7 +877,10 @@ export const EquipmentListPage: React.FC = () => {
 
           {/* Pagination Info and Controls */}
           {(totalPages > 1 || totalItems > 0 || equipments.length > 0) && (
-            <div className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div
+              className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+              data-tour="equipment-pagination"
+            >
               <div className="text-sm text-gray-500">
                 {`${t('dashboard.showing')} ${(currentPage - 1) * 10 + 1} - ${Math.min(currentPage * 10, totalItems)} ${t('dashboard.of_total')} ${totalItems} ${t('equipment.equipment')}`}
               </div>

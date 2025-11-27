@@ -115,6 +115,7 @@ export const MembershipFilters: React.FC<MembershipFiltersProps> = ({
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               className="pl-10 pr-10 w-full h-10 rounded-xl border-gray-300 focus:border-orange-400 focus:ring-orange-400"
+              data-tour="membership-search-input"
             />
             {searchQuery && (
               <button
@@ -136,6 +137,7 @@ export const MembershipFilters: React.FC<MembershipFiltersProps> = ({
                 variant="outline"
                 size="sm"
                 className="h-10 px-4 rounded-xl border-gray-300 hover:border-orange-400 hover:bg-orange-50 transition-colors"
+                data-tour="membership-sort-button"
               >
                 <ArrowUpDown className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">{currentSortLabel}</span>
@@ -176,6 +178,7 @@ export const MembershipFilters: React.FC<MembershipFiltersProps> = ({
                 className={`h-10 px-4 rounded-xl border-gray-300 hover:border-orange-400 hover:bg-orange-50 transition-colors ${
                   statusFilter !== 'all' ? 'border-orange-500 bg-orange-50 text-orange-600' : ''
                 }`}
+                data-tour="membership-status-filter"
               >
                 <Filter className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">
@@ -232,7 +235,7 @@ export const MembershipFilters: React.FC<MembershipFiltersProps> = ({
         {/* View Mode Toggle */}
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-gray-600">{t('membershipManager.filters.viewLabel', 'View')}:</span>
-          <div className="flex rounded-xl bg-gray-100 p-1 gap-1">
+          <div className="flex rounded-xl bg-gray-100 p-1 gap-1" data-tour="membership-view-mode-tabs">
             {viewModeOptions.map((option) => (
               <button
                 key={option.value}

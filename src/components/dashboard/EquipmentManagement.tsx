@@ -137,7 +137,7 @@ export const EquipmentManagement: React.FC = () => {
   );
 
   return (
-    <div className="bg-white rounded-xl p-6 mb-6 shadow-lg border border-gray-200">
+    <div className="bg-white rounded-xl p-6 mb-6 shadow-lg border border-gray-200" data-tour="overview-equipment">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
           <Settings className="w-4 h-4 text-orange-500 mr-2" />
@@ -208,7 +208,7 @@ export const EquipmentManagement: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white border border-orange-200 rounded-lg overflow-hidden">
+      <div className="bg-white border border-orange-200 rounded-lg overflow-hidden" data-tour="overview-equipment-list">
         <div className="grid grid-cols-5 gap-4 p-4 text-orange-500 text-sm font-semibold bg-orange-50">
           <div>{t('dashboard.machine_code')}</div>
           <div>{t('dashboard.machine_name')}</div>

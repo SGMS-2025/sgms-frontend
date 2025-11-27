@@ -32,7 +32,7 @@ const PTLayoutContent: React.FC = () => {
         }}
       >
         {/* Mobile Header - Sticky */}
-        <div className="lg:hidden sticky top-0 z-50 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm">
+        <div className="lg:hidden sticky top-0 z-[100] bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm">
           <Button variant="ghost" size="sm" onClick={() => setMobileOpen(true)} className="p-2">
             <Menu className="w-5 h-5" />
           </Button>
@@ -43,9 +43,9 @@ const PTLayoutContent: React.FC = () => {
           <div className="w-9" /> {/* Spacer for centering */}
         </div>
 
-        {/* Header - Sticky */}
-        <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-          <div className="px-3 py-4 pb-5">
+        {/* Header - Sticky (Desktop only) */}
+        <div className="hidden lg:block sticky top-0 z-[99] bg-white border-b border-gray-200 shadow-sm">
+          <div className="px-3 py-2 pb-3">
             <DashboardHeader />
           </div>
         </div>

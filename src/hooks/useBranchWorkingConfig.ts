@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { branchApi } from '@/services/api/branchApi';
 import type { BranchWorkingConfig } from '@/types/api/BranchWorkingConfig';
+import { socketService } from '@/services/socket/socketService';
 
 export const useBranchWorkingConfig = (branchId?: string) => {
   const [config, setConfig] = useState<BranchWorkingConfig | null>(null);
@@ -34,6 +35,23 @@ export const useBranchWorkingConfig = (branchId?: string) => {
   useEffect(() => {
     fetchConfig();
   }, [fetchConfig]);
+
+  useEffect(() => {
+    if (!branchId) return;
+
+    const handleConfigUpdate = (data: { branchId: string; configId: string }) => {
+      // Chỉ refetch nếu là config của branch hiện tại
+      if (data.branchId === branchId) {
+        fetchConfig();
+      }
+    };
+
+    socketService.on('branch:working-config:updated', handleConfigUpdate);
+
+    return () => {
+      socketService.off('branch:working-config:updated', handleConfigUpdate);
+    };
+  }, [branchId, fetchConfig]);
 
   const refetch = useCallback(async () => {
     await fetchConfig();

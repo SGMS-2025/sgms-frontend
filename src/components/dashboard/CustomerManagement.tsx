@@ -13,7 +13,8 @@ import {
   UserX,
   MapPin,
   Settings,
-  FileSpreadsheet
+  FileSpreadsheet,
+  HelpCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,6 +60,7 @@ import { CustomerModal } from '@/components/modals/CustomerModal';
 import { CustomerDetailModal } from '@/components/modals/CustomerDetailModal';
 import { CustomerExcelImportModal } from '@/components/modals/CustomerExcelImportModal';
 import { customerApi } from '@/services/api/customerApi';
+import { useCustomersTour } from '@/hooks/useCustomersTour';
 import type {
   CustomerFilters,
   CustomerManagementProps,
@@ -93,6 +95,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
   const { currentStaff } = useCurrentUserStaff();
   const { currentBranch } = useBranch();
   const { canManageCustomer } = useCanManageCustomer();
+  const { startCustomersTour } = useCustomersTour();
   // filter columns default
   const [filters, setFilters] = useState<CustomerFilters>({
     searchTerm: '',
@@ -625,12 +628,22 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" data-tour="customers-action-buttons">
             {selectedCount > 0 && (
               <span className="inline-flex items-center rounded-full bg-orange-50 px-3 py-1 text-sm font-medium text-orange-600">
                 {t('dashboard.selected')} {selectedCount}
               </span>
             )}
+
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-11 w-11 rounded-full border-gray-300 bg-white hover:bg-gray-50"
+              onClick={startCustomersTour}
+              title={t('customer.tour.button', 'Hướng dẫn')}
+            >
+              <HelpCircle className="h-4 w-4 text-gray-500 hover:text-orange-500" />
+            </Button>
 
             {/* Column Selector */}
             <DropdownMenu>
@@ -755,6 +768,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
               className="h-11 rounded-full border border-transparent bg-gray-50 pl-12 text-sm shadow-inner focus:border-orange-200 focus:bg-white focus:ring-orange-200"
               value={filters.searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
+              data-tour="customers-search-input"
             />
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           </div>
@@ -763,6 +777,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
             className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${getSelectAllButtonClass()}`}
             onClick={canManageCustomers() ? handleSelectAll : undefined}
             disabled={!canManageCustomers()}
+            data-tour="customers-select-all"
           >
             <span
               className={`flex h-4 w-4 items-center justify-center rounded-full border ${getSelectAllCheckboxClass()}`}
@@ -779,7 +794,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-2xl border border-orange-100 shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-orange-100 shadow-sm" data-tour="customers-table">
         <table className="w-full text-left min-w-[1000px]">
           <thead className="bg-[#FFF7EF]">
             <tr>
@@ -889,7 +904,10 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
 
       {/* Pagination Info and Controls */}
       {pagination && (
-        <div className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div
+          className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+          data-tour="customers-pagination"
+        >
           <div className="text-sm text-gray-500">
             {`${t('dashboard.showing')} ${(pagination.currentPage - 1) * pagination.itemsPerPage + 1} - ${Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} ${t('dashboard.of_total')} ${pagination.totalItems} ${t('dashboard.customers')}`}
           </div>

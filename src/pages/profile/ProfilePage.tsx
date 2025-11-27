@@ -40,6 +40,7 @@ import { ServicePackageTab } from '@/components/profile/ServicePackageTab';
 import { TrainingProgressTab } from '@/components/profile/TrainingProgressTab';
 import { useAuthActions } from '@/hooks/useAuth';
 import { ChangePasswordForm } from '@/components/forms/ChangePasswordForm';
+import { ZaloAccountSection } from '@/components/profile/ZaloAccountSection';
 import { PaymentHistoryTab } from '@/components/profile/PaymentHistoryTab';
 
 export function UserProfile() {
@@ -196,8 +197,11 @@ export function UserProfile() {
 
           {/* Security Tab */}
           <TabsContent value="security" className="p-6" style={{ backgroundColor: '#F1F3F4' }}>
-            <div className="max-w-md mx-auto">
+            <div className="max-w-md mx-auto space-y-8">
               <ChangePasswordForm />
+              <div className="border-t border-gray-200 pt-8">
+                <ZaloAccountSection />
+              </div>
             </div>
           </TabsContent>
         </Tabs>

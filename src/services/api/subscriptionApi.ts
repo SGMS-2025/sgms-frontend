@@ -12,7 +12,8 @@ import type {
   UpdateSubscriptionPackageRequest,
   CancelSubscriptionRequest,
   GetSubscriptionsQuery,
-  GetSubscriptionHistoryQuery
+  GetSubscriptionHistoryQuery,
+  PaymentStatusResponse
 } from '@/types/api/Subscription';
 
 const BASE_URL = '/subscriptions';
@@ -94,6 +95,14 @@ export const subscriptionApi = {
     return response.data;
   },
 
+  /**
+   * Check payment status for subscription payment transaction
+   */
+  checkPaymentStatus: async (paymentTransactionId: string): Promise<PaymentStatusResponse> => {
+    const response = await api.get<PaymentStatusResponse>(`${BASE_URL}/payment/${paymentTransactionId}/status`);
+    return response.data;
+  },
+
   // Admin endpoints
 
   /**
@@ -128,6 +137,17 @@ export const subscriptionApi = {
    */
   getAllSubscriptions: async (query?: GetSubscriptionsQuery): Promise<AllSubscriptionsResponse> => {
     const response = await api.get(`${BASE_URL}/admin/all`, { params: query });
+    return response.data;
+  },
+
+  /**
+   * Cancel owner subscription by admin (Admin only)
+   */
+  cancelSubscriptionByAdmin: async (
+    subscriptionId: string,
+    data?: CancelSubscriptionRequest
+  ): Promise<OwnerSubscriptionResponse> => {
+    const response = await api.post(`${BASE_URL}/admin/cancel/${subscriptionId}`, data);
     return response.data;
   }
 };

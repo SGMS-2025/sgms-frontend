@@ -1,16 +1,20 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { HelpCircle } from 'lucide-react';
 import { useAuthState } from '@/hooks/useAuth';
+import { useOverviewTour } from '@/hooks/useOverviewTour';
+import { Button } from '@/components/ui/button';
 import { SectionCards } from '@/components/dashboard/SectionCards';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { StatsSidebar } from '@/components/dashboard/StatsSidebar';
 import { BranchList } from '@/components/dashboard/BranchList';
-import { ServicesList } from '@/components/dashboard/ServicesList';
+import { KPILeaderboard } from '@/components/dashboard/KPILeaderboard';
 import { EquipmentManagement } from '@/components/dashboard/EquipmentManagement';
 
 const OwnerDashboard: React.FC = () => {
   const { t } = useTranslation();
   const { isLoading } = useAuthState();
+  const { startOverviewTour } = useOverviewTour();
 
   // Display loading while fetching
   if (isLoading) {
@@ -26,6 +30,22 @@ const OwnerDashboard: React.FC = () => {
 
   return (
     <div>
+      {/* Header with Tour Button */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <p className="text-sm text-gray-500 mt-1">{t('dashboard.subtitle')}</p>
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-11 w-11 rounded-full border-gray-300 hover:bg-gray-50"
+          onClick={startOverviewTour}
+          title={t('overview.tour.button', 'Hướng dẫn')}
+        >
+          <HelpCircle className="w-4 h-4 text-gray-500 hover:text-orange-500" />
+        </Button>
+      </div>
+
       {/* Top Section */}
       <div className="mb-6">
         <SectionCards />
@@ -44,7 +64,7 @@ const OwnerDashboard: React.FC = () => {
       {/* Bottom Section */}
       <div className="grid grid-cols-2 gap-6 mb-6">
         <BranchList />
-        <ServicesList />
+        <KPILeaderboard />
       </div>
 
       {/* Equipment Management */}

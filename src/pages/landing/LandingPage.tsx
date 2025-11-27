@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useScrollToTop } from '@/hooks/useScrollToTop';
 import { Header } from '@/components/layout/BaseHeader';
 import { Footer } from '@/components/layout/BaseFooter';
@@ -14,8 +14,26 @@ const LandingPage: React.FC = () => {
   // Scroll to top when component mounts
   useScrollToTop();
 
+  // Enable scrolling for landing page
+  useEffect(() => {
+    document.documentElement.classList.add('landing-page-active');
+    document.body.classList.add('landing-page-active');
+    const root = document.getElementById('root');
+    if (root) {
+      root.classList.add('landing-page-active');
+    }
+
+    return () => {
+      document.documentElement.classList.remove('landing-page-active');
+      document.body.classList.remove('landing-page-active');
+      if (root) {
+        root.classList.remove('landing-page-active');
+      }
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="landing-page min-h-screen bg-white">
       {/* Use enhanced Header component */}
       <Header />
 

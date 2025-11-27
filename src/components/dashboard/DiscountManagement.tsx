@@ -30,7 +30,8 @@ import {
   Eye,
   MoreVertical,
   Grid3X3,
-  List
+  List,
+  HelpCircle
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -63,10 +64,12 @@ import DiscountCampaignModal from '@/components/modals/DiscountCampaignModal';
 import { useUser } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { useBranch } from '@/contexts/BranchContext';
+import { useDiscountsTour } from '@/hooks/useDiscountsTour';
 import type { DiscountCampaign, DiscountCampaignFormData, DiscountCampaignApiData } from '@/types/api/Discount';
 
 const DiscountManagement: React.FC = () => {
   const { t } = useTranslation();
+  const { startDiscountsTour } = useDiscountsTour();
   const { campaigns, loading, error, refetch, statusFilter, setStatusFilter } = useDiscountCampaignList();
   const { createCampaign, loading: createLoading } = useCreateDiscountCampaign();
   const { updateCampaign, loading: updateLoading } = useUpdateDiscountCampaign();
@@ -311,8 +314,18 @@ const DiscountManagement: React.FC = () => {
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <Button
+                  variant="outline"
+                  size="icon"
+                  className="border-gray-300 hover:bg-gray-50"
+                  onClick={startDiscountsTour}
+                  title={t('discount.tour.button', 'Hướng dẫn')}
+                >
+                  <HelpCircle className="w-4 h-4 text-gray-500 hover:text-orange-500" />
+                </Button>
+                <Button
                   className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto"
                   onClick={() => setShowCreateForm(true)}
+                  data-tour="discount-add-campaign-button"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   {t('discount.add_campaign')}
@@ -323,7 +336,7 @@ const DiscountManagement: React.FC = () => {
 
           {/* Stats Cards */}
           {campaignStats && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8" data-tour="discount-stats-cards">
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center">
@@ -409,12 +422,13 @@ const DiscountManagement: React.FC = () => {
                         value={searchTerm}
                         onChange={(e) => handleSearchChange(e.target.value)}
                         className="pl-10 text-sm sm:text-base"
+                        data-tour="discount-search-input"
                       />
                     </div>
                   </div>
                   <div className="w-full sm:w-35">
                     <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-                      <SelectTrigger>
+                      <SelectTrigger data-tour="discount-status-filter">
                         <SelectValue placeholder={t('discount.filter_by_status')} />
                       </SelectTrigger>
                       <SelectContent>
@@ -426,7 +440,7 @@ const DiscountManagement: React.FC = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2" data-tour="discount-view-mode-toggle">
                     <Button
                       variant={viewMode === 'card' ? 'default' : 'outline'}
                       onClick={() => setViewMode('card')}
@@ -449,7 +463,10 @@ const DiscountManagement: React.FC = () => {
 
           {/* Campaign List */}
           {viewMode === 'card' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              data-tour="discount-campaign-list"
+            >
               {paginatedCampaigns.map((campaign) => (
                 <Card key={campaign._id} className="hover:shadow-lg transition-shadow">
                   <CardHeader className="pb-3 relative">
@@ -465,7 +482,7 @@ const DiscountManagement: React.FC = () => {
                       })()}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" data-tour="discount-actions-menu">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -532,7 +549,10 @@ const DiscountManagement: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div className="overflow-x-auto bg-white rounded-lg border border-gray-200 shadow-sm">
+            <div
+              className="overflow-x-auto bg-white rounded-lg border border-gray-200 shadow-sm"
+              data-tour="discount-campaign-list"
+            >
               <table className="w-full table-fixed">
                 <colgroup>
                   <col className="w-[18rem]" />
@@ -630,7 +650,7 @@ const DiscountManagement: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" data-tour="discount-actions-menu">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -663,7 +683,7 @@ const DiscountManagement: React.FC = () => {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex justify-center mt-8">
+            <div className="flex justify-center mt-8" data-tour="discount-pagination">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>

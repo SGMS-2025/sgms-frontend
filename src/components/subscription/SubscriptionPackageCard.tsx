@@ -1,13 +1,12 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, Users } from 'lucide-react';
 import type { SubscriptionPackage } from '@/types/api/Subscription';
 
 interface SubscriptionPackageCardProps {
   package: SubscriptionPackage;
   isCurrentPackage?: boolean;
-  isLowerTier?: boolean;
   onSelect?: (packageId: string) => void;
   disabled?: boolean;
 }
@@ -28,143 +27,145 @@ export const SubscriptionPackageCard = ({
   };
 
   const isPopular = pkg.tier === 2;
+  const [expanded, setExpanded] = useState(false);
+  const features = Array.isArray(pkg.features) ? pkg.features : [];
+  const MAX_VISIBLE_FEATURES = 6;
+  const hasMoreFeatures = features.length > MAX_VISIBLE_FEATURES;
+  const visibleFeatures = expanded ? features : features.slice(0, MAX_VISIBLE_FEATURES);
 
   return (
     <Card
-      className={`group relative overflow-hidden bg-white rounded-2xl shadow-lg transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 ${
-        isPopular ? 'ring-2 ring-orange-500 scale-105 hover:scale-110' : 'hover:scale-105'
-      } ${isCurrentPackage ? 'ring-2 ring-green-500' : ''}`}
+      className={`group relative flex h-full flex-col overflow-hidden rounded-[28px] border bg-gradient-to-b from-white via-orange-50/20 to-orange-100/20 transition-all duration-500 ${
+        isPopular
+          ? 'border-orange-300/70 shadow-[0_24px_70px_rgba(244,114,36,0.22)] hover:shadow-[0_30px_90px_rgba(244,114,36,0.28)] hover:-translate-y-2'
+          : 'border-gray-100 shadow-[0_18px_60px_rgba(15,23,42,0.08)] hover:shadow-[0_24px_80px_rgba(15,23,42,0.12)] hover:-translate-y-2'
+      } ${isCurrentPackage ? 'ring-2 ring-green-500/70' : ''}`}
     >
-      {/* Animated background gradient on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-orange-50/0 to-orange-100/0 group-hover:from-orange-50/50 group-hover:to-orange-100/30 transition-all duration-500 pointer-events-none"></div>
+      {/* Soft glow background */}
+      <div className="pointer-events-none absolute inset-x-6 -top-24 h-64 rounded-full bg-gradient-to-b from-orange-200/40 via-orange-100/30 to-transparent blur-3xl"></div>
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white via-white to-orange-50/70 opacity-90"></div>
 
       {/* Popular Badge */}
       {isPopular && (
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10 bg-orange-500 text-white text-xs font-bold px-4 py-1.5 rounded-b-lg shadow-lg animate-pulse hover:animate-none">
-          <span className="inline-block animate-bounce">⭐</span> {t('subscription.card.popular')}
+        <div className="absolute -top-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white shadow-lg shadow-orange-500/40">
+          {t('subscription.card.popular')}
         </div>
       )}
 
       {/* Current Package Badge */}
       {isCurrentPackage && (
-        <div className="absolute top-0 left-0 z-10 bg-green-500 text-white text-xs font-bold px-3 py-1.5 rounded-br-lg shadow-lg animate-pulse">
-          ✓ {t('subscription.card.currentPackage')}
+        <div className="absolute top-4 right-4 z-20 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 shadow-sm">
+          {t('subscription.card.currentPackage')}
         </div>
       )}
 
       {/* Header */}
-      <CardHeader className="pt-8 pb-4 relative z-10">
-        <div className="mb-3 text-xs font-semibold uppercase tracking-[0.35em] text-orange-500">
+      <CardHeader className="relative z-10 space-y-4 pt-8 pb-3">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.32em] text-orange-500">
           {t('subscription.card.planLabel')}
         </div>
-        <CardTitle className="text-2xl font-bold text-gray-900 group-hover:text-orange-600 transition-colors duration-300">
+        <CardTitle className="text-2xl font-bold text-gray-900 transition-colors duration-300 group-hover:text-orange-600">
           {pkg.name}
         </CardTitle>
         <div className="mt-4">
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-orange-600 group-hover:scale-110 inline-block transition-transform duration-300">
+            <span className="inline-block text-4xl font-extrabold text-orange-600 transition-transform duration-300 group-hover:scale-105">
               {formatPrice(pkg.price)}
             </span>
-            <span className="text-gray-600 text-sm">{t('subscription.card.perMonth')}</span>
+            <span className="text-sm text-gray-600">{t('subscription.card.perMonth')}</span>
           </div>
         </div>
         {pkg.description && (
-          <CardDescription className="text-gray-600 mt-2 text-sm group-hover:text-gray-700 transition-colors duration-300">
+          <CardDescription className="mt-2 text-base text-gray-600 transition-colors duration-300 group-hover:text-gray-700">
             {pkg.description}
           </CardDescription>
         )}
       </CardHeader>
 
       {/* Features */}
-      <CardContent className="py-4 px-6 relative z-10">
-        <div className="space-y-4">
-          {/* Branch & Customer Limits - Enhanced Design */}
-          <div className="grid grid-cols-2 gap-3 pb-4 border-b border-gray-200 group-hover:border-orange-300 transition-colors duration-300">
-            {/* Branch Limit */}
-            <div className="group/limit relative bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-3 border border-blue-200 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 hover:border-blue-300">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-transparent rounded-xl opacity-0 group-hover/limit:opacity-100 transition-opacity"></div>
-              <div className="relative flex items-center gap-2">
-                <div className="p-1.5 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-sm">
-                  <Building2 className="w-4 h-4 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs text-gray-600 font-medium mb-0.5">{t('subscription.card.branch')}</div>
-                  <div className="text-lg font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
-                    {pkg.maxBranches}
+      <CardContent className="relative z-10 flex-1 px-6 pb-2">
+        <div className="mb-5 h-px bg-gradient-to-r from-transparent via-orange-200/70 to-transparent"></div>
+        {features.length > 0 && (
+          <>
+            <div className="relative overflow-hidden">
+              <div className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2">
+                {visibleFeatures.map((feature, index) => (
+                  <div
+                    key={index}
+                    className="flex items-start gap-3 opacity-0 animate-fade-in"
+                    style={{
+                      animationDelay: `${index * 80}ms`,
+                      animationFillMode: 'forwards'
+                    }}
+                  >
+                    <span className="mt-2 inline-flex h-2 w-2 flex-shrink-0 rounded-full bg-orange-500 shadow-[0_0_0_6px_rgba(244,114,36,0.14)] transition-transform duration-300 group-hover:scale-105"></span>
+                    <span className="flex-1 text-sm leading-relaxed text-gray-700 transition-colors duration-300 group-hover:text-gray-900">
+                      {feature}
+                    </span>
                   </div>
-                </div>
+                ))}
               </div>
+
+              {hasMoreFeatures && !expanded && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white via-white/70 to-transparent"></div>
+              )}
             </div>
 
-            {/* Customer Limit */}
-            <div className="group/limit relative bg-gradient-to-br from-emerald-50 to-green-100 rounded-xl p-3 border border-green-200 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 hover:border-green-300">
-              <div className="absolute inset-0 bg-gradient-to-br from-green-400/10 to-transparent rounded-xl opacity-0 group-hover/limit:opacity-100 transition-opacity"></div>
-              <div className="relative flex items-center gap-2">
-                <div className="p-1.5 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-sm">
-                  <Users className="w-4 h-4 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs text-gray-600 font-medium mb-0.5">{t('subscription.card.customer')}</div>
-                  <div className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-700 bg-clip-text text-transparent">
-                    {pkg.maxCustomers.toLocaleString('vi-VN')}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Additional Features */}
-          {pkg.features && pkg.features.length > 0 && (
-            <div className="space-y-3">
-              {pkg.features.map((feature, index) => (
-                <div
-                  key={index}
-                  className="flex items-start gap-3 group/feature opacity-0 animate-fade-in"
-                  style={{
-                    animationDelay: `${index * 100}ms`,
-                    animationFillMode: 'forwards'
-                  }}
+            {hasMoreFeatures && (
+              <div className="mt-4 flex justify-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-full border-orange-200 bg-white text-orange-600 hover:bg-orange-50"
+                  onClick={() => setExpanded((prev) => !prev)}
                 >
-                  <div className="w-2 h-2 rounded-full bg-orange-500 mt-2 flex-shrink-0 group-hover/feature:scale-150 group-hover/feature:bg-orange-600 transition-all duration-300 group-hover/feature:shadow-lg group-hover/feature:shadow-orange-500/50"></div>
-                  <span className="text-sm text-gray-700 leading-relaxed group-hover/feature:text-gray-900 group-hover/feature:font-medium transition-all duration-300">
-                    {feature}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                  {expanded
+                    ? t('subscription.card.showLess', 'Show less')
+                    : t('subscription.card.showMore', 'View all features')}
+                </Button>
+              </div>
+            )}
+          </>
+        )}
       </CardContent>
 
       {/* Footer with CTA */}
-      <CardFooter className="pt-4 pb-6 px-6 relative z-10">
-        <Button
-          onClick={() => onSelect?.(pkg._id)}
-          disabled={disabled}
-          className={`w-full h-12 text-base font-semibold transition-all duration-300 transform group/btn ${
-            isCurrentPackage
-              ? 'bg-green-600 hover:bg-green-700 text-white cursor-not-allowed hover:scale-100'
-              : isPopular
-                ? 'bg-orange-500 hover:bg-orange-600 hover:shadow-lg hover:shadow-orange-500/50 text-white hover:scale-105 active:scale-95'
-                : 'bg-white hover:bg-orange-50 text-gray-700 border-2 border-orange-500 hover:border-orange-600 hover:shadow-md hover:scale-105 active:scale-95'
-          } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
-          size="lg"
-        >
-          <span className="relative inline-block">
-            {isCurrentPackage ? (
-              t('subscription.card.renew')
-            ) : (
-              <>
-                <span className="group-hover/btn:opacity-0 transition-opacity duration-300">
-                  {t('subscription.card.buyNow')}
-                </span>
-                <span className="absolute inset-0 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300">
-                  {t('subscription.card.buyNowArrow')}
-                </span>
-              </>
-            )}
-          </span>
-        </Button>
+      <CardFooter className="relative z-10 px-6 pb-6 pt-4">
+        <div className="w-full space-y-2">
+          <Button
+            onClick={() => onSelect?.(pkg._id)}
+            disabled={disabled}
+            className={`group/button w-full rounded-full text-base font-semibold transition-all duration-300 ${
+              isCurrentPackage
+                ? 'bg-green-600 text-white shadow-md shadow-green-500/30 hover:bg-green-700 disabled:hover:translate-y-0'
+                : isPopular
+                  ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/40 hover:shadow-orange-500/60 hover:-translate-y-0.5'
+                  : 'bg-white text-orange-700 border-2 border-orange-500 hover:bg-orange-50 hover:-translate-y-0.5 shadow-md shadow-orange-200/60'
+            } disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none`}
+            size="lg"
+          >
+            <span className="relative inline-block">
+              {isCurrentPackage ? (
+                t('subscription.card.renew')
+              ) : (
+                <>
+                  <span className="transition-opacity duration-300 group-hover/button:opacity-0">
+                    {t('subscription.card.buyNow')}
+                  </span>
+                  <span className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/button:opacity-100">
+                    {t('subscription.card.buyNowArrow')}
+                  </span>
+                </>
+              )}
+            </span>
+          </Button>
+
+          {disabled && (
+            <p className="text-center text-xs text-gray-500">
+              {t('subscription.card.downgradeDisabled', 'You are already on a higher package')}
+            </p>
+          )}
+        </div>
       </CardFooter>
     </Card>
   );

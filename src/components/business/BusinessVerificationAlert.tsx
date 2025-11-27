@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { businessVerificationApi } from '@/services/api/businessVerificationApi';
 import type { VerificationStatus } from '@/types/api/BusinessVerification';
 import { BusinessVerificationStatus } from '@/types/api/BusinessVerification';
+import type { BusinessVerificationUpdateEvent } from '@/types/api/Socket';
+import { toast } from 'sonner';
 
 interface BusinessVerificationAlertProps {
   onOpenVerificationModal: () => void;
@@ -20,6 +22,48 @@ export const BusinessVerificationAlert = ({ onOpenVerificationModal }: BusinessV
   useEffect(() => {
     fetchVerificationStatus();
   }, []);
+
+  // Listen for real-time business verification updates
+  useEffect(() => {
+    const handleBusinessVerificationUpdate = (event: CustomEvent<BusinessVerificationUpdateEvent>) => {
+      const data = event.detail;
+
+      // Show toast notification (only if not skipped and only for approve/reject)
+      // Submit/resubmit already shows toast from modal, so skipToast flag is set
+      if (!data.skipToast) {
+        if (data.status === 'APPROVED') {
+          toast.success(t('businessVerification.alert.pending.title', 'Đang chờ xét duyệt'), {
+            description: t(
+              'businessVerification.status.approvedDescription',
+              'Doanh nghiệp của bạn đã được xác thực thành công'
+            ),
+            duration: 5000
+          });
+        } else if (data.status === 'REJECTED') {
+          toast.error(t('businessVerification.alert.rejected.title', 'Yêu cầu xác thực bị từ chối'), {
+            description:
+              data.rejectionReason ||
+              t('businessVerification.alert.rejected.defaultReason', 'Admin đã từ chối yêu cầu xác thực của bạn.'),
+            duration: 6000
+          });
+        }
+      }
+      // PENDING status with skipToast: Don't show toast, just refresh UI
+
+      // Refresh verification status to update alert
+      fetchVerificationStatus();
+    };
+
+    // Listen for custom event
+    globalThis.addEventListener('business-verification:updated', handleBusinessVerificationUpdate as EventListener);
+
+    return () => {
+      globalThis.removeEventListener(
+        'business-verification:updated',
+        handleBusinessVerificationUpdate as EventListener
+      );
+    };
+  }, [t]);
 
   const fetchVerificationStatus = async () => {
     const result = await businessVerificationApi.getVerificationStatus();

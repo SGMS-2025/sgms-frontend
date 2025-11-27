@@ -9,16 +9,18 @@ const ManageLayout: React.FC = () => {
     <SidebarProvider>
       <div className="h-screen bg-[#f1f3f4] flex overflow-hidden">
         <OwnerSidebar />
-        <div className="flex-1 overflow-y-auto hide-scrollbar">
+        <div className="flex-1 min-w-0 overflow-y-auto hide-scrollbar transition-[padding,width] duration-300">
           {/* Header - Sticky */}
           <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-            <div className="px-5 py-2 pb-3">
+            <div className="px-3 py-2 pb-3">
               <DashboardHeader />
             </div>
           </div>
           {/* Main Content */}
           <div className="p-6">
-            <Outlet />
+            <div className="mx-auto w-full max-w-7xl">
+              <Outlet />
+            </div>
           </div>
         </div>
       </div>

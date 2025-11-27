@@ -1,9 +1,20 @@
 import { api } from './api';
 import type { ApiResponse } from '@/types/api/Api';
 import type { PaginationResponse } from '@/types/common/BaseTypes';
-import type { Transaction, TransactionListData, TransactionListParams } from '@/types/api/Transaction';
+import type {
+  Transaction,
+  TransactionListData,
+  TransactionListParams,
+  TransactionSummary
+} from '@/types/api/Transaction';
 
-type RawTransactionResponse = ApiResponse<Transaction[]> & { pagination?: PaginationResponse };
+type RawTransactionResponse = ApiResponse<Transaction[]> & {
+  pagination?: PaginationResponse;
+  meta?: {
+    summary?: TransactionSummary;
+    [key: string]: unknown;
+  };
+};
 
 const normalizeParams = (params: TransactionListParams): Record<string, unknown> => {
   const { status, method, type, branchId, subjectType, ...rest } = params;
@@ -62,13 +73,15 @@ export const transactionApi = {
     const raw = response.data as RawTransactionResponse;
     const items = raw.data ?? [];
     const pagination = raw.pagination ?? fallbackPagination(items, params);
+    const summary = raw.meta?.summary;
 
     return {
       success: raw.success,
       message: raw.message,
       data: {
         items,
-        pagination
+        pagination,
+        summary
       },
       requestId: raw.requestId ?? '',
       timestamp: raw.timestamp ?? new Date().toISOString()

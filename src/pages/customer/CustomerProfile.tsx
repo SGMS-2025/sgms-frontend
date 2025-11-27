@@ -28,6 +28,7 @@ import { validateFormData } from '@/utils/validation';
 import { useAuthActions } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { FormField } from '@/components/profile/FormField';
+import { ZaloAccountSection } from '@/components/profile/ZaloAccountSection';
 import {
   formatDateToVietnamese,
   normalizeGenderForApi,
@@ -737,6 +738,16 @@ const CustomerProfile: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Zalo Account Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg sm:text-xl">{t('customer.profile.security_settings')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ZaloAccountSection />
+        </CardContent>
+      </Card>
 
       {/* Extra space to ensure scroll works */}
       <div className="h-20 sm:h-8"></div>

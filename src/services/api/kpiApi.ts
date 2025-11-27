@@ -11,7 +11,8 @@ import type {
   RecalculateKPIResponse,
   RecalculateAllKPIsResponse,
   KPINewCustomer,
-  KPIPTSession
+  KPIPTSession,
+  KPILeaderboardItem
 } from '@/types/api/KPI';
 
 export const kpiApi = {
@@ -168,6 +169,28 @@ export const kpiApi = {
    */
   getPTSessions: async (kpiId: string): Promise<ApiResponse<KPIPTSession[]>> => {
     const response = await api.get<ApiResponse<KPIPTSession[]>>(`/kpi/achievements/${kpiId}/pt-sessions`);
+    return response.data;
+  },
+
+  /**
+   * Get KPI leaderboard (top performers)
+   */
+  getLeaderboard: async (params?: {
+    branchId?: string;
+    periodType?: string;
+    limit?: number;
+  }): Promise<ApiResponse<KPILeaderboardItem[]>> => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          searchParams.append(key, value.toString());
+        }
+      });
+    }
+    const queryString = searchParams.toString();
+    const url = queryString ? `/kpi/leaderboard?${queryString}` : '/kpi/leaderboard';
+    const response = await api.get<ApiResponse<KPILeaderboardItem[]>>(url);
     return response.data;
   }
 };
