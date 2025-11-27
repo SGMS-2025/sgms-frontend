@@ -103,6 +103,7 @@ export const ClassInfoCard: React.FC<ClassInfoCardProps> = ({
                 size="sm"
                 className="h-8 w-8 p-0 hover:bg-gray-100"
                 onClick={(e) => e.stopPropagation()}
+                data-tour="class-actions-menu"
               >
                 <MoreVertical className="w-4 h-4" />
               </Button>

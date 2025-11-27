@@ -14,7 +14,8 @@ import {
   XCircle,
   Download,
   DollarSign,
-  CheckCircle2
+  CheckCircle2,
+  HelpCircle
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { useBranch } from '@/contexts/BranchContext';
 import { useTransactions } from '@/hooks/useTransactions';
+import { usePaymentsTour } from '@/hooks/usePaymentsTour';
 import type {
   Transaction,
   TransactionBranch,
@@ -185,7 +187,8 @@ const SummaryCard: React.FC<{
   caption?: string;
   icon: React.ElementType;
   trend?: 'up' | 'down' | 'neutral';
-}> = ({ title, value, caption, icon: Icon, trend = 'neutral' }) => {
+  'data-tour'?: string;
+}> = ({ title, value, caption, icon: Icon, trend = 'neutral', 'data-tour': dataTour }) => {
   const trendColors = {
     up: 'text-emerald-600',
     down: 'text-red-600',
@@ -193,7 +196,7 @@ const SummaryCard: React.FC<{
   };
 
   return (
-    <Card>
+    <Card data-tour={dataTour}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         <Icon className={`h-4 w-4 ${trendColors[trend]}`} />
@@ -228,6 +231,7 @@ const PaymentMethodBadge: React.FC<{ method: string }> = ({ method }) => {
 const CustomerPaymentsPage: React.FC = () => {
   const { t } = useTranslation();
   const { branches, currentBranch } = useBranch();
+  const { startPaymentsTour } = usePaymentsTour();
   const [searchTerm, setSearchTerm] = useState('');
 
   // Get translated labels
@@ -469,7 +473,7 @@ const CustomerPaymentsPage: React.FC = () => {
 
     return (
       <>
-        <div className="rounded-md border">
+        <div className="rounded-md border" data-tour="payments-transactions-table">
           <Table>
             <TableHeader>
               <TableRow>
@@ -563,7 +567,7 @@ const CustomerPaymentsPage: React.FC = () => {
         </div>
 
         {pagination && pagination.totalPages > 1 && (
-          <div className="flex justify-center mt-4">
+          <div className="flex justify-center mt-4" data-tour="payments-pagination">
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
@@ -637,7 +641,7 @@ const CustomerPaymentsPage: React.FC = () => {
             })}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" data-tour="payments-action-buttons">
           <Button variant="outline" size="sm" onClick={refetch}>
             <RotateCcw className="mr-2 h-4 w-4" />
             {t('common.refresh', { defaultValue: 'Làm mới' })}
@@ -646,11 +650,20 @@ const CustomerPaymentsPage: React.FC = () => {
             <Download className="mr-2 h-4 w-4" />
             {t('payment.export_data', { defaultValue: 'Xuất dữ liệu' })}
           </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9"
+            onClick={startPaymentsTour}
+            title={t('payment.tour.button', 'Hướng dẫn')}
+          >
+            <HelpCircle className="h-4 w-4 text-gray-500 hover:text-orange-500" />
+          </Button>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" data-tour="payments-stats-cards">
         <SummaryCard
           title={t('payment.summary_total_amount', { defaultValue: 'Tổng doanh thu' })}
           value={formatCurrency(summary.totalAmount)}
@@ -660,6 +673,7 @@ const CustomerPaymentsPage: React.FC = () => {
           })}
           icon={DollarSign}
           trend="neutral"
+          data-tour="payments-total-card"
         />
         <SummaryCard
           title={t('payment.summary_settled', { defaultValue: 'Đã thu' })}
@@ -701,9 +715,9 @@ const CustomerPaymentsPage: React.FC = () => {
             {t('payment.transactions_subtitle', { defaultValue: 'Danh sách giao dịch mới nhất' })}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4" data-tour="payments-transactions-content">
           {/* Filters */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" data-tour="payments-filters">
             <div className="flex flex-col gap-2">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -719,6 +733,7 @@ const CustomerPaymentsPage: React.FC = () => {
                     }
                   }}
                   className="pl-8"
+                  data-tour="payments-search-input"
                 />
               </div>
             </div>

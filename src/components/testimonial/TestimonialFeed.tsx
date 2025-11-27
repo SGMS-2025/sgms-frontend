@@ -15,7 +15,8 @@ import {
   User,
   Calendar,
   Image as ImageIcon,
-  MoreHorizontal
+  MoreHorizontal,
+  HelpCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,9 +51,11 @@ import TestimonialModal from '@/components/modals/TestimonialModalProps';
 import { AddTestimonialModal } from '@/components/modals/AddTestimonialModalProps';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import type { TestimonialDisplay, TestimonialManagementProps } from '@/types/api/Testimonial';
+import { useTestimonialsTour } from '@/hooks/useTestimonialsTour';
 
 export const TestimonialFeed: React.FC<TestimonialManagementProps> = ({ onAddTestimonial }) => {
   const { t } = useTranslation();
+  const { startTestimonialsTour } = useTestimonialsTour();
   const { currentBranch } = useBranch();
   const [filters, setFilters] = useState<{
     searchTerm: string;
@@ -245,17 +248,29 @@ export const TestimonialFeed: React.FC<TestimonialManagementProps> = ({ onAddTes
               </div>
             )}
           </div>
-          <Button
-            onClick={handleAddTestimonial}
-            className="bg-orange-600 hover:bg-orange-700 text-white rounded-full px-6 py-2 flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            {t('dashboard.add_testimonial')}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="border-gray-300 hover:bg-gray-50"
+              onClick={startTestimonialsTour}
+              title={t('testimonial.tour.button', 'Hướng dẫn')}
+            >
+              <HelpCircle className="w-4 h-4 text-gray-500 hover:text-orange-500" />
+            </Button>
+            <Button
+              onClick={handleAddTestimonial}
+              className="bg-orange-600 hover:bg-orange-700 text-white rounded-full px-6 py-2 flex items-center gap-2"
+              data-tour="testimonials-add-button"
+            >
+              <Plus className="h-4 w-4" />
+              {t('dashboard.add_testimonial')}
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" data-tour="testimonials-stats-cards">
           <div className="bg-orange-50 rounded-lg p-4">
             <div className="text-sm font-medium text-orange-600">{t('dashboard.total')}</div>
             <div className="text-2xl font-bold text-gray-900">
@@ -290,13 +305,14 @@ export const TestimonialFeed: React.FC<TestimonialManagementProps> = ({ onAddTes
             className="pl-10 rounded-full border-gray-300 focus:border-orange-500 focus:ring-orange-500"
             value={filters.searchTerm}
             onChange={(e) => handleSearch(e.target.value)}
+            data-tour="testimonials-search-input"
           />
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
         </div>
       </div>
 
       {/* Facebook-style Feed */}
-      <div className="space-y-4">
+      <div className="space-y-4" data-tour="testimonials-list">
         {sortedTestimonialList.map((testimonial) => (
           <div key={testimonial.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             {/* Post Header */}
@@ -324,7 +340,12 @@ export const TestimonialFeed: React.FC<TestimonialManagementProps> = ({ onAddTes
                   </span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-gray-100"
+                        data-tour="testimonials-actions-menu"
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -415,7 +436,10 @@ export const TestimonialFeed: React.FC<TestimonialManagementProps> = ({ onAddTes
 
       {/* Pagination */}
       {pagination && (
-        <div className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div
+          className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+          data-tour="testimonials-pagination"
+        >
           <div className="text-sm text-gray-500">
             {`${t('dashboard.showing')} ${(pagination.currentPage - 1) * pagination.itemsPerPage + 1} - ${Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} ${t('dashboard.of_total')} ${pagination.totalItems} ${t('dashboard.testimonials')}`}
           </div>

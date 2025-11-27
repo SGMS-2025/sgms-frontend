@@ -181,7 +181,8 @@ export const OwnerSidebar: React.FC = () => {
       isActive: location.pathname === '/manage/owner',
       onClick: () => {
         navigate('/manage/owner');
-      }
+      },
+      'data-tour': 'dashboard-menu'
     },
     {
       icon: <Users className="w-5 h-5 stroke-[1.75]" />,
@@ -190,7 +191,8 @@ export const OwnerSidebar: React.FC = () => {
       isActive: location.pathname === '/manage/staff',
       onClick: () => {
         navigate('/manage/staff');
-      }
+      },
+      'data-tour': 'staff-menu-item'
     },
     {
       icon: <User className="w-5 h-5 stroke-[1.75]" />,
@@ -199,7 +201,8 @@ export const OwnerSidebar: React.FC = () => {
       isActive: location.pathname === '/manage/customers',
       onClick: () => {
         navigate('/manage/customers');
-      }
+      },
+      'data-tour': 'customers-menu-item'
     },
     {
       icon: <CreditCard className="w-5 h-5 stroke-[1.75]" />,
@@ -207,7 +210,8 @@ export const OwnerSidebar: React.FC = () => {
       isActive: location.pathname === '/manage/payments',
       onClick: () => {
         navigate('/manage/payments');
-      }
+      },
+      'data-tour': 'payments-menu-item'
     },
     {
       icon: <Dumbbell className="w-5 h-5 stroke-[1.75]" />,
@@ -216,7 +220,8 @@ export const OwnerSidebar: React.FC = () => {
       isActive: location.pathname === '/manage/equipment',
       onClick: () => {
         navigate('/manage/equipment');
-      }
+      },
+      'data-tour': 'equipment-menu-item'
     },
     {
       icon: <MessageSquare className="w-5 h-5 stroke-[1.75]" />,
@@ -225,7 +230,8 @@ export const OwnerSidebar: React.FC = () => {
       isActive: location.pathname === '/manage/testimonials',
       onClick: () => {
         navigate('/manage/testimonials');
-      }
+      },
+      'data-tour': 'testimonials-menu-item'
     },
     {
       icon: <FileText className="w-5 h-5 stroke-[1.75]" />,
@@ -234,7 +240,8 @@ export const OwnerSidebar: React.FC = () => {
       isActive: location.pathname === '/manage/contracts',
       onClick: () => {
         navigate('/manage/contracts');
-      }
+      },
+      'data-tour': 'contracts-menu-item'
     }
   ];
 
@@ -266,38 +273,35 @@ export const OwnerSidebar: React.FC = () => {
             icon={<Briefcase className="w-5 h-5 stroke-[1.75]" />}
             label={t('sidebar.business_services') || 'Dịch vụ / Services'}
             isCollapsed={isCollapsed}
+            data-tour="business-services-menu"
           >
             <SubMenuItem
               icon={<UserCheck className="w-5 h-5 stroke-[1.75]" />}
               label={t('sidebar.pt_services') || 'PT / Personal Training'}
               isActive={location.pathname === '/manage/pt-services'}
-              onClick={() => {
-                navigate('/manage/pt-services');
-              }}
+              onClick={() => navigate('/manage/pt-services')}
+              data-tour="pt-services-menu-item"
             />
             <SubMenuItem
               icon={<UsersRound className="w-5 h-5 stroke-[1.75]" />}
               label={t('sidebar.class_services') || 'Lớp học / Class Services'}
               isActive={location.pathname === '/manage/class-services'}
-              onClick={() => {
-                navigate('/manage/class-services');
-              }}
+              onClick={() => navigate('/manage/class-services')}
+              data-tour="class-services-menu-item"
             />
             <SubMenuItem
               icon={<Tag className="w-5 h-5 stroke-[1.75]" />}
               label={t('sidebar.promotions') || 'Khuyến mãi / Promotions'}
               isActive={location.pathname === '/manage/discounts'}
-              onClick={() => {
-                navigate('/manage/discounts');
-              }}
+              onClick={() => navigate('/manage/discounts')}
+              data-tour="promotions-menu-item"
             />
             <SubMenuItem
               icon={<IdCard className="w-5 h-5 stroke-[1.75]" />}
               label={t('sidebar.membership_plans') || 'Gói thành viên / Membership'}
               isActive={location.pathname === '/manage/memberships'}
-              onClick={() => {
-                navigate('/manage/memberships');
-              }}
+              onClick={() => navigate('/manage/memberships')}
+              data-tour="membership-plans-menu-item"
             />
           </DropdownSidebarItem>
 
@@ -306,30 +310,28 @@ export const OwnerSidebar: React.FC = () => {
             icon={<Calendar className="w-5 h-5 stroke-[1.75]" />}
             label={t('sidebar.schedule') || 'Schedule'}
             isCollapsed={isCollapsed}
+            data-tour="schedule-menu"
           >
             <SubMenuItem
               icon={<Calendar className="w-5 h-5 stroke-[1.75]" />}
               label={t('sidebar.work_schedule') || 'Work Schedule'}
               isActive={location.pathname === '/manage/workshifts/calendar'}
-              onClick={() => {
-                navigate('/manage/workshifts/calendar');
-              }}
+              onClick={() => navigate('/manage/workshifts/calendar')}
+              data-tour="work-schedule-menu-item"
             />
             <SubMenuItem
               icon={<CalendarDays className="w-5 h-5 stroke-[1.75]" />}
               label={t('sidebar.time_off') || 'Time Off'}
               isActive={location.pathname.startsWith('/manage/timeoff')}
-              onClick={() => {
-                navigate('/manage/timeoff');
-              }}
+              onClick={() => navigate('/manage/timeoff')}
+              data-tour="timeoff-menu-item"
             />
             <SubMenuItem
               icon={<UsersRound className="w-5 h-5 stroke-[1.75]" />}
               label={t('sidebar.classes') || 'Classes'}
               isActive={location.pathname === '/manage/classes'}
-              onClick={() => {
-                navigate('/manage/classes');
-              }}
+              onClick={() => navigate('/manage/classes')}
+              data-tour="classes-menu-item"
             />
           </DropdownSidebarItem>
 
@@ -338,6 +340,7 @@ export const OwnerSidebar: React.FC = () => {
             icon={<BarChart3 className="w-5 h-5 stroke-[1.75]" />}
             label={t('sidebar.finance') || 'Finance'}
             isCollapsed={isCollapsed}
+            data-tour="finance-menu"
           >
             <SubMenuItem
               icon={<DollarSign className="w-5 h-5 stroke-[1.75]" />}
@@ -346,6 +349,7 @@ export const OwnerSidebar: React.FC = () => {
               onClick={() => {
                 navigate('/manage/expenses');
               }}
+              data-tour="expenses-menu-item"
             />
             <SubMenuItem
               icon={<TrendingUp className="w-5 h-5 stroke-[1.75]" />}
@@ -354,6 +358,7 @@ export const OwnerSidebar: React.FC = () => {
               onClick={() => {
                 navigate('/manage/kpi');
               }}
+              data-tour="kpi-menu-item"
             />
           </DropdownSidebarItem>
         </div>

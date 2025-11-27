@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,21 +25,24 @@ import {
   Search,
   Plus,
   Calendar,
+  CalendarIcon,
   Clock,
   Loader2,
   RefreshCw,
   Grid3X3,
   List,
-  Download,
   CheckCircle,
   XCircle,
   MoreVertical,
   Eye,
   Edit,
   Trash2,
-  MapPin
+  MapPin,
+  HelpCircle,
+  X
 } from 'lucide-react';
 import { cn, formatDate } from '@/utils/utils';
+import { format } from 'date-fns';
 import { SortableHeader } from '@/components/ui/SortableHeader';
 import { useTableSort } from '@/hooks/useTableSort';
 import { sortArray } from '@/utils/sort';
@@ -111,9 +116,13 @@ const TimeOffList: React.FC<
     onStatusFilterChange?: (value: string) => void;
     typeFilter?: string;
     onTypeFilterChange?: (value: string) => void;
+    startDate?: Date;
+    endDate?: Date;
+    onDateRangeChange?: (startDate: Date | undefined, endDate: Date | undefined) => void;
     showFilters?: boolean;
     showStats?: boolean;
     showHeader?: boolean;
+    onStartTour?: () => void;
     stats?: {
       total: number;
       pending: number;
@@ -135,16 +144,19 @@ const TimeOffList: React.FC<
   currentUserId,
   onCreateNew,
   onRefresh,
-  onExport,
   searchValue = '',
   onSearchChange,
   statusFilter = 'ALL',
   onStatusFilterChange,
   typeFilter = 'ALL',
   onTypeFilterChange,
+  startDate,
+  endDate,
+  onDateRangeChange,
   showFilters = true,
   showStats = true,
   showHeader = true,
+  onStartTour,
   stats
 }) => {
   const { t } = useTranslation();
@@ -153,6 +165,13 @@ const TimeOffList: React.FC<
   const [viewMode, setViewMode] = React.useState<'card' | 'table'>('card');
   const [currentPage, setCurrentPage] = React.useState(1);
   const itemsPerPage = 8;
+  const [dateRange, setDateRange] = React.useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: startDate,
+    to: endDate
+  });
+  const [datePickerOpen, setDatePickerOpen] = React.useState(false);
+  // Track previous range to detect when user actually selects second date
+  const previousRangeRef = React.useRef<{ from?: Date; to?: Date } | undefined>(undefined);
 
   // Sort functionality
   const { sortState, handleSort, getSortIcon } = useTableSort();
@@ -239,10 +258,70 @@ const TimeOffList: React.FC<
   const endIndex = startIndex + itemsPerPage;
   const paginatedTimeOffs = filteredTimeOffs.slice(startIndex, endIndex);
 
+  // Sync date range with props
+  React.useEffect(() => {
+    setDateRange({ from: startDate, to: endDate });
+  }, [startDate, endDate]);
+
+  // Handle date range change - only trigger filter when user selects both start and end dates
+  const handleDateRangeSelect = (range: { from?: Date; to?: Date } | undefined) => {
+    if (range) {
+      const newRange = { from: range.from, to: range.to };
+      const prevRange = previousRangeRef.current;
+
+      // Check if this is a real second date selection (not Calendar auto-setting to = from)
+      const isSecondDateSelection =
+        prevRange?.from &&
+        !prevRange?.to &&
+        range.from &&
+        range.to &&
+        range.from.getTime() === prevRange.from.getTime(); // Same from date, but now has to
+
+      // Check if dates are different (not same day)
+      const hasDifferentDates =
+        range.from &&
+        range.to &&
+        new Date(range.from.getFullYear(), range.from.getMonth(), range.from.getDate()).getTime() !==
+          new Date(range.to.getFullYear(), range.to.getMonth(), range.to.getDate()).getTime();
+
+      setDateRange(newRange);
+      previousRangeRef.current = newRange;
+
+      if (range.from && range.to && (hasDifferentDates || isSecondDateSelection)) {
+        onDateRangeChange?.(range.from, range.to);
+        setCurrentPage(1);
+        // Close calendar when both dates are selected
+        setDatePickerOpen(false);
+      } else if (range.from && !range.to) {
+        // Just update local state for first date, don't trigger filter yet
+        // This allows user to select first date without triggering API call
+      }
+      // If Calendar auto-sets to = from on single click, don't trigger (hasDifferentDates will be false)
+    } else {
+      setDateRange({ from: undefined, to: undefined });
+      previousRangeRef.current = undefined;
+      onDateRangeChange?.(undefined, undefined);
+      setCurrentPage(1);
+    }
+  };
+
+  // Clear date range
+  const handleClearDateRange = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setDateRange({ from: undefined, to: undefined });
+    previousRangeRef.current = undefined;
+    onDateRangeChange?.(undefined, undefined);
+    setCurrentPage(1);
+    setDatePickerOpen(false);
+  };
+
   // Reset to first page when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchValue, statusFilter, typeFilter]);
+  }, [searchValue, statusFilter, typeFilter, startDate, endDate]);
 
   if (loading) {
     return (
@@ -295,12 +374,6 @@ const TimeOffList: React.FC<
                 </p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                {onExport && (
-                  <Button variant="outline" size="sm" onClick={onExport}>
-                    <Download className="h-4 w-4 mr-2" />
-                    {t('common.export') || 'Export'}
-                  </Button>
-                )}
                 {onRefresh && (
                   <Button variant="outline" size="sm" onClick={onRefresh}>
                     <RefreshCw className="h-4 w-4 mr-2" />
@@ -308,9 +381,24 @@ const TimeOffList: React.FC<
                   </Button>
                 )}
                 {onCreateNew && (
-                  <Button className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto" onClick={onCreateNew}>
+                  <Button
+                    className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto"
+                    onClick={onCreateNew}
+                    data-tour="create-timeoff-button"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     {t('timeoff.request_time_off') || 'Create Time Off Request'}
+                  </Button>
+                )}
+                {onStartTour && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="border-gray-300 hover:bg-gray-50"
+                    onClick={onStartTour}
+                    title={t('timeoff.tour.button', 'Hướng dẫn')}
+                  >
+                    <HelpCircle className="w-4 h-4 text-gray-500 hover:text-orange-500" />
                   </Button>
                 )}
               </div>
@@ -320,7 +408,7 @@ const TimeOffList: React.FC<
 
         {/* Stats Cards */}
         {showStats && stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" data-tour="timeoff-stats-cards">
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center">
@@ -384,74 +472,138 @@ const TimeOffList: React.FC<
           <div className="mb-6">
             <Card className="shadow-sm border-0 bg-white">
               <CardContent className="p-4 sm:p-6">
-                <div className="flex flex-col lg:flex-row gap-4 lg:items-center">
+                <div className="flex flex-wrap items-center gap-3">
                   {/* Search Bar */}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-[200px]" data-tour="timeoff-search-container">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                       <Input
-                        placeholder={t('timeoff.search_placeholder') || 'Search requests...'}
+                        placeholder={t('timeoff.search_placeholder') || 'Search by staff name or reason...'}
                         value={searchValue}
                         onChange={(e) => onSearchChange?.(e.target.value)}
-                        className="pl-10 h-11 text-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
+                        className="pl-10 h-11 text-sm border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg"
+                        data-tour="timeoff-search-input"
                       />
                     </div>
                   </div>
 
-                  {/* Filter Dropdowns */}
-                  <div className="flex flex-col sm:flex-row gap-3 lg:gap-4">
-                    <div className="w-full sm:w-32 lg:w-36">
-                      <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-                        <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg">
-                          <SelectValue placeholder={t('timeoff.filter_by_status') || 'Status'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getStatusOptions(t).map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  {/* Date Range Picker */}
+                  <div className="w-full sm:w-auto relative" data-tour="timeoff-date-range-filter">
+                    <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            'h-11 w-full sm:w-[240px] justify-start text-left font-normal border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg pr-8',
+                            !dateRange.from && !dateRange.to && 'text-muted-foreground'
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {dateRange.from && dateRange.to ? (
+                            <>
+                              {format(dateRange.from, 'dd/MM/yyyy')} - {format(dateRange.to, 'dd/MM/yyyy')}
+                            </>
+                          ) : dateRange.from ? (
+                            <>
+                              {format(dateRange.from, 'dd/MM/yyyy')} - {t('timeoff.select_date_range')}
+                            </>
+                          ) : (
+                            <span>{t('timeoff.select_date_range')}</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="range"
+                          defaultMonth={dateRange.from}
+                          selected={dateRange}
+                          onSelect={(range) => {
+                            handleDateRangeSelect(range);
+                            // Calendar closing is handled inside handleDateRangeSelect
+                          }}
+                          numberOfMonths={2}
+                          className="bg-white"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    {/* Clear button outside of PopoverTrigger */}
+                    {(dateRange.from || dateRange.to) && (
+                      <button
+                        type="button"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleClearDateRange(e);
+                        }}
+                        aria-label="Clear date range"
+                      >
+                        <X className="h-4 w-4 opacity-50 hover:opacity-100" />
+                      </button>
+                    )}
+                  </div>
 
-                    <div className="w-full sm:w-32 lg:w-36">
-                      <Select value={typeFilter} onValueChange={onTypeFilterChange}>
-                        <SelectTrigger className="h-11 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg">
-                          <SelectValue placeholder={t('timeoff.filter_by_type') || 'Type'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getTypeOptions(t).map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  {/* Status Filter */}
+                  <div className="w-full sm:w-32 lg:w-36">
+                    <Select value={statusFilter} onValueChange={onStatusFilterChange}>
+                      <SelectTrigger
+                        className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg"
+                        data-tour="timeoff-status-filter"
+                      >
+                        <SelectValue placeholder={t('timeoff.filter_by_status') || 'All Status'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getStatusOptions(t).map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Type Filter */}
+                  <div className="w-full sm:w-32 lg:w-36">
+                    <Select value={typeFilter} onValueChange={onTypeFilterChange}>
+                      <SelectTrigger
+                        className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg"
+                        data-tour="timeoff-type-filter"
+                      >
+                        <SelectValue placeholder={t('timeoff.filter_by_type') || 'All Types'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getTypeOptions(t).map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* View Toggle Buttons */}
-                  <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+                  <div className="flex gap-1 bg-gray-100 p-1 rounded-lg" data-tour="timeoff-view-mode-toggle">
                     <Button
                       variant={viewMode === 'card' ? 'default' : 'ghost'}
                       onClick={() => setViewMode('card')}
-                      className={`h-9 px-3 rounded-md transition-all ${
+                      className={cn(
+                        'h-9 px-3 rounded-md transition-all',
                         viewMode === 'card'
                           ? 'bg-white shadow-sm text-gray-900'
                           : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
-                      }`}
+                      )}
                     >
                       <Grid3X3 className="w-4 h-4" />
                     </Button>
                     <Button
                       variant={viewMode === 'table' ? 'default' : 'ghost'}
                       onClick={() => setViewMode('table')}
-                      className={`h-9 px-3 rounded-md transition-all ${
+                      className={cn(
+                        'h-9 px-3 rounded-md transition-all',
                         viewMode === 'table'
                           ? 'bg-white shadow-sm text-gray-900'
                           : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
-                      }`}
+                      )}
                     >
                       <List className="w-4 h-4" />
                     </Button>
@@ -487,7 +639,7 @@ const TimeOffList: React.FC<
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-tour="timeoff-list-cards">
               {paginatedTimeOffs.map((timeOff) => (
                 <TimeOffCard
                   key={timeOff._id}
@@ -528,164 +680,171 @@ const TimeOffList: React.FC<
                 )}
               </div>
             ) : (
-              <table className="w-full">
-                <thead className="border-b bg-gray-50">
-                  <tr>
-                    <SortableHeader
-                      field="staffId"
-                      label={t('timeoff.staff_name') || 'Staff Name'}
-                      sortState={sortState}
-                      onSort={handleSort}
-                      getSortIcon={getSortIcon}
-                    />
-                    <SortableHeader
-                      field="type"
-                      label={t('timeoff.type') || 'Type'}
-                      sortState={sortState}
-                      onSort={handleSort}
-                      getSortIcon={getSortIcon}
-                    />
-                    <SortableHeader
-                      field="startDate"
-                      label={t('timeoff.date_range') || 'Date Range'}
-                      sortState={sortState}
-                      onSort={handleSort}
-                      getSortIcon={getSortIcon}
-                    />
-                    <SortableHeader
-                      field="duration"
-                      label={t('timeoff.duration') || 'Duration'}
-                      sortState={sortState}
-                      onSort={handleSort}
-                      getSortIcon={getSortIcon}
-                    />
-                    <SortableHeader
-                      field="reason"
-                      label={t('timeoff.reason') || 'Reason'}
-                      sortState={sortState}
-                      onSort={handleSort}
-                      getSortIcon={getSortIcon}
-                    />
-                    <SortableHeader
-                      field="status"
-                      label={t('timeoff.status') || 'Status'}
-                      sortState={sortState}
-                      onSort={handleSort}
-                      getSortIcon={getSortIcon}
-                    />
-                    <SortableHeader
-                      field="createdAt"
-                      label={t('timeoff.created_at') || 'Created At'}
-                      sortState={sortState}
-                      onSort={handleSort}
-                      getSortIcon={getSortIcon}
-                    />
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t('common.actions') || 'Actions'}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {paginatedTimeOffs.map((timeOff) => (
-                    <tr key={timeOff._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {typeof timeOff.staffId === 'object'
-                              ? timeOff.staffId?.userId?.fullName || 'Unknown'
-                              : 'Unknown'}
-                          </div>
-                          {typeof timeOff.branchId === 'object' && timeOff.branchId?.branchName && (
-                            <div className="text-sm text-gray-500 flex items-center">
-                              <MapPin className="w-3 h-3 mr-1" />
-                              {timeOff.branchId.branchName}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge className={cn('text-xs', getTypeColor(timeOff.type))}>
-                          {getTypeText(timeOff.type, t)}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                          {formatDate(timeOff.startDate)} - {formatDate(timeOff.endDate)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {timeOff.duration} {timeOff.duration === 1 ? t('timeoff.day') : t('timeoff.days')}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 truncate max-w-xs">
-                          {timeOff.reason || 'No reason provided'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge className={cn('text-xs', getStatusColor(timeOff.status))}>{timeOff.status}</Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatDate(timeOff.createdAt)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {onView && (
-                              <DropdownMenuItem onClick={() => onView(timeOff._id)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                {t('common.view')}
-                              </DropdownMenuItem>
-                            )}
-                            {onEdit && timeOff.status === 'PENDING' && (
-                              <DropdownMenuItem onClick={() => onEdit(timeOff._id)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                {t('common.edit')}
-                              </DropdownMenuItem>
-                            )}
-                            {onApprove && timeOff.status === 'PENDING' && (
-                              <DropdownMenuItem onClick={() => onApprove(timeOff._id)}>
-                                <CheckCircle className="mr-2 h-4 w-4" />
-                                {t('common.approve')}
-                              </DropdownMenuItem>
-                            )}
-                            {onReject && timeOff.status === 'PENDING' && (
-                              <DropdownMenuItem onClick={() => onReject(timeOff._id)} className="text-red-600">
-                                <XCircle className="mr-2 h-4 w-4" />
-                                {t('common.reject')}
-                              </DropdownMenuItem>
-                            )}
-                            {onCancel && canCancelTimeOff(timeOff, userRole, currentUserId) && (
-                              <DropdownMenuItem onClick={() => onCancel(timeOff._id)} className="text-orange-600">
-                                <XCircle className="mr-2 h-4 w-4" />
-                                {t('common.cancel')}
-                              </DropdownMenuItem>
-                            )}
-                            {onDelete && (
-                              <DropdownMenuItem onClick={() => onDelete(timeOff._id)} className="text-red-600">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                {t('common.delete')}
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
+              <div className="overflow-x-auto" data-tour="timeoff-list-table">
+                <table className="w-full">
+                  <thead className="border-b bg-gray-50">
+                    <tr>
+                      <SortableHeader
+                        field="staffId"
+                        label={t('timeoff.staff_name') || 'Staff Name'}
+                        sortState={sortState}
+                        onSort={handleSort}
+                        getSortIcon={getSortIcon}
+                      />
+                      <SortableHeader
+                        field="type"
+                        label={t('timeoff.type') || 'Type'}
+                        sortState={sortState}
+                        onSort={handleSort}
+                        getSortIcon={getSortIcon}
+                      />
+                      <SortableHeader
+                        field="startDate"
+                        label={t('timeoff.date_range') || 'Date Range'}
+                        sortState={sortState}
+                        onSort={handleSort}
+                        getSortIcon={getSortIcon}
+                      />
+                      <SortableHeader
+                        field="duration"
+                        label={t('timeoff.duration') || 'Duration'}
+                        sortState={sortState}
+                        onSort={handleSort}
+                        getSortIcon={getSortIcon}
+                      />
+                      <SortableHeader
+                        field="reason"
+                        label={t('timeoff.reason') || 'Reason'}
+                        sortState={sortState}
+                        onSort={handleSort}
+                        getSortIcon={getSortIcon}
+                      />
+                      <SortableHeader
+                        field="status"
+                        label={t('timeoff.status') || 'Status'}
+                        sortState={sortState}
+                        onSort={handleSort}
+                        getSortIcon={getSortIcon}
+                      />
+                      <SortableHeader
+                        field="createdAt"
+                        label={t('timeoff.created_at') || 'Created At'}
+                        sortState={sortState}
+                        onSort={handleSort}
+                        getSortIcon={getSortIcon}
+                      />
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t('common.actions') || 'Actions'}
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {paginatedTimeOffs.map((timeOff) => (
+                      <tr key={timeOff._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {typeof timeOff.staffId === 'object'
+                                ? timeOff.staffId?.userId?.fullName || 'Unknown'
+                                : 'Unknown'}
+                            </div>
+                            {typeof timeOff.branchId === 'object' && timeOff.branchId?.branchName && (
+                              <div className="text-sm text-gray-500 flex items-center">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                {timeOff.branchId.branchName}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge className={cn('text-xs', getTypeColor(timeOff.type))}>
+                            {getTypeText(timeOff.type, t)}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <div className="flex items-center">
+                            <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                            {formatDate(timeOff.startDate)} - {formatDate(timeOff.endDate)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {timeOff.duration} {timeOff.duration === 1 ? t('timeoff.day') : t('timeoff.days')}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 truncate max-w-xs">
+                            {timeOff.reason || 'No reason provided'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge className={cn('text-xs', getStatusColor(timeOff.status))}>{timeOff.status}</Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {formatDate(timeOff.createdAt)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                data-tour="timeoff-actions-menu"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {onView && (
+                                <DropdownMenuItem onClick={() => onView(timeOff._id)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  {t('common.view')}
+                                </DropdownMenuItem>
+                              )}
+                              {onEdit && timeOff.status === 'PENDING' && (
+                                <DropdownMenuItem onClick={() => onEdit(timeOff._id)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  {t('common.edit')}
+                                </DropdownMenuItem>
+                              )}
+                              {onApprove && timeOff.status === 'PENDING' && (
+                                <DropdownMenuItem onClick={() => onApprove(timeOff._id)}>
+                                  <CheckCircle className="mr-2 h-4 w-4" />
+                                  {t('common.approve')}
+                                </DropdownMenuItem>
+                              )}
+                              {onReject && timeOff.status === 'PENDING' && (
+                                <DropdownMenuItem onClick={() => onReject(timeOff._id)} className="text-red-600">
+                                  <XCircle className="mr-2 h-4 w-4" />
+                                  {t('common.reject')}
+                                </DropdownMenuItem>
+                              )}
+                              {onCancel && canCancelTimeOff(timeOff, userRole, currentUserId) && (
+                                <DropdownMenuItem onClick={() => onCancel(timeOff._id)} className="text-orange-600">
+                                  <XCircle className="mr-2 h-4 w-4" />
+                                  {t('common.cancel')}
+                                </DropdownMenuItem>
+                              )}
+                              {onDelete && (
+                                <DropdownMenuItem onClick={() => onDelete(timeOff._id)} className="text-red-600">
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  {t('common.delete')}
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex justify-center mt-8">
+          <div className="flex justify-center mt-8" data-tour="timeoff-pagination">
             <Pagination>
               <PaginationContent>
                 <PaginationItem>

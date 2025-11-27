@@ -45,6 +45,8 @@ import { ClassFormModalErrorBoundary } from './ClassFormModal.ErrorBoundary';
 import { EnrollStudentsModal } from './EnrollStudentsModal';
 import { ClassQuickViewModal } from './ClassQuickViewModal';
 import { toast } from 'sonner';
+import { useClassTour } from '@/hooks/useClassTour';
+import { HelpCircle } from 'lucide-react';
 import type { Class } from '@/types/Class';
 import type { ClassListViewProps } from '@/types/class/ClassListView';
 
@@ -59,6 +61,7 @@ const toNumber = (value: any): number => {
 export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBranchId }) => {
   const { t } = useTranslation();
   const { currentBranch } = useBranch();
+  const { startClassTour } = useClassTour();
   // Use prop branchId if provided, otherwise use currentBranch from context
   const branchId = propBranchId || currentBranch?._id;
 
@@ -161,31 +164,44 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
               {classes.length > 0 ? t('class.list.count', { count: classes.length }) : t('class.list.no_classes')}
             </p>
           </div>
-          <Button
-            onClick={() => setFormModal({ open: true, classId: undefined })}
-            className="bg-orange-500 hover:bg-orange-600 text-white"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            {t('class.list.button_new_class')}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="border-gray-300 hover:bg-gray-50"
+              onClick={startClassTour}
+              title={t('class.tour.button', 'Hướng dẫn')}
+            >
+              <HelpCircle className="w-4 h-4 text-gray-500 hover:text-orange-500" />
+            </Button>
+            <Button
+              onClick={() => setFormModal({ open: true, classId: undefined })}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+              data-tour="create-class-button"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {t('class.list.button_new_class')}
+            </Button>
+          </div>
         </div>
 
         {/* Controls: Search, Filter, View Toggle */}
         <div className="flex gap-2 flex-wrap">
           {/* Search */}
-          <div className="relative flex-1 min-w-[250px]">
+          <div className="relative flex-1 min-w-[250px]" data-tour="class-search-container">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
             <Input
               placeholder={t('class.list.search_placeholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 text-sm sm:text-base bg-white border-gray-300 shadow-sm"
+              data-tour="class-search-input"
             />
           </div>
 
           {/* Status Filter */}
           <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as 'ACTIVE' | 'INACTIVE' | 'ALL')}>
-            <SelectTrigger className="w-[140px] bg-white border-gray-300 shadow-sm">
+            <SelectTrigger className="w-[140px] bg-white border-gray-300 shadow-sm" data-tour="class-status-filter">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -196,7 +212,7 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
           </Select>
 
           {/* View Toggle */}
-          <div className="flex gap-2">
+          <div className="flex gap-2" data-tour="class-view-mode-toggle">
             <Button
               variant={viewMode === 'card' ? 'default' : 'outline'}
               onClick={() => setViewMode('card')}
@@ -257,7 +273,10 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
 
         {/* Card View */}
         {!loading && !error && classes.length > 0 && viewMode === 'card' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr"
+            data-tour="class-list-cards"
+          >
             {sortedClasses.map((cls) => (
               <ClassInfoCard
                 key={cls._id}
@@ -273,7 +292,10 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
 
         {/* Table View */}
         {!loading && !error && classes.length > 0 && viewMode === 'table' && (
-          <div className="overflow-x-auto bg-white rounded-lg border border-gray-200 shadow-sm">
+          <div
+            className="overflow-x-auto bg-white rounded-lg border border-gray-200 shadow-sm"
+            data-tour="class-list-table"
+          >
             <table className="w-full text-sm">
               <thead className="border-b bg-gray-50">
                 <tr>
@@ -368,7 +390,7 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
                     <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" data-tour="class-actions-menu">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -401,7 +423,7 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
 
       {/* Pagination */}
       {!loading && !error && classes.length > 0 && pagination && (
-        <div className="border-t pt-4 flex items-center justify-between">
+        <div className="border-t pt-4 flex items-center justify-between" data-tour="class-pagination">
           <div className="text-sm text-gray-600">
             {t('class.list.pagination_page')} <span className="font-medium">{pagination.currentPage}</span>{' '}
             {t('class.list.pagination_of')} <span className="font-medium">{pagination.totalPages}</span>

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Trash2, Loader2, Building2, Eye, Save, Pencil, Check, AlertTriangle } from 'lucide-react';
+import { Trash2, Loader2, Building2, Eye, Save, Pencil, Check, AlertTriangle, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useBranch } from '@/contexts/BranchContext';
 import { useMatrix } from '@/hooks/useMatrix';
+import { useClassServicesTour } from '@/hooks/useClassServicesTour';
 import type { LegacyService } from '@/types/api/Package';
 import type { MatrixDisplayData } from '@/types/api/Matrix';
 import { AddServiceDialog } from '@/components/dialogpackage/AddServiceDialog';
@@ -22,6 +23,7 @@ type MatrixFeature = MatrixDisplayData['features'][0];
 export default function ClassServiceManagement() {
   const { t } = useTranslation();
   const { currentBranch } = useBranch();
+  const { startClassServicesTour } = useClassServicesTour();
   const {
     services,
     features,
@@ -151,6 +153,19 @@ export default function ClassServiceManagement() {
                   {t('class_service.subtitle')} <span className="font-medium">{currentBranch.branchName}</span>
                 </p>
               </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="border-gray-300 hover:bg-gray-50"
+                    onClick={startClassServicesTour}
+                    title={t('class_service.tour.button', 'Hướng dẫn')}
+                  >
+                    <HelpCircle className="w-4 h-4 text-gray-500 hover:text-orange-500" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -203,6 +218,7 @@ export default function ClassServiceManagement() {
                     onClick={saveMatrix}
                     disabled={loading}
                     className="px-4 py-2 text-sm text-white border border-orange-500 rounded-full bg-orange-500 hover:bg-orange-600 hover:border-orange-600 transition-colors flex items-center leading-none"
+                    data-tour="class-save-changes-button"
                   >
                     {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                     {t('class_service.save_changes')}
@@ -212,6 +228,7 @@ export default function ClassServiceManagement() {
                   size="sm"
                   onClick={() => setPreview((p) => !p)}
                   className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-full bg-white hover:bg-orange-50 hover:border-orange-200 hover:text-orange-600 transition-colors flex items-center leading-none"
+                  data-tour="class-preview-edit-toggle"
                 >
                   {preview ? <Pencil className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
                   {preview ? t('class_service.edit') : t('class_service.preview')}
@@ -238,7 +255,10 @@ export default function ClassServiceManagement() {
             ) : (
               <div className="w-full overflow-x-auto">
                 <div className="inline-block min-w-full">
-                  <div className="bg-white border border-orange-200 rounded-lg overflow-hidden origin-top-left">
+                  <div
+                    className="bg-white border border-orange-200 rounded-lg overflow-hidden origin-top-left"
+                    data-tour="class-matrix-table"
+                  >
                     {/* Header row */}
                     <div
                       className="grid gap-[5px] p-4 text-orange-500 text-sm font-semibold bg-orange-50"

@@ -9,6 +9,7 @@ import { RefreshCw } from 'lucide-react';
 import { useTimeOffList, useTimeOffOperations } from '@/hooks/useTimeOff';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { useAuthState } from '@/hooks/useAuth';
+import { useTimeOffTour } from '@/hooks/useTimeOffTour';
 import TimeOffList from '@/components/timeoff/TimeOffList';
 import CreateTimeOffModal from '@/components/timeoff/CreateTimeOffModal';
 import TimeOffDetailModal from '@/components/timeoff/TimeOffDetailModal';
@@ -23,6 +24,7 @@ interface TimeOffPageProps {
 
 const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = false }) => {
   const { t } = useTranslation();
+  const { startTimeOffTour } = useTimeOffTour();
   const [searchParams] = useSearchParams();
   const { currentStaff } = useCurrentUserStaff();
   const { user } = useAuthState();
@@ -34,6 +36,8 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
   const [searchValue, setSearchValue] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL');
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
   // Determine if user can view all requests or only their own
   const canViewAll = userRole === 'owner';
@@ -47,12 +51,23 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
     return currentStaff?._id;
   };
 
+  // Only pass date filters when both dates are selected
+  const dateFilters =
+    startDate && endDate
+      ? {
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: endDate.toISOString().split('T')[0]
+        }
+      : {};
+
   const { timeOffs, stats, loading, error, pagination, refetch, updateFilters, goToPage } = useTimeOffList({
     // For owner: show all requests
     // For technician/pt: if manager, show all staff in their branches, otherwise show only their own
     staffId: getStaffId(),
     status: statusFilter === 'ALL' ? undefined : (statusFilter as TimeOffStatus),
-    type: typeFilter === 'ALL' ? undefined : (typeFilter as TimeOffType)
+    type: typeFilter === 'ALL' ? undefined : (typeFilter as TimeOffType),
+    ...dateFilters,
+    search: searchValue.trim() || undefined
   });
 
   const { approveTimeOff, rejectTimeOff, cancelTimeOff, deleteTimeOff } = useTimeOffOperations();
@@ -158,17 +173,40 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
 
   const handleSearchChange = (value: string) => {
     setSearchValue(value);
-    // Search functionality will be implemented later
+    updateFilters({
+      search: value.trim() || undefined,
+      page: 1 // Reset to first page when search changes
+    });
   };
 
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
-    updateFilters({ status: value === 'ALL' ? undefined : (value as TimeOffStatus) });
+    updateFilters({
+      status: value === 'ALL' ? undefined : (value as TimeOffStatus),
+      page: 1 // Reset to first page when filter changes
+    });
   };
 
   const handleTypeFilterChange = (value: string) => {
     setTypeFilter(value);
-    updateFilters({ type: value === 'ALL' ? undefined : (value as TimeOffType) });
+    updateFilters({
+      type: value === 'ALL' ? undefined : (value as TimeOffType),
+      page: 1 // Reset to first page when filter changes
+    });
+  };
+
+  const handleDateRangeChange = (start: Date | undefined, end: Date | undefined) => {
+    setStartDate(start);
+    setEndDate(end);
+    // Only update filters when both dates are provided or both are cleared
+    // This prevents API call when only one date is selected
+    if ((start && end) || (!start && !end)) {
+      updateFilters({
+        startDate: start ? start.toISOString().split('T')[0] : undefined,
+        endDate: end ? end.toISOString().split('T')[0] : undefined,
+        page: 1 // Reset to first page when date range changes
+      });
+    }
   };
 
   const handleExport = () => {
@@ -237,7 +275,6 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
           }
           onCreateNew={userRole !== 'owner' ? handleCreateNew : undefined}
           onRefresh={handleRefresh}
-          onExport={handleExport}
           onView={handleViewTimeOff}
         />
       ) : (
@@ -261,9 +298,13 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
           onStatusFilterChange={handleStatusFilterChange}
           typeFilter={typeFilter}
           onTypeFilterChange={handleTypeFilterChange}
+          startDate={startDate}
+          endDate={endDate}
+          onDateRangeChange={handleDateRangeChange}
           showFilters={true}
           showStats={true}
           showHeader={true}
+          onStartTour={startTimeOffTour}
           stats={
             stats
               ? {

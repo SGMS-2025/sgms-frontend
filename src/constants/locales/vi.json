@@ -273,7 +273,11 @@
   "payment.summary_failed": "Thất bại",
   "dashboard.all_branches_customers": "Khách hàng toàn chuỗi",
   "dashboard.all_branches_customers_desc": "Tổng số khách ở mọi chi nhánh",
+  "dashboard.all_locations": "Tất cả vị trí",
+  "dashboard.all_categories": "Tất cả loại",
   "dashboard.new_customers_this_period": "Mới trong kỳ",
+  "dashboard.total_customers": "TỔNG KHÁCH HÀNG",
+  "dashboard.roles": "VAI TRÒ",
   "dashboard.all_branches_staff": "Nhân sự toàn chuỗi",
   "dashboard.all_branches_staff_desc": "Tổng nhân sự toàn chuỗi",
   "dashboard.active_staff": "Đang hoạt động",
@@ -341,6 +345,18 @@
   "dashboard.export": "Xuất dữ liệu",
   "common.no_results": "Không có kết quả",
   "common.search": "Tìm kiếm",
+  "common.month.1": "Tháng 1",
+  "common.month.2": "Tháng 2",
+  "common.month.3": "Tháng 3",
+  "common.month.4": "Tháng 4",
+  "common.month.5": "Tháng 5",
+  "common.month.6": "Tháng 6",
+  "common.month.7": "Tháng 7",
+  "common.month.8": "Tháng 8",
+  "common.month.9": "Tháng 9",
+  "common.month.10": "Tháng 10",
+  "common.month.11": "Tháng 11",
+  "common.month.12": "Tháng 12",
   "gym.search_title": "Tìm Phòng Tập Lý Tưởng",
   "gym.search_subtitle": "Khám phá hệ thống phòng tập hiện đại với trang thiết bị chuyên nghiệp",
   "gym.search_placeholder": "Tìm kiếm theo tên phòng tập, địa chỉ...",
@@ -470,6 +486,22 @@
   "expenses.categories.cleaning": "Vệ sinh",
   "expenses.categories.security": "An ninh",
   "expenses.categories.other": "Khác",
+  "expenses.tour.button": "Hướng dẫn",
+  "expenses.tour.start": "Bắt đầu hướng dẫn",
+  "expenses.tour.sidebar_finance.title": "Menu Finance",
+  "expenses.tour.sidebar_finance.description": "Đây là menu Finance trong sidebar. Bạn có thể tìm thấy các tính năng liên quan đến tài chính ở đây, bao gồm quản lý chi phí (Expenses) và KPI.",
+  "expenses.tour.sidebar_expenses.title": "Menu Expenses",
+  "expenses.tour.sidebar_expenses.description": "Click vào đây để truy cập trang quản lý chi phí. Bạn có thể theo dõi, thêm mới, chỉnh sửa và xóa các chi phí của phòng gym.",
+  "expenses.tour.create_button.title": "Tạo chi phí mới",
+  "expenses.tour.create_button.description": "Sử dụng nút này để tạo một chi phí mới. Bạn sẽ cần nhập thông tin về danh mục, mô tả và số tiền.",
+  "expenses.tour.search.title": "Tìm kiếm chi phí",
+  "expenses.tour.search.description": "Sử dụng ô tìm kiếm này để tìm kiếm chi phí theo mô tả hoặc thông tin khác.",
+  "expenses.tour.category_filter.title": "Lọc theo danh mục",
+      "expenses.tour.category_filter.description": "Sử dụng bộ lọc này để xem các chi phí theo danh mục cụ thể như thiết bị, tiền lương, tiện ích, bảo trì, v.v. Bạn có thể chọn \"Tất cả\" để xem tất cả các chi phí.",
+      "expenses.tour.expense_list.title": "Danh sách chi phí",
+      "expenses.tour.expense_list.description": "Đây là danh sách tất cả các chi phí. Mỗi mục hiển thị thông tin về danh mục, mô tả, chi nhánh, ngày và số tiền.",
+      "expenses.tour.actions_menu.title": "Thao tác với chi phí",
+      "expenses.tour.actions_menu.description": "Click vào menu 3 chấm này để xem các thao tác: Xem chi tiết, Chỉnh sửa hoặc Xóa chi phí.",
   "sidebar.work_schedule": "Lịch làm việc",
   "sidebar.schedule": "Lịch trình",
   "sidebar.schedule_templates": "Mẫu lịch trình",
@@ -715,6 +747,7 @@
   "staff.manager": "Quản lý",
   "staff.admin": "Quản trị viên",
   "staff.owner": "Chủ sở hữu",
+  "staff.pt": "PT",
   "staff.technician": "Kỹ thuật viên",
   "staff.birth_date": "Ngày sinh",
   "staff.gender": "Giới tính",
@@ -846,6 +879,41 @@
   "staff.access_denied": "Truy cập bị từ chối",
   "staff.access_denied_message": "Chỉ có chủ sở hữu hoặc quản lý mới có thể thêm nhân viên.",
   "staff.go_back": "Quay lại",
+  "staff.tour": {
+    "button": "Hướng dẫn",
+    "sidebar_staff": {
+      "title": "Menu Nhân viên",
+      "description": "Đây là menu Nhân viên trong sidebar. Click vào đây để truy cập trang quản lý nhân viên, nơi bạn có thể xem, thêm, chỉnh sửa và quản lý tất cả nhân viên của mình."
+    },
+    "stats_cards": {
+      "title": "Thống kê nhân viên",
+      "description": "Các thẻ này hiển thị thống kê nhân viên chính: Tổng (tất cả nhân viên đang hoạt động và không hoạt động), Kỹ thuật viên (giám sát thiết bị), Quản lý chi nhánh (quản lý chi nhánh), và PT (huấn luyện viên cá nhân)."
+    },
+    "action_buttons": {
+      "title": "Nút thao tác",
+      "description": "Sử dụng các nút này để quản lý nhân viên: Import Excel (import nhân viên từ file Excel) và Thêm nhân viên (tạo nhân viên mới)."
+    },
+    "search": {
+      "title": "Tìm kiếm nhân viên",
+      "description": "Sử dụng ô tìm kiếm này để tìm nhân viên theo tên, email, số điện thoại hoặc thông tin khác."
+    },
+    "select_all": {
+      "title": "Chọn tất cả",
+      "description": "Click vào nút này để chọn hoặc bỏ chọn tất cả nhân viên trên trang hiện tại. Hữu ích cho các thao tác hàng loạt như chỉnh sửa hàng loạt hoặc xóa hàng loạt."
+    },
+    "staff_table": {
+      "title": "Bảng nhân viên",
+      "description": "Bảng này hiển thị tất cả nhân viên. Mỗi hàng hiển thị thông tin nhân viên như tên, vai trò, email, số điện thoại, lương và trạng thái. Bạn có thể click vào tiêu đề cột để sắp xếp danh sách."
+    },
+    "actions_menu": {
+      "title": "Thao tác với nhân viên",
+      "description": "Click vào menu này để truy cập các thao tác nhân viên: Xem (xem thông tin chi tiết nhân viên), Xem lịch sử chấm công, Chỉnh sửa (sửa thông tin nhân viên), Quản lý quyền (cấu hình quyền nhân viên), và Chuyển đổi trạng thái (kích hoạt hoặc vô hiệu hóa nhân viên)."
+    },
+    "pagination": {
+      "title": "Điều hướng danh sách",
+      "description": "Sử dụng các nút Previous và Next để điều hướng giữa các trang. Bạn có thể xem số trang hiện tại và tổng số trang."
+    }
+  },
   "toast.image_uploaded_successfully": "Ảnh đã được tải lên thành công",
   "error.image_upload_failed": "Lỗi upload ảnh",
   "discount.title": "Chiến dịch khuyến mãi",
@@ -971,6 +1039,49 @@
   "discount.create_branch": "Tạo chi nhánh",
   "discount.filtering_by_branch": "Đang lọc theo chi nhánh",
   "discount.create_success": "Tạo chiến dịch giảm giá thành công!",
+  "discount.tour": {
+    "button": "Hướng dẫn",
+    "sidebar_business_services": {
+      "title": "Menu Business Services",
+      "description": "Đây là menu Business Services trong sidebar. Bạn có thể tìm thấy các tính năng liên quan đến dịch vụ ở đây, bao gồm PT Services, Class Services, Promotions và Membership Plans."
+    },
+    "sidebar_promotions": {
+      "title": "Menu Promotions",
+      "description": "Click vào đây để truy cập trang quản lý Discount Campaign. Bạn có thể xem, tạo, chỉnh sửa và quản lý các chiến dịch giảm giá và khuyến mãi."
+    },
+    "add_campaign_button": {
+      "title": "Thêm chiến dịch",
+      "description": "Sử dụng nút này để tạo chiến dịch giảm giá mới. Bạn sẽ cần nhập thông tin về tên chiến dịch, phần trăm giảm giá, khoảng thời gian và các chi nhánh áp dụng."
+    },
+    "stats_cards": {
+      "title": "Thống kê chiến dịch",
+      "description": "Các thẻ này hiển thị thống kê về các chiến dịch giảm giá của bạn: Tổng số, Đang hoạt động, Đã hết hạn, Đang chờ và Không hoạt động."
+    },
+    "search": {
+      "title": "Tìm kiếm chiến dịch",
+      "description": "Sử dụng ô tìm kiếm này để tìm kiếm chiến dịch theo tên, mô tả, người tạo hoặc tên chi nhánh."
+    },
+    "status_filter": {
+      "title": "Lọc theo trạng thái",
+      "description": "Sử dụng bộ lọc này để xem các chiến dịch theo trạng thái: Tất cả, Đang hoạt động, Đang chờ, Đã hết hạn hoặc Không hoạt động."
+    },
+    "view_mode": {
+      "title": "Chế độ xem",
+      "description": "Chọn chế độ xem: Card (lưới) hoặc Table (danh sách) để xem các chiến dịch theo cách bạn muốn."
+    },
+    "campaign_list": {
+      "title": "Danh sách chiến dịch",
+      "description": "Đây là danh sách tất cả các chiến dịch giảm giá. Mỗi chiến dịch hiển thị thông tin về tên, phần trăm giảm giá, khoảng thời gian và trạng thái."
+    },
+    "actions_menu": {
+      "title": "Thao tác với chiến dịch",
+      "description": "Click vào menu này để xem các thao tác: Xem chi tiết, Chỉnh sửa hoặc Xóa chiến dịch."
+    },
+    "pagination": {
+      "title": "Điều hướng danh sách",
+      "description": "Sử dụng các nút Previous và Next để điều hướng giữa các trang. Bạn có thể xem số trang hiện tại và tổng số trang."
+    }
+  },
   "common.view": "Xem",
   "common.delete": "Xóa",
   "common.approve": "Phê duyệt",
@@ -1153,6 +1264,45 @@
   "equipment.excel_import_more_errors": "... và {{count}} lỗi khác",
   "equipment.excel_import_network_error": "Lỗi kết nối: Không thể import thiết bị từ Excel",
   "equipment.delete_network_error": "Lỗi kết nối: Không thể xóa thiết bị",
+  "equipment.tour": {
+    "button": "Hướng dẫn",
+    "sidebar_equipment": {
+      "title": "Menu Thiết bị",
+      "description": "Đây là menu Thiết bị trong sidebar. Click vào đây để truy cập trang quản lý thiết bị, nơi bạn có thể xem, thêm, chỉnh sửa và quản lý tất cả thiết bị phòng gym của mình."
+    },
+    "stats_cards": {
+      "title": "Thống kê thiết bị",
+      "description": "Các thẻ này hiển thị thống kê về thiết bị của bạn: Tổng số thiết bị và phân loại theo danh mục (Sức mạnh, Cardio, Linh hoạt, Chức năng, Thể thao, Phụ kiện, Khác)."
+    },
+    "tabs": {
+      "title": "Tab Thiết bị",
+      "description": "Chuyển đổi giữa các chế độ xem: Danh sách Thiết bị (xem tất cả thiết bị), Yêu cầu Sửa chữa (xem thiết bị cần sửa), và Lịch sử Bảo trì (xem nhật ký bảo trì)."
+    },
+    "add_button": {
+      "title": "Thêm thiết bị",
+      "description": "Click vào đây để thêm thiết bị mới vào kho. Bạn sẽ cần nhập mã thiết bị, tên, danh mục, trạng thái, ngày mua, giá, nhà sản xuất, vị trí và các thông tin khác."
+    },
+    "search": {
+      "title": "Tìm kiếm thiết bị",
+      "description": "Sử dụng ô tìm kiếm này để tìm thiết bị theo tên, mã hoặc nhà sản xuất."
+    },
+    "filters": {
+      "title": "Lọc thiết bị",
+      "description": "Sử dụng các bộ lọc này để thu hẹp danh sách thiết bị: Bộ lọc Danh mục (lọc theo loại thiết bị) và Bộ lọc Trạng thái (lọc theo trạng thái thiết bị: Đang sử dụng, Không hoạt động, Bảo trì, Sửa chữa, Ngưng sử dụng)."
+    },
+    "equipment_list": {
+      "title": "Danh sách thiết bị",
+      "description": "Đây là danh sách tất cả thiết bị. Mỗi mục hiển thị mã thiết bị, tên, trạng thái, danh mục, ngày mua và các thao tác. Bạn có thể xem, tạo mã QR, chỉnh sửa hoặc xóa thiết bị."
+    },
+    "actions_buttons": {
+      "title": "Thao tác với thiết bị",
+      "description": "Sử dụng các nút này để quản lý thiết bị: Xem (xem thông tin chi tiết), Mã QR (tạo/tải mã QR), Chỉnh sửa (sửa thông tin thiết bị), và Xóa (xóa thiết bị khỏi kho)."
+    },
+    "pagination": {
+      "title": "Điều hướng danh sách",
+      "description": "Sử dụng các nút Previous và Next để điều hướng giữa các trang. Bạn có thể xem số trang hiện tại và tổng số trang."
+    }
+  },
   "equipment.excel_import_step_1": "Bước 1: Tải template và upload file Excel",
   "equipment.excel_import_step_2": "Bước 2: Xem kết quả import",
   "equipment.excel_import_again": "Import lại",
@@ -1298,6 +1448,53 @@
   "membershipManager.sheet.noTargetSelected": "Chọn chi nhánh mục tiêu để kích hoạt tùy chỉnh",
   "membershipManager.sheet.form.name": "Tên Gói",
   "membershipManager.sheet.form.namePlaceholder": "Nhập tên gói",
+  "membership.tour": {
+    "button": "Hướng dẫn",
+    "sidebar_business_services": {
+      "title": "Menu Business Services",
+      "description": "Đây là menu Business Services trong sidebar. Bạn có thể tìm thấy các tính năng liên quan đến dịch vụ ở đây, bao gồm PT Services, Class Services, Promotions và Membership Plans."
+    },
+    "sidebar_membership_plans": {
+      "title": "Menu Membership Plans",
+      "description": "Click vào đây để truy cập trang quản lý Membership Plans. Bạn có thể xem, tạo, chỉnh sửa và quản lý các gói thành viên và giá cả cho phòng gym của bạn."
+    },
+    "create_plan_button": {
+      "title": "Tạo gói",
+      "description": "Sử dụng nút này để tạo gói thành viên mới. Bạn sẽ cần nhập thông tin về tên gói, giá, thời hạn, quyền lợi và gán chi nhánh."
+    },
+    "refresh_button": {
+      "title": "Làm mới",
+      "description": "Click nút này để làm mới danh sách gói thành viên và cập nhật thống kê."
+    },
+    "stats_cards": {
+      "title": "Thống kê gói thành viên",
+      "description": "Các thẻ này hiển thị thống kê về các gói thành viên của bạn: Tổng số gói, Gói đang hoạt động, Phiên bản tùy chỉnh và Phiên bản tùy chỉnh đã tạm dừng."
+    },
+    "search": {
+      "title": "Tìm kiếm gói",
+      "description": "Sử dụng ô tìm kiếm này để tìm kiếm gói theo tên, mô tả hoặc quyền lợi."
+    },
+    "sort_button": {
+      "title": "Sắp xếp gói",
+      "description": "Sử dụng nút này để sắp xếp gói theo Tên, Giá hoặc Ngày cập nhật theo thứ tự tăng dần hoặc giảm dần."
+    },
+    "status_filter": {
+      "title": "Lọc theo trạng thái",
+      "description": "Sử dụng bộ lọc này để xem các gói theo trạng thái: Tất cả, Đang hoạt động hoặc Không hoạt động."
+    },
+    "view_mode_tabs": {
+      "title": "Chế độ xem",
+      "description": "Chọn chế độ xem: Tất cả gói (tất cả các gói), Gói cơ bản (chỉ gói mẫu) hoặc Gói tùy chỉnh (chỉ các tùy chỉnh theo chi nhánh)."
+    },
+    "plans_grid": {
+      "title": "Danh sách gói thành viên",
+      "description": "Đây là danh sách tất cả các gói thành viên. Mỗi thẻ hiển thị thông tin về tên gói, giá, thời hạn, quyền lợi và trạng thái."
+    },
+    "actions_menu": {
+      "title": "Thao tác với gói",
+      "description": "Click vào menu này để xem các thao tác: Xem chi tiết, Chỉnh sửa gói hoặc Chuyển đổi trạng thái (kích hoạt/vô hiệu hóa)."
+    }
+  },
   "membershipManager.sheet.form.description": "Mô Tả",
   "membershipManager.sheet.form.descriptionPlaceholder": "Nhập mô tả gói",
   "membershipManager.sheet.form.price": "Giá",
@@ -1797,11 +1994,73 @@
   "class_service.add_initial_data": "Thêm Dữ Liệu Ban Đầu",
   "class_service.add_initial_data_title": "Thêm Quyền Lợi và Gói Lớp Học",
   "class_service.create_initial_data": "Tạo Dữ Liệu",
+  "class_service.tour": {
+    "button": "Hướng dẫn",
+    "sidebar_business_services": {
+      "title": "Menu Business Services",
+      "description": "Đây là menu Business Services trong sidebar. Bạn có thể tìm thấy các tính năng liên quan đến dịch vụ ở đây, bao gồm PT Services, Class Services, Promotions và Membership Plans."
+    },
+    "sidebar_class_services": {
+      "title": "Menu Class Services",
+      "description": "Click vào đây để truy cập trang quản lý Class Services. Bạn có thể xem, tạo, chỉnh sửa và quản lý các gói lớp học và quyền lợi của chúng."
+    },
+    "add_feature_button": {
+      "title": "Thêm Quyền Lợi",
+      "description": "Sử dụng nút này để thêm quyền lợi mới vào các gói lớp học. Quyền lợi đại diện cho các lợi ích hoặc dịch vụ được bao gồm trong mỗi gói lớp học."
+    },
+    "add_class_button": {
+      "title": "Thêm gói lớp học",
+      "description": "Sử dụng nút này để tạo gói lớp học mới. Bạn sẽ cần nhập thông tin về tên gói, giá, thời hạn và giới hạn số người tham gia."
+    },
+    "preview_edit_toggle": {
+      "title": "Chế độ Xem trước/Chỉnh sửa",
+      "description": "Chuyển đổi giữa chế độ Xem trước (chỉ xem) và chế độ Chỉnh sửa (cho phép bạn chỉnh sửa ma trận). Click Chỉnh sửa để thay đổi các gói và quyền lợi."
+    },
+    "save_changes_button": {
+      "title": "Lưu thay đổi",
+      "description": "Click nút này để lưu tất cả các thay đổi đã thực hiện trên ma trận gói lớp học. Hãy đảm bảo lưu sau khi chỉnh sửa quyền lợi và gói."
+    },
+    "matrix_table": {
+      "title": "Bảng so sánh gói lớp học",
+      "description": "Đây là ma trận so sánh hiển thị quyền lợi nào được bao gồm trong mỗi gói lớp học. Mỗi dòng đại diện cho một quyền lợi, và mỗi cột đại diện cho một gói lớp học. Dấu tích xanh cho biết quyền lợi được bao gồm."
+    }
+  },
   "pt_service.add_feature_section": "Thêm Quyền Lợi (Tùy chọn)",
   "pt_service.add_initial_data": "Thêm Dữ Liệu Ban Đầu",
   "pt_service.add_initial_data_title": "Thêm Quyền Lợi và Gói PT",
   "pt_service.add_pt_section": "Thêm Gói PT (Tùy chọn)",
   "pt_service.create_initial_data": "Tạo Dữ Liệu",
+  "pt_service.tour": {
+    "button": "Hướng dẫn",
+    "sidebar_business_services": {
+      "title": "Menu Business Services",
+      "description": "Đây là menu Business Services trong sidebar. Bạn có thể tìm thấy các tính năng liên quan đến dịch vụ ở đây, bao gồm PT Services, Class Services, Promotions và Membership Plans."
+    },
+    "sidebar_pt_services": {
+      "title": "Menu PT Services",
+      "description": "Click vào đây để truy cập trang quản lý PT Services. Bạn có thể xem, tạo, chỉnh sửa và quản lý các gói PT và quyền lợi của chúng."
+    },
+    "add_feature_button": {
+      "title": "Thêm Quyền Lợi",
+      "description": "Sử dụng nút này để thêm quyền lợi mới vào các gói PT. Quyền lợi đại diện cho các lợi ích hoặc dịch vụ được bao gồm trong mỗi gói PT."
+    },
+    "add_package_button": {
+      "title": "Thêm gói PT",
+      "description": "Sử dụng nút này để tạo gói PT mới. Bạn sẽ cần nhập thông tin về tên gói, giá, thời hạn và số buổi tập."
+    },
+    "preview_edit_toggle": {
+      "title": "Chế độ Xem trước/Chỉnh sửa",
+      "description": "Chuyển đổi giữa chế độ Xem trước (chỉ xem) và chế độ Chỉnh sửa (cho phép bạn chỉnh sửa ma trận). Click Chỉnh sửa để thay đổi các gói và quyền lợi."
+    },
+    "save_changes_button": {
+      "title": "Lưu thay đổi",
+      "description": "Click nút này để lưu tất cả các thay đổi đã thực hiện trên ma trận gói PT. Hãy đảm bảo lưu sau khi chỉnh sửa quyền lợi và gói."
+    },
+    "matrix_table": {
+      "title": "Bảng so sánh gói PT",
+      "description": "Đây là ma trận so sánh hiển thị quyền lợi nào được bao gồm trong mỗi gói PT. Mỗi dòng đại diện cho một quyền lợi, và mỗi cột đại diện cho một gói PT. Dấu tích xanh cho biết quyền lợi được bao gồm."
+    }
+  },
   "dashboard.testimonial_management": "Quản lý đánh giá",
   "dashboard.testimonial_overview_title": "Quản lý đánh giá khách hàng",
   "dashboard.testimonial_overview_subtitle": "Quản lý đánh giá và phản hồi của khách hàng tại các cơ sở của bạn.",
@@ -1824,7 +2083,39 @@
   "dashboard.testimonials": "đánh giá",
   "dashboard.inactive": "Không hoạt động",
   "testimonial.active": "Hoạt động",
+  "testimonial.tour": {
+    "button": "Hướng dẫn",
+    "sidebar_testimonials": {
+      "title": "Menu Đánh giá",
+      "description": "Truy cập phần Đánh giá từ thanh bên để quản lý tất cả đánh giá và phản hồi của khách hàng."
+    },
+    "add_button": {
+      "title": "Thêm đánh giá",
+      "description": "Nhấp vào đây để thêm đánh giá khách hàng mới. Bạn có thể bao gồm văn bản, hình ảnh và quản lý trạng thái đánh giá."
+    },
+    "stats_cards": {
+      "title": "Thẻ thống kê",
+      "description": "Xem thống kê tổng quan: Tổng số đánh giá, Đánh giá hoạt động, Đánh giá không hoạt động và đánh giá có hình ảnh."
+    },
+    "search": {
+      "title": "Tìm kiếm đánh giá",
+      "description": "Sử dụng thanh tìm kiếm này để nhanh chóng tìm đánh giá theo tiêu đề, nội dung hoặc tên người tạo."
+    },
+    "testimonials_list": {
+      "title": "Danh sách đánh giá",
+      "description": "Xem tất cả đánh giá khách hàng tại đây. Mỗi đánh giá hiển thị người tạo, ngày, trạng thái, tiêu đề, nội dung và hình ảnh."
+    },
+    "actions_menu": {
+      "title": "Thao tác đánh giá",
+      "description": "Nhấp vào menu này để xem các thao tác: Xem chi tiết, Chỉnh sửa đánh giá, Chuyển đổi trạng thái (kích hoạt/vô hiệu hóa) hoặc Xóa đánh giá."
+    },
+    "pagination": {
+      "title": "Phân trang",
+      "description": "Điều hướng qua nhiều trang đánh giá bằng cách sử dụng các nút Trước và Sau khi bạn có nhiều đánh giá."
+    }
+  },
   "dashboard.title": "Tiêu đề",
+  "dashboard.subtitle": "Tổng quan về hoạt động của phòng gym",
   "dashboard.created_date": "Ngày tạo",
   "dashboard.images": "Hình ảnh",
   "dashboard.created_by": "Người tạo",
@@ -3141,6 +3432,7 @@
   "timeoff.filters": "Bộ lọc",
   "timeoff.search": "Tìm kiếm",
   "timeoff.search_placeholder": "Tìm kiếm theo tên nhân viên hoặc lý do...",
+  "timeoff.select_date_range": "Chọn khoảng thời gian",
   "timeoff.total_requests": "Tổng yêu cầu",
   "timeoff.pending": "Chờ duyệt",
     "timeoff.approved": "Đã phê duyệt",
@@ -3239,6 +3531,57 @@
   "timeoff.date": "Ngày",
   "timeoff.staff_name": "Tên nhân viên",
   "timeoff.no_requests_filtered": "Không có yêu cầu nào phù hợp với bộ lọc hiện tại",
+  "timeoff.tour": {
+    "button": "Hướng dẫn",
+    "sidebar_schedule": {
+      "title": "Menu Schedule",
+      "description": "Đây là menu Schedule trong sidebar. Bạn có thể tìm thấy các tính năng liên quan đến lịch trình làm việc ở đây, bao gồm Work Schedule và Time Off."
+    },
+    "sidebar_timeoff": {
+      "title": "Menu Time Off",
+      "description": "Click vào đây để truy cập trang quản lý nghỉ phép. Bạn có thể xem, tạo, phê duyệt và quản lý các yêu cầu nghỉ phép của nhân viên."
+    },
+    "stats_cards": {
+      "title": "Thống kê Time Off",
+      "description": "Đây là các thẻ thống kê hiển thị tổng số yêu cầu nghỉ phép, số yêu cầu đang chờ, đã duyệt và đã từ chối. Giúp bạn có cái nhìn tổng quan về tình trạng nghỉ phép."
+    },
+    "create_button": {
+      "title": "Tạo yêu cầu nghỉ phép",
+      "description": "Sử dụng nút này để tạo yêu cầu nghỉ phép mới. Bạn sẽ cần chọn loại nghỉ phép, ngày bắt đầu, ngày kết thúc và lý do."
+    },
+    "search": {
+      "title": "Tìm kiếm yêu cầu nghỉ phép",
+      "description": "Sử dụng ô tìm kiếm này để tìm kiếm yêu cầu nghỉ phép theo tên nhân viên hoặc lý do."
+    },
+    "status_filter": {
+      "title": "Lọc theo trạng thái",
+      "description": "Sử dụng bộ lọc này để xem các yêu cầu nghỉ phép theo trạng thái: Tất cả, Đang chờ, Đã duyệt, Đã từ chối, Đã hủy."
+    },
+    "type_filter": {
+      "title": "Lọc theo loại nghỉ phép",
+      "description": "Sử dụng bộ lọc này để xem các yêu cầu nghỉ phép theo loại: Nghỉ phép, Nghỉ ốm, Nghỉ cá nhân, Nghỉ không lương, Khẩn cấp, Khác."
+    },
+    "date_range_filter": {
+      "title": "Lọc theo khoảng ngày",
+      "description": "Sử dụng bộ lọc này để xem các yêu cầu nghỉ phép trong một khoảng thời gian cụ thể. Click vào đây để chọn ngày bắt đầu và ngày kết thúc."
+    },
+    "view_mode": {
+      "title": "Chế độ xem",
+      "description": "Chọn chế độ xem: Card (thẻ) hoặc Table (bảng) để xem danh sách yêu cầu nghỉ phép theo cách bạn muốn."
+    },
+    "timeoff_list": {
+      "title": "Danh sách yêu cầu nghỉ phép",
+      "description": "Đây là danh sách tất cả các yêu cầu nghỉ phép. Mỗi mục hiển thị thông tin về nhân viên, loại nghỉ phép, khoảng thời gian, lý do và trạng thái."
+    },
+    "actions_menu": {
+      "title": "Thao tác với yêu cầu nghỉ phép",
+      "description": "Click vào menu này để xem các thao tác: Xem chi tiết, Chỉnh sửa, Phê duyệt, Từ chối hoặc Hủy yêu cầu nghỉ phép."
+    },
+    "pagination": {
+      "title": "Điều hướng danh sách",
+      "description": "Sử dụng các nút Previous và Next để điều hướng giữa các trang. Bạn cũng có thể click vào số trang để chuyển đến trang cụ thể."
+    }
+  },
   "common.no_branch": "Không có chi nhánh",
   "payment.method": "Phương thức thanh toán",
   "payment.method_all": "Tất cả",
@@ -3641,6 +3984,37 @@
   "payment.date_range_placeholder": "Toàn bộ thời gian",
   "payment.clear_date_filter": "Xóa bộ lọc ngày",
   "payment.transactions_range_label": "Khoảng: {{range}}",
+  "payment.tour": {
+    "button": "Hướng dẫn",
+    "sidebar_payments": {
+      "title": "Menu Thanh toán",
+      "description": "Đây là menu Thanh toán trong sidebar. Click vào đây để truy cập trang quản lý thanh toán, nơi bạn có thể xem lịch sử giao dịch, theo dõi doanh thu và quản lý tất cả bản ghi thanh toán."
+    },
+    "stats_cards": {
+      "title": "Thống kê thanh toán",
+      "description": "Các thẻ này hiển thị thống kê thanh toán chính: Tổng Doanh thu (tất cả giao dịch), Đã thu (thanh toán đã hoàn tất), Đang chờ (đang chờ xử lý), và Thất bại (giao dịch không thành công)."
+    },
+    "action_buttons": {
+      "title": "Nút thao tác",
+      "description": "Sử dụng các nút này để quản lý thanh toán: Làm mới (tải lại dữ liệu thanh toán) và Xuất dữ liệu (tải xuống bản ghi thanh toán dưới dạng file)."
+    },
+    "search": {
+      "title": "Tìm kiếm giao dịch",
+      "description": "Sử dụng ô tìm kiếm này để tìm giao dịch theo tên khách hàng, mã giao dịch hoặc mô tả."
+    },
+    "filters": {
+      "title": "Lọc giao dịch",
+      "description": "Sử dụng các bộ lọc này để thu hẹp danh sách giao dịch: Chi nhánh (lọc theo chi nhánh), Trạng thái (lọc theo trạng thái thanh toán: Tất cả, Hoàn tất, Đang chờ, Thất bại, Đã hủy), và Khoảng thời gian (lọc theo ngày giao dịch)."
+    },
+    "transactions_table": {
+      "title": "Bảng giao dịch",
+      "description": "Bảng này hiển thị tất cả giao dịch thanh toán. Mỗi hàng hiển thị: Ngày, Khách hàng, Hợp đồng/Dịch vụ, Số tiền, Phương thức thanh toán, Trạng thái, Người thực hiện, và Mã giao dịch. Bạn có thể xem thông tin chi tiết về từng giao dịch."
+    },
+    "pagination": {
+      "title": "Điều hướng danh sách",
+      "description": "Sử dụng các nút Previous và Next để điều hướng giữa các trang. Bạn có thể xem số trang hiện tại và tổng số trang."
+    }
+  },
   "training_progress.title": "Quá trình tập luyện của tôi",
   "training_progress.weight": "Cân nặng",
   "training_progress.bmi": "BMI",
@@ -4393,6 +4767,37 @@
   "customer.error.upload_timeout": "Hết thời gian tải lên. Vui lòng thử lại với file nhỏ hơn.",
   "customer.error.network_import_error": "Lỗi kết nối: Không thể nhập khách hàng từ Excel",
   "customer.import.template_filename": "mau-nhap-khach-hang.xlsx",
+  "customer.tour": {
+    "button": "Hướng dẫn",
+    "sidebar_customers": {
+      "title": "Menu Khách hàng",
+      "description": "Đây là menu Khách hàng trong sidebar. Click vào đây để truy cập trang quản lý khách hàng, nơi bạn có thể xem, thêm, chỉnh sửa và quản lý tất cả khách hàng của mình."
+    },
+    "action_buttons": {
+      "title": "Nút thao tác",
+      "description": "Sử dụng các nút này để quản lý khách hàng: Chọn cột (chọn các cột hiển thị), Import Excel (import khách hàng từ file Excel), và Thêm khách hàng (tạo khách hàng mới)."
+    },
+    "search": {
+      "title": "Tìm kiếm khách hàng",
+      "description": "Sử dụng ô tìm kiếm này để tìm khách hàng theo tên, số điện thoại hoặc thông tin khác."
+    },
+    "select_all": {
+      "title": "Chọn tất cả",
+      "description": "Click vào nút này để chọn hoặc bỏ chọn tất cả khách hàng trên trang hiện tại. Hữu ích cho các thao tác hàng loạt."
+    },
+    "customer_table": {
+      "title": "Bảng khách hàng",
+      "description": "Bảng này hiển thị tất cả khách hàng. Mỗi hàng hiển thị thông tin khách hàng như tên, số điện thoại, loại thành viên, tên dịch vụ, ngày hợp đồng và trạng thái. Bạn có thể click vào tiêu đề cột để sắp xếp danh sách."
+    },
+    "actions_buttons": {
+      "title": "Thao tác với khách hàng",
+      "description": "Sử dụng các nút này để quản lý từng khách hàng: Xem (xem thông tin chi tiết khách hàng), Chỉnh sửa (sửa thông tin khách hàng), và Chuyển đổi trạng thái (kích hoạt hoặc vô hiệu hóa khách hàng)."
+    },
+    "pagination": {
+      "title": "Điều hướng danh sách",
+      "description": "Sử dụng các nút Previous và Next để điều hướng giữa các trang. Bạn có thể xem số trang hiện tại và tổng số trang."
+    }
+  },
   "kpi": {
     "badge": "QUẢN LÝ KPI",
     "management": {
@@ -4587,7 +4992,92 @@
         "end_date": "Ngày hết hạn"
       }
     },
+    "tour": {
+      "button": "Hướng dẫn",
+      "start": "Bắt đầu hướng dẫn",
+      "sidebar_finance": {
+        "title": "Menu Finance",
+        "description": "Đây là menu Finance trong sidebar. Bạn có thể tìm thấy các tính năng liên quan đến tài chính ở đây, bao gồm quản lý chi phí (Expenses) và KPI."
+      },
+      "sidebar_kpi": {
+        "title": "Menu KPI",
+        "description": "Click vào đây để truy cập trang quản lý KPI. Bạn có thể tạo, xem, chỉnh sửa và quản lý KPI cho nhân viên."
+      },
+      "stats_cards": {
+        "title": "Thống kê KPI",
+        "description": "Đây là các thẻ thống kê hiển thị tổng số KPI, số KPI đang hoạt động và số KPI đã hủy. Giúp bạn có cái nhìn tổng quan về tình trạng KPI."
+      },
+      "create_button": {
+        "title": "Tạo KPI mới",
+        "description": "Sử dụng nút này để tạo một KPI mới cho nhân viên. Bạn sẽ cần nhập thông tin về mục tiêu doanh thu, hoa hồng và nhân viên được gán."
+      },
+      "search": {
+        "title": "Tìm kiếm KPI",
+        "description": "Sử dụng ô tìm kiếm này để tìm kiếm KPI theo tên nhân viên hoặc chi nhánh."
+      },
+      "status_filter": {
+        "title": "Lọc theo trạng thái",
+        "description": "Sử dụng bộ lọc này để xem các KPI theo trạng thái: Tất cả, Đang hoạt động, hoặc Đã hủy."
+      },
+      "kpi_list": {
+        "title": "Danh sách KPI",
+        "description": "Đây là danh sách tất cả các KPI. Mỗi dòng hiển thị thông tin về nhân viên, doanh thu thực tế, hoa hồng và trạng thái. Bạn có thể sắp xếp theo các cột khác nhau bằng cách click vào tiêu đề cột."
+      },
+      "view_detail": {
+        "title": "Xem chi tiết KPI",
+        "description": "Click vào nút này để xem chi tiết KPI của nhân viên, bao gồm mục tiêu, thành tích, hoa hồng và các thông tin khác."
+      },
+      "edit": {
+        "title": "Chỉnh sửa KPI",
+        "description": "Click vào nút này để chỉnh sửa thông tin KPI, bao gồm mục tiêu doanh thu, tỷ lệ hoa hồng và các thiết lập khác."
+      },
+      "disable": {
+        "title": "Vô hiệu hóa KPI",
+        "description": "Click vào nút này để vô hiệu hóa KPI. KPI đã vô hiệu hóa sẽ không còn được tính toán và theo dõi nữa."
+      },
+      "pagination": {
+        "title": "Điều hướng danh sách",
+        "description": "Sử dụng các nút Previous và Next để điều hướng giữa các trang. Bạn cũng có thể click vào số trang để chuyển đến trang cụ thể."
+      }
+    },
     "all_staff": "Tất cả nhân viên"
+  },
+  "calendar": {
+    "tour": {
+      "button": "Hướng dẫn",
+      "sidebar_schedule": {
+        "title": "Menu Schedule",
+        "description": "Đây là menu Schedule trong sidebar. Bạn có thể tìm thấy các tính năng liên quan đến lịch trình làm việc ở đây, bao gồm Work Schedule và Time Off."
+      },
+      "sidebar_work_schedule": {
+        "title": "Menu Work Schedule",
+        "description": "Click vào đây để truy cập trang lịch làm việc. Bạn có thể xem, tạo, chỉnh sửa và quản lý lịch làm việc của nhân viên."
+      },
+      "navigation": {
+        "title": "Điều hướng lịch",
+        "description": "Sử dụng các nút Previous và Next để chuyển giữa các tuần. Nút Today sẽ đưa bạn về tuần hiện tại."
+      },
+      "view_mode": {
+        "title": "Chế độ xem",
+        "description": "Chọn chế độ xem: Tuần (Week), Tháng (Month) hoặc Ngày (Day) để xem lịch làm việc theo cách bạn muốn."
+      },
+      "staff_filter": {
+        "title": "Lọc theo nhân viên",
+        "description": "Sử dụng bộ lọc này để xem lịch làm việc của một nhân viên cụ thể hoặc tất cả nhân viên."
+      },
+      "work_config": {
+        "title": "Thiết lập cấu hình làm việc cho nhân viên",
+        "description": "Sử dụng nút này để thiết lập cấu hình làm việc cho nhân viên. Bạn có thể tạo ca làm việc mới hoặc thiết lập cấu hình làm việc cho chi nhánh, bao gồm ngày làm việc, ca làm việc mặc định và cấu hình theo vai trò nhân viên."
+      },
+      "legend": {
+        "title": "Chú giải màu sắc",
+        "description": "Các màu sắc trong lịch biểu thị trạng thái ca làm việc: Xanh lá (Đã lên lịch), Vàng (Đang chờ), Đỏ (Đã hủy), Xám (Quá khứ)."
+      },
+      "calendar_grid": {
+        "title": "Lưới lịch làm việc",
+        "description": "Đây là lưới lịch hiển thị các ca làm việc. Mỗi ô đại diện cho một ca làm việc trong ngày. Click vào ô để xem chi tiết."
+      }
+    }
   },
   "contracts": {
     "title": "Tài liệu hợp đồng",
@@ -4670,7 +5160,42 @@
     "contract_created_success": "Đã tạo tài liệu hợp đồng thành công",
     "contract_create_failed": "Không thể tạo tài liệu hợp đồng",
     "branch_specific": "Dành riêng cho chi nhánh",
-    "send_now_or_later": "Bạn có muốn gửi hợp đồng này cho khách hàng ký ngay bây giờ, hay gửi sau?"
+    "send_now_or_later": "Bạn có muốn gửi hợp đồng này cho khách hàng ký ngay bây giờ, hay gửi sau?",
+    "tour": {
+      "button": "Hướng dẫn",
+      "sidebar_contracts": {
+        "title": "Menu Hợp đồng",
+        "description": "Truy cập phần Hợp đồng từ thanh bên để quản lý tất cả tài liệu hợp đồng, mẫu và hợp đồng khách hàng của bạn."
+      },
+      "upload_button": {
+        "title": "Tải lên tài liệu",
+        "description": "Nhấp vào đây để tải lên tài liệu hợp đồng hoặc mẫu mới. Bạn có thể tải lên file PDF và cấu hình chúng cho chữ ký điện tử."
+      },
+      "tabs": {
+        "title": "Mẫu & Hợp đồng",
+        "description": "Chuyển đổi giữa 'Mẫu' để quản lý các mẫu hợp đồng có thể tái sử dụng, và 'Hợp đồng khách hàng' để xem các hợp đồng đã gửi cho khách hàng."
+      },
+      "search": {
+        "title": "Tìm kiếm tài liệu",
+        "description": "Sử dụng thanh tìm kiếm này để nhanh chóng tìm tài liệu theo tên, tiêu đề hoặc từ khóa khác."
+      },
+      "status_filter": {
+        "title": "Lọc theo trạng thái",
+        "description": "Lọc tài liệu theo trạng thái của chúng: Đã tải lên, Đang xử lý, Sẵn sàng, Đã ký, Đã lưu trữ, v.v."
+      },
+      "documents_list": {
+        "title": "Danh sách tài liệu",
+        "description": "Xem tất cả tài liệu hợp đồng của bạn tại đây. Mỗi tài liệu hiển thị tiêu đề, trạng thái, loại, thông tin file và chi tiết tạo."
+      },
+      "actions_buttons": {
+        "title": "Thao tác tài liệu",
+        "description": "Sử dụng các nút này để tương tác với tài liệu: Xem để xem trước, Chỉnh sửa để sửa đổi trường và người ký, Gửi để yêu cầu chữ ký, và Xóa để xóa tài liệu."
+      },
+      "pagination": {
+        "title": "Phân trang",
+        "description": "Điều hướng qua nhiều trang tài liệu bằng cách sử dụng các nút Trước và Sau khi bạn có nhiều tài liệu."
+      }
+    }
   },
   "class": {
     "calendar": {
@@ -4774,10 +5299,49 @@
       "button_prev": "Trước",
       "button_next": "Tiếp theo",
       "delete_title": "Xóa lớp học?",
-      "delete_description": "Bạn có chắc chắn muốn xóa lớp học này? Hành động này không thể hoàn tác.",
+      "delete_description": "Bạn có chắc chắn muốn xóa lớp học này không? Hành động này không thể hoàn tác.",
       "button_cancel": "Hủy",
       "button_delete": "Xóa",
       "button_deleting": "Đang xóa..."
+    },
+    "tour": {
+      "button": "Hướng dẫn",
+      "sidebar_schedule": {
+        "title": "Menu Schedule",
+        "description": "Đây là menu Schedule trong sidebar. Bạn có thể tìm thấy các tính năng liên quan đến lịch trình làm việc ở đây, bao gồm Work Schedule, Time Off và Classes."
+      },
+      "sidebar_classes": {
+        "title": "Menu Classes",
+        "description": "Click vào đây để truy cập trang quản lý lớp học. Bạn có thể xem, tạo, chỉnh sửa và quản lý các lớp học của phòng gym."
+      },
+      "create_button": {
+        "title": "Tạo lớp học mới",
+        "description": "Sử dụng nút này để tạo lớp học mới. Bạn sẽ cần nhập thông tin về tên lớp, gói dịch vụ, lịch học và sức chứa."
+      },
+      "search": {
+        "title": "Tìm kiếm lớp học",
+        "description": "Sử dụng ô tìm kiếm này để tìm kiếm lớp học theo tên hoặc thông tin khác."
+      },
+      "status_filter": {
+        "title": "Lọc theo trạng thái",
+        "description": "Sử dụng bộ lọc này để xem các lớp học theo trạng thái: Active (Đang hoạt động), Inactive (Không hoạt động) hoặc All (Tất cả)."
+      },
+      "view_mode": {
+        "title": "Chế độ xem",
+        "description": "Chọn chế độ xem: Card (thẻ) hoặc Table (bảng) để xem danh sách lớp học theo cách bạn muốn."
+      },
+      "class_list": {
+        "title": "Danh sách lớp học",
+        "description": "Đây là danh sách tất cả các lớp học. Mỗi mục hiển thị thông tin về tên lớp, gói dịch vụ, lịch học, sức chứa và trạng thái."
+      },
+      "actions_menu": {
+        "title": "Thao tác với lớp học",
+        "description": "Click vào menu này để xem các thao tác: Xem chi tiết, Chỉnh sửa, Đăng ký học viên hoặc Xóa lớp học."
+      },
+      "pagination": {
+        "title": "Điều hướng danh sách",
+        "description": "Sử dụng các nút Previous và Next để điều hướng giữa các trang. Bạn có thể xem số trang hiện tại và tổng số trang."
+      }
     },
     "quickview": {
       "remove_success": "Xóa học viên khỏi lớp học thành công",
@@ -4878,5 +5442,46 @@
     "clear_conversation": "Xóa cuộc trò chuyện",
     "clear_conversation_description": "Bạn có chắc chắn muốn xóa {{roomName}}? Hành động này không thể hoàn tác.",
     "yesterday": "Hôm qua"
+  },
+  "overview": {
+    "tour": {
+      "button": "Hướng dẫn",
+      "welcome": {
+        "title": "Chào mừng đến với Dashboard",
+        "description": "Đây là trang tổng quan (Overview) của hệ thống. Bạn sẽ thấy các thống kê và thông tin quan trọng về doanh thu, khách hàng, nhân viên và các hoạt động khác của phòng gym."
+      },
+      "revenue_card": {
+        "title": "Tổng Doanh Thu",
+        "description": "Thẻ này hiển thị tổng doanh thu của phòng gym. Bạn có thể xem doanh thu hiện tại, doanh thu trong kỳ và tỷ lệ tăng trưởng so với kỳ trước."
+      },
+      "customers_card": {
+        "title": "Khách Hàng Mới",
+        "description": "Thẻ này hiển thị thông tin về khách hàng mới. Bạn có thể xem tổng số khách hàng, số khách hàng mới trong kỳ và biểu đồ xu hướng tăng trưởng khách hàng theo thời gian."
+      },
+      "roles_card": {
+        "title": "Phân Bổ Nhân Viên",
+        "description": "Biểu đồ này hiển thị phân bổ nhân viên theo vai trò (Quản lý, PT, Kỹ thuật viên). Bạn có thể xem tổng số nhân viên và số lượng từng loại vai trò."
+      },
+      "revenue_chart": {
+        "title": "Biểu Đồ Doanh Thu",
+        "description": "Biểu đồ cột này hiển thị doanh thu theo tháng. Bạn có thể xem xu hướng doanh thu, so sánh giữa các tháng và xem thông tin chi tiết về doanh thu trong từng kỳ."
+      },
+      "stats_sidebar": {
+        "title": "Thống Kê Tổng Quan",
+        "description": "Phần này hiển thị các thống kê tổng quan về khách hàng và nhân viên trên toàn hệ thống. Bạn có thể xem tổng số khách hàng, nhân viên và các chỉ số quan trọng khác."
+      },
+      "branch_list": {
+        "title": "Danh Sách Chi Nhánh",
+        "description": "Phần này hiển thị danh sách các chi nhánh của bạn. Bạn có thể xem thông tin về từng chi nhánh và nhanh chóng chuyển đổi giữa các chi nhánh để xem dữ liệu tương ứng."
+      },
+      "kpi_leaderboard": {
+        "title": "Bảng Xếp Hạng KPI",
+        "description": "Bảng xếp hạng này hiển thị top 5 nhân viên có KPI cao nhất. Bạn có thể xem điểm KPI, phần trăm hoàn thành và doanh thu của từng nhân viên."
+      },
+      "equipment": {
+        "title": "Quản Lý Thiết Bị",
+        "description": "Phần này hiển thị thông tin về thiết bị tập luyện. Bạn có thể xem danh sách thiết bị, lọc theo danh mục và vị trí, và truy cập báo cáo chi tiết về thiết bị."
+      }
+    }
   }
 }

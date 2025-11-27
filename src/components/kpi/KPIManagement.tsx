@@ -11,7 +11,8 @@ import {
   FileText,
   Loader2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  HelpCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,7 @@ import {
   PaginationEllipsis
 } from '@/components/ui/pagination';
 import { useKPIList, useDisableKPI, useRecalculateKPI } from '@/hooks/useKPI';
+import { useKPITour } from '@/hooks/useKPITour';
 import { kpiApi } from '@/services/api/kpiApi';
 import { socketService } from '@/services/socket/socketService';
 import { useTableSort } from '@/hooks/useTableSort';
@@ -62,6 +64,7 @@ const kpiSortConfig = {
 export const KPIManagement: React.FC = () => {
   const { t } = useTranslation();
   const { currentBranch } = useBranch();
+  const { startKPITour } = useKPITour();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -421,9 +424,19 @@ export const KPIManagement: React.FC = () => {
             <Button
               className="h-11 rounded-full px-6 text-sm font-semibold shadow-sm bg-orange-500 text-white hover:bg-orange-600"
               onClick={() => setIsCreateModalOpen(true)}
+              data-tour="create-kpi-button"
             >
               <Plus className="mr-2 h-4 w-4" />
               {t('kpi.actions.create', 'Tạo KPI')}
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-11 w-11 rounded-full border-gray-300 hover:bg-gray-50"
+              onClick={startKPITour}
+              title={t('kpi.tour.button', 'Hướng dẫn')}
+            >
+              <HelpCircle className="w-4 h-4 text-gray-500 hover:text-orange-500" />
             </Button>
           </div>
         </div>

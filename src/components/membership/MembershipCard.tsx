@@ -98,6 +98,7 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({
               <DropdownMenuTrigger asChild>
                 <button
                   className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-orange-200 hover:text-orange-500 flex-shrink-0"
+                  data-tour="membership-actions-menu"
                   title={t('membershipManager.card.moreActions')}
                 >
                   <MoreHorizontal className="h-3 w-3" />

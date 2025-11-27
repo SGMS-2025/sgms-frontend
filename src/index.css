@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import 'driver.js/dist/driver.css';
+@import './assets/css/driver-theme.css';
 @import './assets/css/animations.css';
 
 /* Custom styles for select elements to ensure borders are visible */
@@ -139,25 +141,24 @@ select:focus {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    height: 100%;
+    overflow: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: manipulation;
+  }
+  
   body {
     @apply bg-background text-foreground;
-    /* Ensure body can scroll naturally */
-    overflow-x: hidden;
-    overflow-y: auto;
+    height: 100%;
+    overflow: hidden;
     -webkit-overflow-scrolling: touch;
   }
 
   /* Ensure root container doesn't restrict height */
   #root {
-    min-height: 100vh;
-    height: auto;
-  }
-
-  /* Global mobile scroll improvements */
-  html {
-    -webkit-overflow-scrolling: touch;
-    touch-action: manipulation;
-    overflow-x: hidden;
+    height: 100vh;
+    overflow: hidden;
   }
 }
 

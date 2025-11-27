@@ -17,7 +17,8 @@ import {
   Shield,
   MapPin,
   FileSpreadsheet,
-  MoreVertical
+  MoreVertical,
+  HelpCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,6 +62,7 @@ import StaffProfileModal from '@/components/modals/StaffProfileModal';
 import StaffPermissionOverlayModal from '@/components/modals/StaffPermissionOverlayModal';
 import StaffAttendanceHistoryModal from '@/components/modals/StaffAttendanceHistoryModal';
 import { StaffExcelImportModal } from '@/components/modals/StaffExcelImportModal';
+import { useStaffTour } from '@/hooks/useStaffTour';
 import type {
   StaffFilters,
   StaffManagementProps,
@@ -78,6 +80,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
   const navigate = useNavigate();
   const { currentBranch, loading: branchLoading } = useBranch();
   const { canManageStaff } = useCanManageStaff();
+  const { startStaffTour } = useStaffTour();
   const [filters, setFilters] = useState<StaffFilters>({
     searchTerm: '',
     selectedIds: []
@@ -423,7 +426,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
           </div>
         </div>
 
-        <div className="grid w-full gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid w-full gap-4 sm:grid-cols-2 xl:grid-cols-4" data-tour="staff-stats-cards">
           <div className="rounded-2xl border border-orange-100 bg-[#FFF6EE] p-4">
             <div className="text-xs font-semibold uppercase tracking-wide text-orange-500">{t('dashboard.total')}</div>
             <div className="mt-2 flex items-end justify-between">
@@ -502,7 +505,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
                 {t('dashboard.selected')} {selectedCount}
               </span>
             )}
-            <div className="flex gap-2">
+            <div className="flex gap-2" data-tour="staff-action-buttons">
               <Button
                 className={`h-11 rounded-full px-6 text-sm font-semibold shadow-sm ${
                   canManageStaffActions
@@ -528,6 +531,15 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
                 {t('dashboard.add_staff')}
               </Button>
             </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-11 w-11 rounded-full border-gray-300 bg-white hover:bg-gray-50"
+              onClick={startStaffTour}
+              title={t('staff.tour.button', 'Hướng dẫn')}
+            >
+              <HelpCircle className="h-4 w-4 text-gray-500 hover:text-orange-500" />
+            </Button>
           </div>
         </div>
 
@@ -538,6 +550,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
               className="h-11 rounded-full border border-transparent bg-gray-50 pl-12 text-sm shadow-inner focus:border-orange-200 focus:bg-white focus:ring-orange-200"
               value={filters.searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
+              data-tour="staff-search-input"
             />
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           </div>
@@ -552,6 +565,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
             }`}
             onClick={canManageStaffActions ? handleSelectAll : undefined}
             disabled={!canManageStaffActions}
+            data-tour="staff-select-all"
           >
             <span
               className={`flex h-4 w-4 items-center justify-center rounded-full border ${
@@ -607,7 +621,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-orange-100 shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-orange-100 shadow-sm" data-tour="staff-table">
         <table className="w-full text-left">
           <thead className="bg-[#FFF7EF]">
             <tr>
@@ -725,6 +739,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
                         <button
                           className="inline-flex items-center justify-center p-2 text-gray-500 transition-colors hover:text-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200"
                           aria-label={t('common.more_actions') || 'More actions'}
+                          data-tour="staff-actions-menu"
                         >
                           <MoreVertical className="h-4 w-4" />
                         </button>
@@ -787,7 +802,10 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
 
       {/* Pagination Info and Controls */}
       {pagination && (
-        <div className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div
+          className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+          data-tour="staff-pagination"
+        >
           <div className="text-sm text-gray-500">
             {`${t('dashboard.showing')} ${(pagination.currentPage - 1) * pagination.itemsPerPage + 1} - ${Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} ${t('dashboard.of_total')} ${pagination.totalItems} ${t('dashboard.staff_members')}`}
           </div>

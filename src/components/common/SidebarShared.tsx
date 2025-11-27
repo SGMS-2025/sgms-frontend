@@ -24,6 +24,7 @@ export interface SubMenuItemProps {
   label: string;
   isActive?: boolean;
   onClick: () => void;
+  'data-tour'?: string;
 }
 
 export interface DropdownSidebarItemProps {
@@ -31,6 +32,7 @@ export interface DropdownSidebarItemProps {
   label: string;
   isCollapsed?: boolean;
   children: React.ReactNode;
+  'data-tour'?: string;
 }
 
 export interface SidebarHeaderProps {
@@ -80,7 +82,13 @@ export const translateJobTitle = (jobTitle: string, t: (key: string) => string):
 // Shared Components
 // ============================================================================
 
-export const SubMenuItem: React.FC<SubMenuItemProps> = ({ icon, label, isActive = false, onClick }) => {
+export const SubMenuItem: React.FC<SubMenuItemProps> = ({
+  icon,
+  label,
+  isActive = false,
+  onClick,
+  'data-tour': dataTour
+}) => {
   return (
     <button
       type="button"
@@ -89,6 +97,7 @@ export const SubMenuItem: React.FC<SubMenuItemProps> = ({ icon, label, isActive 
         isActive ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-700 hover:bg-orange-50 hover:text-orange-500'
       }`}
       aria-current={isActive ? 'page' : undefined}
+      data-tour={dataTour}
     >
       <span className="flex-shrink-0 w-5 h-5 relative">{icon}</span>
       <span className="text-sm font-medium truncate">{label}</span>
@@ -100,7 +109,8 @@ export const DropdownSidebarItem: React.FC<DropdownSidebarItemProps> = ({
   icon,
   label,
   isCollapsed = false,
-  children
+  children,
+  'data-tour': dataTour
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -114,6 +124,7 @@ export const DropdownSidebarItem: React.FC<DropdownSidebarItemProps> = ({
               className="group relative flex items-center justify-center py-2.5 rounded-lg hover:bg-gray-100 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 w-full"
               aria-label={label}
               title={label}
+              data-tour={dataTour}
             >
               <span className="flex-shrink-0 w-5 h-5 relative">{icon}</span>
             </button>
@@ -136,6 +147,7 @@ export const DropdownSidebarItem: React.FC<DropdownSidebarItemProps> = ({
         }`}
         aria-label={label}
         title={isCollapsed ? label : undefined}
+        data-tour={dataTour}
       >
         <span className="flex-shrink-0 w-5 h-5 relative">{icon}</span>
         {!isCollapsed && (

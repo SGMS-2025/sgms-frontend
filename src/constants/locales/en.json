@@ -273,7 +273,11 @@
   "payment.summary_failed": "Failed",
   "dashboard.all_branches_customers": "Chain customers",
   "dashboard.all_branches_customers_desc": "Customers across every branch",
+  "dashboard.all_locations": "All locations",
+  "dashboard.all_categories": "All types",
   "dashboard.new_customers_this_period": "New this period",
+  "dashboard.total_customers": "TOTAL CUSTOMERS",
+  "dashboard.roles": "ROLES",
   "dashboard.all_branches_staff": "Chain workforce",
   "dashboard.all_branches_staff_desc": "Total headcount across the chain",
   "dashboard.active_staff": "Active",
@@ -341,6 +345,18 @@
   "dashboard.export": "Export",
   "common.no_results": "No results found",
   "common.search": "Search",
+  "common.month.1": "January",
+  "common.month.2": "February",
+  "common.month.3": "March",
+  "common.month.4": "April",
+  "common.month.5": "May",
+  "common.month.6": "June",
+  "common.month.7": "July",
+  "common.month.8": "August",
+  "common.month.9": "September",
+  "common.month.10": "October",
+  "common.month.11": "November",
+  "common.month.12": "December",
   "gym.search_title": "Find Your Ideal Gym",
   "gym.search_subtitle": "Discover modern gym systems with professional equipment",
   "gym.search_placeholder": "Search by gym name, address...",
@@ -470,7 +486,23 @@
   "expenses.categories.cleaning": "Cleaning",
   "expenses.categories.security": "Security",
   "expenses.categories.other": "Other",
-  "sidebar.work_schedule": "Work Schedule",
+  "expenses.tour.button": "Guide",
+  "expenses.tour.start": "Start guide",
+  "expenses.tour.sidebar_finance.title": "Finance Menu",
+  "expenses.tour.sidebar_finance.description": "This is the Finance menu in the sidebar. You can find financial-related features here, including expense management (Expenses) and KPI.",
+  "expenses.tour.sidebar_expenses.title": "Expenses Menu",
+  "expenses.tour.sidebar_expenses.description": "Click here to access the expense management page. You can track, add, edit, and delete gym expenses.",
+  "expenses.tour.create_button.title": "Create New Expense",
+  "expenses.tour.create_button.description": "Use this button to create a new expense. You will need to enter information about the category, description, and amount.",
+  "expenses.tour.search.title": "Search Expenses",
+  "expenses.tour.search.description": "Use this search box to search for expenses by description or other information.",
+  "expenses.tour.category_filter.title": "Filter by Category",
+  "expenses.tour.category_filter.description": "Use this filter to view expenses by specific categories such as equipment, salary, utilities, etc.",
+      "expenses.tour.expense_list.title": "Expense List",
+      "expenses.tour.expense_list.description": "This is a list of all expenses. Each item displays information about category, description, branch, date, and amount.",
+      "expenses.tour.actions_menu.title": "Expense Actions",
+      "expenses.tour.actions_menu.description": "Click on this three-dot menu to view actions: View details, Edit, or Delete expense.",
+      "sidebar.work_schedule": "Work Schedule",
   "sidebar.schedule": "Schedule",
   "sidebar.schedule_templates": "Schedule Templates",
   "sidebar.testimonials": "Testimonials",
@@ -715,6 +747,7 @@
   "staff.manager": "Manager",
   "staff.admin": "Admin",
   "staff.owner": "Owner",
+  "staff.pt": "PT",
   "staff.technician": "Technician",
   "staff.birth_date": "Date of Birth",
   "staff.gender": "Gender",
@@ -843,6 +876,41 @@
   "staff.access_denied": "Access Denied",
   "staff.access_denied_message": "Only owners or managers can add staff members.",
   "staff.go_back": "Go Back",
+  "staff.tour": {
+    "button": "Guide",
+    "sidebar_staff": {
+      "title": "Staff Menu",
+      "description": "This is the Staff menu in the sidebar. Click here to access the staff management page where you can view, add, edit, and manage all your staff members."
+    },
+    "stats_cards": {
+      "title": "Staff Statistics",
+      "description": "These cards display key staff statistics: Total (all active and inactive staff), Technician (equipment supervisors), Branch Management (branch managers), and PT (personal trainers)."
+    },
+    "action_buttons": {
+      "title": "Action Buttons",
+      "description": "Use these buttons to manage staff: Import Excel (import staff from Excel file) and Add Staff (create a new staff member)."
+    },
+    "search": {
+      "title": "Search Staff",
+      "description": "Use this search box to find staff by name, email, phone number, or other information."
+    },
+    "select_all": {
+      "title": "Select All",
+      "description": "Click this button to select or deselect all staff on the current page. Useful for bulk operations like bulk edit or bulk delete."
+    },
+    "staff_table": {
+      "title": "Staff Table",
+      "description": "This table displays all staff members. Each row shows staff information such as name, role, email, phone, salary, and status. You can click on column headers to sort the list."
+    },
+    "actions_menu": {
+      "title": "Staff Actions",
+      "description": "Click this menu to access staff actions: View (view detailed staff information), View attendance history, Edit (modify staff information), Manage permissions (configure staff permissions), and Toggle status (activate or deactivate staff)."
+    },
+    "pagination": {
+      "title": "List Navigation",
+      "description": "Use the Previous and Next buttons to navigate between pages. You can see the current page number and total number of pages."
+    }
+  },
   "toast.image_uploaded_successfully": "Image uploaded successfully",
   "error.image_upload_failed": "Image upload failed",
   "discount.title": "Discount Campaign",
@@ -913,6 +981,49 @@
   "discount.create_branch": "Create Branch",
   "discount.filtering_by_branch": "Filtering by branch",
   "discount.create_success": "Discount campaign created successfully!",
+  "discount.tour": {
+    "button": "Guide",
+    "sidebar_business_services": {
+      "title": "Business Services Menu",
+      "description": "This is the Business Services menu in the sidebar. You can find service-related features here, including PT Services, Class Services, Promotions, and Membership Plans."
+    },
+    "sidebar_promotions": {
+      "title": "Promotions Menu",
+      "description": "Click here to access the Discount Campaign management page. You can view, create, edit, and manage discount campaigns and promotions."
+    },
+    "add_campaign_button": {
+      "title": "Add Campaign",
+      "description": "Use this button to create a new discount campaign. You will need to enter information about campaign name, discount percentage, date range, and applicable branches."
+    },
+    "stats_cards": {
+      "title": "Campaign Statistics",
+      "description": "These cards show statistics about your discount campaigns: Total, Active, Expired, Pending, and Inactive campaigns."
+    },
+    "search": {
+      "title": "Search Campaigns",
+      "description": "Use this search box to search for campaigns by name, description, creator, or branch name."
+    },
+    "status_filter": {
+      "title": "Filter by Status",
+      "description": "Use this filter to view campaigns by status: All, Active, Pending, Expired, or Inactive."
+    },
+    "view_mode": {
+      "title": "View Mode",
+      "description": "Select a view mode: Card view (grid) or Table view (list) to view campaigns in the way you prefer."
+    },
+    "campaign_list": {
+      "title": "Campaign List",
+      "description": "This is the list of all discount campaigns. Each campaign displays information about name, discount percentage, date range, and status."
+    },
+    "actions_menu": {
+      "title": "Campaign Actions",
+      "description": "Click on this menu to see actions: View details, Edit, or Delete campaign."
+    },
+    "pagination": {
+      "title": "List Navigation",
+      "description": "Use the Previous and Next buttons to navigate between pages. You can view the current page number and total pages."
+    }
+  },
   "dashboard.filtering_by_branch": "Filtering by branch",
   "common.view": "View",
   "common.delete": "Delete",
@@ -1149,6 +1260,45 @@
   "equipment.excel_import_error_details": "Error Details:",
   "equipment.excel_import_more_errors": "... and {{count}} more errors",
   "equipment.excel_import_network_error": "Network error: Failed to import equipment from Excel",
+  "equipment.tour": {
+    "button": "Guide",
+    "sidebar_equipment": {
+      "title": "Equipment Menu",
+      "description": "This is the Equipment menu in the sidebar. Click here to access the equipment management page where you can view, add, edit, and manage all your gym equipment."
+    },
+    "stats_cards": {
+      "title": "Equipment Statistics",
+      "description": "These cards display statistics about your equipment: Total equipment count and breakdown by category (Strength, Cardio, Flexibility, Functional, Sports, Accessories, Other)."
+    },
+    "tabs": {
+      "title": "Equipment Tabs",
+      "description": "Switch between different views: Equipment List (view all equipment), Repair Requests (view equipment needing repair), and Maintenance History (view maintenance logs)."
+    },
+    "add_button": {
+      "title": "Add Equipment",
+      "description": "Click here to add new equipment to your inventory. You will need to enter equipment code, name, category, status, purchase date, price, manufacturer, location, and other details."
+    },
+    "search": {
+      "title": "Search Equipment",
+      "description": "Use this search box to find equipment by name, code, or manufacturer."
+    },
+    "filters": {
+      "title": "Filter Equipment",
+      "description": "Use these filters to narrow down the equipment list: Category filter (filter by equipment type) and Status filter (filter by equipment status: Active, Inactive, Maintenance, Repair, Retired)."
+    },
+    "equipment_list": {
+      "title": "Equipment List",
+      "description": "This is the list of all equipment. Each item displays equipment code, name, status, category, purchase date, and actions. You can view, generate QR code, edit, or delete equipment."
+    },
+    "actions_buttons": {
+      "title": "Equipment Actions",
+      "description": "Use these buttons to manage equipment: View (view detailed information), QR Code (generate/download QR code), Edit (modify equipment information), and Delete (remove equipment from inventory)."
+    },
+    "pagination": {
+      "title": "List Navigation",
+      "description": "Use the Previous and Next buttons to navigate between pages. You can see the current page number and total number of pages."
+    }
+  },
   "equipment.delete_network_error": "Network error: Failed to delete equipment",
   "equipment.excel_import_step_1": "Step 1: Download template and upload Excel file",
   "equipment.excel_import_step_2": "Step 2: View import results",
@@ -1293,6 +1443,53 @@
   "membershipManager.sheet.noRevertBranches": "No branches using custom versions",
   "membershipManager.sheet.overrideDetailsTitle": "Custom Plan Details",
   "membershipManager.sheet.noTargetSelected": "Select target branches to enable customization",
+  "membership.tour": {
+    "button": "Guide",
+    "sidebar_business_services": {
+      "title": "Business Services Menu",
+      "description": "This is the Business Services menu in the sidebar. You can find service-related features here, including PT Services, Class Services, Promotions, and Membership Plans."
+    },
+    "sidebar_membership_plans": {
+      "title": "Membership Plans Menu",
+      "description": "Click here to access the Membership Plans management page. You can view, create, edit, and manage membership plans and pricing for your gym."
+    },
+    "create_plan_button": {
+      "title": "Create Plan",
+      "description": "Use this button to create a new membership plan. You will need to enter information about plan name, price, duration, benefits, and assign branches."
+    },
+    "refresh_button": {
+      "title": "Refresh",
+      "description": "Click this button to refresh the membership plans list and update statistics."
+    },
+    "stats_cards": {
+      "title": "Membership Statistics",
+      "description": "These cards show statistics about your membership plans: Total Plans, Active Plans, Custom Versions, and Paused Custom Versions."
+    },
+    "search": {
+      "title": "Search Plans",
+      "description": "Use this search box to search for plans by name, description, or benefits."
+    },
+    "sort_button": {
+      "title": "Sort Plans",
+      "description": "Use this button to sort plans by Name, Price, or Updated date in ascending or descending order."
+    },
+    "status_filter": {
+      "title": "Filter by Status",
+      "description": "Use this filter to view plans by status: All, Active, or Inactive."
+    },
+    "view_mode_tabs": {
+      "title": "View Mode",
+      "description": "Select a view mode: All Plans (all plans), Base Plans (template plans only), or Custom Plans (branch-specific customizations only)."
+    },
+    "plans_grid": {
+      "title": "Membership Plans List",
+      "description": "This is the list of all membership plans. Each card displays information about plan name, price, duration, benefits, and status."
+    },
+    "actions_menu": {
+      "title": "Plan Actions",
+      "description": "Click on this menu to see actions: View details, Edit plan, or Toggle status (activate/deactivate)."
+    }
+  },
   "membershipManager.sheet.form.name": "Plan Name",
   "membershipManager.sheet.form.namePlaceholder": "Enter plan name",
   "membershipManager.sheet.form.description": "Description",
@@ -1727,6 +1924,37 @@
   "class_service.add_feature_section": "Add Feature",
   "class_service.add_class_section": "Add Class Package",
   "class_service.create_initial_data": "Create Data",
+  "class_service.tour": {
+    "button": "Guide",
+    "sidebar_business_services": {
+      "title": "Business Services Menu",
+      "description": "This is the Business Services menu in the sidebar. You can find service-related features here, including PT Services, Class Services, Promotions, and Membership Plans."
+    },
+    "sidebar_class_services": {
+      "title": "Class Services Menu",
+      "description": "Click here to access the Class Services management page. You can view, create, edit, and manage class packages and their features."
+    },
+    "add_feature_button": {
+      "title": "Add Feature",
+      "description": "Use this button to add a new feature to class packages. Features represent benefits or services included in each class package."
+    },
+    "add_class_button": {
+      "title": "Add Class Package",
+      "description": "Use this button to create a new class package. You will need to enter information about package name, price, duration, and participant limits."
+    },
+    "preview_edit_toggle": {
+      "title": "Preview/Edit Mode",
+      "description": "Toggle between Preview mode (read-only view) and Edit mode (allows you to modify the matrix). Click Edit to make changes to packages and features."
+    },
+    "save_changes_button": {
+      "title": "Save Changes",
+      "description": "Click this button to save all changes made to the class packages matrix. Make sure to save after editing features and packages."
+    },
+    "matrix_table": {
+      "title": "Class Package Comparison Matrix",
+      "description": "This is the comparison matrix showing which features are included in each class package. Each row represents a feature, and each column represents a class package. Green checkmarks indicate included features."
+    }
+  },
   "pt_service.badge": "PT Service",
   "pt_service.title": "PT package Comparison Matrix",
   "pt_service.subtitle": "Manage PT package for branch:",
@@ -1789,6 +2017,37 @@
   "pt_service.add_feature_section": "Add Feature (Optional)",
   "pt_service.add_pt_section": "Add PT Package (Optional)",
   "pt_service.create_initial_data": "Create Data",
+  "pt_service.tour": {
+    "button": "Guide",
+    "sidebar_business_services": {
+      "title": "Business Services Menu",
+      "description": "This is the Business Services menu in the sidebar. You can find service-related features here, including PT Services, Class Services, Promotions, and Membership Plans."
+    },
+    "sidebar_pt_services": {
+      "title": "PT Services Menu",
+      "description": "Click here to access the PT Services management page. You can view, create, edit, and manage PT packages and their features."
+    },
+    "add_feature_button": {
+      "title": "Add Feature",
+      "description": "Use this button to add a new feature to PT packages. Features represent benefits or services included in each PT package."
+    },
+    "add_package_button": {
+      "title": "Add PT Package",
+      "description": "Use this button to create a new PT package. You will need to enter information about package name, price, duration, and session count."
+    },
+    "preview_edit_toggle": {
+      "title": "Preview/Edit Mode",
+      "description": "Toggle between Preview mode (read-only view) and Edit mode (allows you to modify the matrix). Click Edit to make changes to packages and features."
+    },
+    "save_changes_button": {
+      "title": "Save Changes",
+      "description": "Click this button to save all changes made to the PT packages matrix. Make sure to save after editing features and packages."
+    },
+    "matrix_table": {
+      "title": "PT Package Comparison Matrix",
+      "description": "This is the comparison matrix showing which features are included in each PT package. Each row represents a feature, and each column represents a PT package. Green checkmarks indicate included features."
+    }
+  },
   "matrix.invalid_branch": "Invalid branch selected",
   "matrix.add_service_success": "{{type}} service \"{{name}}\" added successfully!",
   "matrix.add_service_error": "Failed to add {{type}} service",
@@ -1828,7 +2087,39 @@
   "dashboard.testimonials": "testimonials",
   "dashboard.inactive": "Inactive",
   "testimonial.active": "Active",
+  "testimonial.tour": {
+    "button": "Help",
+    "sidebar_testimonials": {
+      "title": "Testimonials Menu",
+      "description": "Access the Testimonials section from the sidebar to manage all customer testimonials and feedback."
+    },
+    "add_button": {
+      "title": "Add Testimonial",
+      "description": "Click here to add a new customer testimonial. You can include text, images, and manage testimonial status."
+    },
+    "stats_cards": {
+      "title": "Statistics Cards",
+      "description": "View summary statistics: Total testimonials, Active testimonials, Inactive testimonials, and testimonials with images."
+    },
+    "search": {
+      "title": "Search Testimonials",
+      "description": "Use this search bar to quickly find testimonials by title, content, or creator name."
+    },
+    "testimonials_list": {
+      "title": "Testimonials List",
+      "description": "View all customer testimonials here. Each testimonial shows the creator, date, status, title, content, and images."
+    },
+    "actions_menu": {
+      "title": "Testimonial Actions",
+      "description": "Click on this menu to see actions: View details, Edit testimonial, Toggle status (activate/deactivate), or Delete testimonial."
+    },
+    "pagination": {
+      "title": "Pagination",
+      "description": "Navigate through multiple pages of testimonials using the Previous and Next buttons when you have many testimonials."
+    }
+  },
   "dashboard.title": "Title",
+  "dashboard.subtitle": "Overview of gym activities",
   "dashboard.created_date": "Created Date",
   "dashboard.images": "Images",
   "dashboard.created_by": "Created By",
@@ -3142,6 +3433,7 @@
   "timeoff.filters": "Filters",
   "timeoff.search": "Search",
   "timeoff.search_placeholder": "Search by staff name or reason...",
+  "timeoff.select_date_range": "Select date range",
   "timeoff.total_requests": "Total Requests",
   "timeoff.pending": "Pending",
   "timeoff.approved": "Approved",
@@ -3240,6 +3532,57 @@
   "timeoff.date": "Date",
   "timeoff.staff_name": "Staff Name",
   "timeoff.no_requests_filtered": "No requests match your current filters",
+  "timeoff.tour": {
+    "button": "Guide",
+    "sidebar_schedule": {
+      "title": "Schedule Menu",
+      "description": "This is the Schedule menu in the sidebar. You can find schedule-related features here, including Work Schedule and Time Off."
+    },
+    "sidebar_timeoff": {
+      "title": "Time Off Menu",
+      "description": "Click here to access the time off management page. You can view, create, approve, and manage staff time off requests."
+    },
+    "stats_cards": {
+      "title": "Time Off Statistics",
+      "description": "These are statistics cards displaying the total number of time off requests, pending, approved, and rejected requests. Helps you get an overview of the time off status."
+    },
+    "create_button": {
+      "title": "Create Time Off Request",
+      "description": "Use this button to create a new time off request. You will need to select the type of time off, start date, end date, and reason."
+    },
+    "search": {
+      "title": "Search Time Off Requests",
+      "description": "Use this search box to search for time off requests by staff name or reason."
+    },
+    "status_filter": {
+      "title": "Filter by Status",
+      "description": "Use this filter to view time off requests by status: All, Pending, Approved, Rejected, Cancelled."
+    },
+    "type_filter": {
+      "title": "Filter by Time Off Type",
+      "description": "Use this filter to view time off requests by type: Vacation, Sick Leave, Personal Leave, Unpaid Leave, Emergency, Other."
+    },
+    "date_range_filter": {
+      "title": "Filter by Date Range",
+      "description": "Use this filter to view time off requests within a specific time period. Click here to select start date and end date."
+    },
+    "view_mode": {
+      "title": "View Mode",
+      "description": "Select a view mode: Card or Table to view the list of time off requests in the way you prefer."
+    },
+    "timeoff_list": {
+      "title": "Time Off Requests List",
+      "description": "This is a list of all time off requests. Each item displays information about staff, time off type, date range, reason, and status."
+    },
+    "actions_menu": {
+      "title": "Time Off Request Actions",
+      "description": "Click on this menu to view actions: View details, Edit, Approve, Reject, or Cancel time off request."
+    },
+    "pagination": {
+      "title": "List Navigation",
+      "description": "Use the Previous and Next buttons to navigate between pages. You can also click on page numbers to jump to a specific page."
+    }
+  },
   "common.no_branch": "No branch",
   "payment.method": "Payment method",
   "payment.method_all": "All methods",
@@ -3640,6 +3983,37 @@
   "payment.date_range_placeholder": "All dates",
   "payment.clear_date_filter": "Clear filter",
   "payment.transactions_range_label": "Range: {{range}}",
+  "payment.tour": {
+    "button": "Guide",
+    "sidebar_payments": {
+      "title": "Payments Menu",
+      "description": "This is the Payments menu in the sidebar. Click here to access the payment management page where you can view transaction history, track revenue, and manage all payment records."
+    },
+    "stats_cards": {
+      "title": "Payment Statistics",
+      "description": "These cards display key payment statistics: Total Revenue (all transactions), Collected (settled payments), Pending (awaiting processing), and Failed (unsuccessful transactions)."
+    },
+    "action_buttons": {
+      "title": "Action Buttons",
+      "description": "Use these buttons to manage payments: Refresh (reload payment data) and Export Data (download payment records as a file)."
+    },
+    "search": {
+      "title": "Search Transactions",
+      "description": "Use this search box to find transactions by customer name, transaction code, or description."
+    },
+    "filters": {
+      "title": "Filter Transactions",
+      "description": "Use these filters to narrow down the transaction list: Branch (filter by branch), Status (filter by payment status: All, Settled, Pending, Failed, Void), and Date Range (filter by transaction date)."
+    },
+    "transactions_table": {
+      "title": "Transactions Table",
+      "description": "This table displays all payment transactions. Each row shows: Date, Customer, Contract/Service, Amount, Payment Method, Status, Performer, and Reference Code. You can view detailed information about each transaction."
+    },
+    "pagination": {
+      "title": "List Navigation",
+      "description": "Use the Previous and Next buttons to navigate between pages. You can see the current page number and total number of pages."
+    }
+  },
   "error.membership_full_payment_required": "Membership plans require full payment at registration",
   "training_progress.title": "My Training Progress",
   "training_progress.weight": "Weight",
@@ -4393,6 +4767,37 @@
   "customer.error.upload_timeout": "Upload timeout. Please try again with a smaller file.",
   "customer.error.network_import_error": "Network error: Failed to import customers from Excel",
   "customer.import.template_filename": "customer-import-template.xlsx",
+  "customer.tour": {
+    "button": "Guide",
+    "sidebar_customers": {
+      "title": "Customers Menu",
+      "description": "This is the Customers menu in the sidebar. Click here to access the customer management page where you can view, add, edit, and manage all your customers."
+    },
+    "action_buttons": {
+      "title": "Action Buttons",
+      "description": "Use these buttons to manage customers: Column Selector (choose which columns to display), Import Excel (import customers from Excel file), and Add Customer (create a new customer)."
+    },
+    "search": {
+      "title": "Search Customers",
+      "description": "Use this search box to find customers by name, phone number, or other information."
+    },
+    "select_all": {
+      "title": "Select All",
+      "description": "Click this button to select or deselect all customers on the current page. Useful for bulk operations."
+    },
+    "customer_table": {
+      "title": "Customer Table",
+      "description": "This table displays all customers. Each row shows customer information such as name, phone, membership type, service name, contract dates, and status. You can click on column headers to sort the list."
+    },
+    "actions_buttons": {
+      "title": "Customer Actions",
+      "description": "Use these buttons to manage individual customers: View (view detailed customer information), Edit (modify customer information), and Toggle Status (activate or deactivate customer)."
+    },
+    "pagination": {
+      "title": "List Navigation",
+      "description": "Use the Previous and Next buttons to navigate between pages. You can see the current page number and total number of pages."
+    }
+  },
   "kpi": {
     "badge": "KPI MANAGEMENT",
     "management": {
@@ -4587,7 +4992,92 @@
         "end_date": "End Date"
       }
     },
+    "tour": {
+      "button": "Guide",
+      "start": "Start guide",
+      "sidebar_finance": {
+        "title": "Finance Menu",
+        "description": "This is the Finance menu in the sidebar. You can find financial-related features here, including expense management (Expenses) and KPI."
+      },
+      "sidebar_kpi": {
+        "title": "KPI Menu",
+        "description": "Click here to access the KPI management page. You can create, view, edit, and manage KPIs for staff."
+      },
+      "stats_cards": {
+        "title": "KPI Statistics",
+        "description": "These are the statistics cards showing total KPIs, active KPIs, and cancelled KPIs. Helps you get an overview of KPI status."
+      },
+      "create_button": {
+        "title": "Create New KPI",
+        "description": "Use this button to create a new KPI for staff. You will need to enter information about revenue targets, commission, and assigned staff."
+      },
+      "search": {
+        "title": "Search KPIs",
+        "description": "Use this search box to search for KPIs by staff name or branch."
+      },
+      "status_filter": {
+        "title": "Filter by Status",
+        "description": "Use this filter to view KPIs by status: All, Active, or Cancelled."
+      },
+      "kpi_list": {
+        "title": "KPI List",
+        "description": "This is the list of all KPIs. Each row displays information about staff, actual revenue, commission, and status. You can sort by different columns by clicking on the column headers."
+      },
+      "view_detail": {
+        "title": "View KPI Details",
+        "description": "Click this button to view detailed KPI information for staff, including targets, achievements, commission, and other information."
+      },
+      "edit": {
+        "title": "Edit KPI",
+        "description": "Click this button to edit KPI information, including revenue targets, commission rates, and other settings."
+      },
+      "disable": {
+        "title": "Disable KPI",
+        "description": "Click this button to disable a KPI. Disabled KPIs will no longer be calculated and tracked."
+      },
+      "pagination": {
+        "title": "List Navigation",
+        "description": "Use the Previous and Next buttons to navigate between pages. You can also click on page numbers to jump to a specific page."
+      }
+    },
     "all_staff": "All Staff"
+  },
+  "calendar": {
+    "tour": {
+      "button": "Guide",
+      "sidebar_schedule": {
+        "title": "Schedule Menu",
+        "description": "This is the Schedule menu in the sidebar. You can find schedule-related features here, including Work Schedule and Time Off."
+      },
+      "sidebar_work_schedule": {
+        "title": "Work Schedule Menu",
+        "description": "Click here to access the work schedule page. You can view, create, edit, and manage staff work schedules."
+      },
+      "navigation": {
+        "title": "Calendar Navigation",
+        "description": "Use the Previous and Next buttons to navigate between weeks. The Today button will take you to the current week."
+      },
+      "view_mode": {
+        "title": "View Mode",
+        "description": "Select a view mode: Week, Month, or Day to view the work schedule in the way you prefer."
+      },
+      "staff_filter": {
+        "title": "Filter by Staff",
+        "description": "Use this filter to view the work schedule of a specific staff member or all staff."
+      },
+      "work_config": {
+        "title": "Configure Work Settings for Staff",
+        "description": "Use this button to configure work settings for staff. You can create new work shifts or configure work settings for the branch, including working days, default shifts, and role-based configurations."
+      },
+      "legend": {
+        "title": "Color Legend",
+        "description": "The colors in the calendar represent work shift status: Green (Scheduled), Yellow (Pending), Red (Cancelled), Gray (Past)."
+      },
+      "calendar_grid": {
+        "title": "Work Schedule Grid",
+        "description": "This is the calendar grid displaying work shifts. Each cell represents a work shift in a day. Click on a cell to view details."
+      }
+    }
   },
   "contracts": {
     "title": "Contract Documents",
@@ -4670,7 +5160,42 @@
     "contract_created_success": "Contract document created successfully",
     "contract_create_failed": "Failed to create contract document",
     "branch_specific": "Branch Specific",
-    "send_now_or_later": "Would you like to send this contract to the customer for signing now, or send it later?"
+    "send_now_or_later": "Would you like to send this contract to the customer for signing now, or send it later?",
+    "tour": {
+      "button": "Help",
+      "sidebar_contracts": {
+        "title": "Contracts Menu",
+        "description": "Access the Contracts section from the sidebar to manage all your contract documents, templates, and customer contracts."
+      },
+      "upload_button": {
+        "title": "Upload Document",
+        "description": "Click here to upload a new contract document or template. You can upload PDF files and configure them for electronic signatures."
+      },
+      "tabs": {
+        "title": "Templates & Contracts",
+        "description": "Switch between 'Templates' to manage reusable contract templates, and 'Customer Contracts' to view contracts sent to customers."
+      },
+      "search": {
+        "title": "Search Documents",
+        "description": "Use this search bar to quickly find documents by name, title, or other keywords."
+      },
+      "status_filter": {
+        "title": "Filter by Status",
+        "description": "Filter documents by their status: Uploaded, Processing, Ready, Signed, Archived, etc."
+      },
+      "documents_list": {
+        "title": "Documents List",
+        "description": "View all your contract documents here. Each document shows its title, status, type, file information, and creation details."
+      },
+      "actions_buttons": {
+        "title": "Document Actions",
+        "description": "Use these buttons to interact with documents: View to preview, Edit to modify fields and signers, Send to request signatures, and Delete to remove documents."
+      },
+      "pagination": {
+        "title": "Pagination",
+        "description": "Navigate through multiple pages of documents using the Previous and Next buttons when you have many documents."
+      }
+    }
   },
   "class": {
     "calendar": {
@@ -4779,6 +5304,45 @@
       "button_delete": "Delete",
       "button_deleting": "Deleting..."
     },
+    "tour": {
+      "button": "Guide",
+      "sidebar_schedule": {
+        "title": "Schedule Menu",
+        "description": "This is the Schedule menu in the sidebar. You can find schedule-related features here, including Work Schedule, Time Off, and Classes."
+      },
+      "sidebar_classes": {
+        "title": "Classes Menu",
+        "description": "Click here to access the class management page. You can view, create, edit, and manage gym classes."
+      },
+      "create_button": {
+        "title": "Create New Class",
+        "description": "Use this button to create a new class. You will need to enter information about class name, service package, schedule, and capacity."
+      },
+      "search": {
+        "title": "Search Classes",
+        "description": "Use this search box to search for classes by name or other information."
+      },
+      "status_filter": {
+        "title": "Filter by Status",
+        "description": "Use this filter to view classes by status: Active, Inactive, or All."
+      },
+      "view_mode": {
+        "title": "View Mode",
+        "description": "Select a view mode: Card or Table to view the list of classes in the way you prefer."
+      },
+      "class_list": {
+        "title": "Classes List",
+        "description": "This is a list of all classes. Each item displays information about class name, service package, schedule, capacity, and status."
+      },
+      "actions_menu": {
+        "title": "Class Actions",
+        "description": "Click on this menu to see actions: View details, Edit, Enroll students, or Delete class."
+      },
+      "pagination": {
+        "title": "List Navigation",
+        "description": "Use the Previous and Next buttons to navigate between pages. You can view the current page number and total pages."
+      }
+    },
     "quickview": {
       "remove_success": "Student removed from class",
       "remove_error": "Error removing student",
@@ -4878,5 +5442,46 @@
     "clear_conversation": "Clear Conversation",
     "clear_conversation_description": "Are you sure you want to delete {{roomName}}? This action cannot be undone.",
     "yesterday": "Yesterday"
+  },
+  "overview": {
+    "tour": {
+      "button": "Guide",
+      "welcome": {
+        "title": "Welcome to Dashboard",
+        "description": "This is the Overview page of the system. You will see statistics and important information about revenue, customers, staff, and other gym activities."
+      },
+      "revenue_card": {
+        "title": "Total Revenue",
+        "description": "This card displays the total revenue of the gym. You can view current revenue, period revenue, and growth rate compared to the previous period."
+      },
+      "customers_card": {
+        "title": "New Customers",
+        "description": "This card displays information about new customers. You can view total customers, new customers in the period, and a trend chart showing customer growth over time."
+      },
+      "roles_card": {
+        "title": "Staff Distribution",
+        "description": "This chart displays staff distribution by role (Manager, PT, Technician). You can view total staff and the number of each role type."
+      },
+      "revenue_chart": {
+        "title": "Revenue Chart",
+        "description": "This bar chart displays revenue by month. You can view revenue trends, compare between months, and see detailed information about revenue in each period."
+      },
+      "stats_sidebar": {
+        "title": "Overview Statistics",
+        "description": "This section displays overview statistics about customers and staff across the entire system. You can view total customers, staff, and other important metrics."
+      },
+      "branch_list": {
+        "title": "Branch List",
+        "description": "This section displays the list of your branches. You can view information about each branch and quickly switch between branches to view corresponding data."
+      },
+      "kpi_leaderboard": {
+        "title": "KPI Leaderboard",
+        "description": "This leaderboard displays the top 5 staff with the highest KPI scores. You can view KPI score, completion percentage, and revenue for each staff member."
+      },
+      "equipment": {
+        "title": "Equipment Management",
+        "description": "This section displays information about training equipment. You can view equipment list, filter by category and location, and access detailed equipment reports."
+      }
+    }
   }
 }

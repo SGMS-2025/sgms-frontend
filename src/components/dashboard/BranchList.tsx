@@ -13,7 +13,10 @@ export const BranchList: React.FC = () => {
   const canViewBranches = user && ['OWNER', 'ADMIN', 'STAFF'].includes(user.role);
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-md border border-gray-200 h-full flex flex-col">
+    <div
+      className="bg-white rounded-2xl p-5 shadow-md border border-gray-200 h-full flex flex-col"
+      data-tour="overview-branch-list"
+    >
       <header className="flex items-center justify-between mb-3">
         <div className="flex items-center">
           <GitBranch className="w-4 h-4 text-orange-500 mr-2" />
