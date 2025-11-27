@@ -1,5 +1,7 @@
 // ===== GYM COMPONENT TYPES =====
 
+import type { Branch } from '@/types/api/Branch';
+
 /**
  * Branch interface for GymHeroSection component
  */
@@ -14,13 +16,16 @@ export interface BranchHero {
 
 /**
  * Branch interface for GymReviews component
+ * Accepts Branch type or any object with at least an optional _id property
  */
-export interface BranchReviews {
-  _id?: string;
-  rating?: number;
-  totalReviews?: number;
-  [key: string]: unknown; // Allow additional properties
-}
+export type BranchReviews =
+  | Branch
+  | {
+      _id?: string;
+      rating?: number;
+      totalReviews?: number;
+      [key: string]: unknown;
+    };
 
 /**
  * Service Package interface for GymServices component
