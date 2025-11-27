@@ -29,7 +29,7 @@ const CustomerLayoutContent: React.FC = () => {
       {/* Main Content - Adjusted for fixed sidebar */}
       <div className={`transition-all duration-300 ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
         {/* Mobile Header */}
-        <div className="lg:hidden bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between sticky top-0 z-30">
+        <div className="lg:hidden bg-white border-b border-gray-200 px-3 py-2 flex items-center justify-between sticky top-0 z-[100] shadow-sm">
           <Button variant="ghost" size="sm" onClick={() => setMobileOpen(true)} className="p-1">
             <Menu className="w-4 h-4" />
           </Button>

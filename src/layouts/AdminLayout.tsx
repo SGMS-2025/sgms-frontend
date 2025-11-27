@@ -46,8 +46,8 @@ const AdminLayoutContent: React.FC = () => {
 
         {/* Header */}
         <div className="bg-white border-b border-gray-200">
-          <div className="px-3 py-4 pb-5">
-            <DashboardHeader />
+          <div className="px-3 py-2 pb-3">
+            <DashboardHeader hideBranchSelector />
           </div>
         </div>
 
