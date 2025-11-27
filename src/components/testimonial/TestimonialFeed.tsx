@@ -71,6 +71,7 @@ export const TestimonialFeed: React.FC<TestimonialManagementProps> = ({ onAddTes
   const [testimonialToUpdate, setTestimonialToUpdate] = useState<TestimonialDisplay | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [testimonialToDelete, setTestimonialToDelete] = useState<TestimonialDisplay | null>(null);
+  const [expandedTestimonials, setExpandedTestimonials] = useState<Set<string>>(new Set());
 
   // Use the custom hook to fetch data
   const { testimonialList, stats, loading, error, pagination, refetch, refetchStats, goToPage } = useTestimonialList({
@@ -196,6 +197,46 @@ export const TestimonialFeed: React.FC<TestimonialManagementProps> = ({ onAddTes
 
     return Array.from(pages).sort((a, b) => a - b);
   }, [pagination]);
+
+  // Helper function to strip markdown and get plain text
+  const stripMarkdown = (content: string): string => {
+    return content
+      .replace(/#{1,6}\s+/g, '') // Headers
+      .replace(/\*\*([^*]+)\*\*/g, '$1') // Bold
+      .replace(/\*([^*]+)\*/g, '$1') // Italic
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Links
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, '') // Images
+      .replace(/`([^`]+)`/g, '$1') // Inline code
+      .replace(/```[\s\S]*?```/g, '') // Code blocks
+      .replace(/\n+/g, ' ') // Newlines
+      .trim();
+  };
+
+  // Helper function to truncate text at word boundary
+  const truncateText = (text: string, maxLength: number): string => {
+    if (text.length <= maxLength) {
+      return text;
+    }
+    const truncated = text.substring(0, maxLength);
+    const lastSpace = truncated.lastIndexOf(' ');
+    return lastSpace > maxLength * 0.7 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
+  };
+
+  // Toggle expand/collapse for a testimonial
+  const toggleExpand = (testimonialId: string) => {
+    setExpandedTestimonials((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(testimonialId)) {
+        newSet.delete(testimonialId);
+      } else {
+        newSet.add(testimonialId);
+      }
+      return newSet;
+    });
+  };
+
+  // Maximum character limit for content preview (only truncate really long testimonials)
+  const MAX_CONTENT_LENGTH = 400;
 
   // Show loading state
   if (loading) {
@@ -386,7 +427,41 @@ export const TestimonialFeed: React.FC<TestimonialManagementProps> = ({ onAddTes
             <div className="p-4">
               <h2 className="text-lg font-semibold text-gray-900 mb-2">{testimonial.title}</h2>
               <div className="text-gray-700 leading-relaxed">
-                <MarkdownRenderer content={testimonial.content} />
+                {(() => {
+                  const isExpanded = expandedTestimonials.has(testimonial.id);
+                  const plainText = stripMarkdown(testimonial.content);
+                  const shouldTruncate = plainText.length > MAX_CONTENT_LENGTH;
+
+                  if (!shouldTruncate || isExpanded) {
+                    return (
+                      <>
+                        <MarkdownRenderer content={testimonial.content} />
+                        {shouldTruncate && (
+                          <button
+                            onClick={() => toggleExpand(testimonial.id)}
+                            className="mt-2 text-orange-600 hover:text-orange-700 font-medium text-sm transition-colors"
+                          >
+                            {t('landing.testimonials.read_less')}
+                          </button>
+                        )}
+                      </>
+                    );
+                  }
+
+                  const truncatedText = truncateText(plainText, MAX_CONTENT_LENGTH);
+
+                  return (
+                    <>
+                      <p className="whitespace-pre-wrap">{truncatedText}</p>
+                      <button
+                        onClick={() => toggleExpand(testimonial.id)}
+                        className="mt-2 text-orange-600 hover:text-orange-700 font-medium text-sm transition-colors"
+                      >
+                        {t('landing.testimonials.read_more')}
+                      </button>
+                    </>
+                  );
+                })()}
               </div>
             </div>
 

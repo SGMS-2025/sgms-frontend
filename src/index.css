@@ -143,23 +143,77 @@ select:focus {
   }
   html {
     height: 100%;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     touch-action: manipulation;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+  
+  html::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+    width: 0;
+    height: 0;
   }
   
   body {
     @apply bg-background text-foreground;
     height: 100%;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+  
+  body::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+    width: 0;
+    height: 0;
   }
 
   /* Ensure root container doesn't restrict height */
   #root {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* Block scroll only for dashboard layouts */
+  html.dashboard-layout-active,
+  body.dashboard-layout-active {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #root.dashboard-layout-active {
     height: 100vh;
     overflow: hidden;
   }
+}
+
+/* Allow scrolling on landing page */
+.landing-page {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  min-height: 100vh;
+}
+
+/* When landing page is active, allow body and html to scroll */
+html.landing-page-active,
+body.landing-page-active {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+}
+
+#root.landing-page-active {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
 }
 
 /* Added custom animation for scrolling text */

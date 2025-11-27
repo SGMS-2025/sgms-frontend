@@ -9,6 +9,7 @@ import type {
   RescheduleNotificationData,
   ContractSignerSignedEvent,
   ContractCompletedEvent,
+  BusinessVerificationUpdateEvent,
   SocketEvents,
   SocketServiceInterface,
   SocketConnectionStatus,
@@ -244,6 +245,37 @@ class SocketService implements SocketServiceInterface {
 
     this.socket.on('contract:completed', (data: ContractCompletedEvent) => {
       this.handleContractCompleted(data);
+    });
+
+    // Business verification events
+    this.socket.on('business-verification:submitted', (data: BusinessVerificationUpdateEvent) => {
+      console.log('[Socket] Business verification submitted:', data);
+      // Dispatch custom event for components to listen
+      globalThis.dispatchEvent(
+        new CustomEvent('business-verification:updated', {
+          detail: data
+        })
+      );
+    });
+
+    this.socket.on('business-verification:approved', (data: BusinessVerificationUpdateEvent) => {
+      console.log('[Socket] Business verification approved:', data);
+      // Dispatch custom event for components to listen
+      globalThis.dispatchEvent(
+        new CustomEvent('business-verification:updated', {
+          detail: data
+        })
+      );
+    });
+
+    this.socket.on('business-verification:rejected', (data: BusinessVerificationUpdateEvent) => {
+      console.log('[Socket] Business verification rejected:', data);
+      // Dispatch custom event for components to listen
+      globalThis.dispatchEvent(
+        new CustomEvent('business-verification:updated', {
+          detail: data
+        })
+      );
     });
 
     // Ping/pong for connection health

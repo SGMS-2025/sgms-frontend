@@ -49,6 +49,7 @@ import { useCurrentUserStaff } from '../../hooks/useCurrentUserStaff';
 import type { Equipment, EquipmentCategory, EquipmentStatus } from '../../types/api/Equipment';
 import { getEquipmentStatusDisplay, EQUIPMENT_CATEGORY_DISPLAY } from '../../types/api/Equipment';
 import { useEquipmentTour } from '../../hooks/useEquipmentTour';
+import { EquipmentCategoryCardsMobile } from '../../components/equipment/EquipmentCategoryCardsMobile';
 
 export const EquipmentListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -279,8 +280,14 @@ export const EquipmentListPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Large TOTAL Card with Category Cards inside */}
-                <div className="mb-4" data-tour="equipment-stats-cards">
+                {/* Mobile Category Cards - Simplified (no descriptions) */}
+                <EquipmentCategoryCardsMobile
+                  totalEquipments={stats.totalEquipments}
+                  categoryStats={stats.categoryStats}
+                />
+
+                {/* Desktop Category Cards - Full version with descriptions */}
+                <div className="hidden lg:block mb-4" data-tour="equipment-stats-cards">
                   <div className="rounded-xl border border-orange-100 bg-[#FFF6EE] p-6">
                     <div className="mb-6">
                       <div>

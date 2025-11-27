@@ -58,6 +58,20 @@ class TestimonialApi {
 
     return response.data;
   }
+
+  // Public API methods (no authentication required)
+  async getPublicTestimonialsByBranch(
+    branchId: string,
+    params: TestimonialQueryParams = {}
+  ): Promise<TestimonialListResponse> {
+    const response = await api.get<TestimonialListResponse>(`/testimonials/public/branch/${branchId}`, { params });
+    return response.data;
+  }
+
+  async getPublicTestimonialById(id: string): Promise<ApiResponse<Testimonial>> {
+    const response = await api.get(`/testimonials/public/${id}`);
+    return response.data;
+  }
 }
 
 export const testimonialApi = new TestimonialApi();

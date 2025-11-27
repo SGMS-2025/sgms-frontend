@@ -16,8 +16,10 @@ export interface BranchHero {
  * Branch interface for GymReviews component
  */
 export interface BranchReviews {
-  rating: number;
-  totalReviews: number;
+  _id?: string;
+  rating?: number;
+  totalReviews?: number;
+  [key: string]: unknown; // Allow additional properties
 }
 
 /**
