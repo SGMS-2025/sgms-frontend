@@ -5294,6 +5294,7 @@
       "button_edit": "Chỉnh sửa",
       "tab_overview": "Tổng quan",
       "tab_students": "Học viên ({{count}})",
+      "capacity_label": "Sức chứa",
       "slots_available": "{{slots}} chỗ còn trống",
       "schedule_label": "Lịch biểu",
       "days_label": "Ngày",
@@ -5328,7 +5329,11 @@
       "empty_enroll_students": "Đăng ký học viên để bắt đầu",
       "enrolled_label": "Đã đăng ký",
       "sessions_label": "Buổi học: {{used}}/{{total}} ({{remaining}} còn lại)",
-      "button_remove": "Xóa"
+      "button_remove": "Xóa",
+      "search_placeholder": "Tìm kiếm học viên...",
+      "filter_all": "Tất cả",
+      "filter_active": "Đang hoạt động",
+      "filter_inactive": "Không hoạt động"
     }
   },
   "profile": {

@@ -533,6 +533,36 @@ export const validatePasswordConfirmation = (password: string, confirmPassword: 
   return { isValid: true };
 };
 
+/**
+ * Validate password for customer modal
+ * Returns error message string or empty string if valid
+ * @param value - Password value to validate
+ * @param isEditMode - Whether in edit mode (password is optional)
+ * @param t - Translation function from useTranslation hook
+ * @returns Error message string or empty string if valid
+ */
+export const validateCustomerPassword = (value: string, isEditMode: boolean, t: (key: string) => string): string => {
+  // In edit mode, password is optional (only validate if provided)
+  if (isEditMode) {
+    // If password is provided in edit mode, validate it
+    if (value && value.trim() !== '') {
+      if (value.length < 8) return t('customer_modal.validation.password_length');
+      if (!/[A-Z]/.test(value)) return t('customer_modal.validation.password_uppercase');
+      if (!/[0-9]/.test(value)) return t('customer_modal.validation.password_number');
+      if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(value)) return t('customer_modal.validation.password_special');
+    }
+    return '';
+  }
+
+  // In create mode, password is required
+  if (!value.trim()) return t('customer_modal.validation.password_required');
+  if (value.length < 8) return t('customer_modal.validation.password_length');
+  if (!/[A-Z]/.test(value)) return t('customer_modal.validation.password_uppercase');
+  if (!/[0-9]/.test(value)) return t('customer_modal.validation.password_number');
+  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(value)) return t('customer_modal.validation.password_special');
+  return '';
+};
+
 // Validate job title
 export const validateJobTitle = (jobTitle: string): ValidationResult => {
   if (!jobTitle.trim()) {

@@ -5294,6 +5294,7 @@
       "button_edit": "Edit",
       "tab_overview": "Overview",
       "tab_students": "Students ({{count}})",
+      "capacity_label": "Capacity",
       "slots_available": "{{slots}} slots available",
       "schedule_label": "Schedule",
       "days_label": "Days",
@@ -5328,7 +5329,11 @@
       "empty_enroll_students": "Enroll students to get started",
       "enrolled_label": "Enrolled",
       "sessions_label": "Sessions: {{used}}/{{total}} ({{remaining}} remaining)",
-      "button_remove": "Remove"
+      "button_remove": "Remove",
+      "search_placeholder": "Search students...",
+      "filter_all": "All",
+      "filter_active": "Active",
+      "filter_inactive": "Inactive"
     }
   },
   "profile": {

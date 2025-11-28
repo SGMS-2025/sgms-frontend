@@ -70,10 +70,6 @@ export const CustomerClassCalendar: React.FC = () => {
     endDate: dateRange.endDate.toISOString()
   });
 
-  // Auto-navigate to first schedule date if current date has no schedules (only once on mount)
-  // Disabled auto-navigate to always start at current month
-  // Removed auto-navigate logic - always start at current month
-
   // Get current month calendar view
   const calendarDays = useMemo(() => {
     const year = currentDate.getFullYear();
