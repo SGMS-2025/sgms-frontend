@@ -67,11 +67,22 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'INACTIVE' | 'ALL'>('ACTIVE');
+  const [startTimeFilter, setStartTimeFilter] = useState<string>('');
+  const [endTimeFilter, setEndTimeFilter] = useState<string>('');
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
   const [formModal, setFormModal] = useState<{ open: boolean; classId?: string }>({ open: false });
   const [enrollModal, setEnrollModal] = useState<{ open: boolean; classId?: string }>({ open: false });
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; classId?: string }>({ open: false });
   const [viewModal, setViewModal] = useState<{ open: boolean; classId?: string }>({ open: false });
+
+  // Generate time options (06:00 to 22:00)
+  const timeOptions = React.useMemo(() => {
+    const times: string[] = [];
+    for (let hour = 6; hour <= 22; hour++) {
+      times.push(`${hour.toString().padStart(2, '0')}:00`);
+    }
+    return times;
+  }, []);
 
   // Fetch classes - only fetch if branchId is available
   // useMemo to prevent infinite loop when initialParams object changes
@@ -79,23 +90,64 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
     () => ({
       branchId: branchId || undefined,
       status: statusFilter === 'ALL' ? undefined : statusFilter,
-      search: search || undefined
+      search: search || undefined,
+      startTime: startTimeFilter || undefined,
+      endTime: endTimeFilter || undefined,
+      limit: 9 // Show 9 classes per page
     }),
-    [branchId, statusFilter, search]
+    [branchId, statusFilter, search, startTimeFilter, endTimeFilter]
   );
 
-  const { classes, loading, error, pagination, refetch, nextPage, prevPage } = useClassList(classListParams);
+  const { classes, loading, error, pagination, refetch, nextPage, prevPage, goToPage } = useClassList(classListParams);
 
   // Sort functionality
   const { sortState, handleSort, getSortIcon } = useTableSort();
 
   // Filter and sort classes
   const sortedClasses = useMemo(() => {
-    if (!sortState.field || !sortState.order) {
-      return classes;
+    // Ensure classes is an array
+    if (!Array.isArray(classes)) {
+      return [];
     }
 
-    return sortArray(classes, sortState, (item: Class, field: string) => {
+    // First, filter by time if filters are set
+    let filteredClasses = classes;
+
+    if (startTimeFilter || endTimeFilter) {
+      filteredClasses = classes.filter((cls) => {
+        // Skip if schedulePattern doesn't exist
+        if (!cls.schedulePattern) {
+          return false;
+        }
+
+        const classStartTime = cls.schedulePattern.startTime || '';
+        const classEndTime = cls.schedulePattern.endTime || '';
+
+        // Skip if times are empty
+        if (!classStartTime || !classEndTime) {
+          return false;
+        }
+
+        // Filter by start time (exact match or greater than/equal)
+        if (startTimeFilter && classStartTime < startTimeFilter) {
+          return false;
+        }
+
+        // Filter by end time (exact match or less than/equal)
+        if (endTimeFilter && classEndTime > endTimeFilter) {
+          return false;
+        }
+
+        return true;
+      });
+    }
+
+    // Then sort if sort state is set
+    if (!sortState.field || !sortState.order) {
+      return filteredClasses;
+    }
+
+    return sortArray(filteredClasses, sortState, (item: Class, field: string) => {
       switch (field) {
         case 'name':
           return item.name?.toLowerCase() || '';
@@ -119,7 +171,7 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
           return '';
       }
     });
-  }, [classes, sortState]);
+  }, [classes, sortState, startTimeFilter, endTimeFilter]);
 
   // Delete operation
   const { deleteClass, loading: deleting } = useClass({
@@ -161,7 +213,9 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
           <div>
             <h2 className="text-2xl font-bold">{t('class.list.title')}</h2>
             <p className="text-sm text-gray-500">
-              {classes.length > 0 ? t('class.list.count', { count: classes.length }) : t('class.list.no_classes')}
+              {sortedClasses && sortedClasses.length > 0
+                ? t('class.list.count', { count: sortedClasses.length })
+                : t('class.list.no_classes')}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -208,6 +262,39 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
               <SelectItem value="ACTIVE">{t('class.list.filter_active')}</SelectItem>
               <SelectItem value="INACTIVE">{t('class.list.filter_inactive')}</SelectItem>
               <SelectItem value="ALL">{t('class.list.filter_all')}</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Start Time Filter */}
+          <Select
+            value={startTimeFilter || 'all'}
+            onValueChange={(val) => setStartTimeFilter(val === 'all' ? '' : val)}
+          >
+            <SelectTrigger className="w-[130px] bg-white border-gray-300 shadow-sm">
+              <SelectValue placeholder="Giờ bắt đầu" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('common.all')}</SelectItem>
+              {timeOptions.map((time) => (
+                <SelectItem key={time} value={time}>
+                  {time}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* End Time Filter */}
+          <Select value={endTimeFilter || 'all'} onValueChange={(val) => setEndTimeFilter(val === 'all' ? '' : val)}>
+            <SelectTrigger className="w-[130px] bg-white border-gray-300 shadow-sm">
+              <SelectValue placeholder="Giờ kết thúc" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('common.all')}</SelectItem>
+              {timeOptions.map((time) => (
+                <SelectItem key={time} value={time}>
+                  {time}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -349,12 +436,12 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
                     onClick={() => setViewModal({ open: true, classId: cls._id })}
                   >
                     {/* Name */}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap text-left">
                       <div className="text-sm font-medium text-gray-900">{cls.name}</div>
                     </td>
 
                     {/* Package */}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap text-left">
                       <div className="text-sm text-gray-900">
                         {typeof cls.servicePackageId === 'object' && cls.servicePackageId.name
                           ? cls.servicePackageId.name
@@ -363,7 +450,7 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
                     </td>
 
                     {/* Schedule */}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap text-left">
                       <div className="text-sm text-gray-900">
                         <div className="font-medium">{cls.schedulePattern.daysOfWeek.slice(0, 2).join(', ')}</div>
                         <div className="text-gray-500">
@@ -373,14 +460,14 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
                     </td>
 
                     {/* Capacity */}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
                       <span className="text-sm font-medium text-gray-900">
                         {toNumber(cls.activeEnrollment)}/{toNumber(cls.capacity)}
                       </span>
                     </td>
 
                     {/* Status */}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
                       <div className="flex justify-center">
                         <Badge variant={cls.status === 'ACTIVE' ? 'default' : 'secondary'}>{cls.status}</Badge>
                       </div>
@@ -428,10 +515,40 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
             {t('class.list.pagination_page')} <span className="font-medium">{pagination.currentPage}</span>{' '}
             {t('class.list.pagination_of')} <span className="font-medium">{pagination.totalPages}</span>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <Button variant="outline" size="sm" onClick={prevPage} disabled={!pagination.hasPrevPage || loading}>
               {t('class.list.button_prev')}
             </Button>
+            {/* Page numbers - show on desktop */}
+            <div className="hidden md:flex gap-1">
+              {Array.from({ length: Math.min(pagination.totalPages, 5) }, (_, i) => {
+                let pageNum: number;
+                if (pagination.totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (pagination.currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                  pageNum = pagination.totalPages - 4 + i;
+                } else {
+                  pageNum = pagination.currentPage - 2 + i;
+                }
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={pageNum === pagination.currentPage ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => goToPage(pageNum)}
+                    className={pageNum === pagination.currentPage ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+            {/* Mobile page indicator */}
+            <div className="md:hidden text-sm text-gray-600 px-2">
+              {pagination.currentPage}/{pagination.totalPages}
+            </div>
             <Button variant="outline" size="sm" onClick={nextPage} disabled={!pagination.hasNextPage || loading}>
               {t('class.list.button_next')}
             </Button>

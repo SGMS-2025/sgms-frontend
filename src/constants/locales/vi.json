@@ -1751,6 +1751,7 @@
   "workshift.shift_evening": "Ca tối",
   "workshift.shift_custom": "Ca tùy chỉnh",
   "workshift.no_staff_assigned": "Chưa có nhân viên",
+  "workshift.day_off": "Ngày nghỉ",
   "workshift.assign_staff": "Phân công",
   "workshift.no_shifts_today": "Không có ca làm việc",
   "workshift.day.monday": "Thứ Hai",
@@ -5404,6 +5405,122 @@
       "equipment": {
         "title": "Quản Lý Thiết Bị",
         "description": "Phần này hiển thị thông tin về thiết bị tập luyện. Bạn có thể xem danh sách thiết bị, lọc theo danh mục và vị trí, và truy cập báo cáo chi tiết về thiết bị."
+      }
+    }
+  },
+  "customerClassCalendar": {
+    "title": "Lớp Học Của Tôi",
+    "subtitle": "Xem lịch học các lớp đã đăng ký",
+    "calendar": "Lịch",
+    "daysOfWeek": {
+      "sun": "CN",
+      "mon": "T2",
+      "tue": "T3",
+      "wed": "T4",
+      "thu": "T5",
+      "fri": "T6",
+      "sat": "T7"
+    },
+    "schedule": {
+      "title": "Chi Tiết Lịch Học",
+      "noClasses": "Không có lớp học nào được lên lịch cho ngày này",
+      "classesCount": "{{count}} lớp học đã được lên lịch",
+      "classesCount_plural": "{{count}} lớp học đã được lên lịch"
+    },
+    "class": {
+      "unknown": "Lớp Học Không Xác Định",
+      "trainers": "Huấn Luyện Viên",
+      "trainersCount": "Huấn Luyện Viên ({{count}})",
+      "description": "Mô Tả",
+      "status": {
+        "upcoming": "Sắp Diễn Ra",
+        "ongoing": "Đang Diễn Ra",
+        "completed": "Đã Hoàn Thành"
+      }
+    },
+    "trainer": {
+      "title": "Thông Tin Huấn Luyện Viên",
+      "phone": "Số Điện Thoại",
+      "email": "Email",
+      "defaultJobTitle": "Huấn Luyện Viên",
+      "copySuccess": "Đã sao chép {{field}} vào clipboard",
+      "copyError": "Sao chép thất bại"
+    },
+    "error": {
+      "loadFailed": "Không thể tải lịch học"
+    }
+  },
+  "classDetailModal": {
+    "loading": "Đang tải...",
+    "error": "Lỗi",
+    "tabs": {
+      "overview": "Tổng Quan",
+      "students": "Học Viên",
+      "attendance": "Điểm Danh"
+    },
+    "overview": {
+      "capacity": "Sức Chứa",
+      "members": "thành viên",
+      "slotsAvailable": "chỗ trống",
+      "schedule": "Lịch Học",
+      "days": "Các Ngày",
+      "time": "Giờ Học",
+      "location": "Địa Điểm",
+      "studio": "Phòng Tập",
+      "servicePackage": "Gói Dịch Vụ",
+      "trainers": "Huấn Luyện Viên",
+      "trainerId": "Mã Huấn Luyện Viên",
+      "description": "Mô Tả",
+      "classPeriod": "Thời Gian Lớp Học"
+    },
+    "students": {
+      "enrolledMembers": "Thành Viên Đã Đăng Ký",
+      "sessions": "Buổi Học",
+      "remaining": "Còn Lại",
+      "enrolled": "Đăng Ký",
+      "noMembers": "Chưa có thành viên nào đăng ký"
+    },
+    "attendance": {
+      "loadingData": "Đang tải dữ liệu điểm danh...",
+      "totalStudents": "Tổng Số Học Viên",
+      "present": "Có Mặt",
+      "absent": "Vắng Mặt",
+      "markAllPresent": "Đánh Dấu Tất Cả Có Mặt",
+      "markAllAbsent": "Đánh Dấu Tất Cả Vắng Mặt",
+      "attendanceList": "Danh Sách Điểm Danh",
+      "noActiveStudents": "Không có học viên nào để điểm danh",
+      "pastDateWarning": "Ngày này đã qua. Không thể chỉnh sửa điểm danh.",
+      "saving": "Đang lưu...",
+      "saveAttendance": "Lưu Điểm Danh",
+      "saveSuccess": "Đã lưu điểm danh thành công!",
+      "saveError": "Lưu điểm danh thất bại"
+    },
+    "errors": {
+      "fetchFailed": "Không thể tải thông tin lớp học",
+      "loadAttendanceFailed": "Không thể tải điểm danh",
+      "noRecords": "Không có bản ghi điểm danh trong phản hồi"
+    }
+  },
+  "classesListTab": {
+    "loading": "Đang tải lớp học...",
+    "error": "Lỗi tải lớp học",
+    "noClassesAssigned": "Không có lớp học được phân công",
+    "noClassesDescription": "Huấn luyện viên này chưa có lớp học hoạt động.",
+    "noClassesInTimeSlot": "Không có lớp học trong khung giờ này",
+    "timeSlot": "{{startTime}} - {{endTime}} vào {{dayOfWeek}}",
+    "classCard": {
+      "package": "Gói Dịch Vụ",
+      "time": "Giờ Học",
+      "days": "Các Ngày",
+      "members": "Thành Viên",
+      "type": "Loại",
+      "start": "Bắt Đầu",
+      "end": "Kết Thúc",
+      "fullCapacity": "Lớp học này đã đầy",
+      "status": {
+        "ACTIVE": "ĐANG HOẠT ĐỘNG",
+        "INACTIVE": "NGỪNG HOẠT ĐỘNG",
+        "CANCELLED": "ĐÃ HỦY"
       }
     }
   }

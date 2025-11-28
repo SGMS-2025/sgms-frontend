@@ -11,7 +11,8 @@ import {
   User,
   PanelLeft,
   ShieldCheck as Shield,
-  FileText
+  FileText,
+  BookOpen
 } from 'lucide-react';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -293,6 +294,13 @@ export const CustomerSidebar: React.FC = () => {
       href: '/customer/schedule',
       isActive: location.pathname.startsWith('/customer/schedule'),
       onClick: () => handleNavigation('/customer/schedule')
+    },
+    {
+      icon: <BookOpen className="w-5 h-5 stroke-[1.75]" />,
+      label: t('customer.sidebar.my_classes', 'My Classes'),
+      href: '/customer/my-classes',
+      isActive: location.pathname.startsWith('/customer/my-classes'),
+      onClick: () => handleNavigation('/customer/my-classes')
     },
     {
       icon: <TrendingUp className="w-5 h-5 stroke-[1.75]" />,

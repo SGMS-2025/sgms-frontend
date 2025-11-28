@@ -145,8 +145,19 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
   };
 
   const validatePassword = (value: string): string => {
-    if (isEditMode) return '';
+    // In edit mode, password is optional (only validate if provided)
+    if (isEditMode) {
+      // If password is provided in edit mode, validate it
+      if (value && value.trim() !== '') {
+        if (value.length < 8) return t('customer_modal.validation.password_length');
+        if (!/[A-Z]/.test(value)) return t('customer_modal.validation.password_uppercase');
+        if (!/[0-9]/.test(value)) return t('customer_modal.validation.password_number');
+        if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(value)) return t('customer_modal.validation.password_special');
+      }
+      return '';
+    }
 
+    // In create mode, password is required
     if (!value.trim()) return t('customer_modal.validation.password_required');
     if (value.length < 8) return t('customer_modal.validation.password_length');
     if (!/[A-Z]/.test(value)) return t('customer_modal.validation.password_uppercase');
@@ -249,7 +260,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
       branchId: formData.branchId || currentBranchId
     };
 
-    if (!isEditMode) {
+    if (formData.password && formData.password.trim() !== '') {
       (payload as typeof payload & { password: string }).password = formData.password;
     }
 

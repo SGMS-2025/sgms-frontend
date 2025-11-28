@@ -1681,6 +1681,7 @@
   "workshift.virtual_shift_note": "Virtual shift - Will be created when you request time off or reschedule",
   "workshift.shift_custom": "Custom Shift",
   "workshift.no_staff_assigned": "No staff assigned",
+  "workshift.day_off": "Day off",
   "workshift.assign_staff": "Assign Staff",
   "workshift.no_shifts_today": "No shifts today",
   "workshift.day.monday": "Monday",
@@ -5404,6 +5405,122 @@
       "equipment": {
         "title": "Equipment Management",
         "description": "This section displays information about training equipment. You can view equipment list, filter by category and location, and access detailed equipment reports."
+      }
+    }
+  },
+  "customerClassCalendar": {
+    "title": "My Classes",
+    "subtitle": "View your enrolled class schedule",
+    "calendar": "Calendar",
+    "daysOfWeek": {
+      "sun": "Sun",
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat"
+    },
+    "schedule": {
+      "title": "Schedule Details",
+      "noClasses": "No classes scheduled for this day",
+      "classesCount": "{{count}} class scheduled",
+      "classesCount_plural": "{{count}} classes scheduled"
+    },
+    "class": {
+      "unknown": "Unknown Class",
+      "trainers": "Trainers",
+      "trainersCount": "Trainers ({{count}})",
+      "description": "Description",
+      "status": {
+        "upcoming": "Upcoming",
+        "ongoing": "Ongoing",
+        "completed": "Completed"
+      }
+    },
+    "trainer": {
+      "title": "Trainer Details",
+      "phone": "Phone",
+      "email": "Email",
+      "defaultJobTitle": "Trainer",
+      "copySuccess": "{{field}} copied to clipboard",
+      "copyError": "Failed to copy to clipboard"
+    },
+    "error": {
+      "loadFailed": "Failed to load class schedule"
+    }
+  },
+  "classDetailModal": {
+    "loading": "Loading...",
+    "error": "Error",
+    "tabs": {
+      "overview": "Overview",
+      "students": "Students",
+      "attendance": "Attendance"
+    },
+    "overview": {
+      "capacity": "Capacity",
+      "members": "members",
+      "slotsAvailable": "slots available",
+      "schedule": "Schedule",
+      "days": "Days",
+      "time": "Time",
+      "location": "Location",
+      "studio": "Studio",
+      "servicePackage": "Service Package",
+      "trainers": "Trainers",
+      "trainerId": "Trainer ID",
+      "description": "Description",
+      "classPeriod": "Class Period"
+    },
+    "students": {
+      "enrolledMembers": "Enrolled Members",
+      "sessions": "Sessions",
+      "remaining": "Remaining",
+      "enrolled": "Enrolled",
+      "noMembers": "No members enrolled yet"
+    },
+    "attendance": {
+      "loadingData": "Loading attendance data...",
+      "totalStudents": "Total Students",
+      "present": "Present",
+      "absent": "Absent",
+      "markAllPresent": "Mark All Present",
+      "markAllAbsent": "Mark All Absent",
+      "attendanceList": "Attendance List",
+      "noActiveStudents": "No active students to mark attendance",
+      "pastDateWarning": "This date is in the past. Attendance cannot be modified.",
+      "saving": "Saving...",
+      "saveAttendance": "Save Attendance",
+      "saveSuccess": "Attendance saved successfully!",
+      "saveError": "Failed to save attendance"
+    },
+    "errors": {
+      "fetchFailed": "Failed to fetch class details",
+      "loadAttendanceFailed": "Failed to load attendance",
+      "noRecords": "No attendance records in response"
+    }
+  },
+  "classesListTab": {
+    "loading": "Loading classes...",
+    "error": "Error loading classes",
+    "noClassesAssigned": "No classes assigned",
+    "noClassesDescription": "This trainer has no active classes.",
+    "noClassesInTimeSlot": "No classes in this time slot",
+    "timeSlot": "{{startTime}} - {{endTime}} on {{dayOfWeek}}",
+    "classCard": {
+      "package": "Package",
+      "time": "Time",
+      "days": "Days",
+      "members": "Members",
+      "type": "Type",
+      "start": "Start",
+      "end": "End",
+      "fullCapacity": "This class is at full capacity",
+      "status": {
+        "ACTIVE": "ACTIVE",
+        "INACTIVE": "INACTIVE",
+        "CANCELLED": "CANCELLED"
       }
     }
   }

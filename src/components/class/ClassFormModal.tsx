@@ -41,44 +41,13 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
       onClose();
       onSuccess?.();
     },
-    onError: (error: unknown) => {
-      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
-      toast.error(errorMessage);
-    }
+    onError: (_error: unknown) => {}
   });
 
   // Data for dropdowns
   const [trainers, setTrainers] = React.useState<Staff[]>([]);
   const [packages, setPackages] = React.useState<ServicePackage[]>([]);
   const [loadingData, setLoadingData] = React.useState(true);
-
-  // Fetch dropdown data
-  React.useEffect(() => {
-    const fetchData = async () => {
-      setLoadingData(true);
-      try {
-        const trainersResp = await staffApi.getStaffList({ limit: 100 });
-        const packagesResp = await packageApi.getPackages({ limit: 100 });
-
-        if (trainersResp?.success && trainersResp.data?.staffList) {
-          setTrainers(trainersResp.data.staffList);
-        }
-
-        if (packagesResp?.success && packagesResp.data?.packages) {
-          const classPackages = packagesResp.data.packages.filter((pkg) => pkg.type === 'CLASS');
-          setPackages(classPackages);
-        }
-      } catch (_error) {
-        toast.error(t('class.form.loading_error'));
-      } finally {
-        setLoadingData(false);
-      }
-    };
-
-    if (isOpen) {
-      fetchData();
-    }
-  }, [isOpen, t]);
 
   // Form setup
   const schema = isEditMode ? updateClassSchema : createClassSchema;
@@ -88,7 +57,9 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
     reset,
     formState: { errors, isSubmitting },
     watch,
-    setValue
+    setValue,
+    getValues,
+    setError
   } = useForm({
     resolver: zodResolver(schema as any),
     defaultValues: {
@@ -111,6 +82,62 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
     }
   });
 
+  // Watch branchId from form to fetch trainers for that branch
+  const formBranchId = watch('branchId');
+
+  // Fetch dropdown data
+  React.useEffect(() => {
+    const fetchData = async () => {
+      setLoadingData(true);
+      // Fetch packages for the specific branch
+      // Only fetch if branchId is available
+      if (formBranchId) {
+        try {
+          const packagesResp = await packageApi.getActivePackagesByBranch(formBranchId);
+          if (packagesResp?.success && packagesResp.data) {
+            // Filter only CLASS type packages
+            const classPackages = Array.isArray(packagesResp.data)
+              ? packagesResp.data.filter((pkg) => pkg.type === 'CLASS')
+              : [];
+            setPackages(classPackages);
+          } else {
+            setPackages([]);
+          }
+        } catch (packageError) {
+          console.error('Failed to fetch packages:', packageError);
+          setPackages([]);
+        }
+      } else {
+        setPackages([]);
+      }
+
+      // Fetch trainers for the specific branch
+      // Only fetch if branchId is available
+      if (formBranchId) {
+        try {
+          const trainersResp = await staffApi.getStaffListByBranch(formBranchId, { limit: 100 });
+          if (trainersResp?.success && trainersResp.data) {
+            // getStaffListByBranch returns array directly, not wrapped in staffList
+            setTrainers(Array.isArray(trainersResp.data) ? trainersResp.data : []);
+          } else {
+            setTrainers([]);
+          }
+        } catch (trainerError) {
+          console.error('Failed to fetch trainers:', trainerError);
+          setTrainers([]);
+        }
+      } else {
+        setTrainers([]);
+      }
+
+      setLoadingData(false);
+    };
+
+    if (isOpen) {
+      fetchData();
+    }
+  }, [isOpen, formBranchId, t]);
+
   // Set default dates on mount
   useEffect(() => {
     if (!isEditMode) {
@@ -131,31 +158,34 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
   // Load existing data when in edit mode
   useEffect(() => {
     if (isEditMode && classData) {
-      try {
-        const pkgId =
-          typeof classData.servicePackageId === 'object' ? classData.servicePackageId._id : classData.servicePackageId;
-        const branchIdVal = typeof classData.branchId === 'object' ? classData.branchId._id : classData.branchId;
+      const pkgId =
+        typeof classData.servicePackageId === 'object' ? classData.servicePackageId._id : classData.servicePackageId;
+      const branchIdVal = typeof classData.branchId === 'object' ? classData.branchId._id : classData.branchId;
 
-        const startDateStr = classData.startDate ? new Date(classData.startDate).toISOString().split('T')[0] : '';
-        const endDateStr = classData.endDate ? new Date(classData.endDate).toISOString().split('T')[0] : '';
+      const startDateStr = classData.startDate ? new Date(classData.startDate).toISOString().split('T')[0] : '';
+      const endDateStr = classData.endDate ? new Date(classData.endDate).toISOString().split('T')[0] : '';
 
-        const dataToReset = {
-          name: classData.name,
-          servicePackageId: pkgId,
-          branchId: branchIdVal,
-          trainerIds: classData.trainerIds.map((t: any) => t._id || t),
-          schedulePattern: classData.schedulePattern,
-          capacity: classData.capacity,
-          startDate: startDateStr,
-          endDate: endDateStr,
-          location: classData.location,
-          description: classData.description
-        };
+      const dataToReset = {
+        name: classData.name,
+        servicePackageId: pkgId,
+        branchId: branchIdVal,
+        trainerIds: classData.trainerIds.map((t) => {
+          // Handle both string and Staff object cases
+          if (typeof t === 'string') {
+            return t;
+          }
+          // t is Staff object
+          return (t as Staff)._id || (t as any)._id || '';
+        }),
+        schedulePattern: classData.schedulePattern,
+        capacity: classData.capacity,
+        startDate: startDateStr,
+        endDate: endDateStr,
+        location: classData.location,
+        description: classData.description
+      };
 
-        reset(dataToReset);
-      } catch (_error) {
-        // Error loading class data - continue with empty form
-      }
+      reset(dataToReset);
     } else if (!isEditMode) {
       reset({
         name: '',
@@ -223,11 +253,94 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
   }, [selectedTrainers, trainers]);
 
   // Form submit
-  const onSubmit = async (data: FormData) => {
-    if (isEditMode && classId) {
-      await updateClass(classId, data);
-    } else {
-      await createClass(data);
+  const onSubmit = async (_data: FormData) => {
+    // FIX: Get current form values directly to avoid stale data
+    const currentValues = getValues();
+
+    try {
+      if (isEditMode && classId) {
+        // Use currentValues instead of data parameter
+        const updatePayload = {
+          ...currentValues,
+          schedulePattern: currentValues.schedulePattern
+            ? {
+                daysOfWeek: [...(currentValues.schedulePattern.daysOfWeek || [])],
+                startTime: currentValues.schedulePattern.startTime || '',
+                endTime: currentValues.schedulePattern.endTime || '',
+                timezone: currentValues.schedulePattern.timezone || 'Asia/Ho_Chi_Minh'
+              }
+            : undefined
+        };
+
+        await updateClass(classId, updatePayload);
+      } else {
+        await createClass(currentValues);
+      }
+    } catch (error) {
+      // Handle all errors inline - no toast notifications
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Check if error is related to trainer time conflict
+      const isTrainerConflict =
+        errorMessage.includes('Trainer has conflicting schedule') ||
+        errorMessage.includes('TRAINER_TIME_CONFLICT') ||
+        errorMessage.includes('already has a class');
+
+      if (isTrainerConflict) {
+        // Set error on trainerIds field for inline display
+        setError('trainerIds', {
+          type: 'server',
+          message: errorMessage
+        });
+      } else {
+        // For other errors, set as general form error
+        // Try to map to specific field if possible, otherwise show at top
+        if (errorMessage.toLowerCase().includes('service package')) {
+          setError('servicePackageId', {
+            type: 'server',
+            message: errorMessage
+          });
+        } else if (errorMessage.toLowerCase().includes('name')) {
+          setError('name', {
+            type: 'server',
+            message: errorMessage
+          });
+        } else if (errorMessage.toLowerCase().includes('capacity')) {
+          setError('capacity', {
+            type: 'server',
+            message: errorMessage
+          });
+        } else if (
+          errorMessage.toLowerCase().includes('date') ||
+          errorMessage.toLowerCase().includes('start') ||
+          errorMessage.toLowerCase().includes('end')
+        ) {
+          if (errorMessage.toLowerCase().includes('start date')) {
+            setError('startDate', {
+              type: 'server',
+              message: errorMessage
+            });
+          } else if (errorMessage.toLowerCase().includes('end date')) {
+            setError('endDate', {
+              type: 'server',
+              message: errorMessage
+            });
+          } else {
+            // General date error - show in validation summary
+            setError('root', {
+              type: 'server',
+              message: errorMessage
+            });
+          }
+        } else {
+          // General error - show in validation summary at top
+          setError('root', {
+            type: 'server',
+            message: errorMessage
+          });
+        }
+      }
+      // Don't re-throw - error is handled inline, prevent onSuccess from being called
     }
   };
 
@@ -277,13 +390,32 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
             {/* Validation Errors Summary */}
             {Object.keys(errors).length > 0 && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-xs font-semibold text-red-700 mb-2">{t('class.form.error_validation_title')}</p>
+                <p className="text-xs font-semibold text-red-700 mb-2 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  {t('class.form.error_validation_title')}
+                </p>
                 <ul className="text-xs text-red-600 space-y-1">
-                  {Object.entries(errors).map(([field, error]: [string, any]) => (
-                    <li key={field}>
-                      • {field}: {error?.message || t('class.form.error_field_invalid')}
-                    </li>
-                  ))}
+                  {Object.entries(errors).map(([field, error]: [string, any]) => {
+                    // Don't show field name for root errors, just the message
+                    if (field === 'root') {
+                      return (
+                        <li key={field} className="flex items-start gap-2">
+                          <span>•</span>
+                          <span>{error?.message || t('class.form.error_field_invalid')}</span>
+                        </li>
+                      );
+                    }
+                    // For field-specific errors, show field name and message
+                    return (
+                      <li key={field} className="flex items-start gap-2">
+                        <span>•</span>
+                        <span>
+                          <span className="font-medium">{field}:</span>{' '}
+                          {error?.message || t('class.form.error_field_invalid')}
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
@@ -523,9 +655,12 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
                     </PopoverContent>
                   </Popover>
                   {errors.trainerIds && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {(errors.trainerIds as any)?.message || t('class.form.error_field_required')}
-                    </p>
+                    <div className="flex items-start gap-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 mt-1">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <span className="flex-1">
+                        {(errors.trainerIds as any)?.message || t('class.form.error_field_required')}
+                      </span>
+                    </div>
                   )}
                 </div>
 

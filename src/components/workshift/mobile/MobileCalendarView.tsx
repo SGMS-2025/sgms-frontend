@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
 import type { TFunction } from 'i18next';
-import { ChevronLeft, ChevronRight, Plus, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Settings, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,8 @@ import { cn } from '@/utils/utils';
 import type { WorkShift, VirtualWorkShift } from '@/types/api/WorkShift';
 import type { BranchWorkingConfig } from '@/types/api/BranchWorkingConfig';
 import { utcToVnTimeString, utcToVnDateString } from '@/utils/datetime';
+import { useClassesByTrainer } from '@/hooks/useClassesByTrainer';
+import { ClassDetailModal } from '../modals/ClassDetailModal';
 
 interface MobileCalendarViewProps {
   selectedDate: Date;
@@ -107,6 +109,12 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
 }) => {
   const { t } = useTranslation();
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [showClassDetail, setShowClassDetail] = useState(false);
+
+  // Fetch classes for current staff
+  const staffId = shifts?.[0]?.staffId?._id;
+  const { classes } = useClassesByTrainer(staffId);
 
   // Get current locale based on i18n language
   const currentLocale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
@@ -142,6 +150,26 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
 
     return days;
   }, [currentMonth]);
+
+  // Find classes that match shift time
+  const getClassesForShift = (shift: WorkShift | VirtualWorkShift) => {
+    if (!classes) return [];
+
+    const shiftStart = shift.startTimeLocal;
+    const shiftEnd = shift.endTimeLocal;
+    const dayOfWeek = shift.dayOfTheWeek;
+
+    return classes.filter((cls) => {
+      if (!cls.schedulePattern) return false;
+      if (!cls.schedulePattern.daysOfWeek?.includes(dayOfWeek)) return false;
+
+      const classStart = cls.schedulePattern.startTime;
+      const classEnd = cls.schedulePattern.endTime;
+
+      // Check if times overlap
+      return classStart <= shiftEnd && classEnd >= shiftStart;
+    });
+  };
 
   // Get shifts count for a day
   const getShiftsForDay = (date: Date | null) => {
@@ -353,54 +381,108 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Assigned Staff */}
+                  {/* Show Classes if available, otherwise show Staff */}
                   {shiftGroup.assigned.length > 0 ? (
                     <div className="space-y-2 mt-3">
-                      {shiftGroup.assigned.map((shift, shiftIndex) => (
-                        <div
-                          key={shift._id || `virtual-${shiftIndex}`}
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => onShiftTap(shift)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              onShiftTap(shift);
-                            }
-                          }}
-                          className="bg-white rounded-lg p-3 flex items-center gap-3 cursor-pointer hover:shadow-md transition-shadow"
-                          aria-label={`${getStaffName(shift.staffId)} - ${shift.status}`}
-                        >
-                          <Avatar className="w-10 h-10 flex-shrink-0">
-                            <AvatarImage src={getStaffAvatar(shift.staffId)} />
-                            <AvatarFallback className="bg-orange-500 text-white text-xs">
-                              {getStaffInitials(shift.staffId)}
-                            </AvatarFallback>
-                          </Avatar>
+                      {shiftGroup.assigned.map((shift, shiftIndex) => {
+                        const matchingClasses = getClassesForShift(shift);
 
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{getStaffName(shift.staffId)}</p>
-                            <p className="text-xs text-gray-500">{shift.staffId?.jobTitle || 'Staff'}</p>
-                          </div>
+                        return (
+                          <div key={shift._id || `virtual-${shiftIndex}`} className="space-y-2">
+                            {/* Show Classes */}
+                            {matchingClasses.length > 0 ? (
+                              matchingClasses.map((cls) => (
+                                <div
+                                  key={`${cls._id}-${shiftIndex}`}
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={() => {
+                                    setSelectedClassId(cls._id);
+                                    setShowClassDetail(true);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.preventDefault();
+                                      setSelectedClassId(cls._id);
+                                      setShowClassDetail(true);
+                                    }
+                                  }}
+                                  className="bg-blue-50 rounded-lg p-3 flex items-start gap-3 cursor-pointer hover:shadow-md transition-shadow border border-blue-100"
+                                  aria-label={`${cls.name}`}
+                                >
+                                  <div className="w-10 h-10 flex-shrink-0 rounded-lg bg-blue-500 flex items-center justify-center text-white">
+                                    <BookOpen className="w-5 h-5" />
+                                  </div>
 
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              'text-xs',
-                              shift.status === 'SCHEDULED' && 'bg-green-100 text-green-800 border-green-200',
-                              shift.status === 'PENDING_TIME_OFF' && 'bg-yellow-100 text-yellow-800 border-yellow-200',
-                              shift.status === 'CANCELLED' && 'bg-red-100 text-red-800 border-red-200',
-                              shift.status === 'COMPLETED' && 'bg-gray-100 text-gray-800 border-gray-200'
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 truncate">{cls.name}</p>
+                                    <p className="text-xs text-gray-600">
+                                      {cls.schedulePattern?.startTime} - {cls.schedulePattern?.endTime}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      👥 {cls.activeEnrollment}/{cls.capacity} members
+                                    </p>
+                                  </div>
+
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs bg-blue-100 text-blue-800 border-blue-200 flex-shrink-0"
+                                  >
+                                    Class
+                                  </Badge>
+                                </div>
+                              ))
+                            ) : (
+                              // Show Staff if no classes
+                              <div
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => onShiftTap(shift)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    onShiftTap(shift);
+                                  }
+                                }}
+                                className="bg-white rounded-lg p-3 flex items-center gap-3 cursor-pointer hover:shadow-md transition-shadow"
+                                aria-label={`${getStaffName(shift.staffId)} - ${shift.status}`}
+                              >
+                                <Avatar className="w-10 h-10 flex-shrink-0">
+                                  <AvatarImage src={getStaffAvatar(shift.staffId)} />
+                                  <AvatarFallback className="bg-orange-500 text-white text-xs">
+                                    {getStaffInitials(shift.staffId)}
+                                  </AvatarFallback>
+                                </Avatar>
+
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {getStaffName(shift.staffId)}
+                                  </p>
+                                  <p className="text-xs text-gray-500">{shift.staffId?.jobTitle || 'Staff'}</p>
+                                </div>
+
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    'text-xs',
+                                    shift.status === 'SCHEDULED' && 'bg-green-100 text-green-800 border-green-200',
+                                    shift.status === 'PENDING_TIME_OFF' &&
+                                      'bg-yellow-100 text-yellow-800 border-yellow-200',
+                                    shift.status === 'CANCELLED' && 'bg-red-100 text-red-800 border-red-200',
+                                    shift.status === 'COMPLETED' && 'bg-gray-100 text-gray-800 border-gray-200'
+                                  )}
+                                >
+                                  {getStatusText(shift.status, t)}
+                                </Badge>
+                              </div>
                             )}
-                          >
-                            {getStatusText(shift.status, t)}
-                          </Badge>
-                        </div>
-                      ))}
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
-                    <div className="mt-3 p-4 border-2 border-dashed border-gray-300 rounded-lg text-center">
-                      <p className="text-xs text-gray-500">{t('workshift.no_staff_assigned')}</p>
+                    <div className="mt-3 p-4 border-2 border-dashed border-gray-300 rounded-lg text-center bg-gray-50">
+                      <p className="text-xs text-gray-500 font-medium">{t('workshift.day_off')}</p>
                       {canEdit && onCreateShift && (
                         <Button
                           variant="ghost"
@@ -434,6 +516,17 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Class Detail Modal */}
+      <ClassDetailModal
+        isOpen={showClassDetail}
+        onClose={() => {
+          setShowClassDetail(false);
+          setSelectedClassId(null);
+        }}
+        classId={selectedClassId || undefined}
+        selectedDate={selectedDate} // Pass selected date from calendar
+      />
     </div>
   );
 };

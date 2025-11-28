@@ -37,7 +37,6 @@ class ClassApi {
       const response = await api.get<{ data: ClassListResponse }>(this.baseURL, { params });
       return convertMongoDecimalToNumbers(response.data.data) as ClassListResponse;
     } catch (error) {
-      console.error('Failed to fetch classes:', error);
       throw this.handleError(error);
     }
   }
@@ -52,7 +51,6 @@ class ClassApi {
       const response = await api.get<ClassDetailResponse>(`${this.baseURL}/${classId}`);
       return convertMongoDecimalToNumbers(response.data.data) as Class;
     } catch (error) {
-      console.error(`Failed to fetch class ${classId}:`, error);
       throw this.handleError(error);
     }
   }
@@ -65,9 +63,27 @@ class ClassApi {
   async createClass(data: CreateClassDTO): Promise<Class> {
     try {
       const response = await api.post<ClassDetailResponse>(this.baseURL, data);
+
+      // Check if response indicates an error (from interceptor)
+      const responseData = response.data as unknown as Record<string, unknown>;
+      if (responseData?.success === false) {
+        const errorMessage =
+          (responseData?.message as string) ||
+          ((responseData?.error as Record<string, unknown>)?.message as string) ||
+          'Failed to create class';
+        const error = new Error(errorMessage);
+        (error as unknown as Record<string, unknown>).status = responseData?.statusCode;
+        (error as unknown as Record<string, unknown>).data = response.data;
+        throw error;
+      }
+
+      // Check if response.data.data exists (successful response structure)
+      if (!responseData?.data) {
+        throw new Error('Invalid response structure: missing data');
+      }
+
       return convertMongoDecimalToNumbers(response.data.data) as Class;
     } catch (error) {
-      console.error('Failed to create class:', error);
       throw this.handleError(error);
     }
   }
@@ -83,7 +99,6 @@ class ClassApi {
       const response = await api.put<ClassDetailResponse>(`${this.baseURL}/${classId}`, data);
       return convertMongoDecimalToNumbers(response.data.data) as Class;
     } catch (error) {
-      console.error(`Failed to update class ${classId}:`, error);
       throw this.handleError(error);
     }
   }
@@ -98,7 +113,6 @@ class ClassApi {
       const response = await api.patch<ClassDetailResponse>(`${this.baseURL}/${classId}/status`);
       return convertMongoDecimalToNumbers(response.data.data) as Class;
     } catch (error) {
-      console.error(`Failed to toggle status for class ${classId}:`, error);
       throw this.handleError(error);
     }
   }
@@ -113,7 +127,6 @@ class ClassApi {
       const response = await api.delete<{ message: string }>(`${this.baseURL}/${classId}`);
       return response.data;
     } catch (error) {
-      console.error(`Failed to delete class ${classId}:`, error);
       throw this.handleError(error);
     }
   }
@@ -139,7 +152,6 @@ class ClassApi {
       );
       return convertMongoDecimalToNumbers(response.data.data) as PendingCustomersResponse;
     } catch (error) {
-      console.error(`Failed to fetch pending customers for class ${classId}:`, error);
       throw this.handleError(error);
     }
   }
@@ -162,7 +174,6 @@ class ClassApi {
       const response = await api.post<{ data: EnrollmentResult }>(`${this.baseURL}/${classId}/enroll`, data);
       return convertMongoDecimalToNumbers(response.data.data) as EnrollmentResult;
     } catch (error) {
-      console.error(`Failed to enroll students to class ${classId}:`, error);
       throw this.handleError(error);
     }
   }
@@ -187,7 +198,6 @@ class ClassApi {
       });
       return convertMongoDecimalToNumbers(response.data.data) as Class;
     } catch (error) {
-      console.error(`Failed to remove student from class ${classId}:`, error);
       throw this.handleError(error);
     }
   }
@@ -215,7 +225,38 @@ class ClassApi {
       });
       return convertMongoDecimalToNumbers(response.data.data) as ScheduleGenerationResult;
     } catch (error) {
-      console.error(`Failed to generate schedules for class ${classId}:`, error);
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Get all classes for a specific trainer (PT)
+   * Used to display PT's classes in the WorkShift detail modal
+   * @param staffId - Staff (trainer) ID
+   * @returns List of classes where this trainer is assigned
+   */
+  async getClassesByTrainer(staffId: string): Promise<Class[]> {
+    try {
+      const response = await api.get<{ data: { classes: Class[] } }>(`${this.baseURL}/trainer/${staffId}`);
+      return convertMongoDecimalToNumbers(response.data.data.classes) as Class[];
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Get customer's enrolled classes schedule for calendar display
+   * Returns recurring schedule instances for 4 weeks with trainer info
+   * @param params - startDate and endDate (optional)
+   * @returns List of class schedule instances with trainer details
+   */
+  async getMyClassSchedule(params?: { startDate?: string; endDate?: string }): Promise<Record<string, unknown>> {
+    try {
+      const response = await api.get<{
+        data: Record<string, unknown>;
+      }>(`${this.baseURL}/my-classes/schedule`, { params });
+      return convertMongoDecimalToNumbers(response.data.data) as Record<string, unknown>;
+    } catch (error) {
       throw this.handleError(error);
     }
   }

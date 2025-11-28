@@ -69,6 +69,7 @@ import CustomerMembership from '@/pages/customer/CustomerMembership';
 import CustomerProfile from '@/pages/customer/CustomerProfile';
 import CustomerDashboard from '@/pages/customer/CustomerDashboard';
 import CustomerContracts from '@/pages/customer/CustomerContracts';
+import ClassCalendarPage from '@/pages/customer/ClassCalendarPage';
 import { CustomerLayout } from '@/layouts/CustomerLayout';
 import BusinessVerificationPage from '@/pages/auth/BusinessVerificationPage';
 import BusinessVerificationManagementPage from '@/pages/admin/BusinessVerificationManagementPage';
@@ -583,6 +584,9 @@ const AppRoutes: React.FC = () => {
 
           {/* Schedule Route */}
           <Route path="schedule" element={<CustomerSchedule />} />
+
+          {/* Classes Calendar Route */}
+          <Route path="my-classes" element={<ClassCalendarPage />} />
 
           {/* Progress Route */}
           <Route path="progress" element={<CustomerProgress />} />
