@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -18,6 +18,11 @@ import { useEnsureWorkShift } from '@/hooks/useEnsureWorkShift';
 import { useBranchWorkingConfig } from '@/hooks/useBranchWorkingConfig';
 import { isVirtualWorkShift } from '@/utils/workshiftUtils';
 import { formatInVietnam } from '@/utils/datetime';
+import { useAuthState } from '@/hooks/useAuth';
+import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
+import { useClassesByTrainer } from '@/hooks/useClassesByTrainer';
+import { ClassesListTab } from './tabs/ClassesListTab';
+import { ClassDetailModal } from './modals/ClassDetailModal';
 
 interface WorkShiftDetailModalWithTimeOffProps extends WorkShiftDetailModalProps {
   selectedDate?: Date;
@@ -37,12 +42,32 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
   const { t } = useTranslation();
   const { canEditWorkshift, canDeleteWorkshift } = useWorkshiftPermissions();
   const { ensureWorkShiftExists, isCreating: isEnsuringWorkshift } = useEnsureWorkShift();
+  const { user } = useAuthState();
+  const { currentStaff } = useCurrentUserStaff();
+
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isDisabling, setIsDisabling] = useState(false);
   const [showConfirmDisable, setShowConfirmDisable] = useState(false);
   const [_error, setError] = useState<string | null>(null);
   const [currentWorkShift, setCurrentWorkShift] = useState<WorkShift | VirtualWorkShift | null>(workShift);
+  const [activeTabValue, setActiveTabValue] = useState('workshift');
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [showClassDetail, setShowClassDetail] = useState(false);
+
+  // Check if current user is a Personal Trainer
+  const isPT = useMemo(() => {
+    return user?.role === 'STAFF' && currentStaff?.jobTitle === 'Personal Trainer';
+  }, [user?.role, currentStaff?.jobTitle]);
+
+  // Fetch classes for PT
+  const classesResult = useClassesByTrainer(
+    isPT && activeTabValue === 'classes' && isOpen ? workShift?.staffId?._id : null
+  );
+
+  const classes = classesResult?.classes || [];
+  const classesLoading = classesResult?.loading || false;
+  const classesError = classesResult?.error || null;
 
   // Get branch working config to auto-adjust endTime
   const branchId = currentWorkShift?.branchId?._id;
@@ -278,9 +303,10 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
           {staffName} - {t('workshift.work_shift')}
         </DialogTitle>
 
-        <Tabs defaultValue="workshift" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs value={activeTabValue} onValueChange={setActiveTabValue} className="w-full">
+          <TabsList className={`grid w-full ${isPT ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <TabsTrigger value="workshift">{t('workshift.work_shift')}</TabsTrigger>
+            {isPT && <TabsTrigger value="classes">My Classes</TabsTrigger>}
             <TabsTrigger value="timeoff">{t('timeoff.out_of_office')}</TabsTrigger>
           </TabsList>
 
@@ -531,6 +557,29 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
             </div>
           </TabsContent>
 
+          {/* Classes Tab - For PT only */}
+          {isPT && (
+            <TabsContent value="classes" className="space-y-6">
+              {ClassesListTab ? (
+                <ClassesListTab
+                  classes={classes || []}
+                  loading={classesLoading || false}
+                  error={classesError || null}
+                  staffId={workShift?.staffId?._id}
+                  filterStartTime={currentWorkShift?.startTimeLocal}
+                  filterEndTime={currentWorkShift?.endTimeLocal}
+                  filterDayOfWeek={currentWorkShift?.dayOfTheWeek}
+                  onClassClick={(classId) => {
+                    setSelectedClassId(classId);
+                    setShowClassDetail(true);
+                  }}
+                />
+              ) : (
+                <div className="text-center py-8 text-gray-500">Classes component not found</div>
+              )}
+            </TabsContent>
+          )}
+
           <TabsContent value="timeoff" className="space-y-6">
             {/* Time Off Request Tab */}
             {isEnsuringWorkshift ? (
@@ -615,6 +664,17 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
             </div>
           </div>
         )}
+
+        {/* Class Detail Modal */}
+        <ClassDetailModal
+          isOpen={showClassDetail}
+          onClose={() => {
+            setShowClassDetail(false);
+            setSelectedClassId(null);
+          }}
+          classId={selectedClassId || undefined}
+          selectedDate={selectedDate} // Pass selected date from calendar
+        />
       </DialogContent>
     </Dialog>
   );

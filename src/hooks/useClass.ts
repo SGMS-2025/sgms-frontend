@@ -19,11 +19,21 @@ export const useClass = (options: UseClassOptions = {}) => {
     async (data: CreateClassDTO) => {
       setLoading(true);
       setError(null);
-      const response = await classApi.createClass(data);
-      toast.success('Class created successfully');
-      options.onSuccess?.();
-      setLoading(false);
-      return response;
+
+      return classApi
+        .createClass(data)
+        .then((response) => {
+          options.onSuccess?.();
+          setLoading(false);
+          return response;
+        })
+        .catch((error) => {
+          const errorObj = error instanceof Error ? error : new Error('Failed to create class');
+          setError(errorObj.message);
+          options.onError?.(errorObj);
+          setLoading(false);
+          throw error;
+        });
     },
     [options]
   );
@@ -35,11 +45,21 @@ export const useClass = (options: UseClassOptions = {}) => {
     async (classId: string, data: UpdateClassDTO) => {
       setLoading(true);
       setError(null);
-      const response = await classApi.updateClass(classId, data);
-      toast.success('Class updated successfully');
-      options.onSuccess?.();
-      setLoading(false);
-      return response;
+
+      return classApi
+        .updateClass(classId, data)
+        .then((response) => {
+          options.onSuccess?.();
+          setLoading(false);
+          return response;
+        })
+        .catch((error) => {
+          const errorObj = error instanceof Error ? error : new Error('Failed to update class');
+          setError(errorObj.message);
+          options.onError?.(errorObj);
+          setLoading(false);
+          throw error;
+        });
     },
     [options]
   );
@@ -51,12 +71,23 @@ export const useClass = (options: UseClassOptions = {}) => {
     async (classId: string) => {
       setLoading(true);
       setError(null);
-      const response = await classApi.toggleClassStatus(classId);
-      const newStatus = response.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-      toast.success(`Class status updated to ${newStatus}`);
-      options.onSuccess?.();
-      setLoading(false);
-      return response;
+
+      return classApi
+        .toggleClassStatus(classId)
+        .then((response) => {
+          const newStatus = response.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+          toast.success(`Class status updated to ${newStatus}`);
+          options.onSuccess?.();
+          setLoading(false);
+          return response;
+        })
+        .catch((error) => {
+          const errorObj = error instanceof Error ? error : new Error('Failed to toggle class status');
+          setError(errorObj.message);
+          options.onError?.(errorObj);
+          setLoading(false);
+          throw error;
+        });
     },
     [options]
   );
@@ -68,11 +99,22 @@ export const useClass = (options: UseClassOptions = {}) => {
     async (classId: string) => {
       setLoading(true);
       setError(null);
-      const response = await classApi.deleteClass(classId);
-      toast.success('Class deleted successfully');
-      options.onSuccess?.();
-      setLoading(false);
-      return response;
+
+      return classApi
+        .deleteClass(classId)
+        .then((response) => {
+          toast.success('Class deleted successfully');
+          options.onSuccess?.();
+          setLoading(false);
+          return response;
+        })
+        .catch((error) => {
+          const errorObj = error instanceof Error ? error : new Error('Failed to delete class');
+          setError(errorObj.message);
+          options.onError?.(errorObj);
+          setLoading(false);
+          throw error;
+        });
     },
     [options]
   );
