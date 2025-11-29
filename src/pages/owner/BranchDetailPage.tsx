@@ -362,12 +362,13 @@ const BranchDetailPage: React.FC = () => {
         ? [branch.managerId]
         : [];
 
+  const openingHoursValue = branch.openingHours as unknown;
   const formattedOpeningHours =
-    typeof branch.openingHours === 'string'
-      ? branch.openingHours.includes('-')
-        ? branch.openingHours.replace('-', ' - ')
-        : branch.openingHours
-      : `${branch.openingHours?.open || '06:00'} - ${branch.openingHours?.close || '21:00'}`;
+    typeof openingHoursValue === 'string'
+      ? openingHoursValue.includes('-')
+        ? openingHoursValue.replace('-', ' - ')
+        : openingHoursValue
+      : `${(branch.openingHours as { open?: string; close?: string })?.open || '06:00'} - ${(branch.openingHours as { open?: string; close?: string })?.close || '21:00'}`;
 
   const facilityCount = branch.facilities?.length || 0;
   const visibleManagers = showAllManagers ? activeManagers : activeManagers.slice(0, 4);
