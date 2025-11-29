@@ -17,10 +17,18 @@ import {
   AlertCircle,
   LogIn,
   Trash2,
-  Camera
+  Camera,
+  Shield,
+  Sparkles,
+  Clock3,
+  ArrowRight,
+  ShieldCheck,
+  Link2,
+  Check
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { userApi } from '@/services/api/userApi';
+import { authApi } from '@/services/api/authApi';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import type { UpdateProfileData, User as ApiUser, ProfileUserData } from '@/types/api/User';
@@ -28,7 +36,8 @@ import { validateFormData } from '@/utils/validation';
 import { useAuthActions } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { FormField } from '@/components/profile/FormField';
-import { ZaloAccountSection } from '@/components/profile/ZaloAccountSection';
+import { ChangePasswordForm } from '@/components/forms/ChangePasswordForm';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   formatDateToVietnamese,
   normalizeGenderForApi,
@@ -43,7 +52,9 @@ const CustomerProfile: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLinkingZalo, setIsLinkingZalo] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState('personal');
   const { state } = useAuth();
   const { updateUser } = useAuthActions();
   const isMobile = useIsMobile();
@@ -72,6 +83,25 @@ const CustomerProfile: React.FC = () => {
     bio: '',
     avatar: ''
   });
+
+  const profileFields = [
+    { key: 'fullName', label: t('customer.profile.full_name'), value: formData.fullName },
+    { key: 'phoneNumber', label: t('customer.profile.phone'), value: formData.phoneNumber },
+    { key: 'address', label: t('customer.profile.address'), value: formData.address },
+    { key: 'dateOfBirth', label: t('customer.profile.birth_date'), value: formData.dateOfBirth },
+    { key: 'bio', label: t('customer.profile.bio'), value: formData.bio }
+  ];
+
+  const completedFields = profileFields.filter((field) => field.value && field.value.toString().trim());
+  const profileCompletion = Math.round((completedFields.length / profileFields.length) * 100);
+  const missingFields = profileFields.filter((field) => !field.value || !field.value.toString().trim());
+  const memberSinceText = state.user?.createdAt
+    ? new Date(state.user.createdAt).toLocaleDateString('vi-VN')
+    : t('customer.profile.not_updated');
+  const memberDurationText = state.user?.createdAt
+    ? getMembershipDurationText(state.user.createdAt, t)
+    : t('customer.profile.member');
+  const hasZaloLinked = Boolean(state.user?.zaloUserId);
 
   // Extract user data mapping logic
   const mapUserDataFromResponse = (responseData: ApiUser) => {
@@ -336,6 +366,18 @@ const CustomerProfile: React.FC = () => {
     setIsUploading(false);
   };
 
+  const handleLinkZalo = () => {
+    if (hasZaloLinked) return;
+    try {
+      setIsLinkingZalo(true);
+      authApi.linkZaloAccount();
+    } catch (error) {
+      console.error('Failed to initiate Zalo linking:', error);
+      toast.error(t('error.common'));
+      setIsLinkingZalo(false);
+    }
+  };
+
   // Loading screen component
   const renderLoadingScreen = () => (
     <div className="flex flex-col items-center justify-center py-20">
@@ -482,8 +524,11 @@ const CustomerProfile: React.FC = () => {
   );
 
   // Edit buttons
-  const EditButton: React.FC = () => {
+  const EditButton: React.FC<{ className?: string }> = ({ className }) => {
     const handleClick = isEditing ? handleCancelEdit : () => setIsEditing(true);
+    const baseClasses = isEditing
+      ? 'bg-white text-orange-600 border-white/60 hover:bg-white/90'
+      : 'bg-white/10 text-white border-white/30 hover:bg-white/20';
 
     const getButtonText = () => {
       if (isEditing) {
@@ -497,7 +542,7 @@ const CustomerProfile: React.FC = () => {
         variant="outline"
         size={isMobile ? 'sm' : 'default'}
         onClick={handleClick}
-        className="text-orange-600 border-orange-200 hover:bg-orange-50 px-4 py-2 h-auto rounded-lg font-medium"
+        className={`backdrop-blur px-4 py-2 h-auto rounded-lg font-semibold shadow-sm ${baseClasses} ${className || ''}`}
         disabled={isSaving}
       >
         <Edit3 className="w-4 h-4 mr-2" />
@@ -511,34 +556,40 @@ const CustomerProfile: React.FC = () => {
     if (!isEditing) return null;
 
     return (
-      <div className={`flex ${isMobile ? 'flex-col' : ''} gap-3 pt-6 border-t border-gray-200`}>
-        <Button
-          className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg transform hover:scale-105 transition-all duration-200 px-8 py-3 rounded-lg font-medium"
-          onClick={handleSaveProfile}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              {isMobile ? t('customer.profile.saving') : t('customer.profile.saving_changes')}
-            </>
-          ) : (
-            <>
-              <CheckCircle className="w-4 h-4 mr-2" />
-              {isMobile ? t('customer.profile.save') : t('customer.profile.save_changes')}
-            </>
-          )}
-        </Button>
-        {!isMobile && (
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <CheckCircle className="w-4 h-4 text-orange-500" />
+          <span>{t('customer.profile.subtitle')}</span>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
           <Button
-            variant="outline"
-            onClick={handleCancelEdit}
+            className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-md px-6 py-3 rounded-lg font-semibold"
+            onClick={handleSaveProfile}
             disabled={isSaving}
-            className="border-gray-200 hover:bg-gray-50 px-8 py-3 rounded-lg font-medium"
           >
-            {t('customer.profile.cancel')}
+            {isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {isMobile ? t('customer.profile.saving') : t('customer.profile.saving_changes')}
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4 mr-2" />
+                {isMobile ? t('customer.profile.save') : t('customer.profile.save_changes')}
+              </>
+            )}
           </Button>
-        )}
+          {!isMobile && (
+            <Button
+              variant="outline"
+              onClick={handleCancelEdit}
+              disabled={isSaving}
+              className="border-gray-200 hover:bg-gray-50 px-6 py-3 rounded-lg font-semibold"
+            >
+              {t('customer.profile.cancel')}
+            </Button>
+          )}
+        </div>
       </div>
     );
   };
@@ -554,49 +605,39 @@ const CustomerProfile: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 pb-32">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('customer.profile.title')}</h1>
-        <p className="text-gray-600 mt-2">{t('customer.profile.subtitle')}</p>
-      </div>
+    <div className="space-y-6 pb-28">
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-orange-600 text-white shadow-xl">
+        <div className="absolute inset-0 opacity-50 bg-[radial-gradient(circle_at_20%_20%,#fef3c7,transparent_30%),radial-gradient(circle_at_80%_0%,#fb923c,transparent_25%)]" />
+        <div className="absolute -right-24 -bottom-24 w-80 h-80 bg-white/10 blur-3xl rounded-full" />
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
-        {/* Profile Overview */}
-        <Card className="xl:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-lg sm:text-xl">{t('customer.profile.overview')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col items-center space-y-4">
-              {/* 🎨 AVATAR UPLOAD COMPONENT */}
+        <div className="relative p-6 sm:p-10 space-y-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="flex items-start gap-4">
               <div className="relative">
-                {/* Hidden file input */}
                 <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
 
-                {/* Clickable Avatar */}
                 <button
                   type="button"
-                  className="relative cursor-pointer group bg-transparent border-0 p-0 focus:outline-none focus:ring-4 focus:ring-orange-200 rounded-full"
+                  className="relative cursor-pointer group bg-white/10 border border-white/20 p-1 rounded-full focus:outline-none focus:ring-4 focus:ring-white/30 transition"
                   onClick={handleAvatarClick}
                   aria-label={t('customer.profile.avatar_change')}
                   disabled={isUploading}
                 >
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 bg-orange-500 rounded-full flex items-center justify-center relative overflow-hidden border-4 border-white shadow-lg">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 bg-orange-500 rounded-full flex items-center justify-center relative overflow-hidden border-4 border-white/60 shadow-lg">
                     {userData.avatar ? (
                       <img src={userData.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
                     ) : (
-                      <div className="w-full h-full rounded-full bg-orange-500 flex items-center justify-center text-white text-xl font-bold">
+                      <div className="w-full h-full rounded-full bg-orange-500 flex items-center justify-center text-white text-2xl font-bold">
                         {getUserInitials(userData.name)}
                       </div>
                     )}
 
-                    {/* Upload Overlay */}
                     <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 group-focus:opacity-100 flex items-center justify-center transition-all duration-300 transform group-hover:scale-105">
                       {isUploading ? (
                         <Loader2 className="w-6 h-6 text-white animate-spin" />
                       ) : (
                         <div className="text-center">
-                          <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-white mx-auto mb-1" />
+                          <Camera className="w-6 h-6 text-white mx-auto mb-1" />
                           <span className="text-xs text-white font-medium">
                             {t('customer.profile.avatar_change_btn')}
                           </span>
@@ -605,152 +646,401 @@ const CustomerProfile: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Delete button - chỉ hiện khi có avatar */}
                   {userData.avatar && !isUploading && (
                     <Button
-                      variant="destructive"
+                      variant="secondary"
                       size="icon"
-                      className="absolute -top-1 -right-1 w-6 h-6 sm:w-8 sm:h-8 rounded-full p-1 shadow-lg hover:scale-110 transition-transform"
+                      className="absolute -top-2 -right-2 w-7 h-7 sm:w-8 sm:h-8 rounded-full p-1 shadow-md bg-white/90 text-red-600 border border-white/40 hover:bg-white"
                       onClick={(e) => {
-                        e.stopPropagation(); // Ngăn click event bubble lên avatar
+                        e.stopPropagation();
                         handleDeleteAvatar();
                       }}
                       disabled={isUploading}
                     >
-                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </Button>
                   )}
                 </button>
               </div>
-              <div className="text-center">
-                <h3 className="text-base sm:text-lg font-semibold">
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-white/80">
+                  <Sparkles className="w-4 h-4" />
+                  <span>{t('customer.profile.title')}</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-bold leading-tight">
                   {userData.name || t('customer.profile.not_updated')}
-                </h3>
-                <p className="text-sm text-gray-500">{t('customer.profile.member')}</p>
-                <p className="text-xs text-gray-400">
-                  {state.user?.createdAt
-                    ? `${t('customer.profile.member_duration')} ${getMembershipDurationText(state.user.createdAt, t)}`
-                    : `${t('customer.profile.member_since')} ${new Date().getFullYear()}`}
+                </h1>
+                <div className="flex flex-wrap items-center gap-2 text-sm text-white/80">
+                  <Badge variant="secondary" className="bg-white/15 text-white border-white/20">
+                    {memberDurationText}
+                  </Badge>
+                  <span className="flex items-center gap-1">
+                    <Clock3 className="w-4 h-4" />
+                    {memberSinceText}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-sm text-white/80">
+                  <span className="flex items-center gap-1">
+                    <Mail className="w-4 h-4" />
+                    {userData.email}
+                  </span>
+                  {userData.phone && (
+                    <span className="flex items-center gap-1">
+                      <Phone className="w-4 h-4" />
+                      {userData.phone}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setActiveTab('security')}
+                className="bg-white/10 text-white border-white/30 hover:bg-white/20 px-4 py-2 h-auto rounded-lg font-semibold backdrop-blur"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                {t('customer.profile.security_login')}
+              </Button>
+              <EditButton className="bg-white text-orange-600 border-white/70 hover:bg-white/90" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="rounded-2xl border border-white/15 bg-white/10 backdrop-blur p-4 flex items-start gap-3">
+              <div className="rounded-xl bg-white/15 p-2">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-white/70">{t('customer.profile.profile_label')}</p>
+                <p className="text-lg font-semibold">
+                  {profileCompletion}% {t('customer.profile.complete')}
+                </p>
+                <p className="text-sm text-white/80">
+                  {missingFields.length > 0
+                    ? t('customer.profile.items_to_add', { count: missingFields.length })
+                    : t('customer.profile.all_main_info_complete')}
                 </p>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3 text-sm">
-                <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <span className="truncate">{userData.email}</span>
+            <div className="rounded-2xl border border-white/15 bg-white/10 backdrop-blur p-4 flex items-start gap-3">
+              <div className="rounded-xl bg-white/15 p-2">
+                <Clock3 className="w-5 h-5 text-white" />
               </div>
-              <div className="flex items-center space-x-3 text-sm">
-                <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <span>{userData.phone || t('customer.profile.not_updated')}</span>
-              </div>
-              <div className="flex items-center space-x-3 text-sm">
-                <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <span className="truncate">{userData.address || t('customer.profile.not_updated')}</span>
-              </div>
-              <div className="flex items-center space-x-3 text-sm">
-                <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <span>
-                  {t('customer.profile.born')}: {userData.birthDate || t('customer.profile.not_updated')}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Profile Form */}
-        <Card className="xl:col-span-2">
-          <CardHeader className={`${isMobile ? 'pb-4' : 'flex flex-row items-center justify-between pb-6'}`}>
-            <CardTitle className="text-lg sm:text-xl">{t('customer.profile.personal_info')}</CardTitle>
-
-            {isMobile && (
-              <div className="flex justify-end mt-4">
-                <EditButton />
-              </div>
-            )}
-
-            {!isMobile && <EditButton />}
-          </CardHeader>
-
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                id="name"
-                label={t('customer.profile.full_name')}
-                icon={User}
-                value={formData.fullName || ''}
-                placeholder={t('customer.profile.full_name_placeholder')}
-                isEditing={isEditing}
-                onChange={handleInputChange}
-                error={validationErrors.fullName}
-                required={true}
-              />
-
-              <BirthDateField />
-
-              <FormField
-                id="phone"
-                label={t('customer.profile.phone')}
-                icon={Phone}
-                value={formData.phoneNumber || ''}
-                placeholder={t('customer.profile.phone_placeholder')}
-                isEditing={isEditing}
-                onChange={handleInputChange}
-                error={validationErrors.phoneNumber}
-              />
-
-              <GenderField />
-
-              <div className="md:col-span-2">
-                <FormField
-                  id="address"
-                  label={t('customer.profile.address')}
-                  icon={MapPin}
-                  value={formData.address || ''}
-                  placeholder={t('customer.profile.address_placeholder')}
-                  isEditing={isEditing}
-                  onChange={handleInputChange}
-                  error={validationErrors.address}
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <EmailField />
-              </div>
-
-              <div className="md:col-span-2">
-                <FormField
-                  id="bio"
-                  label={t('customer.profile.bio')}
-                  icon={User}
-                  value={formData.bio || ''}
-                  placeholder={t('customer.profile.bio_placeholder')}
-                  isEditing={isEditing}
-                  onChange={handleInputChange}
-                  isTextarea={true}
-                  rows={4}
-                  error={validationErrors.bio}
-                />
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-white/70">{t('customer.profile.member_label')}</p>
+                <p className="text-lg font-semibold">{memberDurationText}</p>
+                <p className="text-sm text-white/80">
+                  {t('customer.profile.from')} {memberSinceText}
+                </p>
               </div>
             </div>
 
-            <SaveActions />
-          </CardContent>
-        </Card>
+            <div className="rounded-2xl border border-white/15 bg-white/10 backdrop-blur p-4 flex items-start gap-3">
+              <div className="rounded-xl bg-white/15 p-2">
+                <Phone className="w-5 h-5 text-white" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-wide text-white/70">{t('customer.profile.contact')}</p>
+                <p className="text-lg font-semibold">{userData.phone || t('customer.profile.not_updated')}</p>
+                <p className="text-sm text-white/80 truncate">{userData.address || t('customer.profile.address')}</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('security')}
+              className="rounded-2xl border border-white/15 bg-white/10 backdrop-blur p-4 flex items-start gap-3 text-left hover:bg-white/15 transition group"
+            >
+              <div className="rounded-xl bg-white/15 p-2">
+                <Shield className="w-5 h-5 text-white" />
+              </div>
+              <div className="space-y-1 flex-1">
+                <p className="text-xs uppercase tracking-wide text-white/70">{t('customer.profile.security')}</p>
+                <p className="text-lg font-semibold">{t('customer.profile.update_password')}</p>
+                <p className="text-sm text-white/80 flex items-center gap-1">
+                  {t('customer.profile.open_security_settings')}{' '}
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
+                </p>
+              </div>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="space-y-4">
+          <Card className="border border-gray-100 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base text-gray-900 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-orange-500" />
+                {t('customer.profile.quick_overview')}
+              </CardTitle>
+              <p className="text-sm text-gray-600">{t('customer.profile.contact_personal_info')}</p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {[
+                { icon: Mail, label: t('customer.profile.email'), value: userData.email },
+                {
+                  icon: Phone,
+                  label: t('customer.profile.phone'),
+                  value: userData.phone || t('customer.profile.not_updated')
+                },
+                {
+                  icon: MapPin,
+                  label: t('customer.profile.address'),
+                  value: userData.address || t('customer.profile.address_placeholder')
+                },
+                {
+                  icon: Calendar,
+                  label: t('customer.profile.birth_date'),
+                  value: userData.birthDate || t('customer.profile.not_updated')
+                }
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-start gap-3 rounded-lg border border-gray-100/80 bg-gray-50/60 px-3 py-2"
+                >
+                  <item.icon className="w-4 h-4 text-orange-500 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="text-xs uppercase tracking-wide text-gray-500">{item.label}</p>
+                    <p className="text-sm font-semibold text-gray-900 break-words">{item.value}</p>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card className="border border-gray-100 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base text-gray-900 flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-orange-500" />
+                {t('customer.profile.profile_progress')}
+              </CardTitle>
+              <p className="text-sm text-gray-600">{t('customer.profile.profile_progress_description')}</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">{t('customer.profile.completion_level')}</span>
+                <span className="text-gray-900 font-semibold">{profileCompletion}%</span>
+              </div>
+              <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-500 transition-all"
+                  style={{ width: `${profileCompletion}%` }}
+                />
+              </div>
+              {missingFields.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">{t('customer.profile.missing_items')}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {missingFields.map((field) => (
+                      <Badge
+                        key={field.key}
+                        variant="secondary"
+                        className="bg-orange-50 text-orange-700 border-orange-100"
+                      >
+                        {field.label}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
+                  <CheckCircle className="w-4 h-4" />
+                  {t('customer.profile.profile_complete')}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border border-gray-100 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base text-gray-900 flex items-center gap-2">
+                <Link2 className="w-4 h-4 text-orange-500" />
+                {t('customer.profile.zalo_account')}
+              </CardTitle>
+              <p className="text-sm text-gray-600">{t('customer.profile.zalo_account_description')}</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-3 space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-700">{t('customer.profile.status')}</span>
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
+                        hasZaloLinked
+                          ? 'bg-green-50 text-green-700 border border-green-100'
+                          : 'bg-orange-50 text-orange-700 border border-orange-100'
+                      }`}
+                    >
+                      {hasZaloLinked ? (
+                        <>
+                          <Check className="w-4 h-4" /> {t('customer.profile.linked')}
+                        </>
+                      ) : (
+                        <>
+                          <Link2 className="w-4 h-4" /> {t('customer.profile.not_linked')}
+                        </>
+                      )}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-700 rounded-md bg-white border border-dashed border-gray-200 px-3 py-2 flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-gray-500" />
+                    <span className="truncate">{userData.email || t('customer.profile.email')}</span>
+                  </div>
+                  <p className="text-xs text-gray-500">{t('customer.profile.zalo_connect_description')}</p>
+                </div>
+                <Button
+                  variant={hasZaloLinked ? 'secondary' : 'default'}
+                  className={`w-full justify-center ${hasZaloLinked ? 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-100' : 'bg-orange-500 hover:bg-orange-600 text-white'}`}
+                  onClick={handleLinkZalo}
+                  disabled={hasZaloLinked || isLinkingZalo}
+                >
+                  {hasZaloLinked
+                    ? t('customer.profile.linked')
+                    : isLinkingZalo
+                      ? t('auth.sending')
+                      : t('customer.profile.link_zalo')}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="xl:col-span-2 space-y-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
+            <TabsList className="w-full bg-white border border-gray-200 shadow-sm rounded-2xl p-1 flex">
+              <TabsTrigger
+                value="personal"
+                className="flex-1 rounded-xl px-4 py-3 text-base font-semibold data-[state=active]:bg-orange-50 data-[state=active]:text-orange-700 data-[state=active]:shadow-sm"
+              >
+                <User className="w-4 h-4" />
+                <span>{isMobile ? t('customer.profile.personal') : t('customer.profile.personal_info_tab')}</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="security"
+                className="flex-1 rounded-xl px-4 py-3 text-base font-semibold data-[state=active]:bg-orange-50 data-[state=active]:text-orange-700 data-[state=active]:shadow-sm"
+              >
+                <Shield className="w-4 h-4" />
+                <span>{isMobile ? t('customer.profile.security') : t('customer.profile.security_password')}</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="personal" className="mt-2">
+              <Card className="border border-gray-100 shadow-sm overflow-hidden">
+                <CardHeader className="bg-gray-50/80 border-b border-gray-100">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-600">{t('customer.profile.subtitle')}</p>
+                      <CardTitle className="text-xl text-gray-900">{t('customer.profile.personal_info')}</CardTitle>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge
+                        variant="secondary"
+                        className={
+                          isEditing
+                            ? 'bg-orange-100 text-orange-700 border-orange-200'
+                            : 'bg-green-50 text-green-700 border-green-200'
+                        }
+                      >
+                        {isEditing ? t('customer.profile.editing') : t('customer.profile.saved')}
+                      </Badge>
+                      <EditButton className="bg-orange-50 text-orange-700 border-orange-100 hover:bg-orange-100" />
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="space-y-8 pt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      id="name"
+                      label={t('customer.profile.full_name')}
+                      icon={User}
+                      value={formData.fullName || ''}
+                      placeholder={t('customer.profile.full_name_placeholder')}
+                      isEditing={isEditing}
+                      onChange={handleInputChange}
+                      error={validationErrors.fullName}
+                      required={true}
+                    />
+
+                    <BirthDateField />
+
+                    <FormField
+                      id="phone"
+                      label={t('customer.profile.phone')}
+                      icon={Phone}
+                      value={formData.phoneNumber || ''}
+                      placeholder={t('customer.profile.phone_placeholder')}
+                      isEditing={isEditing}
+                      onChange={handleInputChange}
+                      error={validationErrors.phoneNumber}
+                    />
+
+                    <GenderField />
+
+                    <div className="md:col-span-2">
+                      <FormField
+                        id="address"
+                        label={t('customer.profile.address')}
+                        icon={MapPin}
+                        value={formData.address || ''}
+                        placeholder={t('customer.profile.address_placeholder')}
+                        isEditing={isEditing}
+                        onChange={handleInputChange}
+                        error={validationErrors.address}
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <EmailField />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <FormField
+                        id="bio"
+                        label={t('customer.profile.bio')}
+                        icon={User}
+                        value={formData.bio || ''}
+                        placeholder={t('customer.profile.bio_placeholder')}
+                        isEditing={isEditing}
+                        onChange={handleInputChange}
+                        isTextarea={true}
+                        rows={4}
+                        error={validationErrors.bio}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+
+                {isEditing && (
+                  <div className="border-t border-gray-100 bg-gray-50 px-6 py-4">
+                    <SaveActions />
+                  </div>
+                )}
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="security" className="mt-2">
+              <Card className="border border-gray-100 shadow-sm overflow-hidden">
+                <CardHeader className="bg-gray-50/80 border-b border-gray-100">
+                  <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-orange-500" />
+                    {t('customer.profile.change_password')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <ChangePasswordForm />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
-
-      {/* Zalo Account Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg sm:text-xl">{t('customer.profile.security_settings')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ZaloAccountSection />
-        </CardContent>
-      </Card>
-
-      {/* Extra space to ensure scroll works */}
-      <div className="h-20 sm:h-8"></div>
     </div>
   );
 };

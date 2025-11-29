@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MapPin, Building, Plus, Circle, CheckCircle } from 'lucide-react';
 import type { BranchDisplay } from '@/types/api/Branch';
+import { useAuthState } from '@/hooks/useAuth';
+import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 
 interface BranchSelectorModalProps {
   isOpen: boolean;
@@ -30,6 +32,14 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useAuthState();
+  const { currentStaff } = useCurrentUserStaff();
+
+  // Check if user is Staff with restricted job titles (Manager, PT, Technician)
+  const isRestrictedStaff =
+    user?.role === 'STAFF' &&
+    currentStaff &&
+    ['Manager', 'Personal Trainer', 'Technician'].includes(currentStaff.jobTitle);
 
   const handleBranchSelect = (branch: BranchDisplay) => {
     onBranchSelect(branch);
@@ -208,18 +218,20 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
           </div>
 
           {/* Add New Branch Button */}
-          <button
-            type="button"
-            className="w-full flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
-            onClick={handleAddBranch}
-          >
-            <div className="h-10 w-10 bg-orange-500 rounded-full flex items-center justify-center">
-              <Plus className="h-5 w-5 text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="font-bold text-gray-800 text-sm">{t('branch_selector.add_branch')}</p>
-            </div>
-          </button>
+          {!isRestrictedStaff && (
+            <button
+              type="button"
+              className="w-full flex items-center space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+              onClick={handleAddBranch}
+            >
+              <div className="h-10 w-10 bg-orange-500 rounded-full flex items-center justify-center">
+                <Plus className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-gray-800 text-sm">{t('branch_selector.add_branch')}</p>
+              </div>
+            </button>
+          )}
         </div>
       </div>
     </dialog>

@@ -223,6 +223,32 @@ const CustomerDetailPage: React.FC = () => {
     };
   }, [id, fetchCustomerDetail]);
 
+  // Redirect to customers list when branch changes while on detail page
+  const previousBranchIdRef = useRef<string | undefined>(undefined);
+  const isInitialMountRef = useRef(true);
+
+  useEffect(() => {
+    // Skip on initial mount
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      previousBranchIdRef.current = currentBranch?._id;
+      return;
+    }
+
+    const previousBranchId = previousBranchIdRef.current;
+    const currentBranchId = currentBranch?._id;
+
+    // If branch changed (and we had a previous branch), redirect to customers list
+    if (previousBranchId && currentBranchId && previousBranchId !== currentBranchId) {
+      console.log('[CustomerDetailPage] Branch changed, redirecting to customers list');
+      navigate('/manage/customers');
+      return;
+    }
+
+    // Update ref for next comparison
+    previousBranchIdRef.current = currentBranchId;
+  }, [currentBranch?._id, navigate]);
+
   // Listen for membership contract updates (realtime)
   // useCallback ensures stable reference to prevent memory leaks
   const handleMembershipContractUpdate = useCallback(
