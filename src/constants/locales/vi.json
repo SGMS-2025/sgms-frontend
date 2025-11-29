@@ -5364,13 +5364,27 @@
     "load_more": "Tải thêm",
     "no_messages": "Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện!",
     "type_message": "Nhập tin nhắn...",
+    "empty_state": {
+      "subtitle": "Chúng ta nên bắt đầu từ đâu?",
+      "title": "Chúng ta nên bắt đầu từ đâu?",
+      "placeholder": "Hỏi bất kỳ điều gì"
+    },
     "input": {
       "placeholder": "Hỏi bất kỳ điều gì"
     },
     "send_message": "Gửi tin nhắn",
+    "thinking_indicator": "Sgms AI đang suy nghĩ...",
+    "fetch_rooms_error": "Không thể tải danh sách đoạn chat",
+    "fetch_messages_error": "Không thể tải tin nhắn",
+    "send_message_error": "Không thể gửi tin nhắn",
+    "room_cleared": "Đoạn chat đã được xóa",
+    "clear_room_error": "Không thể xóa đoạn chat",
     "clear_conversation": "Xóa cuộc trò chuyện",
     "clear_conversation_description": "Bạn có chắc chắn muốn xóa {{roomName}}? Hành động này không thể hoàn tác.",
-    "yesterday": "Hôm qua"
+    "yesterday": "Hôm qua",
+    "errors": {
+      "chat_ai_unavailable": "Sgms AI tạm thời không khả dụng. Vui lòng thử lại sau. / Sgms AI is temporarily unavailable. Please try again later."
+    }
   },
   "overview": {
     "tour": {

@@ -33,7 +33,10 @@ export const chatApi = {
 
   // Send a message
   sendMessage: async (data: SendMessageRequest): Promise<ApiResponse<SendMessageResponse>> => {
-    const response = await api.post('/chat/messages', data);
+    const response = await api.post('/chat/messages', data, {
+      // @ts-expect-error Custom flag consumed by interceptor to suppress default toast
+      skipErrorToast: true
+    });
     return response.data;
   },
 

@@ -5364,13 +5364,27 @@
     "load_more": "Load More",
     "no_messages": "No messages yet. Start the conversation!",
     "type_message": "Type your message...",
+    "empty_state": {
+      "subtitle": "Where should we start?",
+      "title": "Where should we start?",
+      "placeholder": "Ask anything"
+    },
     "input": {
       "placeholder": "Ask anything"
     },
     "send_message": "Send message",
+    "thinking_indicator": "Sgms AI is thinking...",
+    "fetch_rooms_error": "Failed to fetch chat rooms",
+    "fetch_messages_error": "Failed to fetch messages",
+    "send_message_error": "Failed to send message",
+    "room_cleared": "Chat session cleared",
+    "clear_room_error": "Failed to clear room",
     "clear_conversation": "Clear Conversation",
     "clear_conversation_description": "Are you sure you want to delete {{roomName}}? This action cannot be undone.",
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "errors": {
+      "chat_ai_unavailable": "Sgms AI is temporarily unavailable. Please try again later. / Sgms AI tạm thời không khả dụng. Vui lòng thử lại sau."
+    }
   },
   "overview": {
     "tour": {

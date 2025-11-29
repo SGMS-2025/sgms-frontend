@@ -18,6 +18,7 @@ export interface ChatConversationPanelProps {
   selectedSessionId: string | null;
   room?: ChatRoom | null;
   messages: ChatMessage[];
+  showBotTyping: boolean;
   messagesLoading: boolean;
   hasMore: boolean;
   loadMore: () => void;
@@ -44,6 +45,7 @@ const ChatConversationPanel: React.FC<ChatConversationPanelProps> = ({
   selectedSessionId,
   room,
   messages,
+  showBotTyping,
   messagesLoading,
   hasMore,
   loadMore,
@@ -136,6 +138,27 @@ const ChatConversationPanel: React.FC<ChatConversationPanelProps> = ({
                   </div>
                 )}
                 {renderMessagesContent()}
+                {showBotTyping && (
+                  <div className="flex gap-3">
+                    <div className="flex-shrink-0">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Bot className="h-4 w-4 text-primary" />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 max-w-[70%]">
+                      <div className="rounded-lg px-4 py-2 bg-muted text-foreground w-fit">
+                        <div className="flex items-center gap-1">
+                          <span className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.3s]" />
+                          <span className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.15s]" />
+                          <span className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce" />
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground px-1">
+                        {t('chat.thinking_indicator') || 'Sgms AI is thinking...'}
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
@@ -163,7 +186,7 @@ const ChatConversationPanel: React.FC<ChatConversationPanelProps> = ({
                   size="icon"
                   className="h-8 w-8 rounded-full"
                 >
-                  {sending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                  <Send className="h-3 w-3" />
                 </Button>
               </div>
             </div>

@@ -33,10 +33,15 @@ export interface UseChatMessagesReturn {
   hasMore: boolean;
 }
 
+export interface SendMessageOperationResult {
+  data: SendMessageResponse | null;
+  errorMessage: string | null;
+}
+
 export interface UseChatOperationsReturn {
   sending: boolean;
   error: string | null;
-  sendMessage: (data: SendMessageRequest) => Promise<SendMessageResponse | null>;
+  sendMessage: (data: SendMessageRequest) => Promise<SendMessageOperationResult>;
   clearRoom: (sessionId: string) => Promise<boolean>;
 }
 
@@ -183,24 +188,37 @@ export const useChatOperations = (): UseChatOperationsReturn => {
   const { t } = useTranslation();
 
   const sendMessage = useCallback(
-    async (data: SendMessageRequest): Promise<SendMessageResponse | null> => {
+    async (data: SendMessageRequest): Promise<SendMessageOperationResult> => {
       setSending(true);
       setError(null);
+      const defaultErrorMessage = t('chat.send_message_error') || 'Failed to send message';
+      const translateErrorMessage = (rawMessage?: string | null) => {
+        if (!rawMessage) {
+          return defaultErrorMessage;
+        }
+        if (rawMessage === 'CHAT_AI_UNAVAILABLE') {
+          return (
+            t('chat.errors.chat_ai_unavailable') ||
+            'Sgms AI is temporarily unavailable. Please try again later. / Sgms AI tạm thời không khả dụng. Vui lòng thử lại sau.'
+          );
+        }
+        return rawMessage;
+      };
 
       try {
         const response = await chatApi.sendMessage(data);
 
         if (response.success) {
-          return response.data;
+          return { data: response.data, errorMessage: null };
         }
 
-        setError(response.message || 'Failed to send message');
-        toast.error(t('chat.send_message_error') || 'Failed to send message');
-        return null;
+        const failureMessage = translateErrorMessage(response.message);
+        setError(failureMessage);
+        return { data: null, errorMessage: failureMessage };
       } catch (err) {
-        setError((err as Error).message || 'Failed to send message');
-        toast.error(t('chat.send_message_error') || 'Failed to send message');
-        return null;
+        const failureMessage = translateErrorMessage((err as Error).message);
+        setError(failureMessage);
+        return { data: null, errorMessage: failureMessage };
       } finally {
         setSending(false);
       }
