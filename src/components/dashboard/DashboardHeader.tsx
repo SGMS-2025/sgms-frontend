@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Mail, Settings, Bell } from 'lucide-react';
+import { Search, Bell } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { useSocketNotifications } from '@/hooks/useSocket';
@@ -89,15 +89,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, hideBra
 
         {/* Right side - Icons and User Profile */}
         <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-          {/* Messages icon (hidden on mobile) */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="hidden sm:flex h-10 w-10 rounded-full p-0 text-gray-600 hover:text-orange-500 hover:bg-orange-50"
-          >
-            <Mail className="h-5 w-5" />
-          </Button>
-
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -151,15 +142,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, hideBra
               />
             </div>
           )}
-
-          {/* Settings icon (hidden on mobile) */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="hidden sm:flex h-10 w-10 rounded-full p-0 text-gray-600 hover:text-orange-500 hover:bg-orange-50"
-          >
-            <Settings className="h-5 w-5" />
-          </Button>
         </div>
       </div>
     </header>

@@ -43,7 +43,7 @@ export const useLogin = () => {
       if (userRole === 'OWNER') {
         navigate('/manage/staff');
       } else if (userRole === 'CUSTOMER') {
-        navigate('/customer');
+        navigate('/'); // Landing page for customer
       } else if (userRole === 'STAFF') {
         navigate('/home');
       } else {

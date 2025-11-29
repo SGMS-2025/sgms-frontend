@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Bell, LogOut, User, ChevronDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bell, LogOut, User, ChevronDown, LayoutDashboard } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuthActions, useUser } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { getProfileSettingsPath } from '@/utils/navigation';
@@ -64,6 +65,18 @@ export function AuthenticatedNavbar({ isScrolled }: AuthenticatedNavbarProps) {
 
   const settingsPath = getProfileSettingsPath(user.role, currentStaff?.jobTitle, location.pathname);
 
+  // For CUSTOMER, navigate to dashboard instead of settings
+  const handleProfileClick = () => {
+    if (user.role === 'CUSTOMER') {
+      navigate('/customer');
+    } else {
+      navigate(settingsPath);
+    }
+  };
+
+  const menuItemText = user.role === 'CUSTOMER' ? 'Dashboard' : 'Hồ sơ & Cài đặt';
+  const menuItemIcon = user.role === 'CUSTOMER' ? LayoutDashboard : User;
+
   return (
     <div className="flex items-center space-x-3">
       {/* Notification Bell */}
@@ -103,17 +116,26 @@ export function AuthenticatedNavbar({ isScrolled }: AuthenticatedNavbarProps) {
         <DropdownMenuContent className="w-56" align="end" sideOffset={8}>
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">{user.fullName || user.username}</p>
-              <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+              <p className="text-sm font-medium leading-none truncate">{user.fullName || user.username}</p>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <p className="text-xs leading-none text-muted-foreground truncate cursor-help">{user.email}</p>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs break-all">{user.email}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <p className="text-xs leading-none text-muted-foreground capitalize">{user.role.toLowerCase()}</p>
             </div>
           </DropdownMenuLabel>
 
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem onClick={() => navigate(settingsPath)}>
-            <User className="mr-2 h-4 w-4" />
-            <span>Hồ sơ & Cài đặt</span>
+          <DropdownMenuItem onClick={handleProfileClick}>
+            {React.createElement(menuItemIcon, { className: 'mr-2 h-4 w-4' })}
+            <span>{menuItemText}</span>
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />

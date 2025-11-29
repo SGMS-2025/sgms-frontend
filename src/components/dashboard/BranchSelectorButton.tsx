@@ -4,6 +4,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Plus, ChevronDown, MapPin, Eye } from 'lucide-react';
 import type { BranchDisplay } from '@/types/api/Branch';
+import { useAuthState } from '@/hooks/useAuth';
+import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 
 export interface BranchSelectorButtonHandle {
   open: () => void;
@@ -29,6 +31,14 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
   ({ currentBranch, branches, onBranchSelect, onAddBranch, onViewBranch, collapsed = false }, ref) => {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
+    const { user } = useAuthState();
+    const { currentStaff } = useCurrentUserStaff();
+
+    // Check if user is Staff with restricted job titles (Manager, PT, Technician)
+    const isRestrictedStaff =
+      user?.role === 'STAFF' &&
+      currentStaff &&
+      ['Manager', 'Personal Trainer', 'Technician'].includes(currentStaff.jobTitle);
 
     const activeLabel = t('branch.active', { defaultValue: 'Active' });
     const inactiveLabel = t('branch.closed', { defaultValue: 'Inactive' });
@@ -77,15 +87,17 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
           {/* Header */}
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">{listLabel}</p>
-            <button
-              type="button"
-              onClick={handleAdd}
-              className="rounded-md p-1.5 text-orange-600 transition-colors hover:bg-orange-50 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
-              title={addBranchLabel}
-              aria-label={addBranchLabel}
-            >
-              <Plus className="h-4 w-4" />
-            </button>
+            {!isRestrictedStaff && (
+              <button
+                type="button"
+                onClick={handleAdd}
+                className="rounded-md p-1.5 text-orange-600 transition-colors hover:bg-orange-50 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+                title={addBranchLabel}
+                aria-label={addBranchLabel}
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
           {/* Branches List */}
