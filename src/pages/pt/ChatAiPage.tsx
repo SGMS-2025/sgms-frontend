@@ -5,15 +5,18 @@ import { format } from 'date-fns';
 import { DeleteConfirmationModal } from '@/components/ui/delete-confirmation-modal';
 import ChatSidebar from '../../components/pt/chatAi/ChatSidebar';
 import ChatConversationPanel from '../../components/pt/chatAi/ChatConversationPanel';
-import type { SendMessageRequest } from '@/types/api/Chat';
+import type { ChatMessage, SendMessageRequest } from '@/types/api/Chat';
 
 const SINGLE_LINE_TEXTAREA_HEIGHT = 32;
+const createTempSessionId = () =>
+  `temp-${globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : Date.now().toString()}`;
 type PendingRoomState = { sessionId: string; title: string; isTemp: boolean } | null;
 
 const ChatAiPage: React.FC = () => {
   const { t } = useTranslation();
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [messageInput, setMessageInput] = useState('');
+  const [optimisticMessages, setOptimisticMessages] = useState<ChatMessage[]>([]);
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [roomToClear, setRoomToClear] = useState<string | null>(null);
   const [pendingRoom, setPendingRoom] = useState<PendingRoomState>(null);
@@ -45,10 +48,10 @@ const ChatAiPage: React.FC = () => {
   const { sending, sendMessage, clearRoom } = useChatOperations();
 
   useEffect(() => {
-    if (messagesEndRef.current && messages && messages.length > 0) {
+    if (messagesEndRef.current && (messages.length > 0 || optimisticMessages.length > 0)) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages, optimisticMessages]);
 
   useEffect(() => {
     if (pendingRoom && rooms.some((r) => r.sessionId === pendingRoom.sessionId)) {
@@ -78,7 +81,7 @@ const ChatAiPage: React.FC = () => {
   };
 
   const handleNewChat = () => {
-    const tempSessionId = `temp-${globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : Date.now().toString()}`;
+    const tempSessionId = createTempSessionId();
     const placeholderTitle = getNewChatTitle();
     setPendingRoom({ sessionId: tempSessionId, title: placeholderTitle, isTemp: true });
     setSelectedSessionId(tempSessionId);
@@ -91,27 +94,92 @@ const ChatAiPage: React.FC = () => {
   const handleSendMessage = async () => {
     if (!messageInput.trim() || sending) return;
     const messageText = messageInput.trim();
+    const wasTempSession = !selectedSessionId || isPendingTempSession;
+    const activeSessionId = selectedSessionId ?? pendingRoom?.sessionId ?? createTempSessionId();
+
+    if (!selectedSessionId) {
+      const placeholderTitle = pendingRoom?.title || getNewChatTitle();
+      if (pendingRoom?.sessionId !== activeSessionId) {
+        setPendingRoom({ sessionId: activeSessionId, title: placeholderTitle, isTemp: true });
+      }
+      setSelectedSessionId(activeSessionId);
+      setTimeout(() => {
+        messageInputRef.current?.focus();
+      }, 0);
+    }
+
     setMessageInput('');
 
+    const nowIso = new Date().toISOString();
+    const optimisticMessage: ChatMessage = {
+      _id: `optimistic-${Date.now()}`,
+      chatRoomId: activeSessionId,
+      senderType: 'PT',
+      role: 'user',
+      content: messageText,
+      error: null,
+      metadata: null,
+      createdAt: nowIso,
+      updatedAt: nowIso
+    };
+
+    setOptimisticMessages((prev) => [...prev, optimisticMessage]);
+
     const payload: SendMessageRequest = {
-      sessionId: selectedSessionId || undefined,
+      sessionId: wasTempSession ? undefined : selectedSessionId || undefined,
       message: messageText
     };
 
-    const result = await sendMessage(payload);
-    if (result) {
-      if (!selectedSessionId && result.sessionId) {
-        setSelectedSessionId(result.sessionId);
-        if (pendingRoom?.isTemp) {
-          setPendingRoom({
-            sessionId: result.sessionId,
-            title: result.room?.title || pendingRoom.title,
+    const { data: sendResult, errorMessage } = await sendMessage(payload);
+    if (sendResult) {
+      if (sendResult.sessionId && wasTempSession) {
+        setSelectedSessionId(sendResult.sessionId);
+      }
+      if (sendResult.sessionId && sendResult.sessionId !== activeSessionId) {
+        setOptimisticMessages((prev) =>
+          prev.map((msg) => (msg.chatRoomId === activeSessionId ? { ...msg, chatRoomId: sendResult.sessionId } : msg))
+        );
+      }
+      if (sendResult.sessionId) {
+        setPendingRoom((prev) => {
+          if (prev?.sessionId !== activeSessionId) {
+            return prev;
+          }
+          return {
+            sessionId: sendResult.sessionId,
+            title: sendResult.room?.title || prev.title,
             isTemp: false
-          });
-        }
+          };
+        });
       }
       await refetchRooms();
       await refetchMessages();
+      setOptimisticMessages((prev) => prev.filter((msg) => msg._id !== optimisticMessage._id));
+    } else {
+      setOptimisticMessages((prev) => {
+        const updatedMessages = prev.map((msg) =>
+          msg._id === optimisticMessage._id ? { ...msg, error: errorMessage || msg.error } : msg
+        );
+
+        if (!errorMessage) {
+          return updatedMessages;
+        }
+
+        const errorTimestamp = new Date().toISOString();
+        const errorResponseMessage: ChatMessage = {
+          _id: `error-${Date.now()}`,
+          chatRoomId: activeSessionId,
+          senderType: 'AI',
+          role: 'assistant',
+          content: errorMessage,
+          error: errorMessage,
+          metadata: { type: 'error' },
+          createdAt: errorTimestamp,
+          updatedAt: errorTimestamp
+        };
+
+        return [...updatedMessages, errorResponseMessage];
+      });
     }
   };
 
@@ -180,13 +248,25 @@ const ChatAiPage: React.FC = () => {
     try {
       const date = new Date(dateString);
       const now = new Date();
-      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-      if (diffInHours < 24) {
-        return format(date, 'HH:mm');
-      } else if (diffInHours < 48) {
-        return t('chat.yesterday') || 'Yesterday';
+      const timeLabel = format(date, 'HH:mm');
+
+      const isSameDay = date.toDateString() === now.toDateString();
+      if (isSameDay) {
+        return timeLabel;
       }
-      return format(date, 'MMM dd, yyyy');
+
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      const isYesterday = date.toDateString() === yesterday.toDateString();
+      const yesterdayLabel = t('chat.yesterday') || 'Yesterday';
+      if (isYesterday) {
+        return `${timeLabel}, ${yesterdayLabel}`;
+      }
+
+      const weekdayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+      const weekdayKey = weekdayKeys[date.getDay()];
+      const weekdayLabel = t(`common.days.${weekdayKey}`) || weekdayKey.charAt(0).toUpperCase() + weekdayKey.slice(1);
+      return `${timeLabel}, ${weekdayLabel}`;
     } catch {
       return '';
     }
@@ -196,6 +276,19 @@ const ChatAiPage: React.FC = () => {
   const isSelectedRoomTemp = Boolean(pendingRoom?.isTemp && pendingRoom.sessionId === selectedSessionId);
   const showPendingRoom =
     Boolean(pendingRoom) && !rooms.some((existingRoom) => existingRoom.sessionId === pendingRoom?.sessionId);
+  const displayedMessages = useMemo(() => {
+    if (!selectedSessionId) {
+      return messages;
+    }
+    const optimisticForRoom = optimisticMessages.filter((msg) => msg.chatRoomId === selectedSessionId);
+    return [...messages, ...optimisticForRoom];
+  }, [messages, optimisticMessages, selectedSessionId]);
+  const showBotTyping = useMemo(() => {
+    if (!selectedSessionId || !sending) {
+      return false;
+    }
+    return optimisticMessages.some((msg) => msg.chatRoomId === selectedSessionId && msg.senderType === 'PT');
+  }, [selectedSessionId, sending, optimisticMessages]);
 
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-4 p-2 overflow-hidden">
@@ -216,7 +309,8 @@ const ChatAiPage: React.FC = () => {
         t={t}
         selectedSessionId={selectedSessionId}
         room={room}
-        messages={messages}
+        messages={displayedMessages}
+        showBotTyping={showBotTyping}
         messagesLoading={messagesLoading}
         hasMore={hasMore}
         loadMore={loadMore}
