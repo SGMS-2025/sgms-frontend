@@ -82,6 +82,12 @@ export interface UpdateClassDTO {
   name?: string;
   capacity?: number;
   trainerIds?: string[];
+  schedulePattern?: {
+    daysOfWeek?: string[];
+    startTime?: string;
+    endTime?: string;
+    timezone?: string;
+  };
   endDate?: Date | string;
   location?: string;
   description?: string;
@@ -195,6 +201,8 @@ export interface GetClassesParams {
   servicePackageId?: string;
   status?: 'ACTIVE' | 'INACTIVE' | 'ALL';
   search?: string;
+  startTime?: string; // Filter by start time (HH:MM format)
+  endTime?: string; // Filter by end time (HH:MM format)
   sortBy?: 'name' | 'createdAt' | 'updatedAt' | 'capacity';
   sortOrder?: SortOrder;
 }
@@ -222,8 +230,8 @@ export const schedulePatternSchema = z
       .array(z.enum(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']))
       .min(1, 'At least one day must be selected')
       .max(7),
-    startTime: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)'),
-    endTime: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)'),
+    startTime: z.string().regex(/^([0-1]\d|2[0-3]):[0-5]\d$/, 'Invalid time format (HH:MM)'),
+    endTime: z.string().regex(/^([0-1]\d|2[0-3]):[0-5]\d$/, 'Invalid time format (HH:MM)'),
     timezone: z.string().min(1, 'Timezone is required')
   })
   .refine(
@@ -301,6 +309,7 @@ export const updateClassSchema = z.object({
     .max(200, 'Capacity cannot exceed 200')
     .optional(),
   trainerIds: z.array(z.string().min(1)).min(1, 'At least one trainer is required').optional(),
+  schedulePattern: schedulePatternSchema.optional(),
   endDate: z.string().or(z.date()).optional(),
   location: z.string().max(200, 'Location must be less than 200 characters').optional(),
   description: z.string().max(500, 'Description must be less than 500 characters').optional(),

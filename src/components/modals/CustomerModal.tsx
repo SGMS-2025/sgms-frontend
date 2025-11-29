@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useBranch } from '@/contexts/BranchContext';
 import { customerApi } from '@/services/api/customerApi';
+import { validateCustomerPassword } from '@/utils/validation';
 import type {
   CustomerModalProps,
   CustomerFormData,
@@ -145,14 +146,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
   };
 
   const validatePassword = (value: string): string => {
-    if (isEditMode) return '';
-
-    if (!value.trim()) return t('customer_modal.validation.password_required');
-    if (value.length < 8) return t('customer_modal.validation.password_length');
-    if (!/[A-Z]/.test(value)) return t('customer_modal.validation.password_uppercase');
-    if (!/[0-9]/.test(value)) return t('customer_modal.validation.password_number');
-    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(value)) return t('customer_modal.validation.password_special');
-    return '';
+    return validateCustomerPassword(value, isEditMode, t);
   };
 
   const validateDateOfBirth = (value: string): string => {
@@ -249,7 +243,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
       branchId: formData.branchId || currentBranchId
     };
 
-    if (!isEditMode) {
+    if (formData.password && formData.password.trim() !== '') {
       (payload as typeof payload & { password: string }).password = formData.password;
     }
 

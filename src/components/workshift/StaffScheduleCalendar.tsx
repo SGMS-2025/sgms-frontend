@@ -574,6 +574,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
         >
           <div className="p-3 h-full flex flex-col items-center justify-center">
             <div className="text-xs text-gray-500 font-medium mb-1">{timeRange}</div>
+            <div className="text-xs text-gray-400">{t('workshift.day_off')}</div>
           </div>
         </button>
       );
