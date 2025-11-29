@@ -29,6 +29,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { subscriptionApi } from '@/services/api/subscriptionApi';
+import { extractAndTranslateApiError } from '@/utils/errorHandler';
 import { usePaymentSocket } from '@/hooks/usePaymentSocket';
 import type {
   SubscriptionPackage,
@@ -245,7 +246,7 @@ export const PurchaseSubscriptionModal = ({
         }
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : t('subscription.modal.error');
+      const errorMessage = extractAndTranslateApiError(error, t, 'subscription.modal.error');
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);

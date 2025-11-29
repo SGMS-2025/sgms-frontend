@@ -105,49 +105,70 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
             <div className="h-64 space-y-2 overflow-y-auto">
               {branches.map((branch) => {
                 const isCurrent = branch._id === currentBranch?._id;
+                const isDisabled = !branch.isActive;
                 return (
-                  <button
+                  <div
                     key={branch._id}
-                    type="button"
-                    onClick={() => handleSelect(branch)}
                     className={`group flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors border ${
                       isCurrent
                         ? 'bg-orange-50 text-orange-900 border-orange-200 shadow-sm'
                         : 'bg-white hover:bg-gray-50 border-gray-200 hover:border-gray-300'
-                    }`}
+                    } ${isDisabled && !isCurrent ? 'opacity-60' : ''}`}
                   >
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={branch.coverImage} alt={branch.branchName} />
-                      <AvatarFallback className="bg-orange-100 text-orange-700 text-xs font-semibold">
-                        {branch.branchName.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex min-w-0 flex-1 flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <p className="flex-1 truncate text-sm font-medium">{branch.branchName}</p>
-                        {renderStatusPill(branch.isActive)}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Disable switching to inactive branches
+                        if (!isDisabled) {
+                          handleSelect(branch);
+                        }
+                      }}
+                      disabled={isDisabled && !isCurrent}
+                      className={`flex flex-1 items-center gap-3 text-left ${isDisabled && !isCurrent ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                      title={
+                        isDisabled && !isCurrent
+                          ? t(
+                              'branch_selector.branch_locked',
+                              'Branch is locked due to subscription limit. You can view details but cannot switch to it.'
+                            )
+                          : undefined
+                      }
+                    >
+                      <Avatar className="h-8 w-8 flex-shrink-0">
+                        <AvatarImage src={branch.coverImage} alt={branch.branchName} />
+                        <AvatarFallback
+                          className={`${isDisabled ? 'bg-gray-200 text-gray-500' : 'bg-orange-100 text-orange-700'} text-xs font-semibold`}
+                        >
+                          {branch.branchName.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex min-w-0 flex-1 flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <p className="flex-1 truncate text-sm font-medium">{branch.branchName}</p>
+                          {renderStatusPill(branch.isActive)}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <MapPin className="h-3 w-3" />
+                          <span className="truncate">{branch.location}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3" />
-                        <span className="truncate">{branch.location}</span>
-                      </div>
-                    </div>
+                    </button>
                     {onViewBranch && (
                       <button
                         type="button"
-                        onClick={async (event) => {
+                        onClick={(event) => {
                           event.stopPropagation();
-                          await onViewBranch(branch);
+                          onViewBranch(branch);
                           setOpen(false);
                         }}
-                        className="rounded-md p-1 text-gray-400 transition-colors hover:text-orange-600 hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+                        className="flex-shrink-0 rounded-md p-1 text-gray-400 transition-colors hover:text-orange-600 hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 pointer-events-auto"
                         title={t('branch_selector.view_details') || 'View details'}
                         aria-label={`${t('branch_selector.view_details') || 'View details'} ${branch.branchName}`}
                       >
                         <Eye className="h-4 w-4" />
                       </button>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>

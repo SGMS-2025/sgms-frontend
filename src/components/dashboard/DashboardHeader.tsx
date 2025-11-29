@@ -59,8 +59,9 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, hideBra
     navigate('/manage/add-branch');
   };
 
-  const handleViewBranch = async (branch: BranchDisplay) => {
-    await switchBranch(branch._id);
+  const handleViewBranch = (branch: BranchDisplay) => {
+    // Directly navigate to branch detail page without switching
+    // This allows viewing inactive branches without triggering switch validation
     navigate(`/manage/branch/${branch._id}`);
   };
 
