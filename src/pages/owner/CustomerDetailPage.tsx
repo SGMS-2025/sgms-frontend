@@ -654,6 +654,7 @@ const CustomerDetailPage: React.FC = () => {
                   {hasMembership ? (
                     <div className="flex gap-2">
                       <Button
+                        type="button"
                         onClick={() => setShowExtendMembership(true)}
                         className="flex-1 rounded-full"
                         variant="default"
@@ -662,6 +663,7 @@ const CustomerDetailPage: React.FC = () => {
                         {t('customer_detail.extend')}
                       </Button>
                       <Button
+                        type="button"
                         onClick={() => setShowCancelMembership(true)}
                         className="flex-1 rounded-full"
                         variant="destructive"
@@ -672,6 +674,7 @@ const CustomerDetailPage: React.FC = () => {
                     </div>
                   ) : (
                     <Button
+                      type="button"
                       onClick={() => setShowMembershipModal(true)}
                       className="w-full rounded-full"
                       variant="outline"
@@ -716,11 +719,17 @@ const CustomerDetailPage: React.FC = () => {
 
                   {hasPTPackage ? (
                     <div className="flex gap-2">
-                      <Button onClick={() => setShowExtendPT(true)} className="flex-1 rounded-full" variant="default">
+                      <Button
+                        type="button"
+                        onClick={() => setShowExtendPT(true)}
+                        className="flex-1 rounded-full"
+                        variant="default"
+                      >
                         <Calendar className="h-4 w-4 mr-2" />
                         {t('customer_detail.extend')}
                       </Button>
                       <Button
+                        type="button"
                         onClick={() => setShowCancelPT(true)}
                         className="flex-1 rounded-full"
                         variant="destructive"
@@ -730,7 +739,12 @@ const CustomerDetailPage: React.FC = () => {
                       </Button>
                     </div>
                   ) : (
-                    <Button onClick={() => setShowPTModal(true)} className="w-full rounded-full" variant="outline">
+                    <Button
+                      type="button"
+                      onClick={() => setShowPTModal(true)}
+                      className="w-full rounded-full"
+                      variant="outline"
+                    >
                       <Dumbbell className="h-4 w-4 mr-2" />
                       {t('customer_detail.register_pt')}
                     </Button>
@@ -778,6 +792,7 @@ const CustomerDetailPage: React.FC = () => {
                   {hasClassPackage ? (
                     <div className="flex gap-2">
                       <Button
+                        type="button"
                         onClick={() => setShowExtendClass(true)}
                         className="flex-1 rounded-full"
                         variant="default"
@@ -786,6 +801,7 @@ const CustomerDetailPage: React.FC = () => {
                         {t('customer_detail.extend')}
                       </Button>
                       <Button
+                        type="button"
                         onClick={() => setShowCancelClass(true)}
                         className="flex-1 rounded-full"
                         variant="destructive"
@@ -795,7 +811,12 @@ const CustomerDetailPage: React.FC = () => {
                       </Button>
                     </div>
                   ) : (
-                    <Button onClick={() => setShowClassModal(true)} className="w-full rounded-full" variant="outline">
+                    <Button
+                      type="button"
+                      onClick={() => setShowClassModal(true)}
+                      className="w-full rounded-full"
+                      variant="outline"
+                    >
                       <Users className="h-4 w-4 mr-2" />
                       {t('customer_detail.register_class')}
                     </Button>
