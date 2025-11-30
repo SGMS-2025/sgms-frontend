@@ -187,8 +187,8 @@ export interface BranchContextType {
   setBranches: (branches: BranchDisplay[]) => void;
   fetchBranches: () => Promise<void>;
   fetchBranchDetail: (branchId: string) => Promise<BranchDisplay | null>;
-  createBranch: (data: CreateAndUpdateBranchRequest) => Promise<BranchDisplay | null>;
-  updateBranchApi: (branchId: string, data: CreateAndUpdateBranchRequest) => Promise<BranchDisplay | null>;
+  createBranch: (data: CreateAndUpdateBranchRequest | FormData) => Promise<BranchDisplay | null>;
+  updateBranchApi: (branchId: string, data: CreateAndUpdateBranchRequest | FormData) => Promise<BranchDisplay | null>;
   toggleBranchStatus: (branchId: string) => Promise<BranchDisplay | null>;
   switchBranch: (branchId: string) => Promise<void>;
 }

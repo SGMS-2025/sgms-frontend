@@ -9,6 +9,7 @@ import { useBranch } from '@/contexts/BranchContext';
 import { toast } from 'sonner';
 import { isBranchWideKPIResponse } from '@/types/api/KPI';
 import type { KPITargets, KPIReward, UpdateKPIRequest } from '@/types/api/KPI';
+import { formatPriceInput, parsePriceInput } from '@/utils/currency';
 
 interface KPIModalProps {
   open: boolean;
@@ -74,14 +75,14 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
         startDate: kpiConfig.startDate ? new Date(kpiConfig.startDate).toISOString().split('T')[0] : '',
         endDate: kpiConfig.endDate ? new Date(kpiConfig.endDate).toISOString().split('T')[0] : '',
         targets: {
-          revenue: kpiConfig.targets?.revenue?.toString() || '',
+          revenue: kpiConfig.targets?.revenue ? formatPriceInput(kpiConfig.targets.revenue) : '',
           newMembers: kpiConfig.targets?.newMembers?.toString() || '',
           ptSessions: kpiConfig.targets?.ptSessions?.toString() || '',
           contracts: kpiConfig.targets?.contracts?.toString() || ''
         },
         reward: {
           type: kpiConfig.reward?.type || 'NONE',
-          amount: kpiConfig.reward?.amount?.toString() || '',
+          amount: kpiConfig.reward?.amount ? formatPriceInput(kpiConfig.reward.amount) : '',
           percentage: kpiConfig.reward?.percentage?.toString() || '',
           voucherDetails: kpiConfig.reward?.voucherDetails || ''
         },
@@ -138,11 +139,11 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
     }
 
     // Validate target values
-    if (
-      formData.targets.revenue !== '' &&
-      (Number.isNaN(Number.parseFloat(formData.targets.revenue)) || Number.parseFloat(formData.targets.revenue) < 0)
-    ) {
-      newErrors.targetRevenue = t('kpi.form.target_revenue_invalid', 'Mục tiêu doanh thu phải là số dương');
+    if (formData.targets.revenue !== '') {
+      const revenueValue = parsePriceInput(formData.targets.revenue);
+      if (revenueValue <= 0) {
+        newErrors.targetRevenue = t('kpi.form.target_revenue_invalid', 'Mục tiêu doanh thu phải là số dương');
+      }
     }
     if (
       formData.targets.newMembers !== '' &&
@@ -171,7 +172,8 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
 
     // Reward validation
     if (formData.reward.type === 'FIXED_AMOUNT') {
-      if (!formData.reward.amount || Number.parseFloat(formData.reward.amount) <= 0) {
+      const rewardAmount = parsePriceInput(formData.reward.amount);
+      if (!formData.reward.amount || rewardAmount <= 0) {
         newErrors.rewardAmount = t('kpi.form.reward_amount_required', 'Vui lòng nhập số tiền thưởng');
       }
     } else if (formData.reward.type === 'PERCENTAGE_BONUS') {
@@ -227,7 +229,7 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
 
         // Build targets object (only include non-empty values)
         const targets: Partial<KPITargets> = {};
-        if (formData.targets.revenue !== '') targets.revenue = Number.parseFloat(formData.targets.revenue);
+        if (formData.targets.revenue !== '') targets.revenue = parsePriceInput(formData.targets.revenue);
         if (formData.targets.newMembers !== '') targets.newMembers = Number.parseInt(formData.targets.newMembers, 10);
         if (formData.targets.ptSessions !== '') targets.ptSessions = Number.parseInt(formData.targets.ptSessions, 10);
         if (formData.targets.contracts !== '') targets.contracts = Number.parseInt(formData.targets.contracts, 10);
@@ -238,7 +240,7 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
         // Build reward object
         const reward: KPIReward = {
           type: formData.reward.type,
-          amount: formData.reward.type === 'FIXED_AMOUNT' ? Number.parseFloat(formData.reward.amount) : 0,
+          amount: formData.reward.type === 'FIXED_AMOUNT' ? parsePriceInput(formData.reward.amount) : 0,
           percentage: formData.reward.type === 'PERCENTAGE_BONUS' ? Number.parseFloat(formData.reward.percentage) : 0,
           voucherDetails: formData.reward.type === 'VOUCHER' ? formData.reward.voucherDetails : undefined
         };
@@ -264,7 +266,7 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
 
         // Build targets object (only include non-empty values)
         const targets: KPITargets = {
-          revenue: formData.targets.revenue !== '' ? Number.parseFloat(formData.targets.revenue) : 0,
+          revenue: formData.targets.revenue !== '' ? parsePriceInput(formData.targets.revenue) : 0,
           newMembers: formData.targets.newMembers !== '' ? Number.parseInt(formData.targets.newMembers, 10) : 0,
           ptSessions: formData.targets.ptSessions !== '' ? Number.parseInt(formData.targets.ptSessions, 10) : 0,
           contracts: formData.targets.contracts !== '' ? Number.parseInt(formData.targets.contracts, 10) : 0
@@ -276,7 +278,7 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
         // Build reward object
         const reward: KPIReward = {
           type: formData.reward.type,
-          amount: formData.reward.type === 'FIXED_AMOUNT' ? Number.parseFloat(formData.reward.amount) : 0,
+          amount: formData.reward.type === 'FIXED_AMOUNT' ? parsePriceInput(formData.reward.amount) : 0,
           percentage: formData.reward.type === 'PERCENTAGE_BONUS' ? Number.parseFloat(formData.reward.percentage) : 0,
           voucherDetails: formData.reward.type === 'VOUCHER' ? formData.reward.voucherDetails : undefined
         };
@@ -422,17 +424,16 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
                     {t('kpi.form.target_revenue', 'Mục tiêu doanh thu (VND)')}
                   </label>
                   <Input
-                    type="number"
-                    min="0"
-                    step="1000"
+                    type="text"
                     value={formData.targets.revenue}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const formatted = formatPriceInput(e.target.value);
                       setFormData({
                         ...formData,
-                        targets: { ...formData.targets, revenue: e.target.value }
-                      })
-                    }
-                    placeholder={t('kpi.form.target_revenue_placeholder', 'Ví dụ: 50000000')}
+                        targets: { ...formData.targets, revenue: formatted }
+                      });
+                    }}
+                    placeholder={t('kpi.form.target_revenue_placeholder', 'Ví dụ: 50.000.000')}
                     className={errors.targetRevenue ? 'border-red-500' : ''}
                   />
                   {errors.targetRevenue && <p className="mt-1 text-sm text-red-500">{errors.targetRevenue}</p>}
@@ -549,17 +550,16 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
                     {t('kpi.form.reward_amount', 'Số tiền thưởng (VND)')} <span className="text-red-500">*</span>
                   </label>
                   <Input
-                    type="number"
-                    min="0"
-                    step="1000"
+                    type="text"
                     value={formData.reward.amount}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const formatted = formatPriceInput(e.target.value);
                       setFormData({
                         ...formData,
-                        reward: { ...formData.reward, amount: e.target.value }
-                      })
-                    }
-                    placeholder={t('kpi.form.reward_amount_placeholder', 'Ví dụ: 1000000')}
+                        reward: { ...formData.reward, amount: formatted }
+                      });
+                    }}
+                    placeholder={t('kpi.form.reward_amount_placeholder', 'Ví dụ: 1.000.000')}
                     className={errors.rewardAmount ? 'border-red-500' : ''}
                   />
                   {errors.rewardAmount && <p className="mt-1 text-sm text-red-500">{errors.rewardAmount}</p>}
