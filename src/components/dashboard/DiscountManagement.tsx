@@ -336,9 +336,9 @@ const DiscountManagement: React.FC = () => {
 
           {/* Stats Cards */}
           {campaignStats && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8" data-tour="discount-stats-cards">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-4" data-tour="discount-stats-cards">
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center">
                     <div className="p-2 bg-blue-100 rounded-lg">
                       <Percent className="w-6 h-6 text-blue-600" />
@@ -352,7 +352,7 @@ const DiscountManagement: React.FC = () => {
               </Card>
 
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center">
                     <div className="p-2 bg-green-100 rounded-lg">
                       <Calendar className="w-6 h-6 text-green-600" />
@@ -366,7 +366,7 @@ const DiscountManagement: React.FC = () => {
               </Card>
 
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center">
                     <div className="p-2 bg-red-100 rounded-lg">
                       <Calendar className="w-6 h-6 text-red-600" />
@@ -380,7 +380,7 @@ const DiscountManagement: React.FC = () => {
               </Card>
 
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center">
                     <div className="p-2 bg-purple-100 rounded-lg">
                       <Users className="w-6 h-6 text-purple-600" />
@@ -394,7 +394,7 @@ const DiscountManagement: React.FC = () => {
               </Card>
 
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                   <div className="flex items-center">
                     <div className="p-2 bg-gray-100 rounded-lg">
                       <Calendar className="w-6 h-6 text-gray-600" />
@@ -410,7 +410,7 @@ const DiscountManagement: React.FC = () => {
           )}
 
           {/* Filters */}
-          <div className="mb-8">
+          <div className="mb-4">
             <Card>
               <CardContent className="p-3 sm:p-4">
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -611,10 +611,10 @@ const DiscountManagement: React.FC = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {paginatedCampaigns.map((campaign) => (
                     <tr key={campaign._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{campaign.campaignName}</div>
-                          <div className="text-sm text-gray-500 truncate max-w-xs">{campaign.description}</div>
+                      <td className="px-6 py-4">
+                        <div className="max-w-[18rem]">
+                          <div className="text-sm font-medium text-gray-900 truncate">{campaign.campaignName}</div>
+                          <div className="text-sm text-gray-500 truncate">{campaign.description}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -740,7 +740,7 @@ const DiscountManagement: React.FC = () => {
 
       {/* Create Campaign Form Modal */}
       <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto hide-scrollbar">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto hide-scrollbar">
           <DialogHeader>
             <DialogTitle>{t('discount.create_campaign')}</DialogTitle>
             <DialogDescription>{t('discount.create_campaign_description')}</DialogDescription>
