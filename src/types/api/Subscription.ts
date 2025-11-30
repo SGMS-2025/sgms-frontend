@@ -36,6 +36,7 @@ export interface SubscriptionPackage {
   tier: number;
   isActive: boolean;
   features?: string[];
+  isTrial?: boolean;
   createdAt: string;
   updatedAt: string;
 }

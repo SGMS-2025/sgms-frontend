@@ -8,10 +8,27 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import ManagerSelector from '@/components/ui/ManagerSelector';
-import { Edit3, Camera, Tag, Phone, Dumbbell, Target, MapPin, User, Clock, Power, Save, X } from 'lucide-react';
+import {
+  Edit3,
+  Camera,
+  Tag,
+  Phone,
+  Dumbbell,
+  Target,
+  MapPin,
+  User,
+  Clock,
+  Power,
+  Save,
+  X,
+  AlertCircle,
+  Lock
+} from 'lucide-react';
 import { useBranch } from '@/contexts/BranchContext';
 import { staffApi } from '@/services/api/staffApi';
+import { subscriptionApi } from '@/services/api/subscriptionApi';
 import { mapManagersToStaffIds } from '@/utils/managerUtils';
+import { extractAndTranslateApiError } from '@/utils/errorHandler';
 import type { BranchDisplay, BranchEditValues, CreateAndUpdateBranchRequest } from '@/types/api/Branch';
 import type { Staff } from '@/types/api/Staff';
 import { toast } from 'sonner';
@@ -33,6 +50,7 @@ const BranchDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [showDisableModal, setShowDisableModal] = useState(false);
+  const [subscriptionStats, setSubscriptionStats] = useState<{ current: number; max: number } | null>(null);
 
   // Edit mode states
   const [isEditMode, setIsEditMode] = useState(false);
@@ -116,6 +134,21 @@ const BranchDetailPage: React.FC = () => {
 
     fetchManagers();
   }, [t]);
+
+  // Fetch subscription stats to check branch limit
+  useEffect(() => {
+    const fetchStats = async () => {
+      const statsResult = await subscriptionApi.getSubscriptionStats();
+      if (statsResult.success && statsResult.data?.branchUsage) {
+        setSubscriptionStats({
+          current: statsResult.data.branchUsage.current,
+          max: statsResult.data.branchUsage.max
+        });
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   // Initialize edit values when branch data loads
   useEffect(() => {
@@ -290,47 +323,100 @@ const BranchDetailPage: React.FC = () => {
     }
   };
 
+  // Check if toggle button should be disabled
+  const isToggleDisabled = React.useMemo(() => {
+    // If branch is inactive, check if activating would exceed subscription limit
+    if (branch && !branch.isActive && subscriptionStats) {
+      return subscriptionStats.current >= subscriptionStats.max;
+    }
+    return false;
+  }, [branch, subscriptionStats]);
+
   const handleToggleStatus = async () => {
-    if (!branch || togglingStatus) return;
+    if (!branch || togglingStatus || isToggleDisabled) return;
 
     // If branch is active, show confirmation modal
-    if (branch.status === 'ACTIVE') {
+    if (branch.isActive) {
       setShowDisableModal(true);
       return;
     }
 
     // If branch is inactive, directly enable it
     setTogglingStatus(true);
-    try {
-      await toggleBranchStatus(branch._id);
-      // The branch will be updated in context, so we need to refresh local state
-      const updatedBranch = await fetchBranchDetail(branch._id);
-      if (updatedBranch) {
-        setBranch(updatedBranch);
-      }
-      toast.success(t('branch_detail.enable_success', { defaultValue: 'Chi nhánh đã được kích hoạt' }));
-    } catch (_error) {
-      toast.error(t('branch_detail.enable_failed', { defaultValue: 'Không thể kích hoạt chi nhánh' }));
-    }
-    setTogglingStatus(false);
+    subscriptionApi
+      .getSubscriptionStats()
+      .then((statsResult) => {
+        if (statsResult.success && statsResult.data?.branchUsage) {
+          setSubscriptionStats({
+            current: statsResult.data.branchUsage.current,
+            max: statsResult.data.branchUsage.max
+          });
+        }
+      })
+      .catch(() => {
+        // Ignore errors when fetching stats
+      });
+
+    toggleBranchStatus(branch._id)
+      .then(async () => {
+        // The branch will be updated in context, so we need to refresh local state
+        const updatedBranch = await fetchBranchDetail(branch._id);
+        if (updatedBranch) {
+          setBranch(updatedBranch);
+        }
+
+        // Refresh subscription stats
+        const statsResult = await subscriptionApi.getSubscriptionStats();
+        if (statsResult.success && statsResult.data?.branchUsage) {
+          setSubscriptionStats({
+            current: statsResult.data.branchUsage.current,
+            max: statsResult.data.branchUsage.max
+          });
+        }
+
+        toast.success(t('branch_detail.enable_success', { defaultValue: 'Chi nhánh đã được kích hoạt' }));
+      })
+      .catch((error) => {
+        const errorMessage = extractAndTranslateApiError(error, t, 'branch_detail.enable_error');
+        toast.error(errorMessage);
+      })
+      .finally(() => {
+        setTogglingStatus(false);
+      });
   };
 
   const handleConfirmDisable = async () => {
     if (!branch || togglingStatus) return;
 
     setTogglingStatus(true);
-    try {
-      await toggleBranchStatus(branch._id);
-      // The branch will be updated in context, so we need to refresh local state
-      const updatedBranch = await fetchBranchDetail(branch._id);
-      if (updatedBranch) {
-        setBranch(updatedBranch);
-      }
-      toast.success(t('branch_detail.disable_success', { defaultValue: 'Chi nhánh đã được tắt' }));
-    } catch (_error) {
-      toast.error(t('branch_detail.disable_failed', { defaultValue: 'Không thể tắt chi nhánh' }));
-    }
-    setTogglingStatus(false);
+
+    toggleBranchStatus(branch._id)
+      .then(async () => {
+        // The branch will be updated in context, so we need to refresh local state
+        const updatedBranch = await fetchBranchDetail(branch._id);
+        if (updatedBranch) {
+          setBranch(updatedBranch);
+        }
+
+        // Refresh subscription stats
+        const statsResult = await subscriptionApi.getSubscriptionStats();
+        if (statsResult.success && statsResult.data?.branchUsage) {
+          setSubscriptionStats({
+            current: statsResult.data.branchUsage.current,
+            max: statsResult.data.branchUsage.max
+          });
+        }
+
+        toast.success(t('branch_detail.disable_success', { defaultValue: 'Chi nhánh đã được tắt' }));
+      })
+      .catch((error) => {
+        const errorMessage = extractAndTranslateApiError(error, t, 'branch_detail.disable_error');
+        toast.error(errorMessage);
+      })
+      .finally(() => {
+        setTogglingStatus(false);
+        setShowDisableModal(false);
+      });
   };
 
   if (loading || contextLoading) {
@@ -510,22 +596,52 @@ const BranchDetailPage: React.FC = () => {
                       {t('staff_modal.edit_profile')}
                     </Button>
                   )}
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    onClick={handleToggleStatus}
-                    disabled={togglingStatus}
-                    className={`border-orange-200 text-orange-700 hover:bg-orange-50 ${
-                      branch.status === 'ACTIVE' ? 'bg-[color:var(--gym-orange)]/10' : 'bg-rose-50'
-                    }`}
-                  >
-                    <Power className="h-4 w-4" />
-                    {togglingStatus
-                      ? t('branch_detail.processing')
-                      : branch.status === 'ACTIVE'
-                        ? t('branch_detail.turn_off')
-                        : t('branch_detail.turn_on')}
-                  </Button>
+                  <div className="relative">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      onClick={handleToggleStatus}
+                      disabled={togglingStatus || isToggleDisabled}
+                      className={
+                        isToggleDisabled && !branch.isActive
+                          ? 'border-red-300 bg-red-50/80 text-red-600 cursor-not-allowed opacity-75'
+                          : branch.status === 'ACTIVE'
+                            ? 'border-orange-200 bg-[color:var(--gym-orange)]/10 text-orange-700 hover:bg-orange-50'
+                            : 'border-orange-200 bg-rose-50 text-orange-700 hover:bg-orange-50'
+                      }
+                      title={
+                        isToggleDisabled && !branch.isActive
+                          ? t('error.CANNOT_ACTIVATE_BRANCH_EXCEEDS_LIMIT')
+                          : undefined
+                      }
+                    >
+                      {isToggleDisabled && !branch.isActive ? (
+                        <Lock className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Power className="h-4 w-4" />
+                      )}
+                      {togglingStatus
+                        ? t('branch_detail.processing')
+                        : branch.status === 'ACTIVE'
+                          ? t('branch_detail.turn_off')
+                          : isToggleDisabled
+                            ? t('branch_detail.cannot_turn_on')
+                            : t('branch_detail.turn_on')}
+                    </Button>
+                    {isToggleDisabled && !branch.isActive && (
+                      <div className="absolute -bottom-8 left-0 right-0 flex items-center justify-center gap-1 text-xs text-red-600 mt-1">
+                        <AlertCircle className="h-3 w-3" />
+                        <span>
+                          {subscriptionStats
+                            ? t('branch_detail.branches_used', {
+                                current: subscriptionStats.current,
+                                max: subscriptionStats.max
+                              })
+                            : t('branch_detail.limit_reached')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

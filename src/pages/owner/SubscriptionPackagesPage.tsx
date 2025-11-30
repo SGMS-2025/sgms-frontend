@@ -3,9 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { type LucideIcon, Package, TrendingUp, CheckCircle2, Clock } from 'lucide-react';
 import { SubscriptionPackageCard } from '@/components/subscription/SubscriptionPackageCard';
 import { PurchaseSubscriptionModal } from '@/components/subscription/PurchaseSubscriptionModal';
+import { TrialPackageModal } from '@/components/subscription/TrialPackageModal';
 import { BusinessVerificationAlert } from '@/components/business/BusinessVerificationAlert';
 import BusinessVerificationModal from '@/components/business/BusinessVerificationModal';
 import { useSubscriptionPackages } from '@/hooks/useSubscriptionPackages';
+import { useBranch } from '@/contexts/BranchContext';
 import { Button } from '@/components/ui/button';
 
 export const SubscriptionPackagesPage = () => {
@@ -46,11 +48,40 @@ export const SubscriptionPackagesPage = () => {
     getCustomerUsage
   } = useSubscriptionPackages();
 
+  // Get fetchBranches from BranchContext to refresh branches after subscription purchase
+  const { fetchBranches } = useBranch();
+
+  // Filter out trial packages from the main list
+  const regularPackages = packages.filter((pkg) => !pkg.isTrial);
+  const trialPackage = packages.find((pkg) => pkg.isTrial);
+
   const handleScrollToPackages = () => {
     packagesRef.current?.scrollIntoView({
       behavior: 'smooth',
       block: 'start'
     });
+  };
+
+  const handleStartFreeTrial = () => {
+    if (trialPackage && !stats?.hasActiveSubscription) {
+      handleSelectPackage(trialPackage._id);
+    } else {
+      handleScrollToPackages();
+    }
+  };
+
+  // Enhanced purchase success handler that also refreshes branches
+  const handlePurchaseSuccessWithRefresh = async () => {
+    // Refresh subscription data
+    await handlePurchaseSuccess();
+
+    // Wait a moment for backend to complete branch creation (if any)
+    // Backend creates first branch synchronously, but we add a small delay
+    // to ensure database transaction is committed
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // Refresh branches to show newly created branch (if any)
+    await fetchBranches();
   };
 
   if (isLoading) {
@@ -130,7 +161,7 @@ export const SubscriptionPackagesPage = () => {
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button
-                onClick={handleScrollToPackages}
+                onClick={handleStartFreeTrial}
                 className="h-11 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-6 text-sm font-semibold shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50"
               >
                 {t('subscription.hero.ctaTrial')}
@@ -184,7 +215,7 @@ export const SubscriptionPackagesPage = () => {
           `}</style>
           <div className="relative">
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {packages.map((pkg) => {
+              {regularPackages.map((pkg) => {
                 const isCurrentPackage = currentPackageTier === pkg.tier;
                 const isLowerTier = currentPackageTier !== null && pkg.tier < currentPackageTier;
                 // Allow renew (same tier) and upgrade (higher tier), but disable downgrade (lower tier)
@@ -204,15 +235,29 @@ export const SubscriptionPackagesPage = () => {
           </div>
         </section>
 
-        {/* Purchase Modal */}
-        <PurchaseSubscriptionModal
-          open={isPurchaseModalOpen}
-          onOpenChange={(open) => {
-            if (!open) closePurchaseModal();
-          }}
-          package={selectedPackage}
-          onSuccess={handlePurchaseSuccess}
-        />
+        {/* Purchase Modal - Regular packages */}
+        {selectedPackage && !selectedPackage.isTrial && (
+          <PurchaseSubscriptionModal
+            open={isPurchaseModalOpen}
+            onOpenChange={(open) => {
+              if (!open) closePurchaseModal();
+            }}
+            package={selectedPackage}
+            onSuccess={handlePurchaseSuccessWithRefresh}
+          />
+        )}
+
+        {/* Trial Package Modal */}
+        {selectedPackage && selectedPackage.isTrial && (
+          <TrialPackageModal
+            open={isPurchaseModalOpen}
+            onOpenChange={(open) => {
+              if (!open) closePurchaseModal();
+            }}
+            package={selectedPackage}
+            onSuccess={handlePurchaseSuccessWithRefresh}
+          />
+        )}
       </div>
     </div>
   );
