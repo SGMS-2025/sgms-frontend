@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { TFunction } from 'i18next';
+import type { DateRange } from 'react-day-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -95,8 +96,7 @@ const DiscountCampaignForm: React.FC<DiscountCampaignFormProps> = ({
   const { services, features, cells, loading: matrixLoading, error: matrixError } = useMatrix();
   const discountCampaignSchema = React.useMemo(() => buildDiscountCampaignSchema(t), [t]);
   const [selectedPackages, setSelectedPackages] = useState<string[]>([]);
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [endDate, setEndDate] = useState<Date | undefined>();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [isDiscountCodeManuallyEdited, setIsDiscountCodeManuallyEdited] = useState<boolean>(false);
   const [autoSuffix, setAutoSuffix] = useState<string>('');
 
@@ -158,23 +158,24 @@ const DiscountCampaignForm: React.FC<DiscountCampaignFormProps> = ({
         ? campaign.packageId.map((pkg) => pkg._id).filter((id): id is string => Boolean(id))
         : [];
       setSelectedPackages(initialPackages);
-      setStartDate(campaign.startDate ? new Date(campaign.startDate) : undefined);
-      setEndDate(campaign.endDate ? new Date(campaign.endDate) : undefined);
+      if (campaign.startDate && campaign.endDate) {
+        setDateRange({
+          from: new Date(campaign.startDate),
+          to: new Date(campaign.endDate)
+        });
+      }
     }
   }, [campaign]);
 
-  // Update form values when dates change
+  // Update form values when date range changes
   useEffect(() => {
-    if (startDate) {
-      setValue('startDate', startDate);
+    if (dateRange?.from) {
+      setValue('startDate', dateRange.from);
     }
-  }, [startDate, setValue]);
-
-  useEffect(() => {
-    if (endDate) {
-      setValue('endDate', endDate);
+    if (dateRange?.to) {
+      setValue('endDate', dateRange.to);
     }
-  }, [endDate, setValue]);
+  }, [dateRange, setValue]);
 
   // Update form values when selected packages change
   useEffect(() => {
@@ -243,7 +244,7 @@ const DiscountCampaignForm: React.FC<DiscountCampaignFormProps> = ({
                     </TooltipTrigger>
                     <TooltipContent
                       align="start"
-                      className="max-w-sm whitespace-normal bg-white text-gray-900 border border-gray-200 shadow-lg rounded-md p-3"
+                      className="max-w-sm whitespace-normal bg-white text-gray-900 border border-gray-200 shadow-lg rounded-md p-3 z-[102]"
                     >
                       <div className="text-xs text-gray-700 space-y-1">
                         <p className="font-semibold text-gray-900">{svc.name}</p>
@@ -275,7 +276,7 @@ const DiscountCampaignForm: React.FC<DiscountCampaignFormProps> = ({
   })();
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-2xl mx-auto">
       <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
         {/* Campaign Name */}
         <div className="space-y-2">
@@ -347,66 +348,49 @@ const DiscountCampaignForm: React.FC<DiscountCampaignFormProps> = ({
         </div>
 
         {/* Date Range */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Start Date */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">{t('discount.start_date')} *</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !startDate && 'text-muted-foreground',
-                    errors.startDate && 'border-red-500'
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? formatDate(startDate) : <span>{t('discount.select_start_date')}</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={setStartDate}
-                  disabled={(date) => date < new Date() || false}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            {errors.startDate && <p className="text-sm text-red-600">{errors.startDate.message}</p>}
-          </div>
-
-          {/* End Date */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">{t('discount.end_date')} *</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !endDate && 'text-muted-foreground',
-                    errors.endDate && 'border-red-500'
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate ? formatDate(endDate) : <span>{t('discount.select_end_date')}</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={setEndDate}
-                  disabled={(date) => date < new Date() || (startDate ? date <= startDate : false)}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            {errors.endDate && <p className="text-sm text-red-600">{errors.endDate.message}</p>}
-          </div>
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-gray-700">
+            {t('discount.start_date')} - {t('discount.end_date')} *
+          </Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  'w-full justify-start text-left font-normal',
+                  !dateRange?.from && 'text-muted-foreground',
+                  (errors.startDate || errors.endDate) && 'border-red-500'
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {(() => {
+                  if (!dateRange?.from) {
+                    return <span>{t('discount.select_date_range')}</span>;
+                  }
+                  if (dateRange.to) {
+                    return (
+                      <>
+                        {formatDate(dateRange.from)} - {formatDate(dateRange.to)}
+                      </>
+                    );
+                  }
+                  return formatDate(dateRange.from);
+                })()}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto max-w-none p-0 z-[102]" align="start">
+              <Calendar
+                mode="range"
+                selected={dateRange}
+                onSelect={setDateRange}
+                disabled={(date) => date < new Date()}
+                numberOfMonths={1}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+          {errors.startDate && <p className="text-sm text-red-600">{errors.startDate.message}</p>}
+          {errors.endDate && <p className="text-sm text-red-600">{errors.endDate.message}</p>}
         </div>
 
         {/* Service/Package Selection via Matrix */}
@@ -464,7 +448,7 @@ const DiscountCampaignForm: React.FC<DiscountCampaignFormProps> = ({
                           </TooltipTrigger>
                           <TooltipContent
                             align="start"
-                            className="max-w-sm whitespace-normal bg-white text-gray-900 border border-gray-200 shadow-lg rounded-md p-3"
+                            className="max-w-sm whitespace-normal bg-white text-gray-900 border border-gray-200 shadow-lg rounded-md p-3 z-[102]"
                           >
                             <div className="text-xs text-gray-700 space-y-1">
                               <p className="font-semibold text-gray-900">{svc.name}</p>
