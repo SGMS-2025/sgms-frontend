@@ -181,14 +181,14 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
                     return (
                       <div
                         key={branch._id}
-                        className={`w-full flex items-center space-x-3 p-2 rounded-lg transition-colors group bg-gray-50 hover:bg-gray-100 ${
+                        className={`w-full flex items-center space-x-3 p-2 rounded-lg transition-colors group bg-gray-50 hover:bg-gray-100 min-w-0 ${
                           isDisabled ? 'opacity-60' : ''
                         }`}
                       >
                         <button
                           type="button"
                           disabled={isDisabled}
-                          className="flex flex-1 items-center space-x-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+                          className="flex flex-1 items-center space-x-3 text-left min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
                           onClick={() => {
                             if (!isDisabled) {
                               handleBranchSelect(branch);
@@ -211,23 +211,23 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
                               {branch.branchName.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
+                          <div className="flex-1 min-w-0 overflow-hidden">
+                            <div className="flex items-center gap-2 min-w-0">
                               <p
-                                className={`font-medium text-sm truncate ${isDisabled ? 'text-gray-500' : 'text-gray-800'}`}
+                                className={`font-medium text-sm truncate flex-1 min-w-0 ${isDisabled ? 'text-gray-500' : 'text-gray-800'}`}
                               >
                                 {branch.branchName}
                               </p>
                               <div
-                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium ${statusBg} ${statusColor}`}
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 ${statusBg} ${statusColor}`}
                               >
-                                <Circle className="h-1.5 w-1.5 fill-current" />
+                                <Circle className="h-1.5 w-1.5 fill-current flex-shrink-0" />
                                 {statusText}
                               </div>
                             </div>
-                            <div className="flex items-center space-x-1 mt-0.5">
+                            <div className="flex items-center space-x-1 mt-0.5 min-w-0">
                               <MapPin className="h-3 w-3 text-gray-500 flex-shrink-0" />
-                              <p className="text-xs text-gray-500 truncate">{branch.location}</p>
+                              <p className="text-xs text-gray-500 truncate min-w-0">{branch.location}</p>
                             </div>
                           </div>
                         </button>
