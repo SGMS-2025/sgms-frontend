@@ -43,6 +43,7 @@ const AddBranchPage: React.FC = () => {
   const navigate = useNavigate();
   const { createBranch } = useBranch();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [managers, setManagers] = useState<Staff[]>([]);
   const [loadingManagers, setLoadingManagers] = useState(false);
@@ -140,6 +141,7 @@ const AddBranchPage: React.FC = () => {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setImageFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setImagePreview(e.target?.result as string);
@@ -157,28 +159,39 @@ const AddBranchPage: React.FC = () => {
 
     setIsSubmitting(true);
 
-    const createData: CreateAndUpdateBranchRequest = {
-      branchName: data.branchName,
-      location: `${data.address}, ${data.city}`,
-      description: data.description || 'Phòng tập Gym',
-      hotline: data.hotline || '',
-      images: imagePreview ? [imagePreview] : [],
-      coverImage: imagePreview || undefined,
-      facilities: data.facilities || ['Gym', 'Cardio', 'Weight Training'],
-      openingHours: `${data.openingHours.open} - ${data.openingHours.close}`,
-      managerId: data.managerId && data.managerId.length > 0 ? data.managerId : null
-    };
+    // Create FormData for file upload
+    const formData = new FormData();
+    formData.append('branchName', data.branchName);
+    formData.append('location', `${data.address}, ${data.city}`);
+    formData.append('description', data.description || 'Phòng tập Gym');
+    formData.append('hotline', data.hotline || '');
+    formData.append('facilities', JSON.stringify(data.facilities || ['Gym', 'Cardio', 'Weight Training']));
+    formData.append('openingHours', `${data.openingHours.open} - ${data.openingHours.close}`);
 
-    const newBranch = await createBranch(createData);
-
-    if (newBranch) {
-      toast.success(t('toast.add_branch_success'));
-      navigate('/manage/owner');
-    } else {
-      toast.error(t('toast.add_branch_failed'));
+    if (data.managerId && data.managerId.length > 0) {
+      formData.append('managerId', JSON.stringify(data.managerId));
     }
 
-    setIsSubmitting(false);
+    // Append image files
+    if (imageFile) {
+      formData.append('coverImage', imageFile);
+      formData.append('images', imageFile); // Also add to images array
+    }
+
+    try {
+      const newBranch = await createBranch(formData as CreateAndUpdateBranchRequest | FormData);
+
+      if (newBranch) {
+        toast.success(t('toast.add_branch_success'));
+        navigate('/manage/owner');
+      } else {
+        toast.error(t('toast.add_branch_failed'));
+      }
+    } catch (_error) {
+      toast.error(t('toast.add_branch_failed'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

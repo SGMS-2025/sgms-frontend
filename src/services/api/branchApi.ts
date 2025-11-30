@@ -98,14 +98,21 @@ export const branchApi = {
   },
 
   // Create new branch (owner only)
-  createBranch: async (data: CreateAndUpdateBranchRequest): Promise<ApiResponse<Branch>> => {
-    const response = await api.post('/branches', data);
+  createBranch: async (data: CreateAndUpdateBranchRequest | FormData): Promise<ApiResponse<Branch>> => {
+    const response = await api.post('/branches', data, {
+      headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {}
+    });
     return response.data;
   },
 
   // Update branch (owner only)
-  updateBranch: async (branchId: string, data: CreateAndUpdateBranchRequest): Promise<ApiResponse<Branch>> => {
-    const response = await api.put(`/branches/${branchId}`, data);
+  updateBranch: async (
+    branchId: string,
+    data: CreateAndUpdateBranchRequest | FormData
+  ): Promise<ApiResponse<Branch>> => {
+    const response = await api.put(`/branches/${branchId}`, data, {
+      headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {}
+    });
     return response.data;
   },
 

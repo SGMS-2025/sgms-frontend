@@ -242,7 +242,7 @@ export const MyKPICard: React.FC<MyKPICardProps> = ({ kpiData }) => {
             <div className="text-xl font-bold text-gray-900">
               {formatCurrency(achievement?.commission?.amount || 0)}
             </div>
-            {achievement?.commission?.applicableRate && (
+            {achievement?.commission?.applicableRate != null && achievement.commission.applicableRate > 0 && (
               <div className="text-xs text-gray-500 mt-1">
                 {t('kpi.earnings.rate', 'Tỷ lệ')}: {achievement.commission.applicableRate.toFixed(1)}%
               </div>

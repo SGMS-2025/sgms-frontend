@@ -207,7 +207,7 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
     }
   };
 
-  const createBranch = async (data: CreateAndUpdateBranchRequest): Promise<BranchDisplay | null> => {
+  const createBranch = async (data: CreateAndUpdateBranchRequest | FormData): Promise<BranchDisplay | null> => {
     // Only allow if user has permission
     if (!canAccessMyBranches) {
       return null;
@@ -232,7 +232,7 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
 
   const updateBranchApi = async (
     branchId: string,
-    data: CreateAndUpdateBranchRequest
+    data: CreateAndUpdateBranchRequest | FormData
   ): Promise<BranchDisplay | null> => {
     // Only allow if user has permission
     if (!canAccessMyBranches) {
