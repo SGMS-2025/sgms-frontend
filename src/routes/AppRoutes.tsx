@@ -84,6 +84,7 @@ import { AdminLayout } from '@/layouts/AdminLayout';
 import OwnerSubscriptionGate from '@/components/guards/OwnerSubscriptionGate';
 import OwnerSubscriptionGateWithLayout from '@/components/guards/OwnerSubscriptionGateWithLayout';
 import KPIManagementPage from '@/pages/owner/KPIManagementPage';
+import { CommissionPolicyPage } from '@/pages/owner/CommissionPolicyPage';
 import MyKPIPage from '@/pages/pt/MyKPIPage';
 import ChatAiPage from '@/pages/pt/ChatAiPage';
 import ProfileAccountSettingsPage from '@/pages/profile/ProfileAccountSettingsPage';
@@ -461,6 +462,8 @@ const AppRoutes: React.FC = () => {
 
             {/* KPI Management Routes */}
             <Route path="kpi" element={<KPIManagementPage />} />
+            {/* Commission Policy Routes */}
+            <Route path="commission-policies" element={<CommissionPolicyPage />} />
           </Route>
           {/* Subscription Management Route (accessible without active subscription for OWNER) */}
           <Route path="subscriptions" element={<SubscriptionPackagesPage />} />

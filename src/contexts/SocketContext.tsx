@@ -353,12 +353,16 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
       dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
 
-      // Show toast for membership and service contract notifications (realtime feedback)
+      // Show toast for membership, service contract, and KPI notifications (realtime feedback)
       // Use notification ID to prevent duplicate toasts
+      const notificationTypeLower = (notification.type || '').toLowerCase();
       if (
         notification.category === 'membership' ||
-        notification.type?.includes('membership') ||
-        notification.type?.includes('servicecontract')
+        notificationTypeLower.includes('membership') ||
+        notificationTypeLower.includes('servicecontract') ||
+        notificationTypeLower.includes('kpi') ||
+        notification.type === 'notification:kpi:achieved' ||
+        notification.type === 'KPI'
       ) {
         // Check if we've already shown a toast for this notification
         if (!displayedToastIds.current.has(notificationId)) {
@@ -464,6 +468,13 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     [handleWorkShiftNotification]
   );
 
+  const handleKPISocketNotification = useCallback(
+    (data: NotificationData) => {
+      handleWorkShiftNotification(data as unknown as Record<string, unknown>);
+    },
+    [handleWorkShiftNotification]
+  );
+
   const handleTestNotification = useCallback(
     (event: CustomEvent) => {
       const notification: Notification = event.detail;
@@ -516,6 +527,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       socketService.off('notification:servicecontract:owner_update', handleMembershipSocketNotification);
       socketService.off('notification:servicecontract:manager_update', handleMembershipSocketNotification);
       socketService.off('notification:branch-working-config:updated', handleBranchWorkingConfigSocketNotification);
+      socketService.off('notification:kpi:achieved', handleKPISocketNotification);
 
       // WorkShift notifications
       socketService.on('notification:workshift:created', handleSocketNotification);
@@ -560,6 +572,9 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
       // Branch working config notifications
       socketService.on('notification:branch-working-config:updated', handleBranchWorkingConfigSocketNotification);
+
+      // KPI notifications
+      socketService.on('notification:kpi:achieved', handleKPISocketNotification);
 
       // ✅ REMOVED: Membership contract update events are now handled directly by components
       // Components listen to 'membership:contract:updated' socket event directly

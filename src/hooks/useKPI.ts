@@ -67,15 +67,40 @@ const transformKPIToDisplay = (config: KPIConfig, achievement?: KPIAchievement):
   const commission = achievement?.commission?.amount || 0;
   const ranking = achievement?.rankings?.branch;
 
+  // Get reward from achievement (actual earned) instead of config (target)
+  const rewardAmount = achievement?.reward?.amount || 0;
+  const rewardType = achievement?.reward?.type || config.reward?.type;
+
+  // Calculate total earnings (commission + reward)
+  const totalEarnings = commission + rewardAmount;
+
   return {
     id: config._id,
     staffName,
     branchName,
     period,
+    startDate: config.startDate,
+    endDate: config.endDate,
+    periodType: config.periodType,
     actualRevenue,
     commission,
     ranking,
-    status: config.status
+    status: config.status,
+    // Targets
+    targetRevenue: config.targets?.revenue,
+    targetNewMembers: config.targets?.newMembers,
+    targetPtSessions: config.targets?.ptSessions,
+    targetContracts: config.targets?.contracts,
+    // Actuals
+    actualNewMembers: achievement?.actual?.members?.newMembers,
+    actualPtSessions: achievement?.actual?.sessions?.ptSessions,
+    actualContracts: achievement?.actual?.contracts?.total,
+    // Reward (from achievement - actual earned)
+    rewardType: rewardType,
+    rewardAmount: rewardAmount,
+    totalEarnings: totalEarnings,
+    // Achievement status
+    achievementStatus: achievement?.status
   };
 };
 

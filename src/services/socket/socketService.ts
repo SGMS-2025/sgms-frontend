@@ -238,6 +238,11 @@ class SocketService implements SocketServiceInterface {
       this.handleBranchWorkingConfigNotification(data);
     });
 
+    // KPI notifications
+    this.socket.on('notification:kpi:achieved', (data: NotificationData) => {
+      this.handleKPINotification(data);
+    });
+
     // Contract signing notifications
     this.socket.on('contract:signer:signed', (data: ContractSignerSignedEvent) => {
       this.handleContractSignerSigned(data);
@@ -351,6 +356,15 @@ class SocketService implements SocketServiceInterface {
     // Don't show toast here - let the notification panel handle display
     // SocketContext will handle the notification directly from socket events
     console.log('🔔 Branch Working Config notification received in socketService:', data);
+  }
+
+  private handleKPINotification(data: NotificationData) {
+    // Dispatch event for SocketContext to handle
+    globalThis.dispatchEvent(
+      new CustomEvent('realtime-notification', {
+        detail: data
+      })
+    );
   }
 
   private handleContractSignerSigned(data: ContractSignerSignedEvent) {

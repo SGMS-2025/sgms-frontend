@@ -49,7 +49,7 @@ export const KPILeaderboard: React.FC = () => {
     return 'bg-gray-100 text-gray-700';
   };
 
-  const formatRevenue = (value: number) => `${formatNumber(value)} đ`;
+  const formatTotalEarnings = (value: number) => `${formatNumber(value)} đ`;
 
   return (
     <div
@@ -116,7 +116,9 @@ export const KPILeaderboard: React.FC = () => {
                       {staff.completion}%
                     </span>
                   </div>
-                  <div className="text-right font-semibold text-gray-900">{formatRevenue(staff.revenue)}</div>
+                  <div className="text-right font-semibold text-gray-900">
+                    {formatTotalEarnings(staff.totalEarnings ?? staff.revenue)}
+                  </div>
                 </div>
               ))}
             </div>
