@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/customer-progress';
-import { Calendar, MessageSquare, ClipboardList, Clock, Users, TrendingUp } from 'lucide-react';
+import { Calendar, MessageSquare, Users, TrendingUp } from 'lucide-react';
 import type { PTCustomerDetailModalProps } from '@/types/components/Customer';
 import { usePTCustomerUtils } from '@/hooks/usePTCustomer';
 import { useTranslation } from 'react-i18next';
@@ -203,20 +203,6 @@ export const PTCustomerDetailModal: React.FC<PTCustomerDetailModalProps> = ({ is
               className="w-full h-10 rounded-xl bg-[#F05A29] text-white hover:bg-[#E04A1F] shadow-sm text-sm"
             >
               <TrendingUp className="mr-2 h-4 w-4" />
-              View Detail Progress
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full h-10 rounded-xl border-border hover:bg-secondary bg-transparent text-sm"
-            >
-              <ClipboardList className="mr-2 h-4 w-4" />
-              {t('pt_customer_detail.add_note')}
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full h-10 rounded-xl border-border hover:bg-secondary bg-transparent text-sm"
-            >
-              <Clock className="mr-2 h-4 w-4" />
               {t('pt_customer_detail.training_history')}
             </Button>
           </div>

@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -24,9 +25,13 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
   onClose,
   onConfirm,
   isLoading = false,
-  title = 'Delete Item',
-  description = 'Are you sure you want to delete this item? This action cannot be undone.'
+  title,
+  description
 }) => {
+  const { t } = useTranslation();
+
+  const defaultTitle = title || t('common.delete_confirmation_title');
+  const defaultDescription = description || t('common.delete_confirmation_description');
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
@@ -36,8 +41,8 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
               <AlertTriangle className="w-5 h-5 text-red-600" />
             </div>
             <div>
-              <DialogTitle className="text-lg font-semibold text-gray-900">{title}</DialogTitle>
-              <DialogDescription className="text-sm text-gray-500 mt-1">{description}</DialogDescription>
+              <DialogTitle className="text-lg font-semibold text-gray-900">{defaultTitle}</DialogTitle>
+              <DialogDescription className="text-sm text-gray-500 mt-1">{defaultDescription}</DialogDescription>
             </div>
           </div>
         </DialogHeader>
@@ -48,24 +53,24 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
             variant="outline"
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1 sm:flex-none"
+            className="flex-1 sm:flex-none cursor-pointer hover:bg-gray-50 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             type="button"
             variant="destructive"
             onClick={onConfirm}
             disabled={isLoading}
-            className="flex-1 sm:flex-none"
+            className="flex-1 sm:flex-none cursor-pointer hover:bg-red-700 hover:brightness-90 hover:shadow-md transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Deleting...
+                {t('common.deleting')}
               </>
             ) : (
-              'Delete'
+              t('common.delete')
             )}
           </Button>
         </DialogFooter>

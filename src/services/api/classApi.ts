@@ -62,7 +62,11 @@ class ClassApi {
    */
   async createClass(data: CreateClassDTO): Promise<Class> {
     try {
-      const response = await api.post<ClassDetailResponse>(this.baseURL, data);
+      const response = await api.post<ClassDetailResponse>(this.baseURL, data, {
+        // Skip error toast - errors are handled inline in the form
+        // @ts-expect-error - Custom config property
+        skipErrorToast: true
+      });
 
       // Check if response indicates an error (from interceptor)
       const responseData = response.data as unknown as Record<string, unknown>;
@@ -82,7 +86,7 @@ class ClassApi {
         throw new Error('Invalid response structure: missing data');
       }
 
-      return convertMongoDecimalToNumbers(response.data.data) as Class;
+      return convertMongoDecimalToNumbers(responseData.data) as Class;
     } catch (error) {
       throw this.handleError(error);
     }
@@ -96,8 +100,13 @@ class ClassApi {
    */
   async updateClass(classId: string, data: UpdateClassDTO): Promise<Class> {
     try {
-      const response = await api.put<ClassDetailResponse>(`${this.baseURL}/${classId}`, data);
-      return convertMongoDecimalToNumbers(response.data.data) as Class;
+      const response = await api.put<ClassDetailResponse>(`${this.baseURL}/${classId}`, data, {
+        // Skip error toast - errors are handled inline in the form
+        // @ts-expect-error - Custom config property
+        skipErrorToast: true
+      });
+      const responseData = response.data as ClassDetailResponse;
+      return convertMongoDecimalToNumbers(responseData.data) as Class;
     } catch (error) {
       throw this.handleError(error);
     }

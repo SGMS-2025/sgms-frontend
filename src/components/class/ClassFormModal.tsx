@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { createClassSchema, updateClassSchema, DAY_LABELS, DAYS_OF_WEEK, type CreateClassDTO } from '@/types/Class';
 import type { Staff } from '@/types/api/Staff';
@@ -287,10 +287,18 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
         errorMessage.includes('already has a class');
 
       if (isTrainerConflict) {
+        // Format error message: remove prefix and keep only the useful part
+        let formattedMessage = errorMessage;
+        if (errorMessage.includes('Trainer has conflicting schedule at the same time: ')) {
+          formattedMessage = errorMessage.replace('Trainer has conflicting schedule at the same time: ', '');
+        } else if (errorMessage.includes('Trainer has conflicting schedule: ')) {
+          formattedMessage = errorMessage.replace('Trainer has conflicting schedule: ', '');
+        }
+
         // Set error on trainerIds field for inline display
         setError('trainerIds', {
           type: 'server',
-          message: errorMessage
+          message: formattedMessage
         });
       } else {
         // For other errors, set as general form error
@@ -358,7 +366,7 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
 
   return (
     <Dialog open={isOpen && !!branchId} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto hide-scrollbar">
         {/* Header */}
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -387,39 +395,6 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
         {/* Form */}
         {!detailLoading && !loadingData && (
           <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4">
-            {/* Validation Errors Summary */}
-            {Object.keys(errors).length > 0 && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-xs font-semibold text-red-700 mb-2 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" />
-                  {t('class.form.error_validation_title')}
-                </p>
-                <ul className="text-xs text-red-600 space-y-1">
-                  {Object.entries(errors).map(([field, error]: [string, any]) => {
-                    // Don't show field name for root errors, just the message
-                    if (field === 'root') {
-                      return (
-                        <li key={field} className="flex items-start gap-2">
-                          <span>•</span>
-                          <span>{error?.message || t('class.form.error_field_invalid')}</span>
-                        </li>
-                      );
-                    }
-                    // For field-specific errors, show field name and message
-                    return (
-                      <li key={field} className="flex items-start gap-2">
-                        <span>•</span>
-                        <span>
-                          <span className="font-medium">{field}:</span>{' '}
-                          {error?.message || t('class.form.error_field_invalid')}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
-
             {/* Basic Info */}
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-gray-700">{t('class.form.section_basic_info')}</h3>
@@ -449,12 +424,12 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
                   control={control}
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger className="mt-1">
+                      <SelectTrigger className="mt-1 cursor-pointer">
                         <SelectValue placeholder={t('class.form.placeholder_service_package')} />
                       </SelectTrigger>
                       <SelectContent>
                         {packages.map((pkg) => (
-                          <SelectItem key={pkg._id} value={pkg._id}>
+                          <SelectItem key={pkg._id} value={pkg._id} className="cursor-pointer">
                             {t('class.form.package_display', { name: pkg.name, sessionCount: pkg.sessionCount })}
                           </SelectItem>
                         ))}
@@ -487,6 +462,7 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
                         id={`day-${day}`}
                         checked={selectedDays?.includes(day) || false}
                         onCheckedChange={() => handleDayToggle(day)}
+                        className="cursor-pointer"
                       />
                       <label htmlFor={`day-${day}`} className="text-xs font-medium cursor-pointer">
                         {DAY_LABELS[day]}
@@ -633,34 +609,40 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
                   <Label className="text-sm">{t('class.form.label_trainers')}</Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start mt-1">
+                      <Button variant="outline" className="w-full justify-start mt-1 cursor-pointer" type="button">
                         {trainerDisplay}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
+                    <PopoverContent className="w-[300px] p-0 z-[102]" align="start" sideOffset={4}>
                       <Command>
                         <CommandInput placeholder={t('class.form.search_trainers')} />
-                        <CommandEmpty>{t('class.form.no_trainers_found')}</CommandEmpty>
-                        <CommandGroup className="max-h-[200px] overflow-y-auto">
-                          {trainers
-                            .filter((trainer) => trainer.userId)
-                            .map((trainer) => (
-                              <CommandItem key={trainer._id} onSelect={() => handleTrainerToggle(trainer._id)}>
-                                <Checkbox checked={selectedTrainers?.includes(trainer._id) || false} className="mr-2" />
-                                <span className="flex-1">{trainer.userId?.fullName || 'N/A'}</span>
-                              </CommandItem>
-                            ))}
-                        </CommandGroup>
+                        <CommandList>
+                          <CommandEmpty>{t('class.form.no_trainers_found')}</CommandEmpty>
+                          <CommandGroup className="max-h-[200px] overflow-y-auto hide-scrollbar">
+                            {trainers
+                              .filter((trainer) => trainer.userId)
+                              .map((trainer) => (
+                                <CommandItem
+                                  key={trainer._id}
+                                  onSelect={() => handleTrainerToggle(trainer._id)}
+                                  className="cursor-pointer"
+                                >
+                                  <Checkbox
+                                    checked={selectedTrainers?.includes(trainer._id) || false}
+                                    className="mr-2 cursor-pointer"
+                                  />
+                                  <span className="flex-1">{trainer.userId?.fullName || 'N/A'}</span>
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </CommandList>
                       </Command>
                     </PopoverContent>
                   </Popover>
                   {errors.trainerIds && (
-                    <div className="flex items-start gap-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 mt-1">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                      <span className="flex-1">
-                        {(errors.trainerIds as any)?.message || t('class.form.error_field_required')}
-                      </span>
-                    </div>
+                    <p className="text-xs text-red-500 mt-1">
+                      {(errors.trainerIds as any)?.message || t('class.form.error_field_required')}
+                    </p>
                   )}
                 </div>
 
@@ -719,13 +701,18 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
 
             {/* Footer */}
             <DialogFooter className="gap-2 border-t pt-4">
-              <Button variant="outline" onClick={onClose} disabled={isSubmitting || actionLoading}>
+              <Button
+                variant="outline"
+                onClick={onClose}
+                disabled={isSubmitting || actionLoading}
+                className="cursor-pointer"
+              >
                 {t('class.form.button_cancel')}
               </Button>
               <Button
                 type="submit"
                 disabled={isSubmitting || actionLoading || timeError !== null || loadingData}
-                className="min-w-[120px] bg-orange-500 hover:bg-orange-600 text-white"
+                className="min-w-[120px] bg-orange-500 hover:bg-orange-600 text-white cursor-pointer"
               >
                 {actionLoading
                   ? t('class.form.button_saving')
