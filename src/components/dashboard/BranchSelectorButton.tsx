@@ -68,9 +68,9 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
 
     const renderStatusPill = (isActive: boolean) => (
       <span
-        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${statusClasses(isActive)}`}
+        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap flex-shrink-0 ${statusClasses(isActive)}`}
       >
-        <span className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-orange-500' : 'bg-gray-400'}`} />
+        <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${isActive ? 'bg-orange-500' : 'bg-gray-400'}`} />
         {isActive ? activeLabel : inactiveLabel}
       </span>
     );
@@ -109,7 +109,7 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
                 return (
                   <div
                     key={branch._id}
-                    className={`group flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors border ${
+                    className={`group flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors border min-w-0 ${
                       isCurrent
                         ? 'bg-orange-50 text-orange-900 border-orange-200 shadow-sm'
                         : 'bg-white hover:bg-gray-50 border-gray-200 hover:border-gray-300'
@@ -124,7 +124,7 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
                         }
                       }}
                       disabled={isDisabled && !isCurrent}
-                      className={`flex flex-1 items-center gap-3 text-left ${isDisabled && !isCurrent ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                      className={`flex flex-1 items-center gap-3 text-left min-w-0 ${isDisabled && !isCurrent ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                       title={
                         isDisabled && !isCurrent
                           ? t(
@@ -142,14 +142,14 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
                           {branch.branchName.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="flex min-w-0 flex-1 flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <p className="flex-1 truncate text-sm font-medium">{branch.branchName}</p>
+                      <div className="flex min-w-0 flex-1 flex-col gap-1 overflow-hidden">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <p className="flex-1 truncate text-sm font-medium min-w-0">{branch.branchName}</p>
                           {renderStatusPill(branch.isActive)}
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <MapPin className="h-3 w-3" />
-                          <span className="truncate">{branch.location}</span>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
+                          <MapPin className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate min-w-0">{branch.location}</span>
                         </div>
                       </div>
                     </button>
