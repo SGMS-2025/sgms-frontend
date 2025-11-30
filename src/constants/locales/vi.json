@@ -337,7 +337,7 @@
   "dashboard.kpi_top_badge": "Top 5 theo KPI",
   "dashboard.kpi_score": "Điểm KPI",
   "dashboard.kpi_avg_score": "Điểm trung bình Top 5",
-  "dashboard.kpi_revenue": "Doanh thu",
+  "dashboard.kpi_revenue": "Tổng thu nhập",
   "dashboard.kpi_total_revenue": "Doanh thu cộng gộp Top 5",
   "dashboard.kpi_momentum": "Đà tăng trưởng tốt nhất",
   "dashboard.kpi_focus": "Trọng tâm",
@@ -457,6 +457,7 @@
   "sidebar.subscription_packages": "Gói đăng ký",
   "sidebar.finance": "Tài chính",
   "sidebar.expenses": "Chi phí",
+  "sidebar.commission_policy": "Chính sách Hoa hồng",
   "expenses.badge": "QUẢN LÝ CHI PHÍ",
   "expenses.branch_filter": "LỌC THEO CHI NHÁNH",
   "expenses.title": "Chi phí",
@@ -841,6 +842,8 @@
   "common.feedback": "Phản hồi",
   "common.refresh": "Làm mới",
   "common.export": "Xuất",
+  "common.notes": "Ghi chú",
+  "common.notes_placeholder": "Nhập ghi chú (tùy chọn)",
   "validation.phone_invalid_format": "Số điện thoại không đúng định dạng (10-11 chữ số, bắt đầu bằng 0)",
   "validation.phone_only_digits": "Số điện thoại chỉ được chứa các chữ số",
   "validation.fullname_required": "Họ và tên không được để trống",
@@ -2889,6 +2892,8 @@
   "notifications.service_contract.owner_update.message": "Một hợp đồng dịch vụ đã được cập nhật",
   "notifications.service_contract.manager_update.title": "Cập nhật hợp đồng dịch vụ",
   "notifications.service_contract.manager_update.message": "Một hợp đồng dịch vụ đã được cập nhật",
+  "notifications.kpi.achieved.title": "🎉 KPI Đạt Mục Tiêu",
+  "notifications.kpi.achieved.message": "Chúc mừng! Bạn đã đạt KPI tại {{branchName}} ({{period}}){{rewardText}}",
   "socket.connection_failed": "Không thể kết nối đến thông báo thời gian thực",
   "socket.reconnected": "Đã kết nối lại đến thông báo thời gian thực",
   "socket.reconnect_failed": "Không thể kết nối lại đến thông báo",
@@ -3128,6 +3133,8 @@
   "common.sort_by": "Sắp xếp theo",
   "common.updated": "Đã cập nhật",
   "common.deleting": "Đang xóa...",
+  "common.disabling": "Đang vô hiệu hóa...",
+  "common.enabling": "Đang kích hoạt...",
   "common.dismiss": "Bỏ qua",
   "common.images": "Ảnh",
   "equipment.description": "Mô tả",
@@ -4875,7 +4882,10 @@
       "active": "Đang hoạt động",
       "cancelled": "Đã hủy",
       "at_risk": "Cần chú ý",
-      "on_track": "Đang đúng hướng"
+      "on_track": "Đang đúng hướng",
+      "achieved": "Đã đạt",
+      "failed": "Không đạt",
+      "in_progress": "Đang thực hiện"
     },
     "stats": {
       "total": "Tổng KPI",
@@ -4884,31 +4894,67 @@
       "avg_achievement": "Tỷ lệ đạt trung bình",
       "top_performer": "Nhân viên xuất sắc",
       "total_helper": "Tổng số KPI",
+      "active": "KPI Đang Hoạt Động",
       "active_helper": "KPI đang được theo dõi",
+      "cancelled": "KPI Đã Hủy",
       "cancelled_helper": "KPI đã bị vô hiệu hóa"
     },
     "my_kpi": {
+      "title": "KPI Của Tôi",
+      "period": "Kỳ",
+      "branch": "Chi nhánh"
     },
     "overall_achievement": "Tổng Quan Hoàn Thành",
     "achievement_rate": "Hoàn thành",
     "target": "Mục tiêu",
     "actual": "Thực tế",
+    "progress": "Tiến độ",
     "days_remaining": "Còn {{days}} ngày",
     "metrics": {
+      "total_revenue": "Tổng Doanh Thu",
       "new_members": "Khách Hàng Mới",
       "renewals": "Gia Hạn",
-      "pt_sessions": "Buổi PT"
+      "pt_sessions": "Buổi PT",
+      "contracts": "Hợp Đồng"
     },
     "earnings": {
+      "title": "Thu Nhập",
       "commission": "Hoa Hồng",
-      "bonus": "Thưởng"
+      "bonus": "Thưởng",
+      "rate": "Tỷ lệ",
+      "reward": "Thưởng",
+      "total": "Tổng"
     },
     "ranking": {
       "branch": "Xếp Hạng Chi Nhánh",
       "overall": "Xếp Hạng Tổng Thể"
     },
     "warning": {
-      "message": "Bạn cần thêm {{amount}} để đạt KPI!"
+      "title": "Cần Chú Ý",
+      "message": "Bạn cần thêm {{amount}} để đạt KPI!",
+      "message_generic": "Hãy tiếp tục phấn đấu để đạt mục tiêu!"
+    },
+    "targets": {
+      "title": "Mục Tiêu KPI",
+      "revenue": "Doanh thu",
+      "new_members": "Khách hàng mới",
+      "pt_sessions": "Buổi PT",
+      "contracts": "Hợp đồng"
+    },
+    "reward": {
+      "title": "Thưởng Khi Đạt KPI",
+      "fixed_amount": "Thưởng cố định",
+      "percentage_bonus": "Thưởng % thêm vào hoa hồng",
+      "voucher": "Voucher/Phiếu quà tặng",
+      "none": "Không có thưởng",
+      "achieved": "Đã đạt - Nhận thưởng",
+      "pending": "Hoàn thành mục tiêu để nhận thưởng"
+    },
+    "reward_type": {
+      "fixed_amount": "Thưởng cố định",
+      "percentage_bonus": "Thưởng phần trăm",
+      "voucher": "Voucher",
+      "none": "Không có"
     },
     "export": "Xuất dữ liệu",
     "search_placeholder": "Tìm kiếm theo tên, chi nhánh...",
@@ -4919,14 +4965,24 @@
     "no_kpi_filtered": "Không có KPI nào phù hợp với bộ lọc của bạn",
     "no_kpi_message": "Bắt đầu bằng cách tạo KPI mới cho nhân viên của bạn",
     "no_kpi_assigned": "Bạn chưa có KPI nào được gán",
+    "all_staff": "Tất cả nhân viên",
     "table": {
       "staff_name": "Nhân viên",
       "achievement": "Hoàn thành",
-      "actions": "Thao tác"
+      "actions": "Thao tác",
+      "period": "Kỳ",
+      "targets": "Mục tiêu",
+      "actual": "Thực tế",
+      "commission": "Hoa hồng",
+      "reward": "Thưởng",
+      "status": "Trạng thái",
+      "branch": "Chi nhánh",
+      "ranking": "Xếp hạng"
     },
     "actions": {
       "create": "Tạo KPI",
       "view": "Xem chi tiết",
+      "view_detail": "Xem chi tiết",
       "edit": "Chỉnh sửa",
       "cancel": "Hủy",
       "disable": "Vô hiệu hóa",
@@ -4934,7 +4990,8 @@
       "refresh": "Làm mới"
     },
     "confirm": {
-      "disable_title": "Xác nhận vô hiệu hóa KPI"
+      "disable_title": "Xác nhận vô hiệu hóa KPI",
+      "disable": "Bạn có chắc chắn muốn vô hiệu hóa KPI này?"
     },
     "cancel_success": "Hủy KPI thành công",
     "cancel_error": "Không thể hủy KPI",
@@ -4965,12 +5022,27 @@
       "notes": "Ghi chú",
       "notes_placeholder": "Nhập ghi chú (tùy chọn)",
       "cannot_change": "Không thể thay đổi",
-      "update": "Cập nhật KPI"
+      "update": "Cập nhật KPI",
+      "targets_required": "Vui lòng nhập ít nhất một mục tiêu KPI",
+      "target_revenue_invalid": "Mục tiêu doanh thu phải là số dương",
+      "target_new_members_invalid": "Mục tiêu khách hàng mới phải là số nguyên dương",
+      "target_pt_sessions_invalid": "Mục tiêu buổi PT phải là số nguyên dương",
+      "target_contracts_invalid": "Mục tiêu hợp đồng phải là số nguyên dương",
+      "reward_amount_required": "Vui lòng nhập số tiền thưởng",
+      "reward_percentage_invalid": "Phần trăm thưởng phải từ 0 đến 100",
+      "reward_voucher_required": "Vui lòng nhập chi tiết voucher"
     },
     "detail": {
+      "title": "Chi Tiết KPI",
       "description": "Thông tin chi tiết về KPI và thành tích",
       "not_found": "Không tìm thấy KPI",
+      "commission_rate": "Tỷ lệ hoa hồng",
+      "rate": "Tỷ lệ",
+      "commission": "Hoa hồng",
+      "earnings": "Thu Nhập",
+      "notes": "Ghi chú",
       "targets": "Mục Tiêu",
+      "targets_vs_actual": "Mục Tiêu vs Thực Tế",
       "target_revenue": "Doanh thu",
       "target_new_members": "Khách hàng mới",
       "target_renewals": "Gia hạn",
@@ -4987,6 +5059,9 @@
       "achievement_rate_pt_sessions": "Buổi PT",
       "total_earnings": "Tổng thu nhập",
       "qualified": "Đủ điều kiện",
+      "reward": "Thưởng",
+      "reward_type": "Loại",
+      "reward_if_complete": "nếu hoàn thành toàn bộ target",
       "no_achievement": "Chưa có dữ liệu thành tích. KPI sẽ được tính toán tự động khi có giao dịch.",
       "new_customers_list": "Danh Sách Khách Hàng Mới",
       "new_customers_description": "Danh sách khách hàng mới đã mua gói trong kỳ KPI này",
@@ -4999,13 +5074,19 @@
         "value": "Giá trị",
         "email": "Email",
         "phone": "SĐT",
-        "purchase_date": "Ngày mua"
+        "purchase_date": "Ngày mua",
+        "start_date": "Ngày bắt đầu",
+        "end_date": "Ngày hết hạn"
       },
       "pt_session": {
         "pt": "PT",
+        "package": "Gói",
+        "value": "Giá trị",
         "execution_date": "Ngày thực hiện",
         "customer_email": "Email KH",
-        "customer_phone": "SĐT KH"
+        "customer_phone": "SĐT KH",
+        "start_date": "Ngày bắt đầu",
+        "end_date": "Ngày hết hạn"
       }
     },
     "tour": {
@@ -5055,8 +5136,7 @@
         "title": "Điều hướng danh sách",
         "description": "Sử dụng các nút Previous và Next để điều hướng giữa các trang. Bạn cũng có thể click vào số trang để chuyển đến trang cụ thể."
       }
-    },
-    "all_staff": "Tất cả nhân viên"
+    }
   },
   "calendar": {
     "tour": {
@@ -5598,5 +5678,113 @@
         "CANCELLED": "ĐÃ HỦY"
       }
     }
+  },
+  "commission": {
+    "badge": "QUẢN LÝ CHÍNH SÁCH HOA HỒNG",
+    "title": "Quản lý Chính sách Hoa hồng",
+    "description": "Cấu hình tỷ lệ hoa hồng theo từng gói dịch vụ",
+    "loading": "Đang tải...",
+    "try_again": "Thử lại",
+    "no_policies": "Chưa có chính sách hoa hồng nào",
+    "create": "Tạo chính sách mới",
+    "confirm_delete": "Bạn có chắc chắn muốn xóa chính sách hoa hồng này?",
+    "delete_success": "Xóa chính sách hoa hồng thành công",
+    "delete_error": "Không thể xóa chính sách hoa hồng",
+    "delete_title": "Xóa chính sách hoa hồng",
+    "delete_description": "Bạn có chắc chắn muốn xóa chính sách hoa hồng này? Hành động này không thể hoàn tác.",
+    "search_placeholder": "Tìm kiếm theo tên gói, chi nhánh...",
+    "list": "Danh sách Chính sách",
+    "items": "chính sách",
+    "management": {
+      "title": "Quản lý Chính sách Hoa hồng",
+      "subtitle": "Cấu hình tỷ lệ hoa hồng theo từng gói dịch vụ"
+    },
+    "stats": {
+      "total": "Tổng Chính Sách",
+      "total_helper": "Tổng số chính sách hoa hồng",
+      "active": "Chính Sách Đang Hoạt Động",
+      "active_helper": "Chính sách đang được áp dụng",
+      "inactive": "Chính Sách Ngừng Hoạt Động",
+      "inactive_helper": "Chính sách đã bị vô hiệu hóa"
+    },
+    "scope": {
+      "global": "Toàn hệ thống",
+      "branch": "Chi nhánh",
+      "role": "Vai trò",
+      "package": "Gói dịch vụ"
+    },
+    "status": {
+      "active": "Đang hoạt động",
+      "inactive": "Ngừng hoạt động"
+    },
+    "filter": {
+      "scope": "Phạm vi",
+      "status": "Trạng thái",
+      "all": "Tất cả",
+      "all_scopes": "Tất cả"
+    },
+    "table": {
+      "scope": "Phạm vi",
+      "details": "Chi tiết",
+      "rate": "Tỷ lệ (%)",
+      "status": "Trạng thái"
+    },
+    "tour": {
+      "button": "Hướng dẫn"
+    },
+    "form": {
+      "edit_title": "Chỉnh Sửa Chính Sách Hoa Hồng",
+      "create_title": "Tạo Chính Sách Hoa Hồng Mới",
+      "scope": "Phạm vi áp dụng",
+      "branch": "Chi nhánh",
+      "branch_required": "Vui lòng chọn chi nhánh",
+      "no_branch": "Chưa chọn chi nhánh",
+      "role": "Vai trò",
+      "role_required": "Vui lòng chọn vai trò",
+      "select_role": "Chọn vai trò",
+      "package_type": "Loại gói",
+      "service_package": "Service Package",
+      "membership_plan": "Membership Plan",
+      "package_required": "Vui lòng chọn gói dịch vụ hoặc gói membership",
+      "membership_required": "Vui lòng chọn ít nhất một gói membership",
+      "select_multiple": "Chọn nhiều gói cùng lúc",
+      "selected": "đã chọn",
+      "no_packages": "Không có gói dịch vụ nào",
+      "select_package": "Chọn gói dịch vụ",
+      "no_membership_plans": "Không có gói membership nào",
+      "select_membership": "Chọn gói membership",
+      "rate": "Tỷ lệ hoa hồng (%)",
+      "rate_required": "Vui lòng nhập tỷ lệ hoa hồng",
+      "rate_invalid": "Tỷ lệ hoa hồng phải từ 0 đến 100",
+      "rate_placeholder": "Ví dụ: 10",
+      "month": "tháng",
+      "roles": {
+        "personal_trainer": "Huấn luyện viên cá nhân",
+        "manager": "Quản lý",
+        "technician": "Kỹ thuật viên"
+      }
+    },
+    "update_success": "Cập nhật chính sách hoa hồng thành công",
+    "create_success": "Tạo chính sách hoa hồng thành công",
+    "bulk_create_success": "Đã tạo thành công {{count}} chính sách hoa hồng",
+    "update_error": "Không thể cập nhật",
+    "create_error": "Không thể tạo",
+    "disable": "Vô hiệu hóa",
+    "enable": "Kích hoạt",
+    "disable_title": "Vô hiệu hóa chính sách hoa hồng",
+    "disable_description": "Bạn có chắc chắn muốn vô hiệu hóa chính sách hoa hồng này? Chính sách sẽ không còn được áp dụng.",
+    "disable_success": "Vô hiệu hóa chính sách hoa hồng thành công",
+    "disable_error": "Không thể vô hiệu hóa chính sách hoa hồng",
+    "enable_title": "Kích hoạt chính sách hoa hồng",
+    "enable_description": "Bạn có chắc chắn muốn kích hoạt chính sách hoa hồng này? Chính sách sẽ được áp dụng lại.",
+    "enable_success": "Kích hoạt chính sách hoa hồng thành công",
+    "enable_error": "Không thể kích hoạt chính sách hoa hồng",
+    "disable_selected": "Vô hiệu hóa đã chọn ({{count}})",
+    "bulk_disable_title": "Vô hiệu hóa {{count}} chính sách hoa hồng",
+    "bulk_disable_description": "Bạn có chắc chắn muốn vô hiệu hóa {{count}} chính sách hoa hồng đã chọn? Các chính sách đã vô hiệu hóa sẽ được bỏ qua.",
+    "bulk_disable_success": "Đã vô hiệu hóa thành công {{count}} chính sách hoa hồng",
+    "bulk_disable_partial": "Không thể vô hiệu hóa {{count}} chính sách",
+    "bulk_disable_error": "Không thể vô hiệu hóa các chính sách hoa hồng đã chọn",
+    "bulk_disable_skipped": "Đã bỏ qua {{count}} chính sách đã vô hiệu hóa"
   }
 }

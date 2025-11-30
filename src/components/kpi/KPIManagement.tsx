@@ -11,14 +11,21 @@ import {
   FileText,
   Loader2,
   AlertCircle,
-  RefreshCw,
-  HelpCircle
+  HelpCircle,
+  MoreVertical
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SortableHeader } from '@/components/ui/SortableHeader';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,7 +45,7 @@ import {
   PaginationNext,
   PaginationEllipsis
 } from '@/components/ui/pagination';
-import { useKPIList, useDisableKPI, useRecalculateKPI } from '@/hooks/useKPI';
+import { useKPIList, useDisableKPI } from '@/hooks/useKPI';
 import { useKPITour } from '@/hooks/useKPITour';
 import { kpiApi } from '@/services/api/kpiApi';
 import { socketService } from '@/services/socket/socketService';
@@ -148,12 +155,14 @@ export const KPIManagement: React.FC = () => {
         return;
       }
 
-      // Debounce refetch stats - wait 500ms after last event before refetching
+      // Debounce refetch - wait 500ms after last event before refetching
       if (debounceTimeout) {
         clearTimeout(debounceTimeout);
       }
 
       debounceTimeout = setTimeout(() => {
+        // Refetch both KPI list and stats for realtime update
+        void refetch();
         void fetchStats();
       }, 500);
     };
@@ -169,11 +178,10 @@ export const KPIManagement: React.FC = () => {
         clearTimeout(debounceTimeout);
       }
     };
-  }, [currentBranch?._id, fetchStats]);
+  }, [currentBranch?._id, fetchStats, refetch]);
 
   // Disable KPI hook
   const { disableKPI } = useDisableKPI();
-  const { recalculateKPI } = useRecalculateKPI();
 
   // Filter and sort KPI list
   const filteredAndSortedKPIList = useMemo(() => {
@@ -225,17 +233,6 @@ export const KPIManagement: React.FC = () => {
       setKpiToDisable(null);
     } catch (_error) {
       toast.error(t('kpi.disable_error', 'Không thể vô hiệu hóa KPI'));
-    }
-  };
-
-  // Handle recalculate KPI
-  const handleRecalculateKPI = async (id: string) => {
-    try {
-      await recalculateKPI(id);
-      toast.success(t('kpi.recalculate_success', 'Tính lại KPI thành công'));
-      refetch();
-    } catch (_error) {
-      toast.error(t('kpi.recalculate_error', 'Không thể tính lại KPI'));
     }
   };
 
@@ -509,6 +506,10 @@ export const KPIManagement: React.FC = () => {
                     onSort={handleSort}
                     getSortIcon={getSortIcon}
                   />
+                  <th className="px-4 py-3 text-sm font-semibold text-orange-600">{t('kpi.table.period', 'Kỳ')}</th>
+                  <th className="px-4 py-3 text-sm font-semibold text-orange-600">
+                    {t('kpi.table.targets', 'Mục tiêu')}
+                  </th>
                   <SortableHeader
                     field="actualRevenue"
                     label={t('kpi.table.actual', 'Thực tế')}
@@ -523,6 +524,7 @@ export const KPIManagement: React.FC = () => {
                     onSort={handleSort}
                     getSortIcon={getSortIcon}
                   />
+                  <th className="px-4 py-3 text-sm font-semibold text-orange-600">{t('kpi.table.reward', 'Thưởng')}</th>
                   <SortableHeader
                     field="status"
                     label={t('kpi.table.status', 'Trạng thái')}
@@ -565,11 +567,102 @@ export const KPIManagement: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm font-semibold text-gray-900">{kpi.staffName}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {kpi.actualRevenue > 0 ? formatCurrency(kpi.actualRevenue) : '-'}
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3 text-gray-400" />
+                          <span className="text-xs">{kpi.period}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        <div className="space-y-1">
+                          {kpi.targetRevenue !== undefined && kpi.targetRevenue !== null && kpi.targetRevenue > 0 && (
+                            <div className="text-xs">
+                              <span className="font-medium">DT:</span> {formatCurrency(kpi.targetRevenue)}
+                            </div>
+                          )}
+                          {kpi.targetNewMembers !== undefined &&
+                            kpi.targetNewMembers !== null &&
+                            kpi.targetNewMembers > 0 && (
+                              <div className="text-xs">
+                                <span className="font-medium">KH:</span> {kpi.targetNewMembers}
+                              </div>
+                            )}
+                          {kpi.targetPtSessions !== undefined &&
+                            kpi.targetPtSessions !== null &&
+                            kpi.targetPtSessions > 0 && (
+                              <div className="text-xs">
+                                <span className="font-medium">PT:</span> {kpi.targetPtSessions}
+                              </div>
+                            )}
+                          {kpi.targetContracts !== undefined &&
+                            kpi.targetContracts !== null &&
+                            kpi.targetContracts > 0 && (
+                              <div className="text-xs">
+                                <span className="font-medium">HĐ:</span> {kpi.targetContracts}
+                              </div>
+                            )}
+                          {(!kpi.targetRevenue || kpi.targetRevenue === 0) &&
+                            (!kpi.targetNewMembers || kpi.targetNewMembers === 0) &&
+                            (!kpi.targetPtSessions || kpi.targetPtSessions === 0) &&
+                            (!kpi.targetContracts || kpi.targetContracts === 0) && (
+                              <span className="text-xs text-gray-400">-</span>
+                            )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {kpi.commission > 0 ? formatCurrency(kpi.commission) : '-'}
+                        <div className="space-y-1">
+                          {kpi.actualRevenue !== undefined && kpi.actualRevenue !== null && (
+                            <div className="text-xs">
+                              <span className="font-medium">DT:</span> {formatCurrency(kpi.actualRevenue)}
+                            </div>
+                          )}
+                          {kpi.actualNewMembers !== undefined && kpi.actualNewMembers !== null && (
+                            <div className="text-xs">
+                              <span className="font-medium">KH:</span> {kpi.actualNewMembers}
+                            </div>
+                          )}
+                          {kpi.actualPtSessions !== undefined && kpi.actualPtSessions !== null && (
+                            <div className="text-xs">
+                              <span className="font-medium">PT:</span> {kpi.actualPtSessions}
+                            </div>
+                          )}
+                          {kpi.actualContracts !== undefined && kpi.actualContracts !== null && (
+                            <div className="text-xs">
+                              <span className="font-medium">HĐ:</span> {kpi.actualContracts}
+                            </div>
+                          )}
+                          {(kpi.actualRevenue === undefined || kpi.actualRevenue === null) &&
+                            (kpi.actualNewMembers === undefined || kpi.actualNewMembers === null) &&
+                            (kpi.actualPtSessions === undefined || kpi.actualPtSessions === null) &&
+                            (kpi.actualContracts === undefined || kpi.actualContracts === null) && (
+                              <span className="text-xs text-gray-400">-</span>
+                            )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {kpi.commission !== undefined && kpi.commission !== null && kpi.commission > 0
+                          ? formatCurrency(kpi.commission)
+                          : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {kpi.rewardType && kpi.rewardType !== 'NONE' && kpi.rewardAmount && kpi.rewardAmount > 0 ? (
+                          <div className="text-xs">
+                            <div className="font-medium text-orange-600">
+                              {kpi.rewardType === 'FIXED_AMOUNT'
+                                ? formatCurrency(kpi.rewardAmount)
+                                : kpi.rewardType === 'PERCENTAGE_BONUS'
+                                  ? `${kpi.rewardAmount}%`
+                                  : kpi.rewardType === 'VOUCHER'
+                                    ? t('kpi.reward.voucher', 'Voucher')
+                                    : '-'}
+                            </div>
+                            {kpi.achievementStatus === 'ACHIEVED' && (
+                              <span className="text-green-600 text-[10px]">✓ {t('kpi.reward.achieved')}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <span
@@ -589,42 +682,38 @@ export const KPIManagement: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <button
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-orange-200 hover:text-orange-500"
-                            onClick={() => handleViewKPI(kpi.id)}
-                            title={t('kpi.actions.view', 'Xem chi tiết')}
-                          >
-                            <BarChart3 className="h-4 w-4" />
-                          </button>
-                          {kpi.status === 'ACTIVE' && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
                             <button
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-orange-200 hover:text-orange-500"
-                              onClick={() => setEditingKpiId(kpi.id)}
-                              title={t('kpi.actions.edit', 'Chỉnh sửa')}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-orange-200 hover:text-orange-500 hover:bg-orange-50"
+                              title={t('kpi.actions.menu', 'Thao tác')}
                             >
-                              <FileText className="h-4 w-4" />
+                              <MoreVertical className="h-4 w-4" />
                             </button>
-                          )}
-                          {kpi.status === 'ACTIVE' && (
-                            <button
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-green-200 hover:text-green-500"
-                              onClick={() => handleRecalculateKPI(kpi.id)}
-                              title={t('kpi.actions.recalculate', 'Tính lại')}
-                            >
-                              <RefreshCw className="h-4 w-4" />
-                            </button>
-                          )}
-                          {kpi.status === 'ACTIVE' && (
-                            <button
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-orange-100 bg-orange-50 text-orange-500 transition-colors hover:bg-orange-100"
-                              onClick={() => handleDisableKPI(kpi)}
-                              title={t('kpi.actions.disable', 'Vô hiệu hóa')}
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={() => handleViewKPI(kpi.id)}>
+                              <BarChart3 className="mr-2 h-4 w-4" />
+                              <span>{t('kpi.actions.view', 'Xem chi tiết')}</span>
+                            </DropdownMenuItem>
+                            {kpi.status === 'ACTIVE' && (
+                              <>
+                                <DropdownMenuItem onClick={() => setEditingKpiId(kpi.id)}>
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  <span>{t('kpi.actions.edit', 'Chỉnh sửa')}</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleDisableKPI(kpi)}
+                                  className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                                >
+                                  <XCircle className="mr-2 h-4 w-4" />
+                                  <span>{t('kpi.actions.disable', 'Vô hiệu hóa')}</span>
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                     </tr>
                   );

@@ -8,7 +8,7 @@ export type KPIPeriodType = 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
 export type KPIStatus = 'ACTIVE' | 'CANCELLED';
 
 // KPI Achievement Status
-export type KPIAchievementStatus = 'IN_PROGRESS' | 'COMPLETED';
+export type KPIAchievementStatus = 'IN_PROGRESS' | 'COMPLETED' | 'ACHIEVED' | 'FAILED';
 
 // KPI Actuals
 export interface KPIActual {
@@ -26,6 +26,9 @@ export interface KPIActual {
     ptSessions: number;
     vipPtSessions: number;
   };
+  contracts: {
+    total: number;
+  };
 }
 
 // KPI Commission
@@ -40,10 +43,20 @@ export interface KPICommission {
   };
 }
 
-// KPI Bonus
+// KPI Bonus (deprecated - use reward instead)
 export interface KPIBonus {
   qualified: boolean;
   amount: number;
+  reason?: string;
+}
+
+// KPI Reward (in achievement)
+export interface KPIRewardAchievement {
+  type: 'FIXED_AMOUNT' | 'PERCENTAGE_BONUS' | 'VOUCHER' | 'NONE';
+  amount: number;
+  percentage: number;
+  voucherDetails?: string;
+  qualified: boolean;
   reason?: string;
 }
 
@@ -51,6 +64,22 @@ export interface KPIBonus {
 export interface KPIRankings {
   branch?: number;
   owner?: number;
+}
+
+// KPI Targets
+export interface KPITargets {
+  revenue: number;
+  newMembers: number;
+  ptSessions: number;
+  contracts: number;
+}
+
+// KPI Reward
+export interface KPIReward {
+  type: 'FIXED_AMOUNT' | 'PERCENTAGE_BONUS' | 'VOUCHER' | 'NONE';
+  amount: number;
+  percentage: number;
+  voucherDetails?: string;
 }
 
 // KPI Config
@@ -64,7 +93,9 @@ export interface KPIConfig {
   periodType: KPIPeriodType;
   startDate: string;
   endDate: string;
-  commissionRate?: number;
+  targets?: KPITargets;
+  reward?: KPIReward;
+  commissionRate?: number; // DEPRECATED: kept for backward compatibility
   newCustomerBonus?: number; // Tiền mời khách hàng mới (VND)
   status: KPIStatus;
   createdBy: string;
@@ -85,7 +116,8 @@ export interface KPIAchievement {
   endDate: string;
   actual: KPIActual;
   commission: KPICommission;
-  bonus: KPIBonus;
+  bonus: KPIBonus; // DEPRECATED: use reward instead
+  reward: KPIRewardAchievement;
   rankings: KPIRankings;
   status: KPIAchievementStatus;
   lastCalculatedAt: string;
@@ -107,7 +139,9 @@ export interface CreateKPIRequest {
   periodType: KPIPeriodType;
   startDate: string;
   endDate: string;
-  commissionRate?: number;
+  targets?: KPITargets;
+  reward?: KPIReward;
+  commissionRate?: number; // DEPRECATED: kept for backward compatibility
   newCustomerBonus?: number; // Tiền mời khách hàng mới (VND)
   notes?: string;
   roleType?: string; // Required if staffId is not provided
@@ -115,7 +149,9 @@ export interface CreateKPIRequest {
 
 // Update KPI Request
 export interface UpdateKPIRequest {
-  commissionRate?: number;
+  targets?: Partial<KPITargets>;
+  reward?: Partial<KPIReward>;
+  commissionRate?: number; // DEPRECATED
   newCustomerBonus?: number; // Tiền mời khách hàng mới (VND)
   notes?: string;
   status?: KPIStatus;
@@ -218,10 +254,28 @@ export interface KPIDisplay {
   staffName: string;
   branchName: string;
   period: string;
+  startDate: string;
+  endDate: string;
+  periodType: KPIPeriodType;
   actualRevenue: number;
   commission: number;
   ranking?: number;
   status: KPIStatus;
+  // Targets
+  targetRevenue?: number;
+  targetNewMembers?: number;
+  targetPtSessions?: number;
+  targetContracts?: number;
+  // Actuals
+  actualNewMembers?: number;
+  actualPtSessions?: number;
+  actualContracts?: number;
+  // Reward (from achievement - actual earned)
+  rewardType?: 'FIXED_AMOUNT' | 'PERCENTAGE_BONUS' | 'VOUCHER' | 'NONE';
+  rewardAmount?: number; // Actual reward amount earned
+  totalEarnings?: number; // Commission + Reward
+  // Achievement status
+  achievementStatus?: KPIAchievementStatus;
 }
 
 // Branch-wide KPI Creation Response
@@ -258,6 +312,7 @@ export interface KPILeaderboardItem {
   score: number;
   completion: number;
   revenue: number;
+  totalEarnings?: number; // Commission + Reward
   ranking?: number | null;
 }
 
