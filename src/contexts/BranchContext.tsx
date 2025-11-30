@@ -304,6 +304,19 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
     // Always fetch fresh data from API to ensure we have the latest manager information
     const branchDetail = await fetchBranchDetail(branchId);
     if (branchDetail) {
+      // Prevent switching to inactive branches (locked due to subscription downgrade)
+      // Owner can still view branch details directly via URL, but cannot switch to it
+      if (!branchDetail.isActive) {
+        toast.error(
+          t(
+            'error.BRANCH_LOCKED_CANNOT_SWITCH',
+            'Cannot switch to this branch: It is currently locked due to subscription limits.'
+          )
+        );
+        setIsSwitchingBranch(false);
+        return;
+      }
+
       setCurrentBranch(branchDetail);
       // Save selected branch ID to localStorage
       localStorage.setItem('selectedBranchId', branchId);

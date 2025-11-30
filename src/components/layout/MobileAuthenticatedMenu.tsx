@@ -1,7 +1,8 @@
-import { Bell, LogOut, User } from 'lucide-react';
+import { Bell, LogOut, User, LayoutDashboard } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuthActions, useUser } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { getProfileSettingsPath } from '@/utils/navigation';
@@ -42,6 +43,18 @@ export function MobileAuthenticatedMenu({ onClose }: MobileAuthenticatedMenuProp
 
   const settingsPath = getProfileSettingsPath(user.role, currentStaff?.jobTitle, location.pathname);
 
+  // For CUSTOMER, navigate to dashboard instead of settings
+  const handleProfileClick = () => {
+    if (user.role === 'CUSTOMER') {
+      handleNavigation('/customer');
+    } else {
+      handleNavigation(settingsPath);
+    }
+  };
+
+  const menuItemText = user.role === 'CUSTOMER' ? 'Dashboard' : 'Hồ sơ & Cài đặt';
+  const MenuItemIcon = user.role === 'CUSTOMER' ? LayoutDashboard : User;
+
   return (
     <div className="pt-4 border-t border-gray-200">
       {/* User Info */}
@@ -52,7 +65,16 @@ export function MobileAuthenticatedMenu({ onClose }: MobileAuthenticatedMenuProp
         </Avatar>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate">{user.fullName || user.username}</p>
-          <p className="text-xs text-gray-500 truncate">{user.email}</p>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p className="text-xs text-gray-500 truncate cursor-help">{user.email}</p>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs break-all">{user.email}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <p className="text-xs text-orange-600 capitalize">{user.role.toLowerCase()}</p>
         </div>
         <div className="relative">
@@ -68,10 +90,10 @@ export function MobileAuthenticatedMenu({ onClose }: MobileAuthenticatedMenuProp
         <Button
           variant="ghost"
           className="w-full justify-start text-left text-gray-700 hover:text-orange-500 hover:bg-orange-50 rounded-xl py-3"
-          onClick={() => handleNavigation(settingsPath)}
+          onClick={handleProfileClick}
         >
-          <User className="mr-3 h-4 w-4" />
-          Hồ sơ & Cài đặt
+          <MenuItemIcon className="mr-3 h-4 w-4" />
+          {menuItemText}
         </Button>
 
         <Button

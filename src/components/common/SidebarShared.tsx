@@ -280,10 +280,14 @@ export const UserProfileSection: React.FC<UserProfileProps> = ({
 
   const menuItems = (
     <>
-      <DropdownMenuItem onClick={() => navigate(settingsPath)} className="cursor-pointer">
-        <UserCircle className="w-4 h-4 mr-3 stroke-[1.75]" />
-        {t('sidebar.profile')}
-      </DropdownMenuItem>
+      {/* Only show Profile menu item if no extraMenuItems provided or user is not CUSTOMER */}
+      {/* For CUSTOMER with extraMenuItems, we only show Account Settings */}
+      {(!extraMenuItems || user?.role !== 'CUSTOMER') && (
+        <DropdownMenuItem onClick={() => navigate(settingsPath)} className="cursor-pointer">
+          <UserCircle className="w-4 h-4 mr-3 stroke-[1.75]" />
+          {t('sidebar.profile')}
+        </DropdownMenuItem>
+      )}
 
       {extraMenuItems}
 

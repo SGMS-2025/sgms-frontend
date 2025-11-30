@@ -223,6 +223,32 @@ const CustomerDetailPage: React.FC = () => {
     };
   }, [id, fetchCustomerDetail]);
 
+  // Redirect to customers list when branch changes while on detail page
+  const previousBranchIdRef = useRef<string | undefined>(undefined);
+  const isInitialMountRef = useRef(true);
+
+  useEffect(() => {
+    // Skip on initial mount
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      previousBranchIdRef.current = currentBranch?._id;
+      return;
+    }
+
+    const previousBranchId = previousBranchIdRef.current;
+    const currentBranchId = currentBranch?._id;
+
+    // If branch changed (and we had a previous branch), redirect to customers list
+    if (previousBranchId && currentBranchId && previousBranchId !== currentBranchId) {
+      console.log('[CustomerDetailPage] Branch changed, redirecting to customers list');
+      navigate('/manage/customers');
+      return;
+    }
+
+    // Update ref for next comparison
+    previousBranchIdRef.current = currentBranchId;
+  }, [currentBranch?._id, navigate]);
+
   // Listen for membership contract updates (realtime)
   // useCallback ensures stable reference to prevent memory leaks
   const handleMembershipContractUpdate = useCallback(
@@ -628,6 +654,7 @@ const CustomerDetailPage: React.FC = () => {
                   {hasMembership ? (
                     <div className="flex gap-2">
                       <Button
+                        type="button"
                         onClick={() => setShowExtendMembership(true)}
                         className="flex-1 rounded-full"
                         variant="default"
@@ -636,6 +663,7 @@ const CustomerDetailPage: React.FC = () => {
                         {t('customer_detail.extend')}
                       </Button>
                       <Button
+                        type="button"
                         onClick={() => setShowCancelMembership(true)}
                         className="flex-1 rounded-full"
                         variant="destructive"
@@ -646,6 +674,7 @@ const CustomerDetailPage: React.FC = () => {
                     </div>
                   ) : (
                     <Button
+                      type="button"
                       onClick={() => setShowMembershipModal(true)}
                       className="w-full rounded-full"
                       variant="outline"
@@ -690,11 +719,17 @@ const CustomerDetailPage: React.FC = () => {
 
                   {hasPTPackage ? (
                     <div className="flex gap-2">
-                      <Button onClick={() => setShowExtendPT(true)} className="flex-1 rounded-full" variant="default">
+                      <Button
+                        type="button"
+                        onClick={() => setShowExtendPT(true)}
+                        className="flex-1 rounded-full"
+                        variant="default"
+                      >
                         <Calendar className="h-4 w-4 mr-2" />
                         {t('customer_detail.extend')}
                       </Button>
                       <Button
+                        type="button"
                         onClick={() => setShowCancelPT(true)}
                         className="flex-1 rounded-full"
                         variant="destructive"
@@ -704,7 +739,12 @@ const CustomerDetailPage: React.FC = () => {
                       </Button>
                     </div>
                   ) : (
-                    <Button onClick={() => setShowPTModal(true)} className="w-full rounded-full" variant="outline">
+                    <Button
+                      type="button"
+                      onClick={() => setShowPTModal(true)}
+                      className="w-full rounded-full"
+                      variant="outline"
+                    >
                       <Dumbbell className="h-4 w-4 mr-2" />
                       {t('customer_detail.register_pt')}
                     </Button>
@@ -752,6 +792,7 @@ const CustomerDetailPage: React.FC = () => {
                   {hasClassPackage ? (
                     <div className="flex gap-2">
                       <Button
+                        type="button"
                         onClick={() => setShowExtendClass(true)}
                         className="flex-1 rounded-full"
                         variant="default"
@@ -760,6 +801,7 @@ const CustomerDetailPage: React.FC = () => {
                         {t('customer_detail.extend')}
                       </Button>
                       <Button
+                        type="button"
                         onClick={() => setShowCancelClass(true)}
                         className="flex-1 rounded-full"
                         variant="destructive"
@@ -769,7 +811,12 @@ const CustomerDetailPage: React.FC = () => {
                       </Button>
                     </div>
                   ) : (
-                    <Button onClick={() => setShowClassModal(true)} className="w-full rounded-full" variant="outline">
+                    <Button
+                      type="button"
+                      onClick={() => setShowClassModal(true)}
+                      className="w-full rounded-full"
+                      variant="outline"
+                    >
                       <Users className="h-4 w-4 mr-2" />
                       {t('customer_detail.register_class')}
                     </Button>

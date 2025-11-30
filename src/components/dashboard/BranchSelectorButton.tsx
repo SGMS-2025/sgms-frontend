@@ -4,6 +4,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Plus, ChevronDown, MapPin, Eye } from 'lucide-react';
 import type { BranchDisplay } from '@/types/api/Branch';
+import { useAuthState } from '@/hooks/useAuth';
+import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 
 export interface BranchSelectorButtonHandle {
   open: () => void;
@@ -29,6 +31,14 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
   ({ currentBranch, branches, onBranchSelect, onAddBranch, onViewBranch, collapsed = false }, ref) => {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
+    const { user } = useAuthState();
+    const { currentStaff } = useCurrentUserStaff();
+
+    // Check if user is Staff with restricted job titles (Manager, PT, Technician)
+    const isRestrictedStaff =
+      user?.role === 'STAFF' &&
+      currentStaff &&
+      ['Manager', 'Personal Trainer', 'Technician'].includes(currentStaff.jobTitle);
 
     const activeLabel = t('branch.active', { defaultValue: 'Active' });
     const inactiveLabel = t('branch.closed', { defaultValue: 'Inactive' });
@@ -58,9 +68,9 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
 
     const renderStatusPill = (isActive: boolean) => (
       <span
-        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${statusClasses(isActive)}`}
+        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap flex-shrink-0 ${statusClasses(isActive)}`}
       >
-        <span className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-orange-500' : 'bg-gray-400'}`} />
+        <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${isActive ? 'bg-orange-500' : 'bg-gray-400'}`} />
         {isActive ? activeLabel : inactiveLabel}
       </span>
     );
@@ -77,15 +87,17 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
           {/* Header */}
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">{listLabel}</p>
-            <button
-              type="button"
-              onClick={handleAdd}
-              className="rounded-md p-1.5 text-orange-600 transition-colors hover:bg-orange-50 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
-              title={addBranchLabel}
-              aria-label={addBranchLabel}
-            >
-              <Plus className="h-4 w-4" />
-            </button>
+            {!isRestrictedStaff && (
+              <button
+                type="button"
+                onClick={handleAdd}
+                className="rounded-md p-1.5 text-orange-600 transition-colors hover:bg-orange-50 hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+                title={addBranchLabel}
+                aria-label={addBranchLabel}
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
           {/* Branches List */}
@@ -93,49 +105,70 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
             <div className="h-64 space-y-2 overflow-y-auto">
               {branches.map((branch) => {
                 const isCurrent = branch._id === currentBranch?._id;
+                const isDisabled = !branch.isActive;
                 return (
-                  <button
+                  <div
                     key={branch._id}
-                    type="button"
-                    onClick={() => handleSelect(branch)}
-                    className={`group flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors border ${
+                    className={`group flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors border min-w-0 ${
                       isCurrent
                         ? 'bg-orange-50 text-orange-900 border-orange-200 shadow-sm'
                         : 'bg-white hover:bg-gray-50 border-gray-200 hover:border-gray-300'
-                    }`}
+                    } ${isDisabled && !isCurrent ? 'opacity-60' : ''}`}
                   >
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={branch.coverImage} alt={branch.branchName} />
-                      <AvatarFallback className="bg-orange-100 text-orange-700 text-xs font-semibold">
-                        {branch.branchName.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex min-w-0 flex-1 flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <p className="flex-1 truncate text-sm font-medium">{branch.branchName}</p>
-                        {renderStatusPill(branch.isActive)}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Disable switching to inactive branches
+                        if (!isDisabled) {
+                          handleSelect(branch);
+                        }
+                      }}
+                      disabled={isDisabled && !isCurrent}
+                      className={`flex flex-1 items-center gap-3 text-left min-w-0 ${isDisabled && !isCurrent ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                      title={
+                        isDisabled && !isCurrent
+                          ? t(
+                              'branch_selector.branch_locked',
+                              'Branch is locked due to subscription limit. You can view details but cannot switch to it.'
+                            )
+                          : undefined
+                      }
+                    >
+                      <Avatar className="h-8 w-8 flex-shrink-0">
+                        <AvatarImage src={branch.coverImage} alt={branch.branchName} />
+                        <AvatarFallback
+                          className={`${isDisabled ? 'bg-gray-200 text-gray-500' : 'bg-orange-100 text-orange-700'} text-xs font-semibold`}
+                        >
+                          {branch.branchName.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex min-w-0 flex-1 flex-col gap-1 overflow-hidden">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <p className="flex-1 truncate text-sm font-medium min-w-0">{branch.branchName}</p>
+                          {renderStatusPill(branch.isActive)}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
+                          <MapPin className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate min-w-0">{branch.location}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3" />
-                        <span className="truncate">{branch.location}</span>
-                      </div>
-                    </div>
+                    </button>
                     {onViewBranch && (
                       <button
                         type="button"
-                        onClick={async (event) => {
+                        onClick={(event) => {
                           event.stopPropagation();
-                          await onViewBranch(branch);
+                          onViewBranch(branch);
                           setOpen(false);
                         }}
-                        className="rounded-md p-1 text-gray-400 transition-colors hover:text-orange-600 hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+                        className="flex-shrink-0 rounded-md p-1 text-gray-400 transition-colors hover:text-orange-600 hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 pointer-events-auto"
                         title={t('branch_selector.view_details') || 'View details'}
                         aria-label={`${t('branch_selector.view_details') || 'View details'} ${branch.branchName}`}
                       >
                         <Eye className="h-4 w-4" />
                       </button>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>

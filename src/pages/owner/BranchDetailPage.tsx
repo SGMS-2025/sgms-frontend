@@ -17,15 +17,18 @@ import {
   Target,
   MapPin,
   User,
-  Building,
   Clock,
   Power,
   Save,
-  X
+  X,
+  AlertCircle,
+  Lock
 } from 'lucide-react';
 import { useBranch } from '@/contexts/BranchContext';
 import { staffApi } from '@/services/api/staffApi';
+import { subscriptionApi } from '@/services/api/subscriptionApi';
 import { mapManagersToStaffIds } from '@/utils/managerUtils';
+import { extractAndTranslateApiError } from '@/utils/errorHandler';
 import type { BranchDisplay, BranchEditValues, CreateAndUpdateBranchRequest } from '@/types/api/Branch';
 import type { Staff } from '@/types/api/Staff';
 import { toast } from 'sonner';
@@ -47,6 +50,7 @@ const BranchDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [showDisableModal, setShowDisableModal] = useState(false);
+  const [subscriptionStats, setSubscriptionStats] = useState<{ current: number; max: number } | null>(null);
 
   // Edit mode states
   const [isEditMode, setIsEditMode] = useState(false);
@@ -70,6 +74,7 @@ const BranchDetailPage: React.FC = () => {
   const [newImage, setNewImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [showAllManagers, setShowAllManagers] = useState(false);
 
   // Helper function to parse openingHours
   const parseOpeningHours = (openingHours: string | { open: string; close: string }) => {
@@ -129,6 +134,21 @@ const BranchDetailPage: React.FC = () => {
 
     fetchManagers();
   }, [t]);
+
+  // Fetch subscription stats to check branch limit
+  useEffect(() => {
+    const fetchStats = async () => {
+      const statsResult = await subscriptionApi.getSubscriptionStats();
+      if (statsResult.success && statsResult.data?.branchUsage) {
+        setSubscriptionStats({
+          current: statsResult.data.branchUsage.current,
+          max: statsResult.data.branchUsage.max
+        });
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   // Initialize edit values when branch data loads
   useEffect(() => {
@@ -303,47 +323,100 @@ const BranchDetailPage: React.FC = () => {
     }
   };
 
+  // Check if toggle button should be disabled
+  const isToggleDisabled = React.useMemo(() => {
+    // If branch is inactive, check if activating would exceed subscription limit
+    if (branch && !branch.isActive && subscriptionStats) {
+      return subscriptionStats.current >= subscriptionStats.max;
+    }
+    return false;
+  }, [branch, subscriptionStats]);
+
   const handleToggleStatus = async () => {
-    if (!branch || togglingStatus) return;
+    if (!branch || togglingStatus || isToggleDisabled) return;
 
     // If branch is active, show confirmation modal
-    if (branch.status === 'ACTIVE') {
+    if (branch.isActive) {
       setShowDisableModal(true);
       return;
     }
 
     // If branch is inactive, directly enable it
     setTogglingStatus(true);
-    try {
-      await toggleBranchStatus(branch._id);
-      // The branch will be updated in context, so we need to refresh local state
-      const updatedBranch = await fetchBranchDetail(branch._id);
-      if (updatedBranch) {
-        setBranch(updatedBranch);
-      }
-      toast.success(t('branch_detail.enable_success', { defaultValue: 'Chi nhánh đã được kích hoạt' }));
-    } catch (_error) {
-      toast.error(t('branch_detail.enable_failed', { defaultValue: 'Không thể kích hoạt chi nhánh' }));
-    }
-    setTogglingStatus(false);
+    subscriptionApi
+      .getSubscriptionStats()
+      .then((statsResult) => {
+        if (statsResult.success && statsResult.data?.branchUsage) {
+          setSubscriptionStats({
+            current: statsResult.data.branchUsage.current,
+            max: statsResult.data.branchUsage.max
+          });
+        }
+      })
+      .catch(() => {
+        // Ignore errors when fetching stats
+      });
+
+    toggleBranchStatus(branch._id)
+      .then(async () => {
+        // The branch will be updated in context, so we need to refresh local state
+        const updatedBranch = await fetchBranchDetail(branch._id);
+        if (updatedBranch) {
+          setBranch(updatedBranch);
+        }
+
+        // Refresh subscription stats
+        const statsResult = await subscriptionApi.getSubscriptionStats();
+        if (statsResult.success && statsResult.data?.branchUsage) {
+          setSubscriptionStats({
+            current: statsResult.data.branchUsage.current,
+            max: statsResult.data.branchUsage.max
+          });
+        }
+
+        toast.success(t('branch_detail.enable_success', { defaultValue: 'Chi nhánh đã được kích hoạt' }));
+      })
+      .catch((error) => {
+        const errorMessage = extractAndTranslateApiError(error, t, 'branch_detail.enable_error');
+        toast.error(errorMessage);
+      })
+      .finally(() => {
+        setTogglingStatus(false);
+      });
   };
 
   const handleConfirmDisable = async () => {
     if (!branch || togglingStatus) return;
 
     setTogglingStatus(true);
-    try {
-      await toggleBranchStatus(branch._id);
-      // The branch will be updated in context, so we need to refresh local state
-      const updatedBranch = await fetchBranchDetail(branch._id);
-      if (updatedBranch) {
-        setBranch(updatedBranch);
-      }
-      toast.success(t('branch_detail.disable_success', { defaultValue: 'Chi nhánh đã được tắt' }));
-    } catch (_error) {
-      toast.error(t('branch_detail.disable_failed', { defaultValue: 'Không thể tắt chi nhánh' }));
-    }
-    setTogglingStatus(false);
+
+    toggleBranchStatus(branch._id)
+      .then(async () => {
+        // The branch will be updated in context, so we need to refresh local state
+        const updatedBranch = await fetchBranchDetail(branch._id);
+        if (updatedBranch) {
+          setBranch(updatedBranch);
+        }
+
+        // Refresh subscription stats
+        const statsResult = await subscriptionApi.getSubscriptionStats();
+        if (statsResult.success && statsResult.data?.branchUsage) {
+          setSubscriptionStats({
+            current: statsResult.data.branchUsage.current,
+            max: statsResult.data.branchUsage.max
+          });
+        }
+
+        toast.success(t('branch_detail.disable_success', { defaultValue: 'Chi nhánh đã được tắt' }));
+      })
+      .catch((error) => {
+        const errorMessage = extractAndTranslateApiError(error, t, 'branch_detail.disable_error');
+        toast.error(errorMessage);
+      })
+      .finally(() => {
+        setTogglingStatus(false);
+        setShowDisableModal(false);
+      });
   };
 
   if (loading || contextLoading) {
@@ -368,296 +441,386 @@ const BranchDetailPage: React.FC = () => {
     );
   }
 
+  const activeManagers =
+    Array.isArray(branch.managerId) && branch.managerId.length > 0
+      ? branch.managerId.filter((manager) => manager.status === 'ACTIVE')
+      : branch.managerId && !Array.isArray(branch.managerId) && branch.managerId.status === 'ACTIVE'
+        ? [branch.managerId]
+        : [];
+
+  const openingHoursValue = branch.openingHours as unknown;
+  const formattedOpeningHours =
+    typeof openingHoursValue === 'string'
+      ? openingHoursValue.includes('-')
+        ? openingHoursValue.replace('-', ' - ')
+        : openingHoursValue
+      : `${(branch.openingHours as { open?: string; close?: string })?.open || '06:00'} - ${(branch.openingHours as { open?: string; close?: string })?.close || '21:00'}`;
+
+  const facilityCount = branch.facilities?.length || 0;
+  const visibleManagers = showAllManagers ? activeManagers : activeManagers.slice(0, 4);
+  const remainingManagers = activeManagers.length - visibleManagers.length;
+
   return (
-    <div className="min-h-screen bg-[#f1f3f4]">
-      <div className="p-4 sm:p-6">
-        <div className="bg-orange-500 rounded-lg p-4 sm:p-6 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
-            <div className="relative flex justify-center sm:justify-start">
-              <Avatar className="h-20 w-20 sm:h-24 sm:w-24">
-                <AvatarImage src={imagePreview || branch.coverImage} alt={branch.branchName} />
-                <AvatarFallback className="bg-white text-orange-600 text-xl sm:text-2xl">
-                  {branch.branchName.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              {isEditMode ? (
-                <div className="absolute -bottom-1 -right-1">
-                  <input
-                    id="image-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                  <Button
-                    size="sm"
-                    className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-white hover:bg-gray-100 p-0"
-                    onClick={() => document.getElementById('image-upload')?.click()}
-                    disabled={isUploadingImage || isSaving}
-                  >
-                    {isUploadingImage ? (
-                      <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-orange-500"></div>
-                    ) : (
-                      <Camera className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
+    <>
+      <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
+        <div className="mx-auto max-w-6xl px-4 pb-12 pt-8 sm:pt-10">
+          <div className="relative overflow-hidden rounded-[32px] border border-orange-100/70 bg-gradient-to-b from-white via-white to-orange-50/50 shadow-[0_32px_120px_rgba(240,90,41,0.1)]">
+            <div className="pointer-events-none absolute inset-x-6 -top-10 h-36 rounded-full bg-gradient-to-b from-orange-100/50 via-orange-50/20 to-transparent blur-3xl" />
+            <div className="relative p-4 sm:p-6 lg:p-8 space-y-6">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
+                <div className="flex flex-1 items-start gap-5">
+                  <div className="relative">
+                    <Avatar className="h-20 w-20 sm:h-24 sm:w-24 ring-4 ring-[color:var(--gym-orange)]/30 shadow-xl">
+                      <AvatarImage src={imagePreview || branch.coverImage} alt={branch.branchName} />
+                      <AvatarFallback className="bg-white/90 text-slate-900 text-xl sm:text-2xl font-semibold">
+                        {branch.branchName.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    {isEditMode && (
+                      <div className="absolute -bottom-3 -right-3 flex items-center gap-2">
+                        <input
+                          id="image-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                        />
+                        <Button
+                          size="sm"
+                          className="h-8 rounded-full border border-orange-200/80 bg-white px-3 text-xs font-medium text-orange-700 shadow-sm hover:bg-orange-50"
+                          onClick={() => document.getElementById('image-upload')?.click()}
+                          disabled={isUploadingImage || isSaving}
+                        >
+                          {isUploadingImage ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          ) : (
+                            <>
+                              <Camera className="h-4 w-4" />
+                              <span>{t('branch_detail.change_cover', { defaultValue: 'Đổi ảnh' })}</span>
+                            </>
+                          )}
+                        </Button>
+                        {imagePreview && (
+                          <Button
+                            size="icon"
+                            className="h-8 w-8 rounded-full border border-red-200 bg-red-500/90 text-white hover:bg-red-500"
+                            onClick={handleRemoveImage}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     )}
-                  </Button>
-                  {imagePreview && (
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h1 className="text-2xl sm:text-3xl font-semibold leading-tight text-slate-900">
+                        {branch.branchName}
+                      </h1>
+                      <Badge
+                        variant="secondary"
+                        className={`border-none text-white shadow-sm ${
+                          branch.status === 'ACTIVE' ? 'bg-[color:var(--gym-orange)]' : 'bg-rose-500/90'
+                        }`}
+                      >
+                        <span
+                          className={`h-2 w-2 rounded-full ${branch.status === 'ACTIVE' ? 'bg-white' : 'bg-white/90'}`}
+                        />
+                        {branch.status === 'ACTIVE'
+                          ? t('branch_detail.status_active')
+                          : t('branch_detail.status_inactive')}
+                      </Badge>
+                      {imagePreview && (
+                        <Badge variant="outline" className="border-amber-200/80 bg-amber-100/20 text-amber-50">
+                          {t('branch_detail.new_image_selected')}
+                        </Badge>
+                      )}
+                      {isEditMode && (
+                        <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-700">
+                          {t('branch_detail.editing', { defaultValue: 'Chế độ chỉnh sửa' })}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="max-w-3xl text-sm sm:text-base text-gray-700">
+                      {branch.description || t('branch_detail.no_description')}
+                    </p>
+                    <div className="flex flex-wrap gap-3 text-sm text-gray-700">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-orange-100 bg-white px-3 py-1 shadow-sm">
+                        <MapPin className="h-4 w-4 text-[color:var(--gym-orange)]" />
+                        {branch.location}
+                      </span>
+                      {branch.hotline && (
+                        <span className="inline-flex items-center gap-2 rounded-full border border-orange-100 bg-white px-3 py-1 shadow-sm">
+                          <Phone className="h-4 w-4 text-[color:var(--gym-orange)]" />
+                          {branch.hotline}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-2 rounded-full border border-orange-100 bg-white px-3 py-1 shadow-sm">
+                        <Clock className="h-4 w-4 text-[#f5b65c]" />
+                        {formattedOpeningHours}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 lg:w-[320px] lg:justify-end">
+                  {isEditMode ? (
+                    <>
+                      <Button
+                        size="lg"
+                        onClick={handleSaveEdit}
+                        disabled={isSaving}
+                        className="bg-gradient-to-r from-[color:var(--gym-orange)] to-amber-500 text-white shadow-lg hover:shadow-orange-500/40"
+                      >
+                        <Save className="h-4 w-4" />
+                        {isSaving ? t('branch_detail.saving') : t('branch_detail.save_changes')}
+                      </Button>
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        onClick={handleCancelEdit}
+                        disabled={isSaving}
+                        className="border-orange-200 bg-white text-orange-700 hover:bg-orange-50"
+                      >
+                        <X className="h-4 w-4" />
+                        {t('branch_detail.cancel')}
+                      </Button>
+                    </>
+                  ) : (
                     <Button
-                      size="sm"
-                      className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-red-500 hover:bg-red-600 p-0"
-                      onClick={handleRemoveImage}
+                      size="lg"
+                      variant="outline"
+                      className="border-orange-200 bg-white text-orange-700 hover:bg-orange-50"
+                      onClick={handleStartEdit}
                     >
-                      <X className="h-2 w-2 sm:h-3 sm:w-3 text-white" />
+                      <Edit3 className="h-4 w-4" />
+                      {t('staff_modal.edit_profile')}
                     </Button>
                   )}
-                </div>
-              ) : (
-                <Button
-                  size="sm"
-                  className="absolute -bottom-1 -right-1 h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-white hover:bg-gray-100 p-0"
-                  onClick={() => setIsEditMode(true)}
-                >
-                  <Camera className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
-                </Button>
-              )}
-            </div>
-            <div className="flex-1 text-center sm:text-left">
-              {/* Branch Name */}
-              <div className="mb-2">
-                <h2 className="text-xl sm:text-2xl font-bold text-white">{branch.branchName}</h2>
-              </div>
-
-              {/* Description */}
-              <div className="mb-3">
-                <p className="text-white/90 text-sm sm:text-base">{branch.description || 'Chưa có mô tả'}</p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="secondary" className="bg-white text-orange-600 hover:bg-gray-100">
-                  {branch.status === 'ACTIVE' ? t('branch_detail.status_active') : t('branch_detail.status_inactive')}
-                </Badge>
-                {imagePreview && (
-                  <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
-                    {t('branch_detail.new_image_selected')}
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <Card className="mb-6">
-          <CardHeader className="bg-white border-b border-gray-200">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <CardTitle className="text-lg sm:text-xl font-bold text-orange-600">
-                {t('branch_detail.branch_info_title')}
-              </CardTitle>
-              {!isEditMode ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-600 hover:text-gray-800"
-                  onClick={handleStartEdit}
-                >
-                  <Edit3 className="h-4 w-4 mr-2" />
-                  {t('staff_modal.edit_profile')}
-                </Button>
-              ) : (
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    onClick={handleSaveEdit}
-                    disabled={isSaving}
-                    className="bg-orange-600 text-white hover:bg-orange-700"
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    {isSaving ? t('branch_detail.saving') : t('branch_detail.save_changes')}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleCancelEdit}
-                    disabled={isSaving}
-                    className="text-gray-600"
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    {t('branch_detail.cancel')}
-                  </Button>
-                </div>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column */}
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center space-x-2 mb-1">
-                    <Tag className="h-4 w-4 text-gray-500" />
-                    <label className="text-sm font-medium text-gray-500">{t('branch_detail.branch_name')}</label>
-                  </div>
-                  {isEditMode ? (
-                    <Input
-                      value={editValues.branchName}
-                      onChange={(e) => handleInputChange('branchName', e.target.value)}
-                      className="text-lg font-semibold text-gray-800"
-                      placeholder={t('branch_detail.branch_name_placeholder')}
-                    />
-                  ) : (
-                    <p className="text-lg font-semibold text-gray-800">{branch.branchName}</p>
-                  )}
-                </div>
-
-                <div>
-                  <div className="flex items-center space-x-2 mb-1">
-                    <Tag className="h-4 w-4 text-gray-500" />
-                    <label className="text-sm font-medium text-gray-500">{t('branch_detail.description')}</label>
-                  </div>
-                  {isEditMode ? (
-                    <Textarea
-                      value={editValues.description}
-                      onChange={(e) => handleInputChange('description', e.target.value)}
-                      className="text-lg text-gray-800 min-h-[80px]"
-                      placeholder={t('branch_detail.description_placeholder')}
-                    />
-                  ) : (
-                    <p className="text-lg text-gray-800">{branch.description || t('branch_detail.no_description')}</p>
-                  )}
-                </div>
-
-                <div>
-                  <div className="flex items-center space-x-2 mb-1">
-                    <Phone className="h-4 w-4 text-gray-500" />
-                    <label className="text-sm font-medium text-gray-500">{t('branch_detail.hotline')}</label>
-                  </div>
-                  {isEditMode ? (
-                    <Input
-                      value={editValues.hotline}
-                      onChange={(e) => handleInputChange('hotline', e.target.value)}
-                      className="text-lg text-gray-800"
-                      placeholder={t('branch_detail.hotline_placeholder')}
-                    />
-                  ) : (
-                    <p className="text-lg text-gray-800">{branch.hotline || t('branch_detail.no_hotline')}</p>
-                  )}
-                </div>
-
-                <div>
-                  <div className="flex items-center space-x-2 mb-1">
-                    <Dumbbell className="h-4 w-4 text-gray-500" />
-                    <label className="text-sm font-medium text-gray-500">{t('branch_detail.facilities')}</label>
-                  </div>
-                  {isEditMode ? (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {[
-                          'Gym',
-                          'Cardio',
-                          'Weight Training',
-                          'Yoga',
-                          'Pilates',
-                          'Sauna',
-                          'Swimming Pool',
-                          'Personal Training',
-                          'Group Classes',
-                          'Locker Room',
-                          'Parking',
-                          'Café',
-                          'Shower',
-                          'Towel Service'
-                        ].map((facility) => (
-                          <label key={facility} className="flex items-center space-x-2 text-sm">
-                            <input
-                              type="checkbox"
-                              checked={editValues.facilities.includes(facility)}
-                              onChange={(e) => handleFacilityChange(facility, e.target.checked)}
-                              className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                            />
-                            <span className="text-gray-700">{facility}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {branch.facilities && branch.facilities.length > 0 ? (
-                        branch.facilities.slice(0, 3).map((facility, index) => (
-                          <Badge key={index} variant="outline" className="text-gray-700 border-gray-300">
-                            {facility}
-                          </Badge>
-                        ))
-                      ) : (
-                        <Badge variant="outline" className="text-gray-700 border-gray-300">
-                          Chưa có tiện ích
-                        </Badge>
-                      )}
-                      {branch.facilities && branch.facilities.length > 3 && (
-                        <Badge variant="outline" className="text-gray-500 border-gray-200">
-                          +{branch.facilities.length - 3} khác
-                        </Badge>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <div className="flex items-center space-x-2 mb-1">
-                    <Target className="h-4 w-4 text-gray-500" />
-                    <label className="text-sm font-medium text-gray-500">Tình trạng</label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div
-                      className={`w-2 h-2 rounded-full ${branch.status === 'ACTIVE' ? 'bg-green-500' : 'bg-red-500'}`}
-                    ></div>
-                    <span className={`font-medium ${branch.status === 'ACTIVE' ? 'text-green-600' : 'text-red-600'}`}>
-                      {branch.status === 'ACTIVE'
-                        ? t('branch_detail.status_active')
-                        : t('branch_detail.status_inactive')}
-                    </span>
+                  <div className="relative">
                     <Button
-                      size="sm"
+                      size="lg"
                       variant="outline"
                       onClick={handleToggleStatus}
-                      disabled={togglingStatus}
-                      className="ml-2 text-xs"
+                      disabled={togglingStatus || isToggleDisabled}
+                      className={
+                        isToggleDisabled && !branch.isActive
+                          ? 'border-red-300 bg-red-50/80 text-red-600 cursor-not-allowed opacity-75'
+                          : branch.status === 'ACTIVE'
+                            ? 'border-orange-200 bg-[color:var(--gym-orange)]/10 text-orange-700 hover:bg-orange-50'
+                            : 'border-orange-200 bg-rose-50 text-orange-700 hover:bg-orange-50'
+                      }
+                      title={
+                        isToggleDisabled && !branch.isActive
+                          ? t('error.CANNOT_ACTIVATE_BRANCH_EXCEEDS_LIMIT')
+                          : undefined
+                      }
                     >
-                      <Power className="h-3 w-3 mr-1" />
+                      {isToggleDisabled && !branch.isActive ? (
+                        <Lock className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Power className="h-4 w-4" />
+                      )}
                       {togglingStatus
                         ? t('branch_detail.processing')
                         : branch.status === 'ACTIVE'
                           ? t('branch_detail.turn_off')
-                          : t('branch_detail.turn_on')}
+                          : isToggleDisabled
+                            ? t('branch_detail.cannot_turn_on')
+                            : t('branch_detail.turn_on')}
                     </Button>
+                    {isToggleDisabled && !branch.isActive && (
+                      <div className="absolute -bottom-8 left-0 right-0 flex items-center justify-center gap-1 text-xs text-red-600 mt-1">
+                        <AlertCircle className="h-3 w-3" />
+                        <span>
+                          {subscriptionStats
+                            ? t('branch_detail.branches_used', {
+                                current: subscriptionStats.current,
+                                max: subscriptionStats.max
+                              })
+                            : t('branch_detail.limit_reached')}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
 
-              {/* Right Column */}
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center space-x-2 mb-1">
-                    <MapPin className="h-4 w-4 text-gray-500" />
-                    <label className="text-sm font-medium text-gray-500">{t('branch_detail.address')}</label>
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl border border-orange-100 bg-white/90 p-4 shadow-[0_14px_50px_rgba(240,90,41,0.12)] backdrop-blur">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-orange-50 p-3 text-[color:var(--gym-orange)]">
+                  <Target className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-wide text-orange-700/80">Tình trạng</p>
+                  <p className="text-lg font-semibold text-slate-900">
+                    {branch.status === 'ACTIVE' ? t('branch_detail.status_active') : t('branch_detail.status_inactive')}
+                  </p>
+                  <p className="text-xs text-gray-500">{formattedOpeningHours}</p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-orange-100 bg-white/90 p-4 shadow-[0_14px_50px_rgba(240,90,41,0.12)] backdrop-blur">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-orange-50 p-3 text-[color:var(--gym-orange)]">
+                  <User className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-wide text-orange-700/80">{t('branch_detail.manager')}</p>
+                  <p className="text-lg font-semibold text-slate-900">
+                    {activeManagers.length > 0
+                      ? `${activeManagers.length} ${t('branch_detail.manager')}`
+                      : t('branch_detail.no_manager_option')}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Owner: {branch.ownerId?.fullName || branch.ownerId?.email || t('branch_detail.no_owner')}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-orange-100 bg-white/90 p-4 shadow-[0_14px_50px_rgba(240,90,41,0.12)] backdrop-blur">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-orange-50 p-3 text-[color:var(--gym-orange)]">
+                  <Dumbbell className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-wide text-orange-700/80">{t('branch_detail.facilities')}</p>
+                  <p className="text-lg font-semibold text-slate-900">{facilityCount} tiện ích</p>
+                  <p className="text-xs text-gray-500">
+                    {facilityCount > 0 ? 'Đang hiển thị cho khách' : 'Thêm tiện ích để nổi bật'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <Card className="lg:col-span-2 rounded-2xl border-slate-200/70 bg-white/95 text-slate-900 shadow-2xl">
+              <CardHeader className="border-b border-slate-200/70">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <CardTitle className="text-xl font-semibold text-slate-900">Thông tin chi nhánh</CardTitle>
+                    <p className="text-sm text-slate-500">{t('branch_detail.branch_info_title')}</p>
                   </div>
+                  {isEditMode && (
+                    <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+                      {t('branch_detail.editing', { defaultValue: 'Đang chỉnh sửa' })}
+                    </Badge>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-6">
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <Tag className="h-4 w-4 text-slate-400" />
+                      {t('branch_detail.branch_name')}
+                    </label>
+                    {isEditMode ? (
+                      <Input
+                        value={editValues.branchName}
+                        onChange={(e) => handleInputChange('branchName', e.target.value)}
+                        className="h-11 rounded-lg border-slate-200 bg-white text-base"
+                        placeholder={t('branch_detail.branch_name_placeholder')}
+                      />
+                    ) : (
+                      <p className="text-lg font-semibold text-slate-900">{branch.branchName}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <MapPin className="h-4 w-4 text-slate-400" />
+                      {t('branch_detail.address')}
+                    </label>
+                    {isEditMode ? (
+                      <Input
+                        value={editValues.location}
+                        onChange={(e) => handleInputChange('location', e.target.value)}
+                        className="h-11 rounded-lg border-slate-200 bg-white text-base"
+                        placeholder={t('branch_detail.address_placeholder')}
+                      />
+                    ) : (
+                      <p className="text-lg text-slate-900">{branch.location}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <Tag className="h-4 w-4 text-slate-400" />
+                    {t('branch_detail.description')}
+                  </label>
                   {isEditMode ? (
-                    <Input
-                      value={editValues.location}
-                      onChange={(e) => handleInputChange('location', e.target.value)}
-                      className="text-lg text-gray-800"
-                      placeholder={t('branch_detail.address_placeholder')}
+                    <Textarea
+                      value={editValues.description}
+                      onChange={(e) => handleInputChange('description', e.target.value)}
+                      className="min-h-[110px] rounded-lg border-slate-200 bg-white text-base"
+                      placeholder={t('branch_detail.description_placeholder')}
                     />
                   ) : (
-                    <p className="text-lg text-gray-800">{branch.location}</p>
+                    <p className="text-base leading-relaxed text-slate-800">
+                      {branch.description || t('branch_detail.no_description')}
+                    </p>
                   )}
                 </div>
 
-                <div>
-                  <div className="flex items-center space-x-2 mb-1">
-                    <User className="h-4 w-4 text-gray-500 " />
-                    <label className="text-sm font-medium text-gray-500 ">{t('branch_detail.manager')}</label>
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <Phone className="h-4 w-4 text-slate-400" />
+                      {t('branch_detail.hotline')}
+                    </label>
+                    {isEditMode ? (
+                      <Input
+                        value={editValues.hotline}
+                        onChange={(e) => handleInputChange('hotline', e.target.value)}
+                        className="h-11 rounded-lg border-slate-200 bg-white text-base"
+                        placeholder={t('branch_detail.hotline_placeholder')}
+                      />
+                    ) : (
+                      <p className="text-lg text-slate-900">{branch.hotline || t('branch_detail.no_hotline')}</p>
+                    )}
                   </div>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <Clock className="h-4 w-4 text-slate-400" />
+                      {t('branch_detail.opening_hours')}
+                    </label>
+                    {isEditMode ? (
+                      <div className="flex items-center gap-3">
+                        <Input
+                          type="time"
+                          value={editValues.openingHours.open}
+                          onChange={(e) => handleInputChange('openingHours.open', e.target.value)}
+                          className="h-11 rounded-lg border-slate-200 bg-white text-base"
+                        />
+                        <span className="text-slate-500">-</span>
+                        <Input
+                          type="time"
+                          value={editValues.openingHours.close}
+                          onChange={(e) => handleInputChange('openingHours.close', e.target.value)}
+                          className="h-11 rounded-lg border-slate-200 bg-white text-base"
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-lg text-slate-900">{formattedOpeningHours}</p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl border-orange-100 bg-white/95 text-slate-900 shadow-[0_20px_70px_rgba(240,90,41,0.12)] backdrop-blur">
+              <CardHeader className="border-b border-orange-100/80">
+                <CardTitle className="text-lg font-semibold text-slate-900">Vận hành & nhân sự</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5 pt-6">
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-wide text-orange-700/80">{t('branch_detail.manager')}</p>
                   {isEditMode ? (
-                    <div>
+                    <div className="rounded-xl border border-orange-100 bg-white p-3">
                       {loadingManagers ? (
                         <p className="text-sm text-gray-500">{t('branch_detail.loading')}</p>
                       ) : (
@@ -676,75 +839,167 @@ const BranchDetailPage: React.FC = () => {
                         />
                       )}
                     </div>
-                  ) : (
-                    <div className="space-y-1">
-                      {Array.isArray(branch.managerId) && branch.managerId.length > 0 ? (
-                        branch.managerId
-                          .filter((manager) => manager.status === 'ACTIVE') // Chỉ hiển thị manager có status ACTIVE
-                          .map((manager, index) => (
-                            <p key={index} className="text-lg text-gray-800">
-                              {manager.fullName} - {manager.email}
-                            </p>
-                          ))
-                      ) : branch.managerId && !Array.isArray(branch.managerId) ? (
-                        branch.managerId.status === 'ACTIVE' ? ( // Kiểm tra status cho single manager
-                          <p className="text-lg text-gray-800">
-                            {branch.managerId.fullName} - {branch.managerId.email}
-                          </p>
-                        ) : null
-                      ) : (
-                        <p className="text-lg text-gray-800">{t('branch_detail.no_manager_option')}</p>
+                  ) : activeManagers.length > 0 ? (
+                    <div className="space-y-2">
+                      {visibleManagers.map((manager, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between rounded-xl border border-orange-100 bg-white px-3 py-2 shadow-sm"
+                        >
+                          <div className="space-y-0.5">
+                            <p className="font-medium text-slate-900">{manager.fullName}</p>
+                            <p className="text-xs text-gray-600">{manager.email}</p>
+                          </div>
+                          <Badge className="border-none bg-[color:var(--gym-orange)]/90 text-white">
+                            {t('branch_detail.status_active')}
+                          </Badge>
+                        </div>
+                      ))}
+                      {remainingManagers > 0 && !showAllManagers && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full border-orange-200 text-orange-700 hover:bg-orange-50"
+                          onClick={() => setShowAllManagers(true)}
+                        >
+                          Xem thêm {remainingManagers} quản lý
+                        </Button>
+                      )}
+                      {showAllManagers && activeManagers.length > 4 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full text-orange-700 hover:bg-orange-50"
+                          onClick={() => setShowAllManagers(false)}
+                        >
+                          Thu gọn
+                        </Button>
                       )}
                     </div>
+                  ) : (
+                    <p className="text-sm text-gray-600">{t('branch_detail.no_manager_option')}</p>
                   )}
                 </div>
 
-                <div>
-                  <div className="flex items-center space-x-2 mb-1">
-                    <Building className="h-4 w-4 text-gray-500" />
-                    <label className="text-sm font-medium text-gray-500">{t('branch_detail.owner')}</label>
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-wide text-orange-700/80">{t('branch_detail.owner')}</p>
+                  <div className="rounded-xl border border-orange-100 bg-white px-3 py-2 shadow-sm">
+                    <p className="font-medium text-slate-900">
+                      {branch.ownerId?.fullName || branch.ownerId?.email || t('branch_detail.no_owner')}
+                    </p>
+                    {branch.ownerId?.email && <p className="text-xs text-gray-600">{branch.ownerId.email}</p>}
                   </div>
-                  <p className="text-lg text-gray-800">
-                    {branch.ownerId?.fullName || branch.ownerId?.email || t('branch_detail.no_owner')}
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-wide text-orange-700/80">Tình trạng chi nhánh</p>
+                  <div className="flex items-center justify-between rounded-xl border border-orange-100 bg-white px-3 py-3 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full ${
+                          branch.status === 'ACTIVE' ? 'bg-[color:var(--gym-orange)]' : 'bg-rose-400'
+                        }`}
+                      />
+                      <div>
+                        <p className="font-medium text-slate-900">
+                          {branch.status === 'ACTIVE'
+                            ? t('branch_detail.status_active')
+                            : t('branch_detail.status_inactive')}
+                        </p>
+                        <p className="text-xs text-gray-600">Cập nhật nhanh ngay bên trái</p>
+                      </div>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`border-orange-200 ${
+                        branch.status === 'ACTIVE'
+                          ? 'bg-[color:var(--gym-orange)]/10 text-orange-800'
+                          : 'bg-rose-50 text-rose-700'
+                      }`}
+                    >
+                      {branch.status === 'ACTIVE' ? 'Live' : 'Paused'}
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="mt-6 rounded-2xl border-slate-200/70 bg-white/95 text-slate-900 shadow-2xl">
+            <CardHeader className="border-b border-slate-200/70">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold text-slate-900">
+                    {t('branch_detail.facilities')}
+                  </CardTitle>
+                  <p className="text-sm text-slate-500">
+                    {facilityCount > 0 ? `${facilityCount} tiện ích đã cấu hình` : 'Chưa có tiện ích nào'}
                   </p>
                 </div>
-
-                <div>
-                  <div className="flex items-center space-x-2 mb-1">
-                    <Clock className="h-4 w-4 text-gray-500" />
-                    <label className="text-sm font-medium text-gray-500">{t('branch_detail.opening_hours')}</label>
-                  </div>
-                  {isEditMode ? (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="time"
-                        value={editValues.openingHours.open}
-                        onChange={(e) => handleInputChange('openingHours.open', e.target.value)}
-                        className="text-lg text-gray-800"
+                {branch.facilities && branch.facilities.length > 3 && !isEditMode && (
+                  <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-700">
+                    +{branch.facilities.length - 3} khác
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {isEditMode ? (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {[
+                    'Gym',
+                    'Cardio',
+                    'Weight Training',
+                    'Yoga',
+                    'Pilates',
+                    'Sauna',
+                    'Swimming Pool',
+                    'Personal Training',
+                    'Group Classes',
+                    'Locker Room',
+                    'Parking',
+                    'Café',
+                    'Shower',
+                    'Towel Service'
+                  ].map((facility) => (
+                    <label
+                      key={facility}
+                      className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-3 py-3 text-sm font-medium text-slate-700 shadow-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={editValues.facilities.includes(facility)}
+                        onChange={(e) => handleFacilityChange(facility, e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                       />
-                      <span className="text-gray-500">-</span>
-                      <Input
-                        type="time"
-                        value={editValues.openingHours.close}
-                        onChange={(e) => handleInputChange('openingHours.close', e.target.value)}
-                        className="text-lg text-gray-800"
-                      />
-                    </div>
+                      {facility}
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {branch.facilities && branch.facilities.length > 0 ? (
+                    branch.facilities.slice(0, 12).map((facility, index) => (
+                      <Badge
+                        key={index}
+                        variant="outline"
+                        className="border-slate-200 bg-slate-50 px-3 py-1 text-slate-700"
+                      >
+                        {facility}
+                      </Badge>
+                    ))
                   ) : (
-                    <p className="text-lg text-gray-800">
-                      {typeof branch.openingHours === 'string'
-                        ? branch.openingHours
-                        : `${branch.openingHours?.open || '06:00'} - ${branch.openingHours?.close || '21:00'}`}
-                    </p>
+                    <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-700">
+                      Chưa có tiện ích
+                    </Badge>
                   )}
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Disable Branch Modal */}
       <DisableBranchModal
         isOpen={showDisableModal}
         onClose={() => setShowDisableModal(false)}
@@ -752,7 +1007,7 @@ const BranchDetailPage: React.FC = () => {
         onConfirm={handleConfirmDisable}
         isProcessing={togglingStatus}
       />
-    </div>
+    </>
   );
 };
 

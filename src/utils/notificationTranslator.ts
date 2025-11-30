@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import type { Notification } from '@/contexts/SocketContext';
 import type { TimeOffNotificationData, RescheduleNotificationData } from '@/types/api/Socket';
+import i18n from '@/configs/i18n';
 
 /**
  * Get i18n key for notification title based on type
@@ -50,7 +51,11 @@ function getNotificationTitleKey(type: string): string {
     'notification:membership:registered': 'notifications.membership.registered.title',
     'notification:membership:purchased': 'notifications.membership.purchased.title',
     'notification:membership:owner_update': 'notifications.membership.owner_update.title',
-    'notification:membership:manager_update': 'notifications.membership.manager_update.title'
+    'notification:membership:manager_update': 'notifications.membership.manager_update.title',
+
+    // KPI notifications
+    'notification:kpi:achieved': 'notifications.kpi.achieved.title',
+    KPI: 'notifications.kpi.achieved.title'
   };
 
   return keyMap[type] || '';
@@ -99,7 +104,11 @@ function getNotificationMessageKey(type: string): string {
     'notification:membership:registered': 'notifications.membership.registered.message',
     'notification:membership:purchased': 'notifications.membership.purchased.message',
     'notification:membership:owner_update': 'notifications.membership.owner_update.message',
-    'notification:membership:manager_update': 'notifications.membership.manager_update.message'
+    'notification:membership:manager_update': 'notifications.membership.manager_update.message',
+
+    // KPI notifications
+    'notification:kpi:achieved': 'notifications.kpi.achieved.message',
+    KPI: 'notifications.kpi.achieved.message'
   };
 
   return keyMap[type] || '';
@@ -172,7 +181,11 @@ export function translateNotificationTitle(notification: Notification, t: TFunct
               minimumFractionDigits: 0,
               maximumFractionDigits: 0
             }).format((data.total as number) || (data.price as number))
-          : '')
+          : ''),
+
+      // KPI data (branchName already defined above, so only add period and rewardText)
+      period: (data.period as string) || '',
+      rewardText: ''
     });
 
     // If translation exists (not the key itself), return it
@@ -257,7 +270,38 @@ export function translateNotificationMessage(notification: Notification, t: TFun
               minimumFractionDigits: 0,
               maximumFractionDigits: 0
             }).format((data.total as number) || (data.price as number))
-          : '')
+          : ''),
+
+      // KPI data (branchName already defined above, so only add period and rewardText)
+      period: (data.period as string) || '',
+      rewardText: (() => {
+        // Extract reward from achievement if available
+        const achievement = (data.achievement as Record<string, unknown>) || {};
+        const reward = (achievement.reward as Record<string, unknown>) || {};
+        const currentLang = i18n.language || 'vi';
+        const isEnglish = currentLang === 'en';
+        const rewardLabel = isEnglish ? 'Reward' : 'Phần thưởng';
+        const locale = isEnglish ? 'en-US' : 'vi-VN';
+
+        if (reward.type === 'FIXED_AMOUNT' && reward.amount) {
+          const amount = reward.amount as number;
+          return `. ${rewardLabel}: ${new Intl.NumberFormat(locale, {
+            style: 'currency',
+            currency: 'VND',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+          }).format(amount)}`;
+        } else if (reward.type === 'PERCENTAGE_BONUS' && reward.percentage) {
+          const percentage = typeof reward.percentage === 'number' ? reward.percentage : Number(reward.percentage) || 0;
+          return `. ${rewardLabel}: ${percentage}%`;
+        } else if (reward.type === 'VOUCHER' && reward.voucherDetails) {
+          // Only handle string voucherDetails to avoid object stringification issues
+          if (typeof reward.voucherDetails === 'string' && reward.voucherDetails.trim()) {
+            return `. ${rewardLabel}: ${reward.voucherDetails}`;
+          }
+        }
+        return '';
+      })()
     });
 
     if (translated !== key) {

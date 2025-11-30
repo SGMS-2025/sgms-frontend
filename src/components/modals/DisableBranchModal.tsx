@@ -94,7 +94,7 @@ const DisableBranchModal: React.FC<DisableBranchModalProps> = ({
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="gap-4 sm:gap-4">
           <Button
             variant="outline"
             onClick={onClose}

@@ -28,7 +28,7 @@ export default function HomePage() {
     if (user && user.role === 'OWNER') {
       navigate('/manage/staff');
     } else if (user && user.role === 'CUSTOMER') {
-      navigate('/customer');
+      navigate('/'); // Landing page for customer
     } else if (user && user.role === 'STAFF' && currentStaff) {
       if (currentStaff.jobTitle === 'Manager') {
         navigate('/manage/staff');

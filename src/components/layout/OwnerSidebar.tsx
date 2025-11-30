@@ -19,10 +19,12 @@ import {
   CreditCard,
   Building2,
   FileText,
-  TrendingUp
+  TrendingUp,
+  Wallet,
+  Percent
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
@@ -247,11 +249,14 @@ export const OwnerSidebar: React.FC = () => {
 
   const ownerExtraMenuItems = (
     <>
+      <DropdownMenuItem onClick={() => navigate('/manage/wallets')} className="cursor-pointer">
+        <Wallet className="w-4 h-4 mr-3 stroke-[1.75]" />
+        {t('sidebar.wallet', 'Ví / Wallet')}
+      </DropdownMenuItem>
       <DropdownMenuItem onClick={() => setIsVerificationModalOpen(true)} className="cursor-pointer">
         <Building2 className="w-4 h-4 mr-3 stroke-[1.75]" />
         {t('sidebar.business_verification', 'Xác thực doanh nghiệp')}
       </DropdownMenuItem>
-      <DropdownMenuSeparator />
     </>
   );
 
@@ -359,6 +364,15 @@ export const OwnerSidebar: React.FC = () => {
                 navigate('/manage/kpi');
               }}
               data-tour="kpi-menu-item"
+            />
+            <SubMenuItem
+              icon={<Percent className="w-5 h-5 stroke-[1.75]" />}
+              label={t('sidebar.commission_policy', 'Chính sách Hoa hồng')}
+              isActive={location.pathname === '/manage/commission-policies'}
+              onClick={() => {
+                navigate('/manage/commission-policies');
+              }}
+              data-tour="commission-policy-menu-item"
             />
           </DropdownSidebarItem>
         </div>

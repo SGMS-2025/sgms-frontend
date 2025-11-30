@@ -67,6 +67,12 @@
   "error.EMAIL_ALREADY_EXISTS": "This email is already in use. Please use a different email",
   "error.USERNAME_ALREADY_EXISTS": "This username is already in use. Please choose a different username",
   "error.BUSINESS_VERIFICATION_REQUIRED_FOR_SUBSCRIPTION": "You need an approved business verification before purchasing a subscription package. Please submit a business verification request and wait for approval.",
+  "error.TRIAL_ALREADY_USED": "You have already used a trial package before. Each account can only use the trial once.",
+  "error.TRIAL_CANNOT_USE_WITH_ACTIVE_SUBSCRIPTION": "You already have an active subscription. Cannot use trial package.",
+  "error.TRIAL_BANK_TRANSFER_NOT_SUPPORTED": "Trial packages do not support bank transfer payment method.",
+  "error.CANNOT_ACTIVATE_BRANCH_EXCEEDS_LIMIT": "Cannot activate this branch. You have reached the maximum number of active branches allowed by your subscription package. Please upgrade your subscription or deactivate another branch first.",
+  "error.BRANCH_LIMIT_EXCEEDED": "Branch limit exceeded. Your subscription package only allows {{maxAllowed}} active branch(es).",
+  "error.BRANCH_LOCKED_CANNOT_SWITCH": "Cannot switch to this branch: It is currently locked due to subscription limits. You can view branch details but cannot access its data (staff, equipment, etc.).",
   "success.otp_sent": "OTP code has been sent to your email!",
   "error.register_failed": "Registration failed",
   "auth.register_title": "REGISTER",
@@ -199,6 +205,20 @@
   "auth.placeholder_current_password": "Enter your current password",
   "auth.changing": "CHANGING...",
   "auth.change_password": "CHANGE PASSWORD",
+  "auth.account_protection": "Account protection",
+  "auth.forgot_password_question": "Forgot password?",
+  "auth.reset_password_dialog_description": "We will send an OTP to your email to verify this reset request.",
+  "auth.email_receive_otp": "Email to receive OTP",
+  "auth.placeholder_email_missing": "No email found",
+  "auth.otp_expire_notice": "OTP will expire after 5 minutes.",
+  "auth.send_otp": "Send OTP",
+  "auth.quick_tips": "Quick tips",
+  "auth.tip_no_share": "Do not share your password and avoid reusing old ones.",
+  "auth.tip_change_on_strange_device": "Change your password after logging in on unfamiliar devices.",
+  "auth.password_strength": "Password strength",
+  "auth.password_criteria_progress": "{{count}}/4 checks",
+  "auth.reset_form": "Reset form",
+  "auth.step_one_of_three": "Step 1/3",
   "auth.back_to_profile": "Back to profile",
   "success.password_reset_success": "Password reset successfully! You can now login with your new password.",
   "marketing.forgot_password_title": "Reset your password",
@@ -317,7 +337,7 @@
   "dashboard.kpi_top_badge": "Top 5 by KPI",
   "dashboard.kpi_score": "KPI score",
   "dashboard.kpi_avg_score": "Average score in Top 5",
-  "dashboard.kpi_revenue": "Revenue",
+  "dashboard.kpi_revenue": "Total Earnings",
   "dashboard.kpi_total_revenue": "Cumulative revenue from Top 5",
   "dashboard.kpi_momentum": "Best growth momentum",
   "dashboard.kpi_focus": "Focus",
@@ -432,10 +452,12 @@
   "sidebar.services_promotions": "Services & Promotions",
   "sidebar.promotions": "Promotions",
   "sidebar.payments": "Payments",
+  "sidebar.wallet": "Wallet",
   "sidebar.subscriptions": "Subscriptions",
   "sidebar.subscription_packages": "Subscription Packages",
   "sidebar.finance": "Finance",
   "sidebar.expenses": "Expenses",
+  "sidebar.commission_policy": "Commission Policy",
   "expenses.badge": "EXPENSE MANAGEMENT",
   "expenses.branch_filter": "FILTERING BY BRANCH",
   "expenses.title": "Expenses",
@@ -597,6 +619,7 @@
   "branch_selector.other_branches": "Other branches",
   "branch_selector.no_other_branches": "No other branches",
   "branch_selector.add_branch": "Add branch",
+  "branch_selector.branch_locked": "Branch is locked due to subscription limit. You can view details but cannot switch to it.",
   "branch_detail.manage_branch_info": "Manage branch information",
   "branch_detail.change_branch": "Change branch",
   "branch_detail.branch_info_title": "BRANCH INFORMATION",
@@ -627,6 +650,9 @@
   "branch_detail.processing": "Processing...",
   "branch_detail.turn_off": "Turn off",
   "branch_detail.turn_on": "Turn on",
+  "branch_detail.cannot_turn_on": "Cannot turn on",
+  "branch_detail.branches_used": "{{current}}/{{max}} branches used",
+  "branch_detail.limit_reached": "Limit reached",
   "toast.cannot_load_managers": "Cannot load managers list",
   "toast.image_processing_error": "Error processing image",
   "toast.update_success": "Update successful",
@@ -813,6 +839,8 @@
   "common.feedback": "Feedback",
   "common.refresh": "Refresh",
   "common.export": "Export",
+  "common.notes": "Notes",
+  "common.notes_placeholder": "Enter note (optional)",
   "validation.phone_invalid_format": "Phone number format is invalid (10-11 digits, starting with 0)",
   "validation.phone_only_digits": "Phone number can only contain digits",
   "validation.fullname_required": "Full name is required",
@@ -2869,6 +2897,8 @@
   "notifications.service_contract.owner_update.message": "A service contract has been updated",
   "notifications.service_contract.manager_update.title": "Service Contract Update",
   "notifications.service_contract.manager_update.message": "A service contract has been updated",
+  "notifications.kpi.achieved.title": "🎉 KPI Target Achieved",
+  "notifications.kpi.achieved.message": "Congratulations! You have achieved your KPI at {{branchName}} ({{period}}){{rewardText}}",
   "socket.connection_failed": "Failed to connect to real-time notifications",
   "socket.reconnected": "Reconnected to real-time notifications",
   "socket.reconnect_failed": "Failed to reconnect to notifications",
@@ -3108,6 +3138,8 @@
   "common.sort_by": "Sort by",
   "common.updated": "Updated",
   "common.deleting": "Deleting...",
+  "common.disabling": "Disabling...",
+  "common.enabling": "Enabling...",
   "common.dismiss": "Dismiss",
   "common.images": "Images",
   "equipment.description": "Description",
@@ -3774,6 +3806,37 @@
   "customer.profile.avatar_delete_error": "Failed to delete avatar",
   "customer.profile.file_type_error": "Please select a valid image file (JPG, PNG, GIF)",
   "customer.profile.file_size_error": "File size must be less than 5MB",
+  "customer.profile.security_login": "Security & Login",
+  "customer.profile.profile_label": "Profile",
+  "customer.profile.complete": "complete",
+  "customer.profile.items_to_add": "{{count}} items to add",
+  "customer.profile.all_main_info_complete": "All main information complete",
+  "customer.profile.member_label": "Member",
+  "customer.profile.from": "From",
+  "customer.profile.contact": "Contact",
+  "customer.profile.security": "Security",
+  "customer.profile.update_password": "Update password",
+  "customer.profile.open_security_settings": "Open security settings",
+  "customer.profile.quick_overview": "Quick Overview",
+  "customer.profile.contact_personal_info": "Contact and personal information in one place.",
+  "customer.profile.profile_progress": "Profile Progress",
+  "customer.profile.profile_progress_description": "Complete your profile to help PTs and receptionists serve you faster.",
+  "customer.profile.completion_level": "Completion level",
+  "customer.profile.missing_items": "Missing items:",
+  "customer.profile.profile_complete": "Profile is complete",
+  "customer.profile.status": "Status",
+  "customer.profile.linked": "Linked",
+  "customer.profile.not_linked": "Not linked",
+  "customer.profile.zalo_connect_description": "Connect to receive login notifications and quick support via Zalo.",
+  "customer.profile.link_zalo": "Link Zalo",
+  "customer.profile.personal": "Personal",
+  "customer.profile.personal_info_tab": "Personal Information",
+  "customer.profile.security_password": "Security & Password",
+  "customer.profile.editing": "Editing",
+  "customer.profile.saved": "Saved",
+  "customer.profile.change_password": "Change password",
+  "customer.profile.zalo_account": "Zalo Account",
+  "customer.profile.zalo_account_description": "Link your Zalo account for faster login and better experience.",
   "customer.sidebar.profile": "Profile",
   "customer.sidebar.membership": "Membership",
   "customer.sidebar.schedule": "Schedule",
@@ -4819,7 +4882,10 @@
       "active": "Active",
       "cancelled": "Cancelled",
       "at_risk": "At Risk",
-      "on_track": "On Track"
+      "on_track": "On Track",
+      "achieved": "Achieved",
+      "failed": "Failed",
+      "in_progress": "In Progress"
     },
     "stats": {
       "total": "Total KPIs",
@@ -4828,32 +4894,69 @@
       "avg_achievement": "Average Achievement",
       "top_performer": "Top Performer",
       "total_helper": "Total KPIs",
+      "active": "Active KPIs",
       "active_helper": "KPIs being tracked",
+      "cancelled": "Cancelled KPIs",
       "cancelled_helper": "KPIs that have been disabled"
     },
     "my_kpi": {
+      "title": "My KPI",
+      "period": "Period",
+      "branch": "Branch"
     },
     "overall_achievement": "Overall Achievement",
     "achievement_rate": "Achievement",
     "target": "Target",
     "actual": "Actual",
+    "progress": "Progress",
     "days_remaining": "{{days}} days remaining",
     "metrics": {
+      "total_revenue": "Total Revenue",
       "new_members": "New Members",
       "renewals": "Renewals",
-      "pt_sessions": "PT Sessions"
+      "pt_sessions": "PT Sessions",
+      "contracts": "Contracts"
     },
     "earnings": {
+      "title": "Earnings",
       "commission": "Commission",
-      "bonus": "Bonus"
+      "bonus": "Bonus",
+      "rate": "Rate",
+      "reward": "Reward",
+      "total": "Total"
     },
     "ranking": {
       "branch": "Branch Ranking",
       "overall": "Overall Ranking"
     },
     "warning": {
-      "message": "You need {{amount}} more to achieve KPI!"
+      "title": "Attention",
+      "message": "You need {{amount}} more to achieve KPI!",
+      "message_generic": "Keep working hard to achieve your goals!"
     },
+    "targets": {
+      "title": "KPI Targets",
+      "revenue": "Revenue",
+      "new_members": "New Members",
+      "pt_sessions": "PT Sessions",
+      "contracts": "Contracts"
+    },
+    "reward": {
+      "title": "Reward When Achieving KPI",
+      "fixed_amount": "Fixed Reward",
+      "percentage_bonus": "Percentage Bonus Added to Commission",
+      "voucher": "Voucher/Gift Coupon",
+      "none": "No Reward",
+      "achieved": "Achieved - Receive Reward",
+      "pending": "Complete targets to receive reward"
+    },
+    "reward_type": {
+      "fixed_amount": "Fixed Amount",
+      "percentage_bonus": "Percentage Bonus",
+      "voucher": "Voucher",
+      "none": "None"
+    },
+    "all_staff": "All Staff",
     "export": "Export Data",
     "search_placeholder": "Search by name, branch...",
     "filter_by_status": "Filter by status",
@@ -4866,11 +4969,20 @@
     "table": {
       "staff_name": "Staff Name",
       "achievement": "Achievement",
-      "actions": "Actions"
+      "actions": "Actions",
+      "period": "Period",
+      "targets": "Targets",
+      "actual": "Actual",
+      "commission": "Commission",
+      "reward": "Reward",
+      "status": "Status",
+      "branch": "Branch",
+      "ranking": "Ranking"
     },
     "actions": {
       "create": "Create KPI",
       "view": "View Details",
+      "view_detail": "View Details",
       "edit": "Edit",
       "cancel": "Cancel",
       "disable": "Disable",
@@ -4878,7 +4990,8 @@
       "refresh": "Refresh"
     },
     "confirm": {
-      "disable_title": "Confirm Disable KPI"
+      "disable_title": "Confirm Disable KPI",
+      "disable": "Are you sure you want to disable this KPI?"
     },
     "cancel_success": "KPI cancelled successfully",
     "cancel_error": "Failed to cancel KPI",
@@ -4909,12 +5022,27 @@
       "notes": "Notes",
       "notes_placeholder": "Enter notes (optional)",
       "cannot_change": "Cannot change",
-      "update": "Update KPI"
+      "update": "Update KPI",
+      "targets_required": "Please enter at least one KPI target",
+      "target_revenue_invalid": "Revenue target must be a positive number",
+      "target_new_members_invalid": "New members target must be a positive integer",
+      "target_pt_sessions_invalid": "PT sessions target must be a positive integer",
+      "target_contracts_invalid": "Contracts target must be a positive integer",
+      "reward_amount_required": "Please enter reward amount",
+      "reward_percentage_invalid": "Reward percentage must be between 0 and 100",
+      "reward_voucher_required": "Please enter voucher details"
     },
     "detail": {
+      "title": "KPI Details",
       "description": "Detailed information about KPI and achievements",
       "not_found": "KPI not found",
+      "commission_rate": "Commission Rate",
+      "rate": "Rate",
+      "commission": "Commission",
+      "earnings": "Earnings",
+      "notes": "Notes",
       "targets": "Targets",
+      "targets_vs_actual": "Targets vs Actual",
       "target_revenue": "Revenue",
       "target_new_members": "New Members",
       "target_renewals": "Renewals",
@@ -4931,6 +5059,9 @@
       "achievement_rate_pt_sessions": "PT Sessions",
       "total_earnings": "Total Earnings",
       "qualified": "Qualified",
+      "reward": "Reward",
+      "reward_type": "Type",
+      "reward_if_complete": "if complete all targets",
       "no_achievement": "No achievement data yet. KPI will be calculated automatically when there are transactions.",
       "new_customers_list": "New Customer List",
       "new_customers_description": "List of new customers who have purchased packages in this KPI period",
@@ -4943,13 +5074,19 @@
         "value": "Value",
         "email": "Email",
         "phone": "Phone",
-        "purchase_date": "Purchase Date"
+        "purchase_date": "Purchase Date",
+        "start_date": "Start Date",
+        "end_date": "End Date"
       },
       "pt_session": {
         "pt": "PT",
+        "package": "Package",
+        "value": "Value",
         "execution_date": "Execution Date",
         "customer_email": "Customer Email",
-        "customer_phone": "Customer Phone"
+        "customer_phone": "Customer Phone",
+        "start_date": "Start Date",
+        "end_date": "End Date"
       }
     },
     "tour": {
@@ -4999,8 +5136,7 @@
         "title": "List Navigation",
         "description": "Use the Previous and Next buttons to navigate between pages. You can also click on page numbers to jump to a specific page."
       }
-    },
-    "all_staff": "All Staff"
+    }
   },
   "calendar": {
     "tour": {
@@ -5542,5 +5678,113 @@
         "CANCELLED": "CANCELLED"
       }
     }
+  },
+  "commission": {
+    "badge": "COMMISSION POLICY MANAGEMENT",
+    "title": "Commission Policies",
+    "description": "Configure commission rates for each service package",
+    "loading": "Loading...",
+    "try_again": "Try Again",
+    "no_policies": "No commission policies yet",
+    "create": "Create new policy",
+    "confirm_delete": "Are you sure you want to delete this commission policy?",
+    "delete_success": "Commission policy deleted successfully",
+    "delete_error": "Failed to delete commission policy",
+    "delete_title": "Delete Commission Policy",
+    "delete_description": "Are you sure you want to delete this commission policy? This action cannot be undone.",
+    "search_placeholder": "Search by package name, branch...",
+    "list": "Policy List",
+    "items": "policies",
+    "management": {
+      "title": "Commission Policy Management",
+      "subtitle": "Configure commission rates for each service package"
+    },
+    "stats": {
+      "total": "Total Policies",
+      "total_helper": "Total number of commission policies",
+      "active": "Active Policies",
+      "active_helper": "Policies currently being applied",
+      "inactive": "Inactive Policies",
+      "inactive_helper": "Policies that have been disabled"
+    },
+    "scope": {
+      "global": "Global",
+      "branch": "Branch",
+      "role": "Role",
+      "package": "Service Package"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "filter": {
+      "scope": "Scope",
+      "status": "Status",
+      "all": "All",
+      "all_scopes": "All"
+    },
+    "table": {
+      "scope": "Scope",
+      "details": "Details",
+      "rate": "Rate (%)",
+      "status": "Status"
+    },
+    "tour": {
+      "button": "Guide"
+    },
+    "form": {
+      "edit_title": "Edit Commission Policy",
+      "create_title": "Create New Commission Policy",
+      "scope": "Scope",
+      "branch": "Branch",
+      "branch_required": "Please select a branch",
+      "no_branch": "No branch selected",
+      "role": "Role",
+      "role_required": "Please select a role",
+      "select_role": "Select role",
+      "package_type": "Package Type",
+      "service_package": "Service Package",
+      "membership_plan": "Membership Plan",
+      "package_required": "Please select a service package or membership plan",
+      "membership_required": "Please select at least one membership plan",
+      "select_multiple": "Select multiple packages at once",
+      "selected": "selected",
+      "no_packages": "No service packages available",
+      "select_package": "Select service package",
+      "no_membership_plans": "No membership plans available",
+      "select_membership": "Select membership plan",
+      "rate": "Commission Rate (%)",
+      "rate_required": "Please enter commission rate",
+      "rate_invalid": "Commission rate must be between 0 and 100",
+      "rate_placeholder": "Example: 10",
+      "month": "month",
+      "roles": {
+        "personal_trainer": "Personal Trainer",
+        "manager": "Manager",
+        "technician": "Technician"
+      }
+    },
+    "update_success": "Commission policy updated successfully",
+    "create_success": "Commission policy created successfully",
+    "bulk_create_success": "Successfully created {{count}} commission policies",
+    "update_error": "Failed to update commission policy",
+    "create_error": "Failed to create commission policy",
+    "disable": "Disable",
+    "enable": "Enable",
+    "disable_title": "Disable Commission Policy",
+    "disable_description": "Are you sure you want to disable this commission policy? The policy will no longer be applied.",
+    "disable_success": "Commission policy disabled successfully",
+    "disable_error": "Failed to disable commission policy",
+    "enable_title": "Enable Commission Policy",
+    "enable_description": "Are you sure you want to enable this commission policy? The policy will be applied again.",
+    "enable_success": "Commission policy enabled successfully",
+    "enable_error": "Failed to enable commission policy",
+    "disable_selected": "Disable Selected ({{count}})",
+    "bulk_disable_title": "Disable {{count}} Commission Policies",
+    "bulk_disable_description": "Are you sure you want to disable {{count}} selected commission policies? Already disabled policies will be skipped.",
+    "bulk_disable_success": "Successfully disabled {{count}} commission policies",
+    "bulk_disable_partial": "Failed to disable {{count}} policies",
+    "bulk_disable_error": "Failed to disable selected commission policies",
+    "bulk_disable_skipped": "Skipped {{count}} already disabled policies"
   }
 }

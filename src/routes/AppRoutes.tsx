@@ -62,6 +62,7 @@ import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import AttendancePage from '@/pages/attendance/AttendancePage';
 import RescheduleManagementPage from '@/pages/owner/RescheduleManagementPage';
+import WalletPage from '@/pages/owner/WalletPage';
 import CustomerSecurity from '@/pages/customer/CustomerSecurity';
 import CustomerProgress from '@/pages/customer/CustomerProgress';
 import CustomerSchedule from '@/pages/customer/CustomerSchedule';
@@ -83,6 +84,7 @@ import { AdminLayout } from '@/layouts/AdminLayout';
 import OwnerSubscriptionGate from '@/components/guards/OwnerSubscriptionGate';
 import OwnerSubscriptionGateWithLayout from '@/components/guards/OwnerSubscriptionGateWithLayout';
 import KPIManagementPage from '@/pages/owner/KPIManagementPage';
+import { CommissionPolicyPage } from '@/pages/owner/CommissionPolicyPage';
 import MyKPIPage from '@/pages/pt/MyKPIPage';
 import ChatAiPage from '@/pages/pt/ChatAiPage';
 import ProfileAccountSettingsPage from '@/pages/profile/ProfileAccountSettingsPage';
@@ -260,7 +262,7 @@ const AuthenticatedRedirect: React.FC = () => {
   if (user.role === 'OWNER') {
     return <Navigate to="/manage/staff" replace />;
   } else if (user.role === 'CUSTOMER') {
-    return <Navigate to="/customer" replace />;
+    return <Navigate to="/" replace />; // Landing page for customer
   } else if (user.role === 'ADMIN') {
     return <Navigate to="/admin/dashboard" replace />;
   } else if (user.role === 'STAFF') {
@@ -282,19 +284,20 @@ const AuthenticatedRedirect: React.FC = () => {
 };
 
 const RootRouteHandler: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuthState();
+  const { isAuthenticated, isLoading, user } = useAuthState();
 
   // Show loading while checking auth
   if (isLoading) {
     return <RouteLoadingSpinner />;
   }
 
-  // Redirect authenticated users based on role
-  if (isAuthenticated) {
+  // Allow CUSTOMER to see landing page even when authenticated
+  // Other roles will be redirected
+  if (isAuthenticated && user?.role !== 'CUSTOMER') {
     return <AuthenticatedRedirect />;
   }
 
-  // Not authenticated, show landing page
+  // Show landing page (for both unauthenticated users and authenticated customers)
   return <LandingPage />;
 };
 
@@ -419,6 +422,8 @@ const AppRoutes: React.FC = () => {
             <Route path="customers/:id/detail" element={<CustomerDetailPage />} />
             {/* Customer Payments Route */}
             <Route path="payments" element={<CustomerPaymentsPage />} />
+            {/* Wallets & Withdrawals */}
+            <Route path="wallets" element={<WalletPage />} />
             {/* Branch Detail Route */}
             <Route path="branch/:branchId" element={<BranchDetailPage />} />
             {/* Add Branch Route */}
@@ -457,6 +462,8 @@ const AppRoutes: React.FC = () => {
 
             {/* KPI Management Routes */}
             <Route path="kpi" element={<KPIManagementPage />} />
+            {/* Commission Policy Routes */}
+            <Route path="commission-policies" element={<CommissionPolicyPage />} />
           </Route>
           {/* Subscription Management Route (accessible without active subscription for OWNER) */}
           <Route path="subscriptions" element={<SubscriptionPackagesPage />} />
@@ -573,7 +580,7 @@ const AppRoutes: React.FC = () => {
       {/* Customer Routes - for CUSTOMER role only */}
       <Route path="/customer" element={<ProtectedRoute allowedRoles={['CUSTOMER']} fallbackPath="/home" />}>
         <Route path="" element={<CustomerLayout />}>
-          {/* Dashboard Route */}
+          {/* Dashboard Route - Landing page for customer */}
           <Route path="" element={<CustomerDashboard />} />
 
           {/* Profile Route */}

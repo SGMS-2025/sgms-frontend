@@ -302,6 +302,97 @@ export const KPIDetailModal: React.FC<KPIDetailModalProps> = ({ kpiId, isOpen, o
 
               <Separator />
 
+              {/* Targets vs Actual Table */}
+              {(kpiConfig.targets || achievement) && (
+                <>
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5 text-orange-500" />
+                      {t('kpi.detail.targets_vs_actual', 'Mục Tiêu vs Thực Tế')}
+                    </h3>
+                    <div className="overflow-x-auto bg-white rounded-lg border border-gray-200 shadow-sm">
+                      <table className="w-full">
+                        <thead className="bg-gray-50 border-b">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-orange-600">
+                              {t('kpi.table.targets', 'Mục tiêu')}
+                            </th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-orange-600">
+                              {t('kpi.table.actual', 'Thực tế')}
+                            </th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-orange-600">
+                              {t('kpi.table.commission', 'Hoa hồng')}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {/* Revenue Row */}
+                          {kpiConfig.targets?.revenue !== undefined && (
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                <span className="font-medium">DT:</span> {formatCurrency(kpiConfig.targets.revenue)}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                <span className="font-medium">DT:</span>{' '}
+                                {achievement ? formatCurrency(achievement.actual.revenue.total) : '0 ₫'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                {achievement && achievement.commission.amount > 0
+                                  ? formatCurrency(achievement.commission.amount)
+                                  : '-'}
+                              </td>
+                            </tr>
+                          )}
+
+                          {/* New Members Row */}
+                          {kpiConfig.targets?.newMembers !== undefined && (
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                <span className="font-medium">KH:</span> {kpiConfig.targets.newMembers}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                <span className="font-medium">KH:</span>{' '}
+                                {achievement ? achievement.actual.members.newMembers : 0}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-500">-</td>
+                            </tr>
+                          )}
+
+                          {/* PT Sessions Row */}
+                          {kpiConfig.targets?.ptSessions !== undefined && (
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                <span className="font-medium">PT:</span> {kpiConfig.targets.ptSessions}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                <span className="font-medium">PT:</span>{' '}
+                                {achievement ? achievement.actual.sessions.ptSessions : 0}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-500">-</td>
+                            </tr>
+                          )}
+
+                          {/* Contracts Row */}
+                          {kpiConfig.targets?.contracts !== undefined && (
+                            <tr className="hover:bg-gray-50">
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                <span className="font-medium">HĐ:</span> {kpiConfig.targets.contracts}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
+                                <span className="font-medium">HĐ:</span>{' '}
+                                {achievement ? achievement.actual.contracts.total : 0}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-500">-</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <Separator />
+                </>
+              )}
+
               {/* Achievements */}
               {achievement && (
                 <>
@@ -372,21 +463,79 @@ export const KPIDetailModal: React.FC<KPIDetailModalProps> = ({ kpiId, isOpen, o
                       <DollarSign className="w-5 h-5 text-green-500" />
                       {t('kpi.detail.earnings', 'Thu Nhập')}
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="bg-green-50 p-4 rounded-lg">
                         <p className="text-sm text-gray-600 mb-1">{t('kpi.detail.commission', 'Hoa hồng')}</p>
                         <p className="text-2xl font-bold text-green-600">
                           {formatCurrency(achievement.commission.amount)}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          {t('kpi.detail.commission_rate', 'Tỷ lệ')}: {achievement.commission.applicableRate.toFixed(1)}
-                          %
+                          {t('kpi.detail.rate', 'Tỷ lệ')}: {achievement.commission.applicableRate.toFixed(1)}%
                         </p>
+                      </div>
+                      <div className="bg-yellow-50 p-4 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-1">{t('kpi.detail.reward', 'Thưởng')}</p>
+                        <p className="text-2xl font-bold text-yellow-600">
+                          {(() => {
+                            // If qualified, show reward from achievement
+                            if (achievement.reward.qualified && achievement.reward.type !== 'NONE') {
+                              if (achievement.reward.type === 'PERCENTAGE_BONUS') {
+                                return `${achievement.reward.percentage}%`;
+                              }
+                              if (achievement.reward.type === 'FIXED_AMOUNT') {
+                                return formatCurrency(achievement.reward.amount);
+                              }
+                              return achievement.reward.voucherDetails || '-';
+                            }
+
+                            // If not qualified, show reward from config (potential reward)
+                            const configReward = kpiConfig.reward;
+                            if (configReward && configReward.type && configReward.type !== 'NONE') {
+                              if (configReward.type === 'PERCENTAGE_BONUS') {
+                                return `${configReward.percentage || 0}%`;
+                              }
+                              if (configReward.type === 'FIXED_AMOUNT') {
+                                return formatCurrency(configReward.amount || 0);
+                              }
+                              return configReward.voucherDetails || '-';
+                            }
+
+                            return '-';
+                          })()}
+                        </p>
+                        {(() => {
+                          // Show reward type if qualified
+                          if (achievement.reward.qualified && achievement.reward.type !== 'NONE') {
+                            return (
+                              <p className="text-xs text-gray-500 mt-1">
+                                {t('kpi.detail.reward_type', 'Loại')}:{' '}
+                                {t(`kpi.reward_type.${achievement.reward.type.toLowerCase()}`, achievement.reward.type)}
+                              </p>
+                            );
+                          }
+
+                          // Show "if complete all targets" if not qualified but has reward config
+                          const configReward = kpiConfig.reward;
+                          if (configReward && configReward.type && configReward.type !== 'NONE') {
+                            return (
+                              <p className="text-xs text-gray-500 mt-1">
+                                {t('kpi.detail.reward_if_complete', 'nếu hoàn thành toàn bộ target')}
+                              </p>
+                            );
+                          }
+
+                          return null;
+                        })()}
                       </div>
                       <div className="bg-blue-50 p-4 rounded-lg">
                         <p className="text-sm text-gray-600 mb-1">{t('kpi.detail.total_earnings', 'Tổng thu nhập')}</p>
                         <p className="text-2xl font-bold text-blue-600">
-                          {formatCurrency(achievement.commission.amount)}
+                          {formatCurrency(
+                            achievement.commission.amount +
+                              (achievement.reward.qualified && achievement.reward.type === 'FIXED_AMOUNT'
+                                ? achievement.reward.amount
+                                : 0)
+                          )}
                         </p>
                       </div>
                     </div>
