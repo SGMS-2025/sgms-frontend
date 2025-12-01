@@ -41,6 +41,9 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
     currentStaff &&
     ['Manager', 'Personal Trainer', 'Technician'].includes(currentStaff.jobTitle);
 
+  // Only OWNER can view branch details
+  const canViewDetails = user?.role === 'OWNER';
+
   const handleBranchSelect = (branch: BranchDisplay) => {
     onBranchSelect(branch);
     onClose();
@@ -156,13 +159,15 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
                 </div>
               </div>
 
-              {/* Action Button */}
-              <Button
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 text-sm font-semibold rounded-md"
-                onClick={() => currentBranch && handleViewDetails(currentBranch)}
-              >
-                {t('branch_selector.view_details')}
-              </Button>
+              {/* Action Button - Only show for OWNER */}
+              {canViewDetails && (
+                <Button
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 text-sm font-semibold rounded-md"
+                  onClick={() => currentBranch && handleViewDetails(currentBranch)}
+                >
+                  {t('branch_selector.view_details')}
+                </Button>
+              )}
             </div>
           )}
 
@@ -232,18 +237,20 @@ export const BranchSelectorModal: React.FC<BranchSelectorModalProps> = ({
                           </div>
                         </button>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleViewDetails(branch);
-                            }}
-                            className="rounded-md p-1 text-gray-400 transition-colors hover:text-orange-600 hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 pointer-events-auto"
-                            title={t('branch_selector.view_details') || 'View details'}
-                            aria-label={`${t('branch_selector.view_details') || 'View details'} ${branch.branchName}`}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
+                          {canViewDetails && (
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleViewDetails(branch);
+                              }}
+                              className="rounded-md p-1 text-gray-400 transition-colors hover:text-orange-600 hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 pointer-events-auto"
+                              title={t('branch_selector.view_details') || 'View details'}
+                              aria-label={`${t('branch_selector.view_details') || 'View details'} ${branch.branchName}`}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                          )}
                           {!isDisabled && (
                             <CheckCircle className="h-4 w-4 text-blue-600 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                           )}

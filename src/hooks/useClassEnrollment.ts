@@ -24,16 +24,12 @@ export const useClassEnrollment = (options: UseClassEnrollmentOptions = {}) => {
 
       const result = await classApi.enrollStudents(classId, { customerIds });
 
-      // Show success notification
-      if (result.summary.successCount > 0) {
-        toast.success(`${result.summary.successCount} student(s) enrolled successfully`);
-      }
-
-      // Show warning for failed enrollments
+      // Show warning for failed enrollments (keep this as it's informative)
       if (result.summary.failedCount > 0) {
         toast.warning(`${result.summary.failedCount} student(s) failed to enroll`);
       }
 
+      // Call onSuccess callback (component will handle success toast)
       options.onSuccess?.();
       setLoading(false);
       return result;

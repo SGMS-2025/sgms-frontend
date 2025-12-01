@@ -146,7 +146,9 @@ export const ClassQuickViewModal: React.FC<ClassQuickViewModalProps> = ({
                   </TabsTrigger>
                   <TabsTrigger value="students" className="flex items-center gap-2">
                     <Users className="w-4 h-4" />
-                    {t('class.quickview.tab_students', { count: toNumber(classData.activeEnrollment) })}
+                    {t('class.quickview.tab_students', {
+                      count: classData.enrolledStudents ? classData.enrolledStudents.length : 0
+                    })}
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -158,16 +160,23 @@ export const ClassQuickViewModal: React.FC<ClassQuickViewModalProps> = ({
                   <div className="flex justify-between items-center mb-3">
                     <label className="text-sm font-semibold text-gray-700">{t('class.quickview.capacity_label')}</label>
                     <span className="text-lg font-bold text-gray-900">
-                      {toNumber(classData.activeEnrollment)}/{toNumber(classData.capacity)}
+                      {classData.enrolledStudents ? classData.enrolledStudents.length : 0}/
+                      {toNumber(classData.capacity)}
                     </span>
                   </div>
                   <Progress
-                    value={(toNumber(classData.activeEnrollment) / toNumber(classData.capacity)) * 100}
+                    value={
+                      ((classData.enrolledStudents ? classData.enrolledStudents.length : 0) /
+                        toNumber(classData.capacity)) *
+                      100
+                    }
                     className="h-3 mb-2"
                   />
                   <p className="text-xs text-gray-600">
                     {t('class.quickview.slots_available', {
-                      slots: toNumber(classData.capacity) - toNumber(classData.activeEnrollment)
+                      slots:
+                        toNumber(classData.capacity) -
+                        (classData.enrolledStudents ? classData.enrolledStudents.length : 0)
                     })}
                   </p>
                 </div>

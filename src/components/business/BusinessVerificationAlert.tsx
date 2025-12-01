@@ -76,6 +76,9 @@ export const BusinessVerificationAlert = ({ onOpenVerificationModal }: BusinessV
       if (result.data.status === BusinessVerificationStatus.APPROVED) {
         setDismissed(true);
       }
+    } else if (result.success === false && result.message) {
+      // Silent fail for alert - don't show toast as it's not critical
+      console.error('Failed to load verification status:', result.message);
     }
   };
 

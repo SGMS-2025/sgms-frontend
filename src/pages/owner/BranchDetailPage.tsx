@@ -212,51 +212,44 @@ const BranchDetailPage: React.FC = () => {
     if (!branch) return;
 
     setIsSaving(true);
-    const updateData: CreateAndUpdateBranchRequest = {
-      branchName: editValues.branchName,
-      description: editValues.description,
-      hotline: editValues.hotline,
-      location: editValues.location,
-      facilities: editValues.facilities,
-      managerId: editValues.managerId.length > 0 ? editValues.managerId : null,
-      openingHours: `${editValues.openingHours.open}-${editValues.openingHours.close}`
-    };
 
-    // If there's a new image, convert it to base64 and add to update data
+    // Create FormData for file upload
+    const formData = new FormData();
+    formData.append('branchName', editValues.branchName);
+    formData.append('description', editValues.description || '');
+    formData.append('hotline', editValues.hotline);
+    formData.append('location', editValues.location);
+    formData.append('facilities', JSON.stringify(editValues.facilities));
+    formData.append('openingHours', `${editValues.openingHours.open}-${editValues.openingHours.close}`);
+
+    if (editValues.managerId.length > 0) {
+      formData.append('managerId', JSON.stringify(editValues.managerId));
+    }
+
+    // If there's a new image, add it to FormData
     if (newImage) {
-      const base64Image = await convertFileToBase64(newImage).catch(() => {
-        toast.error(t('toast.image_processing_error'));
-        return null;
-      });
-      if (base64Image) {
-        updateData.coverImage = base64Image;
+      formData.append('coverImage', newImage);
+      formData.append('images', newImage); // Also add to images array
+    }
+
+    try {
+      const updatedBranch = await updateBranchApi(branch._id, formData as CreateAndUpdateBranchRequest | FormData);
+      if (updatedBranch) {
+        setBranch(updatedBranch);
+        setIsEditMode(false);
+        // Reset image states after successful save
+        setNewImage(null);
+        setImagePreview(null);
+        toast.success(t('toast.update_success'));
+      } else {
+        // Show error toast if update failed
+        toast.error(t('toast.update_failed'));
       }
-    }
-
-    const updatedBranch = await updateBranchApi(branch._id, updateData);
-    if (updatedBranch) {
-      setBranch(updatedBranch);
-      setIsEditMode(false);
-      // Reset image states after successful save
-      setNewImage(null);
-      setImagePreview(null);
-      toast.success(t('toast.update_success'));
-    } else {
-      // Show error toast if update failed
+    } catch (_error) {
       toast.error(t('toast.update_failed'));
+    } finally {
+      setIsSaving(false);
     }
-
-    setIsSaving(false);
-  };
-
-  // Helper function to convert file to base64
-  const convertFileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error('Failed to convert file to base64'));
-      reader.readAsDataURL(file);
-    });
   };
 
   const handleInputChange = (field: string, value: string) => {

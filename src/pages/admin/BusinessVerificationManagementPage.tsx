@@ -64,13 +64,21 @@ const BusinessVerificationManagementPage = () => {
     if (result.success) {
       setVerifications(result.data.verifications);
       setPagination(result.data.pagination);
+    } else {
+      toast.error(
+        result.message ||
+          t('admin.business_verification.toast.load_failed', 'Không thể tải danh sách yêu cầu. Vui lòng thử lại.')
+      );
     }
-  }, [filters]);
+  }, [filters, t]);
 
   const loadStatistics = useCallback(async () => {
     const result = await businessVerificationApi.getStatistics();
     if (result.success) {
       setStatistics(result.data);
+    } else {
+      // Silent fail for statistics - not critical
+      console.error('Failed to load statistics:', result.message);
     }
   }, []);
 
@@ -94,6 +102,11 @@ const BusinessVerificationManagementPage = () => {
       setAdminNotes('');
       loadVerifications();
       loadStatistics();
+    } else {
+      toast.error(
+        result.message ||
+          t('admin.business_verification.toast.approve_failed', 'Phê duyệt yêu cầu thất bại. Vui lòng thử lại.')
+      );
     }
   };
 
@@ -117,6 +130,11 @@ const BusinessVerificationManagementPage = () => {
       setAdminNotes('');
       loadVerifications();
       loadStatistics();
+    } else {
+      toast.error(
+        result.message ||
+          t('admin.business_verification.toast.reject_failed', 'Từ chối yêu cầu thất bại. Vui lòng thử lại.')
+      );
     }
   };
 

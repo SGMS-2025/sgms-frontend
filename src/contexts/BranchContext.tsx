@@ -88,7 +88,20 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
         const branchData = response.data as unknown as { branches: Branch[]; pagination: BackendPaginationResponse };
 
         if (branchData.branches && Array.isArray(branchData.branches)) {
-          const displayBranches = branchData.branches.map(convertBranchToDisplay);
+          let displayBranches = branchData.branches.map(convertBranchToDisplay);
+
+          // Sort branches: active branches first (by createdAt ascending - oldest first), then inactive (by createdAt ascending)
+          displayBranches = displayBranches.sort((a, b) => {
+            // First, sort by isActive: active branches come first
+            if (a.isActive !== b.isActive) {
+              return a.isActive ? -1 : 1;
+            }
+            // If both have same active status, sort by createdAt (oldest first)
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            return dateA - dateB;
+          });
+
           setBranches(displayBranches);
 
           // Always try to restore from localStorage first, then check if current branch is still valid
@@ -97,17 +110,25 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
             // If we have a saved branch ID, try to restore it
             if (savedBranchId && displayBranches.length > 0) {
               const savedBranch = displayBranches.find((b) => b._id === savedBranchId);
-              if (savedBranch) {
+              // Only restore saved branch if it's active (can switch to it)
+              if (savedBranch && savedBranch.isActive) {
                 return savedBranch;
               }
             }
 
-            // If current branch is still valid in the new list, keep it
-            if (prev && displayBranches.some((b) => b._id === prev._id)) {
+            // If current branch is still valid and active in the new list, keep it
+            if (prev && displayBranches.some((b) => b._id === prev._id && b.isActive)) {
               return prev;
             }
 
-            // Otherwise, use first branch
+            // Otherwise, use first active branch
+            const firstActiveBranch = displayBranches.find((b) => b.isActive);
+            if (firstActiveBranch) {
+              return firstActiveBranch;
+            }
+
+            // If no active branches, use first branch (even if inactive)
+            // User can still view details but cannot switch
             if (displayBranches.length > 0) {
               return displayBranches[0];
             }
@@ -153,26 +174,44 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
       const branchData = response.data as unknown as { branches: Branch[]; pagination: BackendPaginationResponse };
 
       if (branchData.branches && Array.isArray(branchData.branches)) {
-        const displayBranches = branchData.branches.map(convertBranchToDisplay);
+        let displayBranches = branchData.branches.map(convertBranchToDisplay);
+
+        // Sort branches: active branches first (by createdAt ascending - oldest first), then inactive (by createdAt ascending)
+        displayBranches = displayBranches.sort((a, b) => {
+          // First, sort by isActive: active branches come first
+          if (a.isActive !== b.isActive) {
+            return a.isActive ? -1 : 1;
+          }
+          // If both have same active status, sort by createdAt (oldest first)
+          const dateA = new Date(a.createdAt).getTime();
+          const dateB = new Date(b.createdAt).getTime();
+          return dateA - dateB;
+        });
+
         setBranches(displayBranches);
 
         // Refetch - preserve current branch if still valid, otherwise restore from localStorage
         setCurrentBranch((prev) => {
-          // If current branch is still valid in the new list, keep it
-          if (prev && displayBranches.some((b) => b._id === prev._id)) {
+          // If current branch is still valid and active in the new list, keep it
+          if (prev && displayBranches.some((b) => b._id === prev._id && b.isActive)) {
             return prev;
           }
 
-          // Try to restore from localStorage
+          // Try to restore from localStorage (only if active)
           if (displayBranches.length > 0) {
             const savedBranchId = localStorage.getItem('selectedBranchId');
             if (savedBranchId) {
-              const savedBranch = displayBranches.find((b) => b._id === savedBranchId);
+              const savedBranch = displayBranches.find((b) => b._id === savedBranchId && b.isActive);
               if (savedBranch) {
                 return savedBranch;
               }
             }
-            // No saved branch or saved branch not found, use first branch
+            // No saved branch or saved branch not found/not active, use first active branch
+            const firstActiveBranch = displayBranches.find((b) => b.isActive);
+            if (firstActiveBranch) {
+              return firstActiveBranch;
+            }
+            // If no active branches, use first branch (even if inactive)
             return displayBranches[0];
           }
 
@@ -190,7 +229,7 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
     isFetchingRef.current = false;
   }, [canAccessMyBranches]);
 
-  const fetchBranchDetail = async (branchId: string): Promise<BranchDisplay | null> => {
+  const fetchBranchDetail = useCallback(async (branchId: string): Promise<BranchDisplay | null> => {
     // Always fetch fresh data from API to ensure we have the latest manager information
     // Use protected endpoint to get branch details regardless of active status
     const response = await branchApi.getBranchDetailProtected(branchId).catch(() => ({
@@ -205,125 +244,134 @@ export const BranchProvider: React.FC<BranchProviderProps> = ({ children }) => {
     } else {
       return null;
     }
-  };
+  }, []);
 
-  const createBranch = async (data: CreateAndUpdateBranchRequest): Promise<BranchDisplay | null> => {
-    // Only allow if user has permission
-    if (!canAccessMyBranches) {
-      return null;
-    }
-
-    const response = await branchApi.createBranch(data).catch(() => ({
-      success: false,
-      message: 'Network error - Failed to create branch',
-      data: null
-    }));
-
-    if (response.success && response.data) {
-      const newBranch = convertBranchToDisplay(response.data);
-      setBranches((prev) => [...prev, newBranch]);
-      // Set the new branch as current branch
-      setCurrentBranch(newBranch);
-      return newBranch;
-    } else {
-      return null;
-    }
-  };
-
-  const updateBranchApi = async (
-    branchId: string,
-    data: CreateAndUpdateBranchRequest
-  ): Promise<BranchDisplay | null> => {
-    // Only allow if user has permission
-    if (!canAccessMyBranches) {
-      return null;
-    }
-
-    const response = await branchApi.updateBranch(branchId, data).catch(() => ({
-      success: false,
-      message: 'Network error - Failed to update branch',
-      data: null
-    }));
-
-    if (response.success && response.data) {
-      const updatedBranch = convertBranchToDisplay(response.data);
-
-      setBranches((prev) => prev.map((branch) => (branch._id === branchId ? updatedBranch : branch)));
-
-      // Update current branch if it's the one being updated
-      if (currentBranch?._id === branchId) {
-        setCurrentBranch(updatedBranch);
+  const createBranch = useCallback(
+    async (data: CreateAndUpdateBranchRequest | FormData): Promise<BranchDisplay | null> => {
+      // Only allow if user has permission
+      if (!canAccessMyBranches) {
+        return null;
       }
 
-      return updatedBranch;
-    } else {
-      return null;
-    }
-  };
+      const response = await branchApi.createBranch(data).catch(() => ({
+        success: false,
+        message: 'Network error - Failed to create branch',
+        data: null
+      }));
 
-  const toggleBranchStatus = async (branchId: string): Promise<BranchDisplay | null> => {
-    // Only allow if user has permission
-    if (!canAccessMyBranches) {
-      return null;
-    }
+      if (response.success && response.data) {
+        const newBranch = convertBranchToDisplay(response.data);
+        setBranches((prev) => [...prev, newBranch]);
+        // Set the new branch as current branch
+        setCurrentBranch(newBranch);
+        return newBranch;
+      } else {
+        return null;
+      }
+    },
+    [canAccessMyBranches]
+  );
 
-    const response = await branchApi.toggleBranchStatus(branchId).catch(() => ({
-      success: false,
-      message: 'Network error - Failed to update branch status',
-      data: null
-    }));
-
-    if (response.success && response.data) {
-      const updatedBranch = convertBranchToDisplay(response.data);
-
-      // Update branches list
-      setBranches((prev) => prev.map((branch) => (branch._id === branchId ? updatedBranch : branch)));
-
-      // Update current branch if it's the one being updated
-      if (currentBranch?._id === branchId) {
-        setCurrentBranch(updatedBranch);
+  const updateBranchApi = useCallback(
+    async (branchId: string, data: CreateAndUpdateBranchRequest | FormData): Promise<BranchDisplay | null> => {
+      // Only allow if user has permission
+      if (!canAccessMyBranches) {
+        return null;
       }
 
-      // Show success toast
-      toast.success(t('toast.branch_status_updated_success'));
+      const response = await branchApi.updateBranch(branchId, data).catch(() => ({
+        success: false,
+        message: 'Network error - Failed to update branch',
+        data: null
+      }));
 
-      return updatedBranch; // Return updated branch for immediate use
-    }
+      if (response.success && response.data) {
+        const updatedBranch = convertBranchToDisplay(response.data);
 
-    // Show error toast
-    toast.error(t('toast.branch_status_updated_failed'));
+        setBranches((prev) => prev.map((branch) => (branch._id === branchId ? updatedBranch : branch)));
 
-    return null;
-  };
+        // Update current branch if it's the one being updated
+        if (currentBranch?._id === branchId) {
+          setCurrentBranch(updatedBranch);
+        }
 
-  const switchBranch = async (branchId: string) => {
-    if (isSwitchingBranch) return; // Prevent multiple switches
+        return updatedBranch;
+      } else {
+        return null;
+      }
+    },
+    [canAccessMyBranches, currentBranch]
+  );
 
-    setIsSwitchingBranch(true);
-
-    // Always fetch fresh data from API to ensure we have the latest manager information
-    const branchDetail = await fetchBranchDetail(branchId);
-    if (branchDetail) {
-      // Prevent switching to inactive branches (locked due to subscription downgrade)
-      // Owner can still view branch details directly via URL, but cannot switch to it
-      if (!branchDetail.isActive) {
-        toast.error(
-          t(
-            'error.BRANCH_LOCKED_CANNOT_SWITCH',
-            'Cannot switch to this branch: It is currently locked due to subscription limits.'
-          )
-        );
-        setIsSwitchingBranch(false);
-        return;
+  const toggleBranchStatus = useCallback(
+    async (branchId: string): Promise<BranchDisplay | null> => {
+      // Only allow if user has permission
+      if (!canAccessMyBranches) {
+        return null;
       }
 
-      setCurrentBranch(branchDetail);
-      // Save selected branch ID to localStorage
-      localStorage.setItem('selectedBranchId', branchId);
-    }
+      const response = await branchApi.toggleBranchStatus(branchId).catch(() => ({
+        success: false,
+        message: 'Network error - Failed to update branch status',
+        data: null
+      }));
 
-    setIsSwitchingBranch(false);
-  };
+      if (response.success && response.data) {
+        const updatedBranch = convertBranchToDisplay(response.data);
+
+        // Update branches list
+        setBranches((prev) => prev.map((branch) => (branch._id === branchId ? updatedBranch : branch)));
+
+        // Update current branch if it's the one being updated
+        if (currentBranch?._id === branchId) {
+          setCurrentBranch(updatedBranch);
+        }
+
+        // Show success toast
+        toast.success(t('toast.branch_status_updated_success'));
+
+        return updatedBranch; // Return updated branch for immediate use
+      }
+
+      // Show error toast
+      toast.error(t('toast.branch_status_updated_failed'));
+
+      return null;
+    },
+    [canAccessMyBranches, currentBranch, t]
+  );
+
+  const switchBranch = useCallback(
+    async (branchId: string) => {
+      if (isSwitchingBranch) return; // Prevent multiple switches
+
+      setIsSwitchingBranch(true);
+
+      // Always fetch fresh data from API to ensure we have the latest manager information
+      const branchDetail = await fetchBranchDetail(branchId);
+      if (branchDetail) {
+        // Prevent switching to inactive branches (locked due to subscription downgrade)
+        // Owner can still view branch details directly via URL, but cannot switch to it
+        if (!branchDetail.isActive) {
+          toast.error(
+            t(
+              'error.BRANCH_LOCKED_CANNOT_SWITCH',
+              'Cannot switch to this branch: It is currently locked due to subscription limits.'
+            )
+          );
+          setIsSwitchingBranch(false);
+          return;
+        }
+
+        setCurrentBranch(branchDetail);
+        // Save selected branch ID to localStorage
+        localStorage.setItem('selectedBranchId', branchId);
+      }
+
+      setIsSwitchingBranch(false);
+    },
+    [isSwitchingBranch, fetchBranchDetail, t]
+  );
 
   // Save branch ID to localStorage whenever currentBranch changes
   useEffect(() => {

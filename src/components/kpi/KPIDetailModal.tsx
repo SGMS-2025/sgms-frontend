@@ -469,9 +469,11 @@ export const KPIDetailModal: React.FC<KPIDetailModalProps> = ({ kpiId, isOpen, o
                         <p className="text-2xl font-bold text-green-600">
                           {formatCurrency(achievement.commission.amount)}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {t('kpi.detail.rate', 'Tỷ lệ')}: {achievement.commission.applicableRate.toFixed(1)}%
-                        </p>
+                        {achievement.commission.applicableRate && achievement.commission.applicableRate > 0 && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {t('kpi.detail.rate', 'Tỷ lệ')}: {achievement.commission.applicableRate.toFixed(1)}%
+                          </p>
+                        )}
                       </div>
                       <div className="bg-yellow-50 p-4 rounded-lg">
                         <p className="text-sm text-gray-600 mb-1">{t('kpi.detail.reward', 'Thưởng')}</p>
