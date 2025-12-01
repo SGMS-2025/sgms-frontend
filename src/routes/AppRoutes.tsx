@@ -151,6 +151,27 @@ const RescheduleManagementPageWithLayout: React.FC = () => {
   return <RescheduleManagementPage />;
 };
 
+// Owner Only Route Component - only allows OWNER role
+const OwnerOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, user, isLoading } = useAuthState();
+  const { t } = useTranslation();
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.role !== 'OWNER') {
+    toast.error(t('error.UNAUTHORIZED') || 'Bạn không có quyền truy cập trang này');
+    return <Navigate to="/manage/owner" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 // Protected Route Component - supports multiple roles and job titles
 interface ProtectedRouteProps {
   allowedRoles?: string | string[]; // Can accept a single role or array of roles
@@ -465,8 +486,15 @@ const AppRoutes: React.FC = () => {
             {/* Commission Policy Routes */}
             <Route path="commission-policies" element={<CommissionPolicyPage />} />
           </Route>
-          {/* Subscription Management Route (accessible without active subscription for OWNER) */}
-          <Route path="subscriptions" element={<SubscriptionPackagesPage />} />
+          {/* Subscription Management Route - OWNER only (accessible without active subscription) */}
+          <Route
+            path="subscriptions"
+            element={
+              <OwnerOnlyRoute>
+                <SubscriptionPackagesPage />
+              </OwnerOnlyRoute>
+            }
+          />
           {/* Unified owner settings page */}
           <Route path="setting" element={<ProfileAccountSettingsPage />} />
           <Route path="profile" element={<Navigate to="/manage/setting" replace />} />

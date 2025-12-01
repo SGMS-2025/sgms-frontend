@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuthState } from '@/hooks/useAuth';
+import { useBranch } from '@/contexts/BranchContext';
 import { useEquipmentStats, useEquipmentsNeedingMaintenance, useEquipmentList } from '@/hooks/useEquipment';
 import { Wrench, AlertTriangle, CheckCircle, Clock, ArrowRight } from 'lucide-react';
 import { formatNumber } from '@/utils/currency';
@@ -10,15 +11,19 @@ const TechnicianDashboard: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { isLoading, user } = useAuthState();
+  const { currentBranch, loading: _branchesLoading } = useBranch();
 
-  // Get equipment stats - technician doesn't need branchId
-  const { stats, loading: statsLoading } = useEquipmentStats();
+  // Get equipment stats - only fetch when branch is loaded
+  const { stats, loading: statsLoading } = useEquipmentStats(currentBranch?._id || undefined);
 
-  // Get equipment needing maintenance
-  const { equipments: maintenanceEquipments, loading: maintenanceLoading } = useEquipmentsNeedingMaintenance();
+  // Get equipment needing maintenance - only fetch when branch is loaded
+  const { equipments: maintenanceEquipments, loading: maintenanceLoading } = useEquipmentsNeedingMaintenance(
+    currentBranch?._id || undefined
+  );
 
-  // Get equipment needing repair
+  // Get equipment needing repair - only fetch when branch is loaded
   const { equipments: repairEquipments, loading: repairLoading } = useEquipmentList({
+    branchId: currentBranch?._id || undefined,
     status: 'REPAIR',
     limit: 5
   });
