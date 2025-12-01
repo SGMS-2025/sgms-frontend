@@ -75,6 +75,40 @@ export function handleSpecificError(errorMessage: string, operation?: string): s
     return handlePermissionError(errorMessage);
   }
 
+  // Handle subscription and branch access errors for STAFF
+  // These errors indicate the user should be logged out as they cannot access the system
+  const criticalStaffErrors = ['ALL_BRANCHES_LOCKED', 'OWNER_SUBSCRIPTION_EXPIRED', 'NO_BRANCH_ASSIGNED'];
+
+  const isCriticalStaffError = criticalStaffErrors.some(
+    (errorKey) => errorMessage.includes(errorKey) || errorMessage.toUpperCase().includes(errorKey)
+  );
+
+  if (isCriticalStaffError) {
+    // Normalize error key
+    let errorKey = 'error.PERMISSION_DENIED';
+    if (errorMessage.includes('ALL_BRANCHES_LOCKED') || errorMessage.toUpperCase().includes('ALL_BRANCHES_LOCKED')) {
+      errorKey = 'error.ALL_BRANCHES_LOCKED';
+    } else if (
+      errorMessage.includes('OWNER_SUBSCRIPTION_EXPIRED') ||
+      errorMessage.toUpperCase().includes('OWNER_SUBSCRIPTION_EXPIRED')
+    ) {
+      errorKey = 'error.OWNER_SUBSCRIPTION_EXPIRED';
+    } else if (
+      errorMessage.includes('NO_BRANCH_ASSIGNED') ||
+      errorMessage.toUpperCase().includes('NO_BRANCH_ASSIGNED')
+    ) {
+      errorKey = 'error.NO_BRANCH_ASSIGNED';
+    }
+
+    // Show error message
+    toast.error(i18n.t(errorKey, { defaultValue: errorMessage }));
+
+    // Note: Removed automatic logout and redirect to login
+    // User can manually navigate if needed
+
+    return errorKey;
+  }
+
   // Handle specific operation errors
   if (operation) {
     const operationErrorMap: Record<string, string> = {
@@ -95,7 +129,11 @@ export function handleSpecificError(errorMessage: string, operation?: string): s
     }
   }
 
-  // Default error handling - only show toast if not a permission error
-  toast.error(i18n.t('error.PERMISSION_DENIED'));
-  return 'error.PERMISSION_DENIED';
+  // Default error handling - try to localize the error message
+  const normalizedKey = errorMessage.toUpperCase().replace(/\s+/g, '_');
+  const errorKey = `error.${normalizedKey}`;
+  const translated = i18n.t(errorKey, { defaultValue: errorMessage });
+
+  toast.error(translated);
+  return errorKey;
 }

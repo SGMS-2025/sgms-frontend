@@ -40,6 +40,9 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
       currentStaff &&
       ['Manager', 'Personal Trainer', 'Technician'].includes(currentStaff.jobTitle);
 
+    // Only OWNER can view branch details
+    const canViewDetails = user?.role === 'OWNER';
+
     const activeLabel = t('branch.active', { defaultValue: 'Active' });
     const inactiveLabel = t('branch.closed', { defaultValue: 'Inactive' });
     const listLabel = t('branch_selector.all_branches', { defaultValue: 'Branches' });
@@ -153,7 +156,7 @@ export const BranchSelectorButton = React.forwardRef<BranchSelectorButtonHandle,
                         </div>
                       </div>
                     </button>
-                    {onViewBranch && (
+                    {onViewBranch && canViewDetails && (
                       <button
                         type="button"
                         onClick={(event) => {

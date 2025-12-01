@@ -274,32 +274,40 @@ export const handleApiErrorForForm = (
  * toast.error(t(`error.${errorKey}`, { defaultValue: errorKey }));
  */
 export const extractApiErrorMessage = (response: unknown, defaultErrorKey: string = 'operation_failed'): string => {
-  const errorResponse = response as ApiErrorResponse;
+  const errorResponse = response as ApiErrorResponse & { message?: string; code?: string };
   let errorKey = defaultErrorKey;
 
-  // Check for error details from backend (409 conflict errors)
+  // Priority order for error extraction:
+  // 1. error.meta.details (field-specific errors with details array)
+  // 2. response.message (top-level, from API interceptor - most common format)
+  // 3. error.message (nested, from raw backend response)
+  // 4. error.code / response.code (fallback)
+
+  // Check for error details from backend (409 conflict errors with field info)
   if (
     errorResponse.error?.meta?.details &&
     Array.isArray(errorResponse.error.meta.details) &&
     errorResponse.error.meta.details.length > 0
   ) {
-    // Get first error detail
+    // Get first error detail (highest priority - field-specific errors)
     const detail = errorResponse.error.meta.details[0];
     errorKey = detail.message || detail.field || defaultErrorKey;
-  } else if (errorResponse.error?.code) {
-    // Use error code from backend
-    errorKey = errorResponse.error.code;
-  } else if (errorResponse.error?.message) {
-    // Use error message
-    errorKey = errorResponse.error.message;
   } else if (
     typeof response === 'object' &&
     response !== null &&
     'message' in response &&
     typeof (response as { message: unknown }).message === 'string'
   ) {
-    // Use response message
+    // Use response message (from API interceptor format: { success: false, message: "...", ... })
+    // API interceptor copies error.message to top-level message, so this is the processed format
     errorKey = (response as { message: string }).message;
+  } else if (errorResponse.error?.message) {
+    // Use error message from nested error object (raw backend format)
+    // Note: This has same value as response.message when from API interceptor
+    errorKey = errorResponse.error.message;
+  } else if (errorResponse.error?.code) {
+    // Use error code from backend as fallback
+    errorKey = errorResponse.error.code;
   } else if (
     typeof response === 'object' &&
     response !== null &&
@@ -311,7 +319,9 @@ export const extractApiErrorMessage = (response: unknown, defaultErrorKey: strin
   }
 
   // Normalize error key (uppercase, replace spaces with underscores)
-  return normalizeErrorKey(errorKey);
+  // If already normalized (uppercase with underscores), return as-is
+  const normalized = normalizeErrorKey(errorKey);
+  return normalized;
 };
 
 /**

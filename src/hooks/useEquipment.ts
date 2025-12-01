@@ -61,6 +61,7 @@ export const useEquipmentList = (initialParams: EquipmentQueryParams = {}): UseE
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<UseEquipmentListReturn['pagination']>(null);
   const [params, setParams] = useState<EquipmentQueryParams>(initialParams);
+  const hasFetchedRef = useRef(false);
 
   const fetchEquipments = useCallback(async () => {
     setLoading(true);
@@ -100,6 +101,7 @@ export const useEquipmentList = (initialParams: EquipmentQueryParams = {}): UseE
     }
 
     setLoading(false);
+    hasFetchedRef.current = true;
   }, [params]);
 
   const refetch = useCallback(async () => {
@@ -115,8 +117,16 @@ export const useEquipmentList = (initialParams: EquipmentQueryParams = {}): UseE
   }, []);
 
   useEffect(() => {
+    // On initial mount, skip fetch if branchId is not provided
+    // This prevents fetching all equipment when branch context hasn't loaded yet
+    // Once branchId is set via updateFilters, fetch will be triggered automatically
+    if (!hasFetchedRef.current && params.branchId === undefined) {
+      setLoading(false);
+      return;
+    }
+
     fetchEquipments();
-  }, [fetchEquipments]);
+  }, [fetchEquipments, params.branchId]);
 
   return {
     equipments,
@@ -135,6 +145,7 @@ export const useEquipmentStats = (branchId?: string): UseEquipmentStatsReturn =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const prevBranchIdRef = useRef<string | undefined>(branchId);
+  const hasFetchedRef = useRef(false);
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
@@ -155,6 +166,7 @@ export const useEquipmentStats = (branchId?: string): UseEquipmentStatsReturn =>
     }
 
     setLoading(false);
+    hasFetchedRef.current = true;
   }, [branchId]);
 
   const refetch = useCallback(async () => {
@@ -162,8 +174,16 @@ export const useEquipmentStats = (branchId?: string): UseEquipmentStatsReturn =>
   }, [fetchStats]);
 
   useEffect(() => {
+    // On initial mount, skip fetch if branchId is not provided
+    // This prevents fetching all equipment stats when branch context hasn't loaded yet
+    // Once branchId is set, fetch will be triggered automatically
+    if (!hasFetchedRef.current && branchId === undefined) {
+      setLoading(false);
+      return;
+    }
+
     fetchStats();
-  }, [fetchStats]);
+  }, [fetchStats, branchId]);
 
   return {
     stats,
@@ -557,33 +577,59 @@ export const useEquipmentsExpiringWarranty = (daysAhead: number = 30) => {
 };
 
 // Hook for getting equipments needing maintenance
-export const useEquipmentsNeedingMaintenance = () => {
+export const useEquipmentsNeedingMaintenance = (branchId?: string) => {
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasFetchedRef = useRef(false);
 
   const fetchNeedingMaintenance = useCallback(async () => {
     setLoading(true);
     setError(null);
 
-    const response = await equipmentApi.getEquipmentsNeedingMaintenance();
+    // Use equipmentList with status filter instead if branchId is provided
+    // This ensures proper filtering by branch
+    if (branchId) {
+      const response = await equipmentApi.getEquipments({
+        branchId,
+        status: 'MAINTENANCE',
+        limit: 100
+      });
 
-    if (response.success) {
-      setEquipments(response.data);
+      if (response.success) {
+        setEquipments(response.data || response.equipments || []);
+      } else {
+        setError(response.message || 'Failed to fetch equipments needing maintenance');
+      }
     } else {
-      setError(response.message || 'Failed to fetch equipments needing maintenance');
+      // Fallback to original API if no branchId (for backwards compatibility)
+      const response = await equipmentApi.getEquipmentsNeedingMaintenance();
+
+      if (response.success) {
+        setEquipments(response.data);
+      } else {
+        setError(response.message || 'Failed to fetch equipments needing maintenance');
+      }
     }
 
     setLoading(false);
-  }, []);
+    hasFetchedRef.current = true;
+  }, [branchId]);
 
   const refetch = useCallback(async () => {
     await fetchNeedingMaintenance();
   }, [fetchNeedingMaintenance]);
 
   useEffect(() => {
+    // On initial mount, skip fetch if branchId is not provided
+    // This prevents fetching all equipment when branch context hasn't loaded yet
+    if (!hasFetchedRef.current && branchId === undefined) {
+      setLoading(false);
+      return;
+    }
+
     fetchNeedingMaintenance();
-  }, [fetchNeedingMaintenance]);
+  }, [fetchNeedingMaintenance, branchId]);
 
   return {
     equipments,

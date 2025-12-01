@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AxiosError } from 'axios';
 import {
   BarChart3,
   Users,
@@ -55,7 +56,13 @@ const UpgradeCard: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => {
         if (!mounted || !res?.success) return;
         setHasActiveSubscription(Boolean(res.data?.hasActiveSubscription));
         setSubscriptionName(res.data?.packageName || null);
-      } catch (error) {
+      } catch (error: unknown) {
+        // Silently handle 403 errors (user doesn't have permission)
+        // Only log other errors for debugging
+        if (error instanceof AxiosError && error.response?.status === 403) {
+          // Silently ignore 403 errors - user doesn't have permission
+          return;
+        }
         console.error('[OwnerSidebar] Failed to load subscription stats', error);
       }
     })();
@@ -378,7 +385,7 @@ export const OwnerSidebar: React.FC = () => {
         </div>
       </div>
 
-      <UpgradeCard isCollapsed={isCollapsed} />
+      {authUser?.role === 'OWNER' && <UpgradeCard isCollapsed={isCollapsed} />}
 
       <UserProfileSection
         isCollapsed={isCollapsed}

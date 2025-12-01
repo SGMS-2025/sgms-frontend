@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Building2, Upload, X, CheckCircle2, Clock, XCircle } from 'lucide-react';
@@ -18,6 +18,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { businessVerificationApi } from '@/services/api/businessVerificationApi';
 import type { BusinessVerification } from '@/types/api/BusinessVerification';
+import { extractAndTranslateApiError } from '@/utils/errorHandler';
 
 interface BusinessVerificationModalProps {
   open: boolean;
@@ -45,6 +46,50 @@ const BusinessVerificationModal = ({ open, onOpenChange, onSuccess }: BusinessVe
     description: ''
   });
 
+  const fetchVerificationStatus = useCallback(async () => {
+    setIsLoading(true);
+
+    const result = await businessVerificationApi.getMyVerification();
+    setIsLoading(false);
+
+    if (result.success) {
+      // result.data can be null when user hasn't submitted verification yet (normal case)
+      if (result.data) {
+        setVerification(result.data);
+
+        // Pre-fill form if rejected (allow edit and resubmit)
+        if (result.data.status === 'REJECTED') {
+          setFormData({
+            taxCode: result.data.taxCode || '',
+            businessCode: result.data.businessCode || '',
+            businessName: result.data.businessName || '',
+            businessAddress: result.data.businessAddress || '',
+            businessPhone: result.data.businessPhone || '',
+            businessEmail: result.data.businessEmail || '',
+            description: result.data.description || ''
+          });
+
+          // Pre-fill logo
+          if (result.data.logo?.url) {
+            setLogoPreview(result.data.logo.url);
+          }
+        }
+      } else {
+        // No verification found - this is normal for new owners, don't show error
+        setVerification(null);
+      }
+    } else if (result.success === false && result.message) {
+      // Only show error for actual errors (not 404 for missing verification)
+      // Check if it's the BUSINESS_VERIFICATION_NOT_FOUND error and ignore it
+      if (result.message !== 'BUSINESS_VERIFICATION_NOT_FOUND') {
+        toast.error(
+          result.message ||
+            t('businessVerification.error.loadFailed', 'Không thể tải thông tin xác thực. Vui lòng thử lại sau.')
+        );
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (open) {
       fetchVerificationStatus();
@@ -65,36 +110,7 @@ const BusinessVerificationModal = ({ open, onOpenChange, onSuccess }: BusinessVe
         description: ''
       });
     }
-  }, [open]);
-
-  const fetchVerificationStatus = async () => {
-    setIsLoading(true);
-
-    const result = await businessVerificationApi.getMyVerification();
-    setIsLoading(false);
-
-    if (result.success && result.data) {
-      setVerification(result.data);
-
-      // Pre-fill form if rejected (allow edit and resubmit)
-      if (result.data.status === 'REJECTED') {
-        setFormData({
-          taxCode: result.data.taxCode || '',
-          businessCode: result.data.businessCode || '',
-          businessName: result.data.businessName || '',
-          businessAddress: result.data.businessAddress || '',
-          businessPhone: result.data.businessPhone || '',
-          businessEmail: result.data.businessEmail || '',
-          description: result.data.description || ''
-        });
-
-        // Pre-fill logo
-        if (result.data.logo?.url) {
-          setLogoPreview(result.data.logo.url);
-        }
-      }
-    }
-  };
+  }, [open, fetchVerificationStatus]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -175,6 +191,10 @@ const BusinessVerificationModal = ({ open, onOpenChange, onSuccess }: BusinessVe
       );
       onOpenChange(false);
       if (onSuccess) onSuccess();
+    } else {
+      // Translate error message from backend
+      const errorMessage = extractAndTranslateApiError(result, t, 'businessVerification.error.submitFailed');
+      toast.error(errorMessage);
     }
   };
 
