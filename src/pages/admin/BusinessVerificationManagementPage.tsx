@@ -20,11 +20,13 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { businessVerificationApi } from '@/services/api/businessVerificationApi';
+import socketService from '@/services/socket/socketService';
 import type {
   BusinessVerification,
   BusinessVerificationListQuery,
   BusinessVerificationStatistics
 } from '@/types/api/BusinessVerification';
+import type { BusinessVerificationUpdateEvent } from '@/types/api/Socket';
 import { BusinessVerificationStatus } from '@/types/api/BusinessVerification';
 import { format } from 'date-fns';
 
@@ -85,6 +87,41 @@ const BusinessVerificationManagementPage = () => {
   useEffect(() => {
     loadVerifications();
     loadStatistics();
+  }, [loadVerifications, loadStatistics]);
+
+  // Realtime updates via socket
+  useEffect(() => {
+    let debounceTimeout: NodeJS.Timeout | null = null;
+
+    const handleBusinessVerificationUpdate = (data: BusinessVerificationUpdateEvent) => {
+      console.log('[Socket] Business verification updated:', data);
+
+      // Debounce refetch - wait 500ms after last event before refetching
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
+      }
+
+      debounceTimeout = setTimeout(() => {
+        // Reload verifications and statistics
+        loadVerifications();
+        loadStatistics();
+      }, 500);
+    };
+
+    // Listen for all business verification update events
+    socketService.on('business-verification:submitted', handleBusinessVerificationUpdate);
+    socketService.on('business-verification:approved', handleBusinessVerificationUpdate);
+    socketService.on('business-verification:rejected', handleBusinessVerificationUpdate);
+
+    // Cleanup
+    return () => {
+      socketService.off('business-verification:submitted', handleBusinessVerificationUpdate);
+      socketService.off('business-verification:approved', handleBusinessVerificationUpdate);
+      socketService.off('business-verification:rejected', handleBusinessVerificationUpdate);
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
+      }
+    };
   }, [loadVerifications, loadStatistics]);
 
   const handleApprove = async () => {
