@@ -19,6 +19,20 @@ import type { EditProgressFormProps } from '@/types/forms/Progress';
 export const EditProgressForm: React.FC<EditProgressFormProps> = ({ progressId, initialData, onSubmit, onCancel }) => {
   const { t } = useTranslation();
   const { updateProgress, updateLoading, uploadPhotos, photoLoading } = useTrainingProgress();
+
+  // DEBUG: Log initialData to see what's being passed
+  console.log('EditProgressForm initialData:', {
+    id: initialData.id,
+    chest: initialData.chest,
+    waist: initialData.waist,
+    hips: initialData.hips,
+    arms: initialData.arms,
+    thighs: initialData.thighs,
+    bodyFatPercentage: initialData.bodyFatPercentage,
+    muscleMassPercentage: initialData.muscleMassPercentage,
+    bodyWaterPercentage: initialData.bodyWaterPercentage,
+    metabolicAge: initialData.metabolicAge
+  });
   const photoManager = usePhotoManager({
     maxPhotos: 5,
     existingPhotos: initialData.photos || []
@@ -30,8 +44,32 @@ export const EditProgressForm: React.FC<EditProgressFormProps> = ({ progressId, 
     height: initialData.height.toString(),
     strength: [initialData.strength],
     notes: initialData.notes,
-    exercises: initialData.exercises.join(', ') || ''
+    exercises: initialData.exercises.join(', ') || '',
+    // Body Measurements
+    bodyFatPercentage: initialData.bodyFatPercentage?.toString() || '',
+    chest: initialData.chest?.toString() || '',
+    waist: initialData.waist?.toString() || '',
+    hips: initialData.hips?.toString() || '',
+    arms: initialData.arms?.toString() || '',
+    thighs: initialData.thighs?.toString() || '',
+    muscleMassPercentage: initialData.muscleMassPercentage?.toString() || '',
+    bodyWaterPercentage: initialData.bodyWaterPercentage?.toString() || '',
+    metabolicAge: initialData.metabolicAge?.toString() || ''
   });
+
+  const [showBodyMeasurements, setShowBodyMeasurements] = useState(
+    !!(
+      initialData.bodyFatPercentage ||
+      initialData.chest ||
+      initialData.waist ||
+      initialData.hips ||
+      initialData.arms ||
+      initialData.thighs ||
+      initialData.muscleMassPercentage ||
+      initialData.bodyWaterPercentage ||
+      initialData.metabolicAge
+    )
+  );
 
   useEffect(() => {
     // Update form when initialData changes
@@ -41,8 +79,30 @@ export const EditProgressForm: React.FC<EditProgressFormProps> = ({ progressId, 
       height: initialData.height.toString(),
       strength: [initialData.strength],
       notes: initialData.notes,
-      exercises: initialData.exercises.join(', ') || ''
+      exercises: initialData.exercises.join(', ') || '',
+      bodyFatPercentage: initialData.bodyFatPercentage?.toString() || '',
+      chest: initialData.chest?.toString() || '',
+      waist: initialData.waist?.toString() || '',
+      hips: initialData.hips?.toString() || '',
+      arms: initialData.arms?.toString() || '',
+      thighs: initialData.thighs?.toString() || '',
+      muscleMassPercentage: initialData.muscleMassPercentage?.toString() || '',
+      bodyWaterPercentage: initialData.bodyWaterPercentage?.toString() || '',
+      metabolicAge: initialData.metabolicAge?.toString() || ''
     });
+    setShowBodyMeasurements(
+      !!(
+        initialData.bodyFatPercentage ||
+        initialData.chest ||
+        initialData.waist ||
+        initialData.hips ||
+        initialData.arms ||
+        initialData.thighs ||
+        initialData.muscleMassPercentage ||
+        initialData.bodyWaterPercentage ||
+        initialData.metabolicAge
+      )
+    );
     // photoManager will handle photos via its own useEffect
   }, [initialData]);
 
@@ -74,9 +134,52 @@ export const EditProgressForm: React.FC<EditProgressFormProps> = ({ progressId, 
       height,
       strength: formData.strength[0],
       notes: formData.notes || '', // Ensure notes is always a string, never undefined
-      exercises: exercisesArray,
-      bodyFatPercentage: undefined
+      exercises: exercisesArray
     };
+
+    // Only add body measurements if they have values (not empty strings)
+    // This prevents sending null/undefined values to the backend
+    if (formData.bodyFatPercentage && formData.bodyFatPercentage.trim() !== '') {
+      updateData.bodyFatPercentage = parseFloat(formData.bodyFatPercentage);
+    }
+    if (formData.chest && formData.chest.trim() !== '') {
+      updateData.chest = parseFloat(formData.chest);
+    }
+    if (formData.waist && formData.waist.trim() !== '') {
+      updateData.waist = parseFloat(formData.waist);
+    }
+    if (formData.hips && formData.hips.trim() !== '') {
+      updateData.hips = parseFloat(formData.hips);
+    }
+    if (formData.arms && formData.arms.trim() !== '') {
+      updateData.arms = parseFloat(formData.arms);
+    }
+    if (formData.thighs && formData.thighs.trim() !== '') {
+      updateData.thighs = parseFloat(formData.thighs);
+    }
+    if (formData.muscleMassPercentage && formData.muscleMassPercentage.trim() !== '') {
+      updateData.muscleMassPercentage = parseFloat(formData.muscleMassPercentage);
+    }
+    if (formData.bodyWaterPercentage && formData.bodyWaterPercentage.trim() !== '') {
+      updateData.bodyWaterPercentage = parseFloat(formData.bodyWaterPercentage);
+    }
+    if (formData.metabolicAge && formData.metabolicAge.trim() !== '') {
+      updateData.metabolicAge = parseInt(formData.metabolicAge, 10);
+    }
+
+    // DEBUG: Log updateData to see what's being sent
+    console.log('EditProgressForm updateData:', updateData);
+    console.log('EditProgressForm formData body measurements:', {
+      bodyFatPercentage: formData.bodyFatPercentage,
+      chest: formData.chest,
+      waist: formData.waist,
+      hips: formData.hips,
+      arms: formData.arms,
+      thighs: formData.thighs,
+      muscleMassPercentage: formData.muscleMassPercentage,
+      bodyWaterPercentage: formData.bodyWaterPercentage,
+      metabolicAge: formData.metabolicAge
+    });
 
     // Call API to update progress
     const response = await updateProgress(progressId, updateData);
@@ -155,6 +258,148 @@ export const EditProgressForm: React.FC<EditProgressFormProps> = ({ progressId, 
       {/* BMI Display */}
       <BMIDisplay weight={formData.weight} height={formData.height} />
 
+      {/* Body Measurements Toggle */}
+      <div className="border rounded-lg">
+        <button
+          type="button"
+          onClick={() => setShowBodyMeasurements(!showBodyMeasurements)}
+          className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50 rounded-lg transition-colors"
+        >
+          <span className="font-medium text-[#101D33]">
+            {t('progress_form.body_measurements', 'Số đo cơ thể (Tùy chọn)')}
+          </span>
+          <span className={`transform transition-transform ${showBodyMeasurements ? 'rotate-180' : ''}`}>▼</span>
+        </button>
+
+        {showBodyMeasurements && (
+          <div className="px-4 pb-4 space-y-4">
+            {/* Row 1: Chest, Waist, Hips */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="chest">{t('progress_form.chest', 'Vòng ngực (cm)')}</Label>
+                <Input
+                  id="chest"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  placeholder="95"
+                  value={formData.chest}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, chest: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="waist">{t('progress_form.waist', 'Vòng eo (cm)')}</Label>
+                <Input
+                  id="waist"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  placeholder="80"
+                  value={formData.waist}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, waist: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="hips">{t('progress_form.hips', 'Vòng mông (cm)')}</Label>
+                <Input
+                  id="hips"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  placeholder="95"
+                  value={formData.hips}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, hips: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            {/* Row 2: Arms, Thighs, Body Fat */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="arms">{t('progress_form.arms', 'Vòng tay (cm)')}</Label>
+                <Input
+                  id="arms"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  placeholder="35"
+                  value={formData.arms}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, arms: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="thighs">{t('progress_form.thighs', 'Vòng đùi (cm)')}</Label>
+                <Input
+                  id="thighs"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  placeholder="55"
+                  value={formData.thighs}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, thighs: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bodyFatPercentage">{t('progress_form.body_fat', '% Mỡ cơ thể')}</Label>
+                <Input
+                  id="bodyFatPercentage"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  placeholder="15"
+                  value={formData.bodyFatPercentage}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, bodyFatPercentage: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            {/* Row 3: Muscle Mass, Body Water, Metabolic Age */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="muscleMassPercentage">{t('progress_form.muscle_mass', '% Cơ bắp')}</Label>
+                <Input
+                  id="muscleMassPercentage"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  placeholder="40"
+                  value={formData.muscleMassPercentage}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, muscleMassPercentage: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bodyWaterPercentage">{t('progress_form.body_water', '% Nước')}</Label>
+                <Input
+                  id="bodyWaterPercentage"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  placeholder="55"
+                  value={formData.bodyWaterPercentage}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, bodyWaterPercentage: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="metabolicAge">{t('progress_form.metabolic_age', 'Tuổi trao đổi chất')}</Label>
+                <Input
+                  id="metabolicAge"
+                  type="number"
+                  step="1"
+                  min="1"
+                  max="150"
+                  placeholder="25"
+                  value={formData.metabolicAge}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, metabolicAge: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Strength Slider */}
       <div className="space-y-3">
         <Label>Strength (0-100)</Label>
@@ -195,7 +440,9 @@ export const EditProgressForm: React.FC<EditProgressFormProps> = ({ progressId, 
           placeholder="Describe the training session, improvements, challenges..."
           value={formData.notes}
           onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
-          className="min-h-20 resize-none"
+          className="min-h-24 resize-y"
+          rows={4}
+          cols={15}
         />
       </div>
 

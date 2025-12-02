@@ -7,16 +7,18 @@ import type {
   CreateTrainingProgressRequest,
   UpdateTrainingProgressRequest,
   TrainingProgressPhoto,
+  TrainingProgressAggregated,
   UseTrainingProgressReturn,
   BackendPaginationResponse
 } from '@/types/api/TrainingProgress';
+import type { ApiResponse } from '@/types/api/Api';
 
-// Transform function
-const transformProgressToDisplay = (progress: TrainingProgress): TrainingProgressDisplay => ({
+// Transform function for aggregated response (flat structure)
+const transformProgressToDisplay = (progress: TrainingProgressAggregated): TrainingProgressDisplay => ({
   id: progress._id,
-  customerName: progress.customerId?.userId?.fullName || 'Unknown',
-  customerAvatar: progress.customerId?.userId?.avatar?.url,
-  trainerName: progress.trainerId?.fullName || 'Unknown',
+  customerName: progress.customerName || 'Unknown',
+  customerAvatar: progress.customerAvatar,
+  trainerName: progress.trainerName || 'Unknown',
   date: (() => {
     if (!progress.trackingDate) return 'Invalid Date';
     const date = new Date(progress.trackingDate);
@@ -27,12 +29,21 @@ const transformProgressToDisplay = (progress: TrainingProgress): TrainingProgres
   height: progress.height,
   bmi: progress.bmi,
   bodyFatPercentage: progress.bodyFatPercentage,
+  // Body Measurements
+  chest: progress.chest,
+  waist: progress.waist,
+  hips: progress.hips,
+  arms: progress.arms,
+  thighs: progress.thighs,
+  muscleMassPercentage: progress.muscleMassPercentage,
+  bodyWaterPercentage: progress.bodyWaterPercentage,
+  metabolicAge: progress.metabolicAge,
   strength: progress.strength,
   notes: progress.notes || '',
   photos: progress.photos || [],
   exercises: progress.exercises || [],
-  exerciseCount: progress.exercises?.length || 0,
-  photoCount: progress.photos?.length || 0,
+  exerciseCount: progress.exerciseCount || 0,
+  photoCount: progress.photoCount || 0,
   selected: false
 });
 
@@ -59,7 +70,6 @@ export const useTrainingProgress = (initialParams: TrainingProgressListParams = 
 
     if (response.success) {
       const transformed = response.data.progressRecords.map(transformProgressToDisplay);
-
       setProgressList(transformed);
       setPagination(response.data.pagination);
     } else {
@@ -79,18 +89,19 @@ export const useTrainingProgress = (initialParams: TrainingProgressListParams = 
     setParams((prev) => ({ ...prev, page }));
   }, []);
 
-  // Create progress
+  // ✅ OPTIMIZED: Create progress - don't refetch immediately
   const createProgress = useCallback(
     async (data: CreateTrainingProgressRequest) => {
       setCreateLoading(true);
       const response = await trainingProgressApi.createTrainingProgress(data);
-      if (response.success) {
-        await refetch(); // Refresh list after creation
-      }
+
+      // ✅ Don't refetch here - let the caller decide when to refetch
+      // This avoids unnecessary API calls when we still need to upload photos
+
       setCreateLoading(false);
       return response;
     },
-    [refetch]
+    [] // No dependency on refetch
   );
 
   // Update progress
@@ -99,7 +110,7 @@ export const useTrainingProgress = (initialParams: TrainingProgressListParams = 
       setUpdateLoading(true);
       const response = await trainingProgressApi.updateTrainingProgress(progressId, data);
       if (response.success) {
-        await refetch(); // Refresh list after update
+        await refetch();
       }
       setUpdateLoading(false);
       return response;
@@ -113,7 +124,7 @@ export const useTrainingProgress = (initialParams: TrainingProgressListParams = 
       setDeleteLoading(true);
       const response = await trainingProgressApi.deleteTrainingProgress(progressId);
       if (response.success) {
-        await refetch(); // Refresh list after deletion
+        await refetch();
       }
       setDeleteLoading(false);
       return response;
@@ -145,20 +156,38 @@ export const useTrainingProgress = (initialParams: TrainingProgressListParams = 
     [refetch]
   );
 
-  // Upload photos
+  // ✅ OPTIMIZED: Upload photos - don't refetch immediately
   const uploadPhotos = useCallback(
     async (progressId: string, files: File[]) => {
       setPhotoLoading(true);
-      const response = await trainingProgressApi.uploadPhotosToProgress(progressId, files);
-      if (response.success) {
-        await refetch();
-      } else {
-        console.error('Photo upload failed:', response.message);
+
+      try {
+        const response = await trainingProgressApi.uploadPhotosToProgress(progressId, files);
+
+        // ✅ Don't refetch here - let the caller decide
+        // This prevents refetching the entire list just for photo upload
+
+        setPhotoLoading(false);
+        return response;
+      } catch (error) {
+        setPhotoLoading(false);
+
+        // Return a failed response with proper ApiResponse type
+        // Cast to ApiResponse<TrainingProgress> to match the expected return type
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : 'Photo upload failed',
+          data: {} as TrainingProgress,
+          requestId: '',
+          timestamp: new Date().toISOString(),
+          meta: {
+            statusCode: 500,
+            severity: 'error'
+          }
+        } as ApiResponse<TrainingProgress>;
       }
-      setPhotoLoading(false);
-      return response;
     },
-    [refetch]
+    [] // No dependency on refetch
   );
 
   // Remove photo

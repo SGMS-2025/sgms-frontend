@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useUser } from '@/hooks/useAuth';
@@ -8,7 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, Plus, Calendar, Weight, Dumbbell, Target } from 'lucide-react';
 import { TrainingProgressChart } from '@/components/pt/TrainingProgressChart';
+import { TrainingProgressRadarChart } from '@/components/pt/TrainingProgressRadarChart';
 import { TrainingLogTable } from '@/components/pt/TrainingLogTable';
+import { GoalCard } from '@/components/pt/GoalCard';
+import { GoalForm } from '@/components/pt/GoalForm';
+import { useCustomerGoal } from '@/hooks/useCustomerGoal';
 import { AddProgressForm } from '@/components/pt/AddProgressForm';
 import { EditProgressForm } from '@/components/pt/EditProgressForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -40,6 +44,9 @@ export default function TrainingProgressDetailPage() {
     sortOrder: 'desc'
   });
 
+  // Use customer goal hook
+  const { activeGoal, refetch: refetchGoal } = useCustomerGoal(customerId || undefined);
+
   // Customer data - will be loaded from API
   const [customer, setCustomer] = useState({
     id: customerId || '1',
@@ -57,6 +64,38 @@ export default function TrainingProgressDetailPage() {
   const [editingLog, setEditingLog] = useState<TrainingProgressDisplay | null>(null);
   const [chartFilter, setChartFilter] = useState<'4weeks' | 'all'>('4weeks');
   const [customerStats, setCustomerStats] = useState<CustomerStats | null>(null);
+  const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
+
+  // Memoize records with body measurements for radar chart
+  // progressList is sorted by trackingDate DESC, createdAt DESC from API
+  const recordsWithBodyMeasurements = useMemo(() => {
+    const filtered = progressList.filter(
+      (r) =>
+        r.chest ||
+        r.waist ||
+        r.hips ||
+        r.arms ||
+        r.thighs ||
+        r.bodyFatPercentage ||
+        r.muscleMassPercentage ||
+        r.bodyWaterPercentage ||
+        r.metabolicAge
+    );
+    // DEBUG: Log radar chart data selection
+    console.log('Radar Chart - Records with body measurements:', filtered.length);
+    if (filtered.length > 0) {
+      console.log('Radar CURRENT (newest):', { id: filtered[0]?.id, date: filtered[0]?.date });
+    }
+    if (filtered.length > 1) {
+      console.log('Radar PREVIOUS (older):', { id: filtered[1]?.id, date: filtered[1]?.date });
+    }
+    return filtered;
+  }, [progressList]);
+
+  // Current = most recent record with body measurements
+  // Previous = second most recent record with body measurements
+  const radarCurrentData = recordsWithBodyMeasurements[0] || progressList[0] || null;
+  const radarPreviousData = recordsWithBodyMeasurements[1] || null;
   const [customerLoading, setCustomerLoading] = useState(true);
 
   // Load customer data from API
@@ -292,10 +331,19 @@ export default function TrainingProgressDetailPage() {
               </div>
             </div>
 
+            {/* Goal Card - Between Stats and Charts */}
+            <GoalCard goal={activeGoal} currentProgress={radarCurrentData} onEdit={() => setIsGoalFormOpen(true)} />
+
             {/* Main Content */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Column - Chart */}
-              <div className="lg:col-span-2 space-y-6">
+            <div className="space-y-6">
+              {/* Charts Grid - Radar and Line Chart */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Radar Chart - Body Metrics Overview */}
+                {/* currentData = most recent record with body measurements */}
+                {/* previousData = second most recent record with body measurements */}
+                <TrainingProgressRadarChart currentData={radarCurrentData} previousData={radarPreviousData} />
+
+                {/* Training Progress Line Chart */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-xl font-bold text-[#101D33]">
@@ -326,24 +374,20 @@ export default function TrainingProgressDetailPage() {
                 </Card>
               </div>
 
-              {/* Right Column - Training Log */}
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-xl font-bold text-[#101D33]">
-                      {t('progress_detail.table.title')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <TrainingLogTable logs={progressList} onEdit={setEditingLog} onDelete={handleDeleteProgress} />
-                  </CardContent>
-                </Card>
-              </div>
+              {/* Training Log */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-[#101D33]">{t('progress_detail.table.title')}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <TrainingLogTable logs={progressList} onEdit={setEditingLog} onDelete={handleDeleteProgress} />
+                </CardContent>
+              </Card>
             </div>
 
             {/* Add Progress Form */}
             <FormComponent open={isAddFormOpen} onOpenChange={setIsAddFormOpen}>
-              <FormContent className={isDesktop ? 'max-w-3xl max-h-[85vh] overflow-y-auto' : ''}>
+              <FormContent className={isDesktop ? 'max-w-3xl max-h-[85vh] overflow-y-auto hide-scrollbar' : ''}>
                 <FormHeader>
                   <FormTitle>{t('progress_detail.form.add_title')}</FormTitle>
                 </FormHeader>
@@ -359,7 +403,7 @@ export default function TrainingProgressDetailPage() {
 
             {/* Edit Progress Form */}
             <FormComponent open={!!editingLog} onOpenChange={() => setEditingLog(null)}>
-              <FormContent className={isDesktop ? 'max-w-3xl max-h-[85vh] overflow-y-auto' : ''}>
+              <FormContent className={isDesktop ? 'max-w-3xl max-h-[85vh] overflow-y-auto hide-scrollbar' : ''}>
                 <FormHeader>
                   <FormTitle>{t('progress_detail.form.edit_title')}</FormTitle>
                 </FormHeader>
@@ -371,6 +415,29 @@ export default function TrainingProgressDetailPage() {
                     onCancel={() => setEditingLog(null)}
                   />
                 )}
+              </FormContent>
+            </FormComponent>
+
+            {/* Goal Form */}
+            <FormComponent open={isGoalFormOpen} onOpenChange={setIsGoalFormOpen}>
+              <FormContent className={isDesktop ? 'max-w-3xl max-h-[85vh] overflow-y-auto hide-scrollbar' : ''}>
+                <FormHeader>
+                  <FormTitle>
+                    {activeGoal ? t('goal_form.edit_title', 'Edit Goal') : t('goal_form.create_title', 'Create Goal')}
+                  </FormTitle>
+                </FormHeader>
+                <GoalForm
+                  customerId={customer.id}
+                  serviceContractId={customer.serviceContractId}
+                  trainerId={customer.trainerId}
+                  branchId={''} // Backend will extract from serviceContract if available
+                  initialGoal={activeGoal}
+                  onSubmit={() => {
+                    setIsGoalFormOpen(false);
+                    refetchGoal();
+                  }}
+                  onCancel={() => setIsGoalFormOpen(false)}
+                />
               </FormContent>
             </FormComponent>
 
