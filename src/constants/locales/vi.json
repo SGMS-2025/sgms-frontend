@@ -5858,6 +5858,8 @@
       "membership_required": "Vui lòng chọn ít nhất một gói membership",
       "select_multiple": "Chọn nhiều gói cùng lúc",
       "selected": "đã chọn",
+      "select_all": "Chọn tất cả",
+      "deselect_all": "Bỏ chọn tất cả",
       "no_packages": "Không có gói dịch vụ nào",
       "select_package": "Chọn gói dịch vụ",
       "no_membership_plans": "Không có gói membership nào",

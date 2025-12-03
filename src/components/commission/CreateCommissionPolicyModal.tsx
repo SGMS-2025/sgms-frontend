@@ -3,17 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useCreateCommissionPolicy, useUpdateCommissionPolicy } from '@/hooks/useCommissionPolicy';
 import { useBranch } from '@/contexts/BranchContext';
 import { toast } from 'sonner';
 import { packageApi } from '@/services/api/packageApi';
-import { membershipApi } from '@/services/api/membershipApi';
 import { commissionPolicyApi, type CreateBulkCommissionPolicyRequest } from '@/services/api/commissionPolicyApi';
 import type { CommissionPolicy, CreateCommissionPolicyRequest } from '@/types/api/CommissionPolicy';
 import type { ServicePackage } from '@/types/api/Package';
-import type { MembershipPlan } from '@/types/api/Membership';
 
 interface CreateCommissionPolicyModalProps {
   open: boolean;
@@ -59,13 +56,9 @@ export const CreateCommissionPolicyModal: React.FC<CreateCommissionPolicyModalPr
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [packages, setPackages] = useState<ServicePackage[]>([]);
-  const [membershipPlans, setMembershipPlans] = useState<MembershipPlan[]>([]);
   const [loadingPackages, setLoadingPackages] = useState(false);
-  const [loadingMembershipPlans, setLoadingMembershipPlans] = useState(false);
   const [packageType, setPackageType] = useState<'service' | 'membership'>('service');
-  const [isMultipleSelect, setIsMultipleSelect] = useState(false);
   const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
-  const [selectedMembershipPlanIds, setSelectedMembershipPlanIds] = useState<string[]>([]);
 
   // Fetch packages and membership plans when scope is PACKAGE
   useEffect(() => {
@@ -85,23 +78,6 @@ export const CreateCommissionPolicyModal: React.FC<CreateCommissionPolicyModalPr
         console.error('Failed to fetch packages:', err);
       } finally {
         setLoadingPackages(false);
-      }
-
-      // Fetch membership plans
-      if (currentBranch?._id) {
-        setLoadingMembershipPlans(true);
-        try {
-          const response = await membershipApi.getMembershipPlans({ status: 'ACTIVE', limit: 100 }, [
-            currentBranch._id
-          ]);
-          if (response.success && response.data?.plans) {
-            setMembershipPlans(response.data.plans);
-          }
-        } catch (err) {
-          console.error('Failed to fetch membership plans:', err);
-        } finally {
-          setLoadingMembershipPlans(false);
-        }
       }
     };
 
@@ -136,8 +112,13 @@ export const CreateCommissionPolicyModal: React.FC<CreateCommissionPolicyModalPr
       // Set package type based on which one is selected
       if (servicePackageId) {
         setPackageType('service');
+        setSelectedPackageIds([servicePackageId]);
       } else if (membershipPlanId) {
-        setPackageType('membership');
+        setPackageType('service'); // Force to service package
+        setSelectedPackageIds([]);
+      } else {
+        setPackageType('service');
+        setSelectedPackageIds([]);
       }
     } else {
       setFormData({
@@ -150,9 +131,7 @@ export const CreateCommissionPolicyModal: React.FC<CreateCommissionPolicyModalPr
         notes: ''
       });
       setPackageType('service');
-      setIsMultipleSelect(false);
       setSelectedPackageIds([]);
-      setSelectedMembershipPlanIds([]);
     }
 
     setErrors({});
@@ -163,26 +142,9 @@ export const CreateCommissionPolicyModal: React.FC<CreateCommissionPolicyModalPr
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (formData.scope === 'BRANCH' && !formData.branchId) {
-      newErrors.branchId = t('commission.form.branch_required', 'Vui lòng chọn chi nhánh');
-    }
-
-    if (formData.scope === 'ROLE' && !formData.roleType) {
-      newErrors.roleType = t('commission.form.role_required', 'Vui lòng chọn vai trò');
-    }
-
-    if (formData.scope === 'PACKAGE') {
-      if (isMultipleSelect) {
-        if (packageType === 'service' && selectedPackageIds.length === 0) {
-          newErrors.package = t('commission.form.package_required', 'Vui lòng chọn ít nhất một gói dịch vụ');
-        } else if (packageType === 'membership' && selectedMembershipPlanIds.length === 0) {
-          newErrors.package = t('commission.form.membership_required', 'Vui lòng chọn ít nhất một gói membership');
-        }
-      } else {
-        if (!formData.servicePackageId && !formData.membershipPlanId) {
-          newErrors.package = t('commission.form.package_required', 'Vui lòng chọn gói dịch vụ hoặc gói membership');
-        }
-      }
+    // Always PACKAGE scope, validate packages
+    if (packageType === 'service' && selectedPackageIds.length === 0) {
+      newErrors.package = t('commission.form.package_required', 'Vui lòng chọn ít nhất một gói dịch vụ');
     }
 
     if (!formData.commissionRate) {
@@ -217,35 +179,16 @@ export const CreateCommissionPolicyModal: React.FC<CreateCommissionPolicyModalPr
         onClose();
       } else {
         // Check if bulk create is needed
-        const shouldBulkCreate =
-          formData.scope === 'PACKAGE' &&
-          isMultipleSelect &&
-          ((packageType === 'service' && selectedPackageIds.length > 1) ||
-            (packageType === 'membership' && selectedMembershipPlanIds.length > 1));
+        const shouldBulkCreate = packageType === 'service' && selectedPackageIds.length > 1;
 
         if (shouldBulkCreate) {
           // Bulk create
           const bulkData: CreateBulkCommissionPolicyRequest = {
-            scope: formData.scope,
+            scope: 'PACKAGE',
             commissionRate: Number.parseFloat(formData.commissionRate),
-            notes: formData.notes || undefined
+            notes: formData.notes || undefined,
+            servicePackageIds: selectedPackageIds
           };
-
-          if (formData.branchId) {
-            bulkData.branchId = formData.branchId;
-          }
-
-          if (formData.roleType) {
-            bulkData.roleType = formData.roleType;
-          }
-
-          if (packageType === 'service' && selectedPackageIds.length > 0) {
-            bulkData.servicePackageIds = selectedPackageIds;
-          }
-
-          if (packageType === 'membership' && selectedMembershipPlanIds.length > 0) {
-            bulkData.membershipPlanIds = selectedMembershipPlanIds;
-          }
 
           const response = await commissionPolicyApi.createBulkPolicies(bulkData);
 
@@ -260,35 +203,14 @@ export const CreateCommissionPolicyModal: React.FC<CreateCommissionPolicyModalPr
         } else {
           // Single create
           const policyData: CreateCommissionPolicyRequest = {
-            scope: formData.scope,
+            scope: 'PACKAGE',
             commissionRate: Number.parseFloat(formData.commissionRate),
             notes: formData.notes || undefined
           };
 
-          if (formData.scope === 'BRANCH' && formData.branchId) {
-            policyData.branchId = formData.branchId;
-          }
-
-          if (formData.scope === 'ROLE' && formData.roleType) {
-            policyData.roleType = formData.roleType;
-          }
-
-          if (formData.scope === 'PACKAGE') {
-            if (isMultipleSelect) {
-              // Use first selected if multiple select mode but only one selected
-              if (packageType === 'service' && selectedPackageIds.length > 0) {
-                policyData.servicePackageId = selectedPackageIds[0];
-              } else if (packageType === 'membership' && selectedMembershipPlanIds.length > 0) {
-                policyData.membershipPlanId = selectedMembershipPlanIds[0];
-              }
-            } else {
-              if (formData.servicePackageId) {
-                policyData.servicePackageId = formData.servicePackageId;
-              }
-              if (formData.membershipPlanId) {
-                policyData.membershipPlanId = formData.membershipPlanId;
-              }
-            }
+          // Use first selected package
+          if (packageType === 'service' && selectedPackageIds.length > 0) {
+            policyData.servicePackageId = selectedPackageIds[0];
           }
 
           await createPolicy(policyData);
@@ -345,296 +267,75 @@ export const CreateCommissionPolicyModal: React.FC<CreateCommissionPolicyModalPr
         {/* Form */}
         <div className="flex-1 overflow-y-auto">
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            {/* Scope */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t('commission.form.scope', 'Phạm vi áp dụng')} <span className="text-red-500">*</span>
-              </label>
-              <Select
-                value={formData.scope}
-                onValueChange={(value: CreateCommissionPolicyRequest['scope']) =>
-                  setFormData({ ...formData, scope: value })
-                }
-                disabled={isEditMode}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="BRANCH">{t('commission.scope.branch', 'Chi nhánh')}</SelectItem>
-                  <SelectItem value="ROLE">{t('commission.scope.role', 'Vai trò')}</SelectItem>
-                  <SelectItem value="PACKAGE">{t('commission.scope.package', 'Gói dịch vụ')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Branch (for BRANCH scope) */}
-            {formData.scope === 'BRANCH' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('commission.form.branch', 'Chi nhánh')} <span className="text-red-500">*</span>
-                </label>
-                <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
-                  {currentBranch?.branchName || t('commission.form.no_branch', 'Chưa chọn chi nhánh')}
-                </div>
-                {errors.branchId && <p className="mt-1 text-sm text-red-500">{errors.branchId}</p>}
-              </div>
-            )}
-
-            {/* Role (for ROLE scope) */}
-            {formData.scope === 'ROLE' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('commission.form.role', 'Vai trò')} <span className="text-red-500">*</span>
-                </label>
-                <Select
-                  value={formData.roleType}
-                  onValueChange={(value) => setFormData({ ...formData, roleType: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('commission.form.select_role', 'Chọn vai trò')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Personal Trainer">
-                      {t('commission.form.roles.personal_trainer', 'Personal Trainer')}
-                    </SelectItem>
-                    <SelectItem value="Manager">{t('commission.form.roles.manager', 'Manager')}</SelectItem>
-                    <SelectItem value="Technician">{t('commission.form.roles.technician', 'Technician')}</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.roleType && <p className="mt-1 text-sm text-red-500">{errors.roleType}</p>}
-              </div>
-            )}
-
-            {/* Package (for PACKAGE scope) */}
-            {formData.scope === 'PACKAGE' && (
-              <div className="space-y-4">
+            {/* Package (for PACKAGE scope) - Always PACKAGE scope */}
+            <div className="space-y-4">
+              {packageType === 'service' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('commission.form.package_type', 'Loại gói')} <span className="text-red-500">*</span>
-                  </label>
-                  <Select
-                    value={packageType}
-                    onValueChange={(value: 'service' | 'membership') => {
-                      setPackageType(value);
-                      setFormData({
-                        ...formData,
-                        servicePackageId: value === 'service' ? formData.servicePackageId : '',
-                        membershipPlanId: value === 'membership' ? formData.membershipPlanId : ''
-                      });
-                      setSelectedPackageIds([]);
-                      setSelectedMembershipPlanIds([]);
-                    }}
-                    disabled={isEditMode}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="service">{t('commission.form.service_package', 'Service Package')}</SelectItem>
-                      <SelectItem value="membership">
-                        {t('commission.form.membership_plan', 'Membership Plan')}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Multiple Select Checkbox */}
-                {!isEditMode && (
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="multiple-select"
-                      checked={isMultipleSelect}
-                      onCheckedChange={(checked) => {
-                        setIsMultipleSelect(checked === true);
-                        if (!checked) {
-                          setSelectedPackageIds([]);
-                          setSelectedMembershipPlanIds([]);
-                          setFormData({
-                            ...formData,
-                            servicePackageId: '',
-                            membershipPlanId: ''
-                          });
-                        }
-                      }}
-                    />
-                    <label htmlFor="multiple-select" className="text-sm font-medium text-gray-700 cursor-pointer">
-                      {t('commission.form.select_multiple', 'Chọn nhiều gói cùng lúc')}
-                    </label>
-                  </div>
-                )}
-
-                {packageType === 'service' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
                       {t('commission.form.service_package', 'Service Package')} <span className="text-red-500">*</span>
-                      {isMultipleSelect && selectedPackageIds.length > 0 && (
+                      {selectedPackageIds.length > 0 && (
                         <span className="ml-2 text-sm text-gray-500">
                           ({selectedPackageIds.length} {t('commission.form.selected', 'đã chọn')})
                         </span>
                       )}
                     </label>
-                    {isMultipleSelect ? (
-                      <div className="border border-gray-300 rounded-lg p-4 max-h-60 overflow-y-auto">
-                        {loadingPackages ? (
-                          <div className="text-sm text-gray-500">{t('common.loading', 'Đang tải...')}</div>
-                        ) : packages.length > 0 ? (
-                          <div className="space-y-2">
-                            {packages.map((pkg) => (
-                              <div key={pkg._id} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`package-${pkg._id}`}
-                                  checked={selectedPackageIds.includes(pkg._id)}
-                                  onCheckedChange={(checked) => {
-                                    if (checked) {
-                                      setSelectedPackageIds([...selectedPackageIds, pkg._id]);
-                                    } else {
-                                      setSelectedPackageIds(selectedPackageIds.filter((id) => id !== pkg._id));
-                                    }
-                                  }}
-                                />
-                                <label
-                                  htmlFor={`package-${pkg._id}`}
-                                  className="text-sm text-gray-700 cursor-pointer flex-1"
-                                >
-                                  {pkg.name} ({pkg.type})
-                                </label>
-                              </div>
-                            ))}
+                    {packages.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const allSelected = selectedPackageIds.length === packages.length;
+                          if (allSelected) {
+                            setSelectedPackageIds([]);
+                          } else {
+                            setSelectedPackageIds(packages.map((pkg) => pkg._id));
+                          }
+                        }}
+                        className="text-sm text-orange-500 hover:text-orange-600 font-medium"
+                      >
+                        {selectedPackageIds.length === packages.length
+                          ? t('commission.form.deselect_all', 'Bỏ chọn tất cả')
+                          : t('commission.form.select_all', 'Chọn tất cả')}
+                      </button>
+                    )}
+                  </div>
+                  <div className="border border-gray-300 rounded-lg p-4 max-h-60 overflow-y-auto">
+                    {loadingPackages ? (
+                      <div className="text-sm text-gray-500">{t('common.loading', 'Đang tải...')}</div>
+                    ) : packages.length > 0 ? (
+                      <div className="space-y-2">
+                        {packages.map((pkg) => (
+                          <div key={pkg._id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`package-${pkg._id}`}
+                              checked={selectedPackageIds.includes(pkg._id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedPackageIds([...selectedPackageIds, pkg._id]);
+                                } else {
+                                  setSelectedPackageIds(selectedPackageIds.filter((id) => id !== pkg._id));
+                                }
+                              }}
+                            />
+                            <label
+                              htmlFor={`package-${pkg._id}`}
+                              className="text-sm text-gray-700 cursor-pointer flex-1"
+                            >
+                              {pkg.name} ({pkg.type})
+                            </label>
                           </div>
-                        ) : (
-                          <div className="text-sm text-gray-500">
-                            {t('commission.form.no_packages', 'Không có gói dịch vụ nào')}
-                          </div>
-                        )}
+                        ))}
                       </div>
                     ) : (
-                      <Select
-                        value={formData.servicePackageId}
-                        onValueChange={(value) => {
-                          setFormData({
-                            ...formData,
-                            servicePackageId: value,
-                            membershipPlanId: ''
-                          });
-                        }}
-                        disabled={loadingPackages || isEditMode}
-                      >
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              loadingPackages
-                                ? t('common.loading', 'Đang tải...')
-                                : t('commission.form.select_package', 'Chọn gói dịch vụ')
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {packages.length > 0
-                            ? packages.map((pkg) => (
-                                <SelectItem key={pkg._id} value={pkg._id}>
-                                  {pkg.name} ({pkg.type})
-                                </SelectItem>
-                              ))
-                            : !loadingPackages && (
-                                <div className="px-2 py-1.5 text-sm text-gray-500">
-                                  {t('commission.form.no_packages', 'Không có gói dịch vụ nào')}
-                                </div>
-                              )}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    {errors.package && <p className="mt-1 text-sm text-red-500">{errors.package}</p>}
-                  </div>
-                )}
-
-                {packageType === 'membership' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('commission.form.membership_plan', 'Membership Plan')} <span className="text-red-500">*</span>
-                      {isMultipleSelect && selectedMembershipPlanIds.length > 0 && (
-                        <span className="ml-2 text-sm text-gray-500">
-                          ({selectedMembershipPlanIds.length} {t('commission.form.selected', 'đã chọn')})
-                        </span>
-                      )}
-                    </label>
-                    {isMultipleSelect ? (
-                      <div className="border border-gray-300 rounded-lg p-4 max-h-60 overflow-y-auto">
-                        {loadingMembershipPlans ? (
-                          <div className="text-sm text-gray-500">{t('common.loading', 'Đang tải...')}</div>
-                        ) : membershipPlans.length > 0 ? (
-                          <div className="space-y-2">
-                            {membershipPlans.map((plan) => (
-                              <div key={plan._id} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`membership-${plan._id}`}
-                                  checked={selectedMembershipPlanIds.includes(plan._id)}
-                                  onCheckedChange={(checked) => {
-                                    if (checked) {
-                                      setSelectedMembershipPlanIds([...selectedMembershipPlanIds, plan._id]);
-                                    } else {
-                                      setSelectedMembershipPlanIds(
-                                        selectedMembershipPlanIds.filter((id) => id !== plan._id)
-                                      );
-                                    }
-                                  }}
-                                />
-                                <label
-                                  htmlFor={`membership-${plan._id}`}
-                                  className="text-sm text-gray-700 cursor-pointer flex-1"
-                                >
-                                  {plan.name} - {plan.durationInMonths} {t('commission.form.month', 'tháng')}
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-gray-500">
-                            {t('commission.form.no_membership_plans', 'Không có gói membership nào')}
-                          </div>
-                        )}
+                      <div className="text-sm text-gray-500">
+                        {t('commission.form.no_packages', 'Không có gói dịch vụ nào')}
                       </div>
-                    ) : (
-                      <Select
-                        value={formData.membershipPlanId}
-                        onValueChange={(value) => {
-                          setFormData({
-                            ...formData,
-                            membershipPlanId: value,
-                            servicePackageId: ''
-                          });
-                        }}
-                        disabled={loadingMembershipPlans || isEditMode}
-                      >
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              loadingMembershipPlans
-                                ? t('common.loading', 'Đang tải...')
-                                : t('commission.form.select_membership', 'Chọn gói membership')
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {membershipPlans.length > 0
-                            ? membershipPlans.map((plan) => (
-                                <SelectItem key={plan._id} value={plan._id}>
-                                  {plan.name} - {plan.durationInMonths} {t('commission.form.month', 'tháng')}
-                                </SelectItem>
-                              ))
-                            : !loadingMembershipPlans && (
-                                <div className="px-2 py-1.5 text-sm text-gray-500">
-                                  {t('commission.form.no_membership_plans', 'Không có gói membership nào')}
-                                </div>
-                              )}
-                        </SelectContent>
-                      </Select>
                     )}
-                    {errors.package && <p className="mt-1 text-sm text-red-500">{errors.package}</p>}
                   </div>
-                )}
-              </div>
-            )}
+                  {errors.package && <p className="mt-1 text-sm text-red-500">{errors.package}</p>}
+                </div>
+              )}
+            </div>
 
             {/* Commission Rate */}
             <div>
