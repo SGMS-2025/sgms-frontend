@@ -167,6 +167,27 @@ export const PurchaseSubscriptionModal = ({
     }
   });
 
+  const handlePaymentSuccess = useCallback(() => {
+    // After payment success, go to template step if subscriptionId is available
+    if (subscriptionId) {
+      setCurrentStep('template');
+    } else {
+      // If no subscriptionId, try to get it from active subscription
+      subscriptionApi.getActiveSubscription().then((result) => {
+        if (result.success && result.data && typeof result.data === 'object' && '_id' in result.data) {
+          setSubscriptionId(result.data._id as string);
+          setCurrentStep('template');
+        } else {
+          toast.success(t('subscription.modal.success.title'), {
+            description: t('subscription.modal.success.description')
+          });
+          onOpenChange(false);
+          onSuccess?.();
+        }
+      });
+    }
+  }, [subscriptionId, t, onOpenChange, onSuccess]);
+
   // Fallback polling if socket not connected
   useEffect(() => {
     if (!open || !paymentTransaction || paymentStatus !== 'pending' || currentStep !== 'bank-wait') return;
@@ -274,27 +295,6 @@ export const PurchaseSubscriptionModal = ({
       setIsSubmitting(false);
     }
   };
-
-  const handlePaymentSuccess = useCallback(() => {
-    // After payment success, go to template step if subscriptionId is available
-    if (subscriptionId) {
-      setCurrentStep('template');
-    } else {
-      // If no subscriptionId, try to get it from active subscription
-      subscriptionApi.getActiveSubscription().then((result) => {
-        if (result.success && result.data && typeof result.data === 'object' && '_id' in result.data) {
-          setSubscriptionId(result.data._id as string);
-          setCurrentStep('template');
-        } else {
-          toast.success(t('subscription.modal.success.title'), {
-            description: t('subscription.modal.success.description')
-          });
-          onOpenChange(false);
-          onSuccess?.();
-        }
-      });
-    }
-  }, [subscriptionId, t, onOpenChange, onSuccess]);
 
   const handleTemplateSelected = (contractDoc: ContractDocument) => {
     setContractDocument(contractDoc);

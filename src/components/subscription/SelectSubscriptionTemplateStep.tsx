@@ -84,7 +84,7 @@ export const SelectSubscriptionTemplateStep: React.FC<SelectSubscriptionTemplate
 
       if (result.success && result.data) {
         toast.success(t('subscription.contract.step.success.create'));
-        onTemplateSelected(result.data);
+        onTemplateSelected(result.data as ContractDocument);
       } else {
         toast.error(result.message || t('subscription.contract.step.error.create_failed'));
       }

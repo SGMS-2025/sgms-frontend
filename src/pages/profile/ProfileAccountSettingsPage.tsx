@@ -74,13 +74,19 @@ const ProfileAccountSettingsPage: React.FC = () => {
 
     setLoadingContracts(true);
     try {
-      const ownerUserId = typeof currentUser._id === 'string' ? currentUser._id : currentUser._id.toString();
+      const ownerUserId = (() => {
+        const userId = currentUser._id;
+        return typeof userId === 'string' ? userId : String(userId);
+      })();
 
       // Fetch subscription history to get subscription IDs
       const subscriptionHistory = await subscriptionApi.getSubscriptionHistory({ includeExpired: true, limit: 100 });
       const subscriptionIds =
         subscriptionHistory.success && subscriptionHistory.data
-          ? subscriptionHistory.data.map((sub) => (typeof sub._id === 'string' ? sub._id : sub._id.toString()))
+          ? subscriptionHistory.data.map((sub) => {
+              const subId = sub._id;
+              return typeof subId === 'string' ? subId : String(subId);
+            })
           : [];
 
       // Fetch all subscription contracts
@@ -132,9 +138,10 @@ const ProfileAccountSettingsPage: React.FC = () => {
             ? typeof doc.createdBy === 'string'
               ? doc.createdBy
               : typeof doc.createdBy === 'object' && doc.createdBy !== null && '_id' in doc.createdBy
-                ? typeof doc.createdBy._id === 'string'
-                  ? doc.createdBy._id
-                  : doc.createdBy._id.toString()
+                ? (() => {
+                    const createdById = (doc.createdBy as { _id: unknown })._id;
+                    return typeof createdById === 'string' ? createdById : String(createdById);
+                  })()
                 : String(doc.createdBy)
             : null;
 
@@ -160,15 +167,16 @@ const ProfileAccountSettingsPage: React.FC = () => {
               doc.signers.length > 0 &&
               doc.signers.every((s) => {
                 const signerStatus = (s.status || '').toLowerCase();
+                const signer = s as { status?: string; signed?: boolean; is_signed?: boolean; completed?: boolean };
                 return (
                   signerStatus === 'signed' ||
                   signerStatus === 'completed' ||
                   signerStatus === 'fulfilled' ||
                   signerStatus === 'signed_completed' ||
                   signerStatus === 'completed_signed' ||
-                  s.signed === true ||
-                  s.is_signed === true ||
-                  s.completed === true
+                  signer.signed === true ||
+                  signer.is_signed === true ||
+                  signer.completed === true
                 );
               }));
 

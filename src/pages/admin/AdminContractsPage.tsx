@@ -126,8 +126,8 @@ const AdminContractsPage: React.FC = () => {
         limit: 100,
         sortBy: 'createdAt' as const,
         sortOrder: 'desc' as const,
-        status: 'all',
-        type: 'contracts', // This will include subscription contracts
+        status: 'all' as const,
+        type: 'contracts' as const, // This will include subscription contracts
         search: searchQuery || undefined,
         tags: ['subscription'] // Filter subscription contracts
       };
