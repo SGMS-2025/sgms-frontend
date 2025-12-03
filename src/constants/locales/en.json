@@ -5858,6 +5858,8 @@
       "membership_required": "Please select at least one membership plan",
       "select_multiple": "Select multiple packages at once",
       "selected": "selected",
+      "select_all": "Select All",
+      "deselect_all": "Deselect All",
       "no_packages": "No service packages available",
       "select_package": "Select service package",
       "no_membership_plans": "No membership plans available",
