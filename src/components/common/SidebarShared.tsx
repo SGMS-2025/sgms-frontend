@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import LanguageSwitcher from '@/components/ui/language-switcher';
 import logoImage from '@/assets/images/logo2.png';
 import type { User as ApiUser } from '@/types/api/User';
@@ -173,22 +174,26 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
   showMobileClose = true
 }) => {
   const { toggle, setCollapsed, setMobileOpen } = useSidebar();
+  const isMobile = useIsMobile();
 
   return (
     <div className="flex items-center gap-3 px-3 py-4 border-b border-gray-200 dark:border-gray-800">
-      <button
-        type="button"
-        className="flex-shrink-0 w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center overflow-hidden cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
-        onClick={() => {
-          if (isCollapsed) setCollapsed(false);
-        }}
-        title={isCollapsed ? 'Mở sidebar' : undefined}
-        aria-label={isCollapsed ? 'Mở sidebar' : undefined}
-      >
-        <img src={logoImage} alt="GYM SMART Logo" className="w-6 h-6 object-contain" />
-      </button>
+      {/* Logo - Hidden on mobile */}
+      {!isMobile && (
+        <button
+          type="button"
+          className="flex-shrink-0 w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center overflow-hidden cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
+          onClick={() => {
+            if (isCollapsed) setCollapsed(false);
+          }}
+          title={isCollapsed ? 'Mở sidebar' : undefined}
+          aria-label={isCollapsed ? 'Mở sidebar' : undefined}
+        >
+          <img src={logoImage} alt="GYM SMART Logo" className="w-6 h-6 object-contain" />
+        </button>
+      )}
 
-      {!isCollapsed && (
+      {!isCollapsed && !isMobile && (
         <div className="flex-1 min-w-0">
           <h1 className="text-lg font-bold text-gray-900 truncate">GYM SMART</h1>
           <p className="text-xs text-gray-500 truncate">{subtitle}</p>
@@ -236,6 +241,7 @@ export const UserProfileSection: React.FC<UserProfileProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const displayName = user?.fullName || user?.username || t('sidebar.account') || 'User';
 
@@ -323,7 +329,12 @@ export const UserProfileSection: React.FC<UserProfileProps> = ({
               </Avatar>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" align="end" sideOffset={8} className="w-56">
+          <DropdownMenuContent
+            side={isMobile ? 'top' : 'right'}
+            align={isMobile ? 'center' : 'end'}
+            sideOffset={8}
+            className="w-56"
+          >
             {menuItems}
           </DropdownMenuContent>
         </DropdownMenu>
@@ -350,7 +361,12 @@ export const UserProfileSection: React.FC<UserProfileProps> = ({
           </div>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent side="right" align="end" className="w-56 ml-2" sideOffset={8}>
+        <DropdownMenuContent
+          side={isMobile ? 'top' : 'right'}
+          align={isMobile ? 'center' : 'end'}
+          sideOffset={8}
+          className={isMobile ? 'w-56' : 'w-56 ml-2'}
+        >
           {menuItems}
         </DropdownMenuContent>
       </DropdownMenu>

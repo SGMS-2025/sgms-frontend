@@ -27,6 +27,16 @@ export interface TrainingLog {
   notes: string;
   photos: { url: string; publicId: string }[];
   exercises: string[];
+  // Body Measurements
+  bodyFatPercentage?: number;
+  chest?: number;
+  waist?: number;
+  hips?: number;
+  arms?: number;
+  thighs?: number;
+  muscleMassPercentage?: number;
+  bodyWaterPercentage?: number;
+  metabolicAge?: number;
 }
 
 export interface EditProgressFormData {
