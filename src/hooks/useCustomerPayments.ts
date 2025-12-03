@@ -39,23 +39,29 @@ export const useCustomerPaymentLedger = (initialQuery: PaymentLedgerQuery = {}) 
 
     await paymentApi
       .getCustomerPaymentLedger(query)
-      .then((response) => {
-        if (response.success) {
-          setState({
-            items: response.data.items || [],
-            loading: false,
-            error: null,
-            pagination: response.data.pagination,
-            filters: response.data.filters
-          });
-        } else {
-          setState((prev) => ({
-            ...prev,
-            loading: false,
-            error: response.message || 'Failed to fetch payment ledger'
-          }));
+      .then(
+        (response: {
+          success: boolean;
+          data: { items?: unknown[]; pagination?: unknown; filters?: unknown };
+          message: string;
+        }) => {
+          if (response.success) {
+            setState({
+              items: response.data.items || [],
+              loading: false,
+              error: null,
+              pagination: response.data.pagination,
+              filters: response.data.filters
+            });
+          } else {
+            setState((prev) => ({
+              ...prev,
+              loading: false,
+              error: response.message || 'Failed to fetch payment ledger'
+            }));
+          }
         }
-      })
+      )
       .catch((error) => {
         setState((prev) => ({
           ...prev,
