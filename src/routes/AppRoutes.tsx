@@ -80,6 +80,7 @@ import AdminSubscriptionPackagesPage from '@/pages/admin/AdminSubscriptionPackag
 import AdminAccountsPage from '@/pages/admin/AdminAccountsPage';
 import AdminOwnerDetailPage from '@/pages/admin/AdminOwnerDetailPage';
 import AdminBranchCustomersPage from '@/pages/admin/AdminBranchCustomersPage';
+import AdminContractsPage from '@/pages/admin/AdminContractsPage';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import OwnerSubscriptionGate from '@/components/guards/OwnerSubscriptionGate';
 import OwnerSubscriptionGateWithLayout from '@/components/guards/OwnerSubscriptionGateWithLayout';
@@ -649,6 +650,9 @@ const AppRoutes: React.FC = () => {
           {/* Subscriptions (Admin) */}
           <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
           <Route path="subscriptions/packages" element={<AdminSubscriptionPackagesPage />} />
+
+          {/* Contracts Management (Admin) */}
+          <Route path="contracts" element={<AdminContractsPage />} />
 
           {/* Account Management (Admin) */}
           <Route path="accounts" element={<AdminAccountsPage />} />

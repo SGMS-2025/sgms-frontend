@@ -4,7 +4,6 @@ import { Upload, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { contractDocumentApi } from '@/services/api/contractDocumentApi';
@@ -30,11 +29,7 @@ export default function DocumentUploadDialog({
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [tags, setTags] = useState('');
-  const [templateContractType, setTemplateContractType] = useState<
-    'membership' | 'service_pt' | 'service_class' | 'custom'
-  >('membership');
+  const [templateContractType] = useState<'membership' | 'service_pt' | 'service_class' | 'custom'>('service_pt');
   const [selectedBranchId, setSelectedBranchId] = useState<string>('');
 
   // Initialize selected branch when dialog opens
@@ -91,8 +86,6 @@ export default function DocumentUploadDialog({
     const data: UploadDocumentRequest = {
       document: file,
       title: title || file.name,
-      description: description || undefined,
-      tags: tags ? tags.split(',').map((t) => t.trim()) : undefined,
       ...(selectedBranchId && selectedBranchId !== 'global' ? { branchId: selectedBranchId } : {}),
       isTemplate: true,
       templateContractType: templateContractType
@@ -115,9 +108,6 @@ export default function DocumentUploadDialog({
     if (!loading) {
       setFile(null);
       setTitle('');
-      setDescription('');
-      setTags('');
-      setTemplateContractType('membership');
       onOpenChange(false);
     }
   };
@@ -179,31 +169,6 @@ export default function DocumentUploadDialog({
             />
           </div>
 
-          {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description">{t('contracts.description', 'Description')}</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={t('contracts.description_placeholder', 'Enter document description')}
-              disabled={loading}
-              rows={3}
-            />
-          </div>
-
-          {/* Tags */}
-          <div className="space-y-2">
-            <Label htmlFor="tags">{t('contracts.tags', 'Tags')}</Label>
-            <Input
-              id="tags"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder={t('contracts.tags_placeholder', 'e.g. contract, membership (comma-separated)')}
-              disabled={loading}
-            />
-          </div>
-
           {/* Branch Selector */}
           <div className="space-y-2">
             <Label htmlFor="branch">
@@ -230,36 +195,6 @@ export default function DocumentUploadDialog({
               {t(
                 'contracts.branch_hint',
                 'Select which branch this template is for, or choose Global for all branches'
-              )}
-            </p>
-          </div>
-
-          {/* Template Contract Type */}
-          <div className="space-y-2">
-            <Label htmlFor="templateType">
-              {t('contracts.template_type', 'Template Type')} <span className="text-red-500">*</span>
-            </Label>
-            <Select
-              value={templateContractType}
-              onValueChange={(value) =>
-                setTemplateContractType(value as 'membership' | 'service_pt' | 'service_class' | 'custom')
-              }
-              disabled={loading}
-            >
-              <SelectTrigger id="templateType">
-                <SelectValue placeholder={t('contracts.select_template_type', 'Select template type')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="membership">{t('contracts.type_membership', 'Membership Contract')}</SelectItem>
-                <SelectItem value="service_pt">{t('contracts.type_pt', 'PT Contract (1-on-1)')}</SelectItem>
-                <SelectItem value="service_class">{t('contracts.type_class', 'Class Contract (Group)')}</SelectItem>
-                <SelectItem value="custom">{t('contracts.type_custom', 'Custom Contract')}</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-sm text-gray-500">
-              {t(
-                'contracts.template_type_hint',
-                'This helps auto-select the correct template when creating customer contracts'
               )}
             </p>
           </div>

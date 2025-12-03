@@ -240,6 +240,15 @@ export const AdminSidebar: React.FC = () => {
       }
     },
     {
+      icon: <FileText className="w-5 h-5 stroke-[1.75]" />,
+      label: t('sidebar.contracts', 'Hợp đồng'),
+      href: '/admin/contracts',
+      isActive: location.pathname === '/admin/contracts',
+      onClick: () => {
+        navigate('/admin/contracts');
+      }
+    },
+    {
       icon: <Building2 className="w-5 h-5 stroke-[1.75]" />,
       label: t('sidebar.business_verification', 'Xác thực doanh nghiệp'),
       href: '/admin/business-verifications',

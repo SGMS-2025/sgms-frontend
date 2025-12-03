@@ -1,11 +1,6 @@
 import { api } from './api';
 import type { ApiResponse } from '@/types/api/Api';
-import type {
-  PaymentLedgerQuery,
-  PaymentLedgerResponse,
-  CustomerPaymentHistoryQuery,
-  CustomerPaymentHistoryResponse
-} from '@/types/api/Payment';
+import type { CustomerPaymentHistoryQuery, CustomerPaymentHistoryResponse } from '@/types/api/Payment';
 import { VIETQR_BANKS } from '@/constants/vietqrBanks';
 
 export interface PayOSPaymentData {
@@ -311,20 +306,14 @@ export const paymentApi = {
   },
 
   /**
-   * Fetch customer payment ledger (contracts + summaries)
+   * Poll PayOS payment status by payment link ID
    */
-  getCustomerPaymentLedger: async (params: PaymentLedgerQuery): Promise<ApiResponse<PaymentLedgerResponse>> => {
-    // Filter out undefined values to avoid sending invalid parameters
-    const filteredParams = Object.fromEntries(
-      Object.entries(params).filter(([_, value]) => value !== undefined && value !== null && value !== '')
-    );
-
-    const response = await api.get('/debt-payments/ledger', {
-      params: {
-        ...filteredParams,
-        page: params.page ?? 1,
-        limit: params.limit ?? 10
-      }
+  getPayOSPaymentStatus: async (
+    paymentLinkId: string,
+    orderCode?: number | string
+  ): Promise<ApiResponse<{ status: string }>> => {
+    const response = await api.get(`/payos/payment-links/${paymentLinkId}`, {
+      params: orderCode ? { orderCode } : undefined
     });
     return response.data;
   },
@@ -336,7 +325,7 @@ export const paymentApi = {
     customerId: string,
     params: CustomerPaymentHistoryQuery = {}
   ): Promise<ApiResponse<CustomerPaymentHistoryResponse>> => {
-    const response = await api.get(`/debt-payments/customer/${customerId}/payments`, {
+    const response = await api.get(`/payments/customer/${customerId}/history`, {
       params: {
         ...params,
         page: params.page ?? 1,
@@ -345,19 +334,6 @@ export const paymentApi = {
       }
     });
 
-    return response.data;
-  },
-
-  /**
-   * Poll PayOS payment status by payment link ID
-   */
-  getPayOSPaymentStatus: async (
-    paymentLinkId: string,
-    orderCode?: number | string
-  ): Promise<ApiResponse<{ status: string }>> => {
-    const response = await api.get(`/payos/payment-links/${paymentLinkId}`, {
-      params: orderCode ? { orderCode } : undefined
-    });
     return response.data;
   }
 };

@@ -37,32 +37,50 @@ export const useCustomerPaymentLedger = (initialQuery: PaymentLedgerQuery = {}) 
   const fetchData = useCallback(async () => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
-    await paymentApi
-      .getCustomerPaymentLedger(query)
-      .then((response) => {
-        if (response.success) {
-          setState({
-            items: response.data.items || [],
-            loading: false,
-            error: null,
-            pagination: response.data.pagination,
-            filters: response.data.filters
-          });
-        } else {
-          setState((prev) => ({
-            ...prev,
-            loading: false,
-            error: response.message || 'Failed to fetch payment ledger'
-          }));
-        }
-      })
-      .catch((error) => {
-        setState((prev) => ({
-          ...prev,
-          loading: false,
-          error: (error as Error).message || 'Failed to fetch payment ledger'
-        }));
-      });
+    // TODO: Implement getCustomerPaymentLedger method in paymentApi.ts
+    // The backend endpoint for payment ledger doesn't exist yet
+    // For now, return empty state with error message
+    setState({
+      items: [],
+      loading: false,
+      error: 'Payment ledger feature is not yet implemented',
+      pagination: null,
+      filters: null
+    });
+
+    // Uncomment when getCustomerPaymentLedger is implemented:
+    // await paymentApi
+    //   .getCustomerPaymentLedger(query)
+    //   .then(
+    //     (response: {
+    //       success: boolean;
+    //       data: { items?: PaymentLedgerItem[]; pagination?: PaymentLedgerPagination; filters?: PaymentLedgerFilters };
+    //       message: string;
+    //     }) => {
+    //       if (response.success) {
+    //         setState({
+    //           items: response.data.items || [],
+    //           loading: false,
+    //           error: null,
+    //           pagination: response.data.pagination || null,
+    //           filters: response.data.filters || null
+    //         });
+    //       } else {
+    //         setState((prev) => ({
+    //           ...prev,
+    //           loading: false,
+    //           error: response.message || 'Failed to fetch payment ledger'
+    //         }));
+    //       }
+    //     }
+    //   )
+    //   .catch((error: unknown) => {
+    //     setState((prev) => ({
+    //       ...prev,
+    //       loading: false,
+    //       error: (error as Error).message || 'Failed to fetch payment ledger'
+    //     }));
+    //   });
   }, [query]);
 
   useEffect(() => {

@@ -25,14 +25,16 @@ import { toast } from 'sonner';
 import DocumentUploadDialog from './DocumentUploadDialog';
 import EmbeddedDocumentViewer from './EmbeddedDocumentViewer';
 import type { ContractDocument, DocumentStatus } from '@/types/api/ContractDocument';
-import { hasInvites, getStatusBadge, getContractTypeBadge } from '@/utils/contractDocumentUtils';
+import { hasInvites, getStatusBadge } from '@/utils/contractDocumentUtils';
 import { useContractDocumentActions } from '@/hooks/useContractDocumentActions';
 import { useContractDocumentEvents, useVisibilityRefresh } from '@/hooks/useContractDocumentEvents';
 import { useContractsTour } from '@/hooks/useContractsTour';
+import { useBranch } from '@/contexts/BranchContext';
 
 export default function ContractDocumentManager() {
   const { t } = useTranslation();
   const { startContractsTour } = useContractsTour();
+  const { currentBranch } = useBranch();
   const [documents, setDocuments] = useState<ContractDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -49,6 +51,12 @@ export default function ContractDocumentManager() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchDocuments = useCallback(async () => {
+    if (!currentBranch?._id) {
+      // Don't fetch if no branch selected
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
 
     const response = await contractDocumentApi.listDocuments({
@@ -58,7 +66,8 @@ export default function ContractDocumentManager() {
       sortOrder: 'desc',
       status: statusFilter,
       type: typeFilter,
-      search: search || undefined
+      search: search || undefined,
+      branchId: currentBranch._id
     });
 
     if (response.success) {
@@ -72,11 +81,16 @@ export default function ContractDocumentManager() {
     }
 
     setLoading(false);
-  }, [page, statusFilter, typeFilter, search]);
+  }, [page, statusFilter, typeFilter, search, currentBranch?._id]);
 
   useEffect(() => {
     fetchDocuments();
   }, [fetchDocuments]);
+
+  // Reset page when branch changes
+  useEffect(() => {
+    setPage(1);
+  }, [currentBranch?._id]);
 
   // Use shared hooks for event listeners
   useContractDocumentEvents({
@@ -285,16 +299,6 @@ export default function ContractDocumentManager() {
                       <FileText className="h-5 w-5 text-orange-500" />
                       <h3 className="font-semibold text-gray-900">{doc.title}</h3>
                       {getStatusBadge(doc.status, t, 'default')}
-                      {doc.isTemplate && doc.templateContractType && getContractTypeBadge(t, doc.templateContractType)}
-                      {!doc.isTemplate && doc.contractType && getContractTypeBadge(t, doc.contractType)}
-                      {doc.isTemplate && (
-                        <Badge
-                          variant="outline"
-                          className="text-xs font-medium bg-purple-500/10 text-purple-700 border-purple-200"
-                        >
-                          Template
-                        </Badge>
-                      )}
                       {doc.signersCount !== undefined && doc.signersCount !== null && (
                         <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700">
                           Signers: {doc.signersCount}

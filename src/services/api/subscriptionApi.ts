@@ -103,6 +103,19 @@ export const subscriptionApi = {
     return response.data;
   },
 
+  /**
+   * Create contract document from template for subscription
+   */
+  createSubscriptionContractFromTemplate: async (
+    subscriptionId: string,
+    templateDocumentId: string
+  ): Promise<{ success: boolean; data: unknown; message: string }> => {
+    const response = await api.post(`${BASE_URL}/${subscriptionId}/contracts/create-from-template`, {
+      templateDocumentId
+    });
+    return response.data;
+  },
+
   // Admin endpoints
 
   /**

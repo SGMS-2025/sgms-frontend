@@ -83,6 +83,7 @@ export interface PurchaseSubscriptionRequest {
   transactionId?: string;
   notes?: string;
   months?: number; // 1, 3, 6, 9, or 12
+  templateDocumentId?: string; // Optional template document ID for subscription contract
 }
 
 export interface CreateSubscriptionPackageRequest {

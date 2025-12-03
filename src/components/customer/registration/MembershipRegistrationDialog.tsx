@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { Calendar, CreditCard, FileText, MapPin, User } from 'lucide-react';
+import { Calendar, CreditCard, FileText, User } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,14 +13,14 @@ import { useBranch } from '@/contexts/BranchContext';
 import { membershipApi } from '@/services/api/membershipApi';
 import { discountCampaignApi } from '@/services/api/discountApi';
 import { paymentApi, type PayOSPaymentData } from '@/services/api/paymentApi';
-import { contractDocumentApi } from '@/services/api/contractDocumentApi';
+// import { contractDocumentApi } from '@/services/api/contractDocumentApi'; // Disabled for membership
 import { PayOSPaymentModal } from '@/components/modals/PayOSPaymentModal';
-import PostPurchaseContractDialog from '@/components/contracts/PostPurchaseContractDialog';
-import EmbeddedDocumentViewer from '@/components/contracts/EmbeddedDocumentViewer';
+// import PostPurchaseContractDialog from '@/components/contracts/PostPurchaseContractDialog'; // Disabled for membership
+// import EmbeddedDocumentViewer from '@/components/contracts/EmbeddedDocumentViewer'; // Disabled for membership
 import type { MembershipPlan } from '@/types/api/Membership';
 import type { MembershipRegistrationFormData, MembershipContractResponse } from '@/types/api/Customer';
 import type { DiscountCampaign } from '@/types/api/Discount';
-import type { ContractDocument } from '@/types/api/ContractDocument';
+// import type { ContractDocument } from '@/types/api/ContractDocument'; // Disabled for membership
 import { staffApi } from '@/services/api/staffApi';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import type { Staff } from '@/types/api/Staff';
@@ -47,7 +47,7 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
   onSuccess
 }) => {
   const { t } = useTranslation();
-  const { currentBranch, branches } = useBranch();
+  const { currentBranch } = useBranch();
   const { currentStaff } = useCurrentUserStaff(); // CASE 2: Get current staff if logged in as staff
   const [loading, setLoading] = useState(false);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
@@ -60,11 +60,11 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
   const [payOSData, setPayOSData] = useState<PayOSPaymentData | null>(null);
   const [createdContractId, setCreatedContractId] = useState<string | null>(null);
 
-  // Post-purchase contract states
-  const [showPostPurchaseDialog, setShowPostPurchaseDialog] = useState(false);
-  const [createdContractDocument, setCreatedContractDocument] = useState<ContractDocument | null>(null);
-  const [showSendingViewer, setShowSendingViewer] = useState(false);
-  const [sendingIframeUrl, setSendingIframeUrl] = useState<string | null>(null);
+  // Post-purchase contract states - DISABLED for membership
+  // const [showPostPurchaseDialog, setShowPostPurchaseDialog] = useState(false);
+  // const [createdContractDocument, setCreatedContractDocument] = useState<ContractDocument | null>(null);
+  // const [showSendingViewer, setShowSendingViewer] = useState(false);
+  // const [sendingIframeUrl, setSendingIframeUrl] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<MembershipRegistrationFormData>({
     membershipPlanId: '',
@@ -114,12 +114,12 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
 
   // CASE 2: Fetch staff list when branch changes
   useEffect(() => {
-    if (!isOpen || !formData.branchId) return;
+    if (!isOpen || !currentBranch?._id) return;
 
     const fetchStaffList = async () => {
       setLoadingStaff(true);
       try {
-        const response = await staffApi.getStaffListByBranch(formData.branchId, {
+        const response = await staffApi.getStaffListByBranch(currentBranch._id, {
           limit: 100,
           jobTitle: 'Personal Trainer' // Only show PT for KPI
         });
@@ -134,7 +134,7 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
     };
 
     fetchStaffList();
-  }, [isOpen, formData.branchId]);
+  }, [isOpen, currentBranch?._id]);
 
   // CASE 2: Auto-set referrerStaffId if current user is PT (Personal Trainer)
   // Only PT can receive KPI attribution, so only auto-select if current staff is PT
@@ -195,16 +195,7 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
     }
 
     const contract = response.data?.contract;
-    const contractDocument = response.data?.contractDocument;
     const contractId = contract?._id;
-
-    // Store contract document for post-purchase flow
-    if (contractDocument) {
-      setCreatedContractDocument(contractDocument);
-    } else {
-      // Warn if no template was found
-      toast.info('Hợp đồng đã tạo nhưng chưa có template. Vui lòng tạo hợp đồng thủ công sau.');
-    }
 
     // Note: KPI update will be triggered automatically by backend via Socket.IO
     // when transaction attribution is created and KPI is recalculated
@@ -212,14 +203,9 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
     if (formData.paymentMethod === 'BANK_TRANSFER' && contractId) {
       handlePayOSPayment(contractId);
     } else {
-      // Show post-purchase dialog if contract document exists
-      if (contractDocument) {
-        setLoading(false);
-        setShowPostPurchaseDialog(true);
-      } else {
-        handleRegistrationSuccess();
-        setLoading(false);
-      }
+      // Skip post-purchase dialog, go straight to success
+      handleRegistrationSuccess();
+      setLoading(false);
     }
   };
 
@@ -229,15 +215,21 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
       return;
     }
 
-    if (!formData.branchId) {
+    if (!currentBranch?._id) {
       toast.error(t('membership_registration.error_select_branch'));
       return;
     }
 
     setLoading(true);
 
+    // Use currentBranch instead of formData.branchId
+    const submitData = {
+      ...formData,
+      branchId: currentBranch._id
+    };
+
     membershipApi
-      .createMembershipContract(customerId, formData)
+      .createMembershipContract(customerId, submitData)
       .then(handleContractCreated)
       .catch(() => {
         toast.error(t('membership_registration.error_register'));
@@ -249,74 +241,20 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
     setShowPayOSModal(false);
     toast.success(t('membership_registration.payment_success'));
 
-    // Show post-purchase dialog if contract document exists
-    if (createdContractDocument) {
-      setShowPostPurchaseDialog(true);
-    } else {
-      setTimeout(() => {
-        onSuccess?.();
-        onClose();
-      }, 500);
-    }
-  };
-
-  const handleSendNow = async () => {
-    if (!createdContractDocument) return;
-
-    // Use callback page to handle redirect and prevent nested dashboard
-    // Use 'document' type to allow editing fields before sending (same as ContractDocumentsTab)
-    const redirectUrl = `${window.location.origin}/signnow/callback`;
-    const response = await contractDocumentApi.createEmbeddedSending(createdContractDocument._id, {
-      type: 'document', // 'document' allows editing fields before sending, 'invite' opens invite page directly
-      redirectUrl,
-      linkExpiration: 45, // Max 45 minutes (SignNow API limit for embedded-sending)
-      redirectTarget: 'self' // Redirect in same iframe, but callback page will handle closing
-    });
-
-    if (response.success && response.data?.link) {
-      setSendingIframeUrl(response.data.link);
-      setShowSendingViewer(true);
-    } else {
-      toast.error('Không thể tạo link gửi hợp đồng');
-    }
-  };
-
-  const handleSendLater = () => {
-    toast.info('Bạn có thể gửi hợp đồng sau trong trang Quản lý hợp đồng');
+    // Skip post-purchase dialog, go straight to close
     setTimeout(() => {
       onSuccess?.();
       onClose();
     }, 500);
   };
 
-  const handleSendingViewerClose = () => {
-    // Prevent multiple calls (onSave and onClose both call this)
-    if (!showSendingViewer) {
-      return; // Already handled
-    }
-
-    // Close the viewer first
-    setShowSendingViewer(false);
-    setSendingIframeUrl(null);
-
-    // Show success message immediately
-    toast.success('Hợp đồng đã được gửi đi!');
-
-    // Refresh document in background (non-blocking) to update signers info
-    if (createdContractDocument) {
-      // Fire and forget - refresh in background without blocking UI
-      contractDocumentApi.refreshDocument(createdContractDocument._id).catch((error) => {
-        console.error('Failed to refresh document:', error);
-        // Silently fail - user already sees success
-      });
-    }
-
-    // Close dialog and call success callback immediately (only once)
-    setTimeout(() => {
-      onSuccess?.();
-      onClose();
-    }, 100);
-  };
+  // Contract sending handlers - DISABLED for membership
+  // const handleSendNow = async () => {
+  //   if (!createdContractDocument) return;
+  //   ...
+  // };
+  // const handleSendLater = () => { ... };
+  // const handleSendingViewerClose = () => { ... };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -381,27 +319,6 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
                         </ul>
                       </div>
                     )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      <MapPin className="inline h-4 w-4" /> {t('membership_registration.branch_label')}
-                    </Label>
-                    <Select
-                      value={formData.branchId}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, branchId: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('membership_registration.branch_placeholder')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {branches.map((branch) => (
-                          <SelectItem key={branch._id} value={branch._id}>
-                            {branch.branchName} - {branch.location}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
 
                   <div className="space-y-2">
@@ -586,31 +503,15 @@ export const MembershipRegistrationDialog: React.FC<MembershipRegistrationDialog
           paymentData={payOSData}
           onPaymentSuccess={handlePaymentSuccess}
           customerId={customerId}
-          branchId={formData.branchId}
+          branchId={currentBranch?._id || ''}
           contractId={createdContractId}
           contractType="membership"
         />
       )}
 
-      {/* Post-Purchase Contract Dialog */}
-      <PostPurchaseContractDialog
-        open={showPostPurchaseDialog}
-        onOpenChange={setShowPostPurchaseDialog}
-        contractDocument={createdContractDocument}
-        onSendNow={handleSendNow}
-        onSendLater={handleSendLater}
-      />
-
-      {/* Embedded Sending Viewer */}
-      <EmbeddedDocumentViewer
-        open={showSendingViewer}
-        onOpenChange={setShowSendingViewer}
-        documentTitle={createdContractDocument?.title || 'Contract Document'}
-        mode="sending"
-        iframeUrl={sendingIframeUrl}
-        onSave={handleSendingViewerClose}
-        // Don't pass onClose - onSave will handle everything to avoid double call
-      />
+      {/* Post-Purchase Contract Dialog - DISABLED for membership */}
+      {/* <PostPurchaseContractDialog ... /> */}
+      {/* <EmbeddedDocumentViewer ... /> */}
     </Dialog>
   );
 };
