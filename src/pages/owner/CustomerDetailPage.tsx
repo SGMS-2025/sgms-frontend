@@ -3,14 +3,12 @@ import type { ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Activity,
   AlertTriangle,
   ArrowLeft,
   Calendar,
   CalendarCheck,
   CalendarDays,
   CreditCard,
-  Crown,
   Dumbbell,
   FileText,
   IdCard,
@@ -263,7 +261,7 @@ const CustomerDetailPage: React.FC = () => {
         debouncedFetchCustomerDetail();
       }
     },
-    [customer?.id, id, debouncedFetchCustomerDetail]
+    [id, debouncedFetchCustomerDetail, customer]
   );
 
   useEffect(() => {
@@ -469,12 +467,6 @@ const CustomerDetailPage: React.FC = () => {
                   >
                     {statusLabel}
                   </Badge>
-                  {customer.isLoyal && (
-                    <Badge className="border-white/40 bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
-                      <Crown className="h-3.5 w-3.5" />
-                      {t('customer_detail.loyal_customer')}
-                    </Badge>
-                  )}
                 </div>
                 {!!contactChips.length && (
                   <div className="flex flex-wrap items-center gap-2 text-sm text-white/90">
@@ -553,18 +545,6 @@ const CustomerDetailPage: React.FC = () => {
                 {t('customer_detail.tabs.payment')}
               </TabsTrigger>
               <TabsTrigger
-                value="fitness-calculator"
-                className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wide transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
-                {t('customer_detail.tabs.fitness_calculator')}
-              </TabsTrigger>
-              <TabsTrigger
-                value="member-reports"
-                className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wide transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
-                {t('customer_detail.tabs.member_reports')}
-              </TabsTrigger>
-              <TabsTrigger
                 value="contracts"
                 className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wide transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
@@ -612,10 +592,17 @@ const CustomerDetailPage: React.FC = () => {
                   value={formatDate(customer.createdAt, locale)}
                 />
                 <InfoField
-                  label={t('customer_detail.personal_info.category')}
-                  value={
-                    customer.isLoyal ? t('customer_detail.loyal_customer') : t('customer_detail.standard_customer')
-                  }
+                  label={t('customer_detail.contact_card.address')}
+                  value={customer.address || notUpdatedText}
+                />
+                <InfoField label={t('customer_detail.contact_card.branch')} value={branchDisplay} />
+                <InfoField
+                  label={t('customer_detail.contact_card.referrer')}
+                  value={customer.referrerStaffName || notUpdatedText}
+                />
+                <InfoField
+                  label={t('customer_detail.contact_card.card_code')}
+                  value={customer.cardCode || notUpdatedText}
                 />
               </CardContent>
             </Card>
@@ -825,64 +812,35 @@ const CustomerDetailPage: React.FC = () => {
               </Card>
             </div>
 
-            {/* Contact and Payment Info - 2 Columns */}
-            <div className="grid gap-6 xl:grid-cols-2">
-              <Card className="rounded-3xl border border-border bg-card shadow-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <MapPin className="h-5 w-5 text-primary" />
-                    {t('customer_detail.contact_card.title')}
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">{t('customer_detail.contact_card.description')}</p>
-                </CardHeader>
-                <CardContent className="grid gap-4 sm:grid-cols-2">
-                  <InfoField label={t('customer_detail.contact_card.phone')} value={customer.phone || notUpdatedText} />
-                  <InfoField label={t('customer_detail.contact_card.email')} value={customer.email || notUpdatedText} />
-                  <InfoField
-                    label={t('customer_detail.contact_card.address')}
-                    value={customer.address || notUpdatedText}
-                  />
-                  <InfoField label={t('customer_detail.contact_card.branch')} value={branchDisplay} />
-                  <InfoField
-                    label={t('customer_detail.contact_card.referrer')}
-                    value={customer.referrerStaffName || notUpdatedText}
-                  />
-                  <InfoField
-                    label={t('customer_detail.contact_card.card_code')}
-                    value={customer.cardCode || notUpdatedText}
-                  />
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-3xl border border-border bg-card shadow-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <CreditCard className="h-5 w-5 text-primary" />
-                    {t('customer_detail.payment_card.title')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-4 sm:grid-cols-2">
-                  <InfoField label={t('customer_detail.payment_card.total_spent')} value={totalSpentLabel} />
-                  <InfoField label={t('customer_detail.payment_card.last_payment')} value={lastPaymentLabel} />
-                  <InfoField
-                    label={t('customer_detail.payment_card.paid_membership')}
-                    value={
-                      hasMembership && membershipContract
-                        ? formatCurrency(membershipContract.paidAmount || membershipContract.totalAmount || 0, locale)
-                        : notUpdatedText
-                    }
-                  />
-                  <InfoField
-                    label={t('customer_detail.payment_card.paid_service')}
-                    value={
-                      ptContract || classContract
-                        ? formatCurrency((ptContract?.paidAmount || 0) + (classContract?.paidAmount || 0), locale)
-                        : notUpdatedText
-                    }
-                  />
-                </CardContent>
-              </Card>
-            </div>
+            {/* Payment Info Card */}
+            <Card className="rounded-3xl border border-border bg-card shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                  {t('customer_detail.payment_card.title')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4 sm:grid-cols-2">
+                <InfoField label={t('customer_detail.payment_card.total_spent')} value={totalSpentLabel} />
+                <InfoField label={t('customer_detail.payment_card.last_payment')} value={lastPaymentLabel} />
+                <InfoField
+                  label={t('customer_detail.payment_card.paid_membership')}
+                  value={
+                    hasMembership && membershipContract
+                      ? formatCurrency(membershipContract.paidAmount || membershipContract.totalAmount || 0, locale)
+                      : notUpdatedText
+                  }
+                />
+                <InfoField
+                  label={t('customer_detail.payment_card.paid_service')}
+                  value={
+                    ptContract || classContract
+                      ? formatCurrency((ptContract?.paidAmount || 0) + (classContract?.paidAmount || 0), locale)
+                      : notUpdatedText
+                  }
+                />
+              </CardContent>
+            </Card>
 
             {customer.notes && (
               <Card className="rounded-3xl border border-border bg-card shadow-sm">
@@ -927,22 +885,6 @@ const CustomerDetailPage: React.FC = () => {
 
           <TabsContent value="payment" className="pt-4">
             {customer.id && <PaymentHistoryTab customerId={customer.id} />}
-          </TabsContent>
-
-          <TabsContent value="fitness-calculator" className="pt-4">
-            <PlaceholderCard
-              icon={Activity}
-              title={t('customer_detail.placeholders.fitness_calculator.title')}
-              description={t('customer_detail.placeholders.fitness_calculator.description')}
-            />
-          </TabsContent>
-
-          <TabsContent value="member-reports" className="pt-4">
-            <PlaceholderCard
-              icon={FileText}
-              title={t('customer_detail.placeholders.member_reports.title')}
-              description={t('customer_detail.placeholders.member_reports.description')}
-            />
           </TabsContent>
 
           <TabsContent value="contracts" className="pt-4">

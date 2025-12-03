@@ -14,7 +14,6 @@ import { Loader2 } from 'lucide-react';
 
 interface TemplateSelectionStepProps {
   contractId: string | null;
-  contractType: 'service_pt' | 'service_class';
   branchId: string | undefined;
   customerId: string;
   onTemplateSelected: (contractDocument: ContractDocument) => void;
@@ -23,7 +22,6 @@ interface TemplateSelectionStepProps {
 
 export const TemplateSelectionStep: React.FC<TemplateSelectionStepProps> = ({
   contractId,
-  contractType,
   branchId,
   customerId,
   onTemplateSelected,
@@ -40,7 +38,7 @@ export const TemplateSelectionStep: React.FC<TemplateSelectionStepProps> = ({
       fetchTemplates();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branchId, contractType, contractId]);
+  }, [branchId, contractId]);
 
   const fetchTemplates = async () => {
     if (!branchId) return;
@@ -57,9 +55,9 @@ export const TemplateSelectionStep: React.FC<TemplateSelectionStepProps> = ({
 
       if (response.success && response.data) {
         const documents = Array.isArray(response.data) ? response.data : response.data.documents || [];
+        // All templates are for PT service by default, so just filter by isTemplate and status
         const filteredTemplates = documents.filter(
-          (doc: ContractDocument) =>
-            doc.isTemplate && doc.templateContractType === contractType && doc.status !== 'deleted'
+          (doc: ContractDocument) => doc.isTemplate && doc.status !== 'deleted'
         );
         setTemplates(filteredTemplates);
 
@@ -89,7 +87,7 @@ export const TemplateSelectionStep: React.FC<TemplateSelectionStepProps> = ({
         templateDocumentId: selectedTemplateId,
         contractId,
         branchId,
-        contractType
+        contractType: 'service_pt' // Only PT contracts need templates
       });
 
       if (response.success && response.data) {

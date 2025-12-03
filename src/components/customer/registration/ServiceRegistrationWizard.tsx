@@ -64,8 +64,9 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
     // Only skip payment step if paying with CASH (no PayOS needed)
     // For BANK_TRANSFER, always show payment step to display QR code
     skipPayment: formData.paymentMethod === 'CASH',
-    skipTemplate: false,
-    skipSendContract: false
+    // Skip template and send contract steps for CLASS
+    skipTemplate: packageType === 'CLASS',
+    skipSendContract: packageType === 'CLASS'
   });
 
   // Auto-set referrerStaffId if current user is PT
@@ -174,8 +175,14 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
           }
           wizard.goToStep('payment');
         } else {
-          // CASH payment, skip payment step and go to template
-          wizard.goToStep('template');
+          // CASH payment, skip payment step
+          // For CLASS, skip template and go to success
+          // For PT, go to template step
+          if (packageType === 'CLASS') {
+            wizard.goToStep('success');
+          } else {
+            wizard.goToStep('template');
+          }
         }
       }
       setIsCreatingContract(false);
@@ -292,7 +299,6 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
         return (
           <TemplateSelectionStep
             contractId={contractResponse?.data?._id || null}
-            contractType={packageType === 'PT' ? 'service_pt' : 'service_class'}
             branchId={currentBranch?._id}
             customerId={customerId}
             onTemplateSelected={handleTemplateSelected}

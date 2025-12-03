@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, AlertCircle, Camera, Shield } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { Loader2, AlertCircle, Camera, Shield, FileText, Eye, Download } from 'lucide-react';
 import { useProfileData } from '@/hooks/useProfileData';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -17,8 +17,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { userApi } from '@/services/api/userApi';
-import { useAuthActions } from '@/hooks/useAuth';
+import { useAuthActions, useAuthState } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { contractDocumentApi } from '@/services/api/contractDocumentApi';
+import { subscriptionApi } from '@/services/api/subscriptionApi';
+import type { ContractDocument } from '@/types/api/ContractDocument';
+import EmbeddedDocumentViewer from '@/components/contracts/EmbeddedDocumentViewer';
 
 const ProfileAccountSettingsPage: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -46,12 +50,188 @@ const ProfileAccountSettingsPage: React.FC = () => {
     handlePasswordChange
   } = useProfileData();
   const { updateUser } = useAuthActions();
+  const authState = useAuthState();
+  const currentUser = authState.user; // Get user from state
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [activeNav, setActiveNav] = useState<'edit-profile' | 'security'>('edit-profile');
+  const [activeNav, setActiveNav] = useState<'edit-profile' | 'security' | 'contracts'>('edit-profile');
+
+  // Contracts state
+  const [contracts, setContracts] = useState<ContractDocument[]>([]);
+  const [loadingContracts, setLoadingContracts] = useState(false);
+  const [embeddedViewerOpen, setEmbeddedViewerOpen] = useState(false);
+  const [selectedContract, setSelectedContract] = useState<ContractDocument | null>(null);
+  const [embeddedIframeUrl, setEmbeddedIframeUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setIsEditing(true);
   }, [setIsEditing]);
+
+  // Fetch owner's signed subscription contracts
+  const fetchContracts = useCallback(async () => {
+    if (!currentUser?._id) {
+      return;
+    }
+
+    setLoadingContracts(true);
+    try {
+      const ownerUserId = typeof currentUser._id === 'string' ? currentUser._id : currentUser._id.toString();
+
+      // Fetch subscription history to get subscription IDs
+      const subscriptionHistory = await subscriptionApi.getSubscriptionHistory({ includeExpired: true, limit: 100 });
+      const subscriptionIds =
+        subscriptionHistory.success && subscriptionHistory.data
+          ? subscriptionHistory.data.map((sub) => (typeof sub._id === 'string' ? sub._id : sub._id.toString()))
+          : [];
+
+      // Fetch all subscription contracts
+      let result = await contractDocumentApi.listDocuments({
+        page: 1,
+        limit: 100,
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+        status: 'all',
+        type: 'contracts',
+        tags: ['subscription']
+      });
+
+      // If no results, try without tags filter
+      if (!result.success || !result.data || (Array.isArray(result.data) && result.data.length === 0)) {
+        result = await contractDocumentApi.listDocuments({
+          page: 1,
+          limit: 100,
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+          status: 'all',
+          type: 'contracts'
+        });
+      }
+
+      if (result.success && result.data) {
+        const documents = Array.isArray(result.data) ? result.data : [];
+
+        // Filter contracts that belong to owner and are signed
+        const ownerContracts = documents.filter((doc: ContractDocument) => {
+          // Check if it's a subscription contract:
+          // 1. Has subscription tag, OR
+          // 2. Has contractId (subscription contracts have contractId = subscriptionId), OR
+          // 3. customerId is null (subscription contracts don't have customerId)
+          const hasSubscriptionTag = doc.tags && doc.tags.some((tag: string) => tag.toLowerCase() === 'subscription');
+          const hasContractId = !!doc.contractId;
+          const noCustomerId = !doc.customerId;
+
+          const isSubscriptionContract = hasSubscriptionTag || (hasContractId && noCustomerId);
+
+          if (!isSubscriptionContract) {
+            return false;
+          }
+
+          // Check if contract belongs to owner:
+          // 1. createdBy matches owner userId, OR
+          // 2. contractId matches one of owner's subscription IDs
+          const docCreatedBy = doc.createdBy
+            ? typeof doc.createdBy === 'string'
+              ? doc.createdBy
+              : typeof doc.createdBy === 'object' && doc.createdBy !== null && '_id' in doc.createdBy
+                ? typeof doc.createdBy._id === 'string'
+                  ? doc.createdBy._id
+                  : doc.createdBy._id.toString()
+                : String(doc.createdBy)
+            : null;
+
+          const docContractId = doc.contractId
+            ? typeof doc.contractId === 'string'
+              ? doc.contractId
+              : String(doc.contractId)
+            : null;
+
+          const belongsToOwner =
+            docCreatedBy === ownerUserId || (docContractId && subscriptionIds.includes(docContractId));
+
+          if (!belongsToOwner) {
+            return false;
+          }
+
+          // Check if contract is signed:
+          // 1. status === 'signed', OR
+          // 2. all signers have signed (status includes 'signed', 'completed', 'fulfilled')
+          const isSigned =
+            doc.status === 'signed' ||
+            (doc.signers &&
+              doc.signers.length > 0 &&
+              doc.signers.every((s) => {
+                const signerStatus = (s.status || '').toLowerCase();
+                return (
+                  signerStatus === 'signed' ||
+                  signerStatus === 'completed' ||
+                  signerStatus === 'fulfilled' ||
+                  signerStatus === 'signed_completed' ||
+                  signerStatus === 'completed_signed' ||
+                  s.signed === true ||
+                  s.is_signed === true ||
+                  s.completed === true
+                );
+              }));
+
+          return isSigned;
+        });
+
+        setContracts(ownerContracts);
+      } else {
+        setContracts([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch contracts:', error);
+      toast.error('Không thể tải danh sách hợp đồng');
+      setContracts([]);
+    } finally {
+      setLoadingContracts(false);
+    }
+  }, [currentUser?._id]);
+
+  useEffect(() => {
+    if (activeNav === 'contracts') {
+      fetchContracts();
+    }
+  }, [activeNav, fetchContracts]);
+
+  // Handle view contract
+  const handleViewContract = async (contract: ContractDocument) => {
+    try {
+      const response = await contractDocumentApi.createEmbeddedView(contract._id, {
+        redirectUrl: `${window.location.origin}/signnow/callback`
+      });
+
+      if (response.success && response.data?.link) {
+        setSelectedContract(contract);
+        setEmbeddedIframeUrl(response.data.link);
+        setEmbeddedViewerOpen(true);
+      } else {
+        toast.error('Không thể mở hợp đồng');
+      }
+    } catch (error) {
+      console.error('Failed to open contract:', error);
+      toast.error('Không thể mở hợp đồng');
+    }
+  };
+
+  // Handle download contract
+  const handleDownloadContract = async (contract: ContractDocument) => {
+    try {
+      const blob = await contractDocumentApi.downloadDocument(contract._id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${contract.title || 'contract'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Đã tải xuống hợp đồng');
+    } catch (error) {
+      console.error('Failed to download contract:', error);
+      toast.error('Không thể tải xuống hợp đồng');
+    }
+  };
 
   const initials = useMemo(() => {
     if (userData.name) {
@@ -101,12 +281,13 @@ const ProfileAccountSettingsPage: React.FC = () => {
     );
   }
 
-  const navItems: { key: 'edit-profile' | 'security'; label: string }[] = [
+  const navItems: { key: 'edit-profile' | 'security' | 'contracts'; label: string }[] = [
     { key: 'edit-profile', label: 'Chỉnh sửa hồ sơ' },
-    { key: 'security', label: 'Bảo mật' }
+    { key: 'security', label: 'Bảo mật' },
+    { key: 'contracts', label: 'Hợp đồng' }
   ];
 
-  const handleNavClick = (key: 'edit-profile' | 'security') => {
+  const handleNavClick = (key: 'edit-profile' | 'security' | 'contracts') => {
     setActiveNav(key);
   };
 
@@ -403,6 +584,89 @@ const ProfileAccountSettingsPage: React.FC = () => {
                     </div>
                   </div>
                 )}
+
+                {activeNav === 'contracts' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-gray-500">Hợp đồng</p>
+                        <h2 className="text-xl font-semibold text-gray-900">Hợp đồng đã ký</h2>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Xem và tải xuống các hợp đồng subscription đã được ký
+                        </p>
+                      </div>
+                    </div>
+
+                    {loadingContracts ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="flex items-center gap-3 text-gray-600">
+                          <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
+                          <span>Đang tải hợp đồng...</span>
+                        </div>
+                      </div>
+                    ) : contracts.length === 0 ? (
+                      <div className="rounded-2xl border border-gray-200 bg-white/60 p-8 text-center">
+                        <FileText className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                        <p className="text-gray-600">Chưa có hợp đồng nào đã được ký</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {contracts.map((contract) => (
+                          <div
+                            key={contract._id}
+                            className="rounded-2xl border border-gray-200 bg-white p-4 hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-gray-900 mb-1">{contract.title}</h3>
+                                <p className="text-sm text-gray-500 mb-2">
+                                  {contract.description || 'Hợp đồng subscription'}
+                                </p>
+                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                  <span>
+                                    {contract.createdAt
+                                      ? new Date(contract.createdAt).toLocaleDateString('vi-VN', {
+                                          year: 'numeric',
+                                          month: 'long',
+                                          day: 'numeric'
+                                        })
+                                      : '-'}
+                                  </span>
+                                  {contract.fileSize && (
+                                    <>
+                                      <span>•</span>
+                                      <span>{(contract.fileSize / 1024).toFixed(2)} KB</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 ml-4">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="rounded-full border-gray-200"
+                                  onClick={() => handleViewContract(contract)}
+                                >
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  Xem
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="rounded-full border-gray-200"
+                                  onClick={() => handleDownloadContract(contract)}
+                                >
+                                  <Download className="w-4 h-4 mr-2" />
+                                  Tải xuống
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -429,6 +693,24 @@ const ProfileAccountSettingsPage: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Embedded Document Viewer */}
+      {embeddedViewerOpen && selectedContract && (
+        <EmbeddedDocumentViewer
+          open={embeddedViewerOpen}
+          onOpenChange={(open) => {
+            setEmbeddedViewerOpen(open);
+            if (!open) {
+              setEmbeddedIframeUrl(null);
+              setSelectedContract(null);
+            }
+          }}
+          documentId={selectedContract._id}
+          iframeUrl={embeddedIframeUrl}
+          documentTitle={selectedContract.title}
+          mode="view"
+        />
+      )}
     </div>
   );
 };

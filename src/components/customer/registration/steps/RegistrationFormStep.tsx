@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, Package, Calendar } from 'lucide-react';
+import { User, Package, Calendar, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { formatCurrency } from '@/utils/currency';
 import type { ServiceRegistrationFormData, PriceCalculation } from '@/hooks/useServiceRegistration';
 import type { ServicePackage } from '@/types/api/Package';
@@ -39,6 +42,10 @@ export const RegistrationFormStep: React.FC<RegistrationFormStepProps> = ({
   packageType
 }) => {
   const { t } = useTranslation();
+  const [trainerPopoverOpen, setTrainerPopoverOpen] = useState(false);
+
+  // Get selected trainer name for display
+  const selectedTrainer = trainers.find((trainer) => trainer.userId._id === formData.primaryTrainerId);
 
   return (
     <Card className="rounded-3xl border border-border bg-card shadow-sm">
@@ -122,24 +129,55 @@ export const RegistrationFormStep: React.FC<RegistrationFormStepProps> = ({
             {packageType === 'PT' && (
               <div className="space-y-2">
                 <Label className="text-sm font-medium">{t('pt_registration.trainer_label')}</Label>
-                <Select
-                  value={formData.primaryTrainerId}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, primaryTrainerId: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('pt_registration.trainer_placeholder')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {trainers.map((trainer) => (
-                      <SelectItem key={trainer._id} value={trainer.userId._id}>
+                <Popover open={trainerPopoverOpen} onOpenChange={setTrainerPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={trainerPopoverOpen}
+                      className="w-full justify-between font-normal"
+                      type="button"
+                    >
+                      {selectedTrainer ? (
                         <div className="flex items-center gap-2">
                           <User className="h-3 w-3" />
-                          {trainer.userId.fullName || t('pt_registration.unknown')}
+                          <span>{selectedTrainer.userId.fullName || t('pt_registration.unknown')}</span>
                         </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      ) : (
+                        <span className="text-muted-foreground">{t('pt_registration.trainer_placeholder')}</span>
+                      )}
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0 z-[200]" align="start" sideOffset={4}>
+                    <Command>
+                      <CommandInput placeholder={t('class.form.search_trainers')} />
+                      <CommandList>
+                        <CommandEmpty>{t('class.form.no_trainers_found')}</CommandEmpty>
+                        <CommandGroup className="max-h-[200px] overflow-y-auto">
+                          {trainers
+                            .filter((trainer) => trainer.userId)
+                            .map((trainer) => (
+                              <CommandItem
+                                key={trainer._id}
+                                value={trainer.userId.fullName || ''}
+                                onSelect={() => {
+                                  setFormData((prev) => ({ ...prev, primaryTrainerId: trainer.userId._id }));
+                                  setTrainerPopoverOpen(false);
+                                }}
+                                className="cursor-pointer"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <User className="h-3 w-3" />
+                                  <span>{trainer.userId.fullName || t('pt_registration.unknown')}</span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             )}
 

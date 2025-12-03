@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   CreditCard,
   DollarSign,
@@ -28,6 +28,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import type { ContractDocument } from '@/types/api/ContractDocument';
 import { subscriptionApi } from '@/services/api/subscriptionApi';
 import { extractAndTranslateApiError } from '@/utils/errorHandler';
 import { usePaymentSocket } from '@/hooks/usePaymentSocket';
@@ -36,6 +37,7 @@ import type {
   PaymentTransactionInfo,
   PurchaseSubscriptionResponse
 } from '@/types/api/Subscription';
+import { SelectSubscriptionTemplateStep } from './SelectSubscriptionTemplateStep';
 
 interface PurchaseSubscriptionModalProps {
   open: boolean;
@@ -45,7 +47,7 @@ interface PurchaseSubscriptionModalProps {
 }
 
 type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'CREDIT_CARD' | 'PAYOS';
-type FlowStep = 'details' | 'bank-qr' | 'bank-wait' | 'bank-success';
+type FlowStep = 'details' | 'bank-qr' | 'bank-wait' | 'bank-success' | 'template' | 'send-contract';
 
 export const PurchaseSubscriptionModal = ({
   open,
@@ -82,6 +84,8 @@ export const PurchaseSubscriptionModal = ({
   const [months, setMonths] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState<FlowStep>('details');
+  const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
+  const [contractDocument, setContractDocument] = useState<ContractDocument | null>(null);
   const [paymentTransaction, setPaymentTransaction] = useState<PaymentTransactionInfo | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid' | 'expired'>('pending');
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
@@ -103,6 +107,8 @@ export const PurchaseSubscriptionModal = ({
       setInitialTimeRemaining(0);
       setIsPolling(false);
       setCurrentStep('details');
+      setSubscriptionId(null);
+      setContractDocument(null);
     }
   }, [open]);
 
@@ -175,9 +181,9 @@ export const PurchaseSubscriptionModal = ({
           setPaymentStatus('paid');
           setCurrentStep('bank-success');
           toast.success(t('subscription.payment.success'));
+          // After payment success, get subscriptionId and go to template step
           setTimeout(() => {
-            onOpenChange(false);
-            onSuccess?.();
+            handlePaymentSuccess();
           }, 1600);
         }
       } catch (error) {
@@ -189,7 +195,18 @@ export const PurchaseSubscriptionModal = ({
 
     const interval = setInterval(checkPayment, 5000);
     return () => clearInterval(interval);
-  }, [open, paymentTransaction, paymentStatus, currentStep, isConnected, isPolling, t, onOpenChange, onSuccess]);
+  }, [
+    open,
+    paymentTransaction,
+    paymentStatus,
+    currentStep,
+    isConnected,
+    isPolling,
+    t,
+    onOpenChange,
+    onSuccess,
+    handlePaymentSuccess
+  ]);
 
   const progressPercent = useMemo(() => {
     if (!paymentTransaction || initialTimeRemaining === 0) return 0;
@@ -237,6 +254,11 @@ export const PurchaseSubscriptionModal = ({
         ) {
           const txData = responseData.paymentTransaction as PaymentTransactionInfo;
           startBankFlow(txData);
+        } else if (responseData && typeof responseData === 'object' && '_id' in responseData) {
+          // Subscription created successfully (CASH payment or immediate activation)
+          // Save subscriptionId and go to template step
+          setSubscriptionId(responseData._id as string);
+          setCurrentStep('template');
         } else {
           toast.success(t('subscription.modal.success.title'), {
             description: t('subscription.modal.success.description')
@@ -251,6 +273,40 @@ export const PurchaseSubscriptionModal = ({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handlePaymentSuccess = useCallback(() => {
+    // After payment success, go to template step if subscriptionId is available
+    if (subscriptionId) {
+      setCurrentStep('template');
+    } else {
+      // If no subscriptionId, try to get it from active subscription
+      subscriptionApi.getActiveSubscription().then((result) => {
+        if (result.success && result.data && typeof result.data === 'object' && '_id' in result.data) {
+          setSubscriptionId(result.data._id as string);
+          setCurrentStep('template');
+        } else {
+          toast.success(t('subscription.modal.success.title'), {
+            description: t('subscription.modal.success.description')
+          });
+          onOpenChange(false);
+          onSuccess?.();
+        }
+      });
+    }
+  }, [subscriptionId, t, onOpenChange, onSuccess]);
+
+  const handleTemplateSelected = (contractDoc: ContractDocument) => {
+    setContractDocument(contractDoc);
+    setCurrentStep('send-contract');
+  };
+
+  const handleContractSent = () => {
+    toast.success(t('subscription.modal.success.title'), {
+      description: t('subscription.modal.success.description')
+    });
+    onOpenChange(false);
+    onSuccess?.();
   };
 
   if (!pkg) return null;
@@ -279,19 +335,20 @@ export const PurchaseSubscriptionModal = ({
               {[
                 { key: 'details', label: t('subscription.modal.step.plan', 'Plan & billing') },
                 { key: 'payment', label: t('subscription.modal.step.payment', 'Payment') },
+                { key: 'contract', label: t('subscription.modal.step.contract', 'Contract') },
                 { key: 'confirmation', label: t('subscription.modal.step.confirmation', 'Confirmation') }
               ].map((step, index) => {
                 const isActive =
                   (step.key === 'details' && currentStep === 'details') ||
                   (step.key === 'payment' &&
-                    currentStep !== 'details' &&
-                    currentStep !== 'bank-success' &&
-                    paymentStatus !== 'expired') ||
-                  (step.key === 'confirmation' && (currentStep === 'bank-success' || paymentStatus === 'expired'));
+                    (currentStep === 'bank-qr' || currentStep === 'bank-wait' || currentStep === 'bank-success')) ||
+                  (step.key === 'contract' && (currentStep === 'template' || currentStep === 'send-contract')) ||
+                  (step.key === 'confirmation' && currentStep === 'send-contract');
 
                 const isDone =
                   (step.key === 'details' && currentStep !== 'details') ||
-                  (step.key === 'payment' && (currentStep === 'bank-success' || paymentStatus === 'expired'));
+                  (step.key === 'payment' && (currentStep === 'template' || currentStep === 'send-contract')) ||
+                  (step.key === 'contract' && currentStep === 'send-contract');
 
                 return (
                   <div key={step.key} className="flex items-center gap-2">
@@ -315,6 +372,31 @@ export const PurchaseSubscriptionModal = ({
           </DialogHeader>
 
           <ScrollArea className="relative z-10 max-h-[70vh]">
+            {currentStep === 'template' && subscriptionId && (
+              <SelectSubscriptionTemplateStep
+                subscriptionId={subscriptionId}
+                onTemplateSelected={handleTemplateSelected}
+                onSkip={() => {
+                  toast.success(t('subscription.modal.success.title'), {
+                    description: t('subscription.modal.success.description')
+                  });
+                  onOpenChange(false);
+                  onSuccess?.();
+                }}
+              />
+            )}
+
+            {currentStep === 'send-contract' && contractDocument && (
+              <div className="px-8 py-6">
+                <p className="text-center text-gray-600">
+                  {t('subscription.contract.send.step', 'Contract created successfully. You can send it later.')}
+                </p>
+                <div className="mt-4 flex justify-end">
+                  <Button onClick={handleContractSent}>{t('common.continue', 'Continue')}</Button>
+                </div>
+              </div>
+            )}
+
             {currentStep === 'details' && (
               <div className="grid gap-6 px-8 py-6 lg:grid-cols-[1.1fr_1fr]">
                 {/* Snapshot column */}
@@ -789,19 +871,10 @@ export const PurchaseSubscriptionModal = ({
                 disabled={isSubmitting}
                 className="h-11 bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/40 transition-all duration-300 hover:shadow-orange-500/60 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
               >
-                {isSubmitting ? (
-                  <span className="flex items-center gap-2">
-                    <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin"></span>
-                    {t('subscription.modal.button.processing')}
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <Check className="h-5 w-5" />
-                    {paymentMethod === 'BANK_TRANSFER'
-                      ? t('subscription.modal.button.continue', 'Continue')
-                      : t('subscription.modal.button.confirm')}
-                  </span>
-                )}
+                <span className="flex items-center gap-2">
+                  <Check className="h-5 w-5" />
+                  {t('subscription.modal.button.continue', 'Continue')}
+                </span>
               </Button>
             </DialogFooter>
           )}
