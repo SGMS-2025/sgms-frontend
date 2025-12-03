@@ -37,7 +37,8 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({ message, formatMe
             <MarkdownRenderer
               content={message.content}
               className={cn(
-                'prose prose-sm max-w-none text-foreground prose-p:mb-2 last:prose-p:mb-0 prose-ul:mb-2 last:prose-ul:mb-0 prose-ol:mb-2 last:prose-ol:mb-0 prose-li:mb-0 prose-pre:rounded-md prose-pre:p-3 prose-pre:bg-background [&_p:last-child]:mb-0 [&_ul:last-child]:mb-0 [&_ol:last-child]:mb-0',
+                // Giới hạn chiều ngang và cho phép xuống dòng khi nội dung quá dài
+                'prose prose-sm max-w-full break-words text-foreground prose-p:mb-2 last:prose-p:mb-0 prose-ul:mb-2 last:prose-ul:mb-0 prose-ol:mb-2 last:prose-ol:mb-0 prose-li:mb-0 prose-pre:rounded-md prose-pre:p-3 prose-pre:bg-background [&_p:last-child]:mb-0 [&_ul:last-child]:mb-0 [&_ol:last-child]:mb-0',
                 isErrorMessage && 'text-destructive'
               )}
             />
