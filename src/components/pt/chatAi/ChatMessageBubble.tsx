@@ -31,19 +31,26 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({ message, formatMe
           </div>
         </div>
       )}
-      <div className={cn('flex flex-col gap-1 max-w-[70%]', message.senderType === 'PT' && 'items-end')}>
-        <div className={cn(baseBubbleClass, visualStateClass)}>
+      <div className={cn('flex flex-col gap-1 max-w-[40%] min-w-0', message.senderType === 'PT' && 'items-end')}>
+        <div
+          className={cn(baseBubbleClass, visualStateClass, 'w-full break-words')}
+          style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+        >
           {message.senderType === 'AI' ? (
-            <MarkdownRenderer
-              content={message.content}
-              className={cn(
-                // Giới hạn chiều ngang và cho phép xuống dòng khi nội dung quá dài
-                'prose prose-sm max-w-full break-words text-foreground prose-p:mb-2 last:prose-p:mb-0 prose-ul:mb-2 last:prose-ul:mb-0 prose-ol:mb-2 last:prose-ol:mb-0 prose-li:mb-0 prose-pre:rounded-md prose-pre:p-3 prose-pre:bg-background [&_p:last-child]:mb-0 [&_ul:last-child]:mb-0 [&_ol:last-child]:mb-0',
-                isErrorMessage && 'text-destructive'
-              )}
-            />
+            <div style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+              <MarkdownRenderer
+                content={message.content}
+                className={cn(
+                  'prose prose-sm max-w-full break-words text-foreground prose-p:mb-2 last:prose-p:mb-0 prose-ul:mb-2 last:prose-ul:mb-0 prose-ol:mb-2 last:prose-ol:mb-0 prose-li:mb-0 prose-pre:rounded-md prose-pre:p-3 prose-pre:bg-background prose-pre:overflow-x-auto [&_p:last-child]:mb-0 [&_ul:last-child]:mb-0 [&_ol:last-child]:mb-0 [&_*]:break-words',
+                  isErrorMessage && 'text-destructive'
+                )}
+              />
+            </div>
           ) : (
-            <p className={cn('text-sm whitespace-pre-wrap break-words m-0', isErrorMessage && 'text-destructive')}>
+            <p
+              className={cn('text-sm whitespace-pre-wrap break-words m-0', isErrorMessage && 'text-destructive')}
+              style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+            >
               {message.content}
             </p>
           )}
