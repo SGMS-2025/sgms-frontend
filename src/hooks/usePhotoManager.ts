@@ -31,6 +31,17 @@ export const usePhotoManager = ({ maxPhotos, existingPhotos = [] }: UsePhotoMana
     }
   }, [existingPhotos]);
 
+  // ✅ FIX: Set video srcObject AFTER modal has rendered
+  useEffect(() => {
+    if (isCameraOpen && stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+      // Ensure video plays
+      videoRef.current.play().catch((err) => {
+        console.error('Video play error:', err);
+      });
+    }
+  }, [isCameraOpen, stream]);
+
   // ✅ FIXED: Cleanup blob URLs only on unmount, not on every change
   useEffect(() => {
     return () => {
@@ -58,12 +69,10 @@ export const usePhotoManager = ({ maxPhotos, existingPhotos = [] }: UsePhotoMana
         }
       });
 
+      // Set stream first, then open modal
+      // The useEffect will handle setting srcObject after modal renders
       setStream(mediaStream);
       setIsCameraOpen(true);
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
     } catch (error) {
       console.error('Camera access error:', error);
       toast.error(

@@ -15,7 +15,7 @@ const TechnicianLayoutContent: React.FC = () => {
       {/* Sidebar */}
       <div
         className={`
-        ${isMobileOpen ? 'fixed inset-y-0 left-0 z-50 lg:relative lg:z-auto' : 'hidden lg:block'}
+        ${isMobileOpen ? 'fixed inset-y-0 left-0 z-[100] lg:relative lg:z-auto' : 'hidden lg:block'}
         transition-transform duration-300 ease-in-out
       `}
       >

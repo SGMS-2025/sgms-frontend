@@ -69,7 +69,7 @@ export default function TrainingProgressDetailPage() {
   // Memoize records with body measurements for radar chart
   // progressList is sorted by trackingDate DESC, createdAt DESC from API
   const recordsWithBodyMeasurements = useMemo(() => {
-    const filtered = progressList.filter(
+    return progressList.filter(
       (r) =>
         r.chest ||
         r.waist ||
@@ -81,15 +81,6 @@ export default function TrainingProgressDetailPage() {
         r.bodyWaterPercentage ||
         r.metabolicAge
     );
-    // DEBUG: Log radar chart data selection
-    console.log('Radar Chart - Records with body measurements:', filtered.length);
-    if (filtered.length > 0) {
-      console.log('Radar CURRENT (newest):', { id: filtered[0]?.id, date: filtered[0]?.date });
-    }
-    if (filtered.length > 1) {
-      console.log('Radar PREVIOUS (older):', { id: filtered[1]?.id, date: filtered[1]?.date });
-    }
-    return filtered;
   }, [progressList]);
 
   // Current = most recent record with body measurements
@@ -391,13 +382,19 @@ export default function TrainingProgressDetailPage() {
                 <FormHeader>
                   <FormTitle>{t('progress_detail.form.add_title')}</FormTitle>
                 </FormHeader>
-                <AddProgressForm
-                  customerId={customer.id}
-                  serviceContractId={customer.serviceContractId}
-                  trainerId={customer.trainerId}
-                  onSubmit={handleAddProgress}
-                  onCancel={() => setIsAddFormOpen(false)}
-                />
+                {/* Mobile: wrap in scrollable div with data-vaul-no-drag to prevent drawer close on scroll */}
+                <div
+                  className={isDesktop ? '' : 'max-h-[75vh] overflow-y-auto'}
+                  data-vaul-no-drag={!isDesktop ? '' : undefined}
+                >
+                  <AddProgressForm
+                    customerId={customer.id}
+                    serviceContractId={customer.serviceContractId}
+                    trainerId={customer.trainerId}
+                    onSubmit={handleAddProgress}
+                    onCancel={() => setIsAddFormOpen(false)}
+                  />
+                </div>
               </FormContent>
             </FormComponent>
 
@@ -408,12 +405,17 @@ export default function TrainingProgressDetailPage() {
                   <FormTitle>{t('progress_detail.form.edit_title')}</FormTitle>
                 </FormHeader>
                 {editingLog && (
-                  <EditProgressForm
-                    progressId={editingLog.id}
-                    initialData={editingLog}
-                    onSubmit={handleEditProgress}
-                    onCancel={() => setEditingLog(null)}
-                  />
+                  <div
+                    className={isDesktop ? '' : 'max-h-[75vh] overflow-y-auto'}
+                    data-vaul-no-drag={!isDesktop ? '' : undefined}
+                  >
+                    <EditProgressForm
+                      progressId={editingLog.id}
+                      initialData={editingLog}
+                      onSubmit={handleEditProgress}
+                      onCancel={() => setEditingLog(null)}
+                    />
+                  </div>
                 )}
               </FormContent>
             </FormComponent>
@@ -426,18 +428,23 @@ export default function TrainingProgressDetailPage() {
                     {activeGoal ? t('goal_form.edit_title', 'Edit Goal') : t('goal_form.create_title', 'Create Goal')}
                   </FormTitle>
                 </FormHeader>
-                <GoalForm
-                  customerId={customer.id}
-                  serviceContractId={customer.serviceContractId}
-                  trainerId={customer.trainerId}
-                  branchId={''} // Backend will extract from serviceContract if available
-                  initialGoal={activeGoal}
-                  onSubmit={() => {
-                    setIsGoalFormOpen(false);
-                    refetchGoal();
-                  }}
-                  onCancel={() => setIsGoalFormOpen(false)}
-                />
+                <div
+                  className={isDesktop ? '' : 'max-h-[75vh] overflow-y-auto'}
+                  data-vaul-no-drag={!isDesktop ? '' : undefined}
+                >
+                  <GoalForm
+                    customerId={customer.id}
+                    serviceContractId={customer.serviceContractId}
+                    trainerId={customer.trainerId}
+                    branchId={''} // Backend will extract from serviceContract if available
+                    initialGoal={activeGoal}
+                    onSubmit={() => {
+                      setIsGoalFormOpen(false);
+                      refetchGoal();
+                    }}
+                    onCancel={() => setIsGoalFormOpen(false)}
+                  />
+                </div>
               </FormContent>
             </FormComponent>
 
