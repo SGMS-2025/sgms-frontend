@@ -179,14 +179,21 @@ export const TestimonialFeed: React.FC<TestimonialManagementProps> = ({ onAddTes
   };
 
   const paginationPages = React.useMemo(() => {
-    if (!pagination) return [];
+    if (!pagination || pagination.totalPages <= 0) return [];
     const pages = new Set<number>();
     const total = pagination.totalPages;
     const current = pagination.currentPage;
 
-    pages.add(1);
-    pages.add(total);
-    pages.add(current);
+    // Only add valid page numbers (between 1 and total)
+    if (total >= 1) {
+      pages.add(1);
+    }
+    if (total > 1) {
+      pages.add(total);
+    }
+    if (current >= 1 && current <= total) {
+      pages.add(current);
+    }
 
     const neighbors = [current - 1, current + 1, current - 2, current + 2];
     neighbors.forEach((page) => {
@@ -195,7 +202,10 @@ export const TestimonialFeed: React.FC<TestimonialManagementProps> = ({ onAddTes
       }
     });
 
-    return Array.from(pages).sort((a, b) => a - b);
+    // Filter out invalid pages (<= 0 or > total) and sort
+    return Array.from(pages)
+      .filter((page) => page > 0 && page <= total)
+      .sort((a, b) => a - b);
   }, [pagination]);
 
   // Helper function to strip markdown and get plain text
@@ -510,7 +520,7 @@ export const TestimonialFeed: React.FC<TestimonialManagementProps> = ({ onAddTes
       </div>
 
       {/* Pagination */}
-      {pagination && (
+      {pagination && pagination.totalPages > 0 && paginationPages.length > 0 && (
         <div
           className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
           data-tour="testimonials-pagination"

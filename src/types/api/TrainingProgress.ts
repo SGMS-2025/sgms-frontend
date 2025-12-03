@@ -29,6 +29,15 @@ export interface TrainingProgress {
   height: number;
   bmi: number;
   bodyFatPercentage?: number;
+  // Body Measurements - Số đo cơ thể
+  chest?: number; // Vòng ngực (cm)
+  waist?: number; // Vòng eo (cm)
+  hips?: number; // Vòng mông (cm)
+  arms?: number; // Vòng tay (cm)
+  thighs?: number; // Vòng đùi (cm)
+  muscleMassPercentage?: number; // % cơ bắp
+  bodyWaterPercentage?: number; // % nước trong cơ thể
+  metabolicAge?: number; // Tuổi trao đổi chất
   strength: number;
   exercises: string[];
   notes: string;
@@ -51,6 +60,15 @@ export interface TrainingProgressDisplay {
   height: number;
   bmi: number;
   bodyFatPercentage?: number;
+  // Body Measurements - Số đo cơ thể
+  chest?: number;
+  waist?: number;
+  hips?: number;
+  arms?: number;
+  thighs?: number;
+  muscleMassPercentage?: number;
+  bodyWaterPercentage?: number;
+  metabolicAge?: number;
   strength: number;
   notes: string;
   photos: TrainingProgressPhoto[];
@@ -113,6 +131,15 @@ export interface CreateTrainingProgressRequest {
   exercises?: string[];
   photos?: TrainingProgressPhoto[];
   bodyFatPercentage?: number;
+  // Body Measurements
+  chest?: number;
+  waist?: number;
+  hips?: number;
+  arms?: number;
+  thighs?: number;
+  muscleMassPercentage?: number;
+  bodyWaterPercentage?: number;
+  metabolicAge?: number;
 }
 
 export interface UpdateTrainingProgressRequest {
@@ -124,6 +151,15 @@ export interface UpdateTrainingProgressRequest {
   exercises?: string[];
   photos?: TrainingProgressPhoto[];
   bodyFatPercentage?: number;
+  // Body Measurements
+  chest?: number;
+  waist?: number;
+  hips?: number;
+  arms?: number;
+  thighs?: number;
+  muscleMassPercentage?: number;
+  bodyWaterPercentage?: number;
+  metabolicAge?: number;
 }
 
 export interface BackendPaginationResponse {
@@ -135,8 +171,37 @@ export interface BackendPaginationResponse {
   hasPrevPage: boolean;
 }
 
+// Aggregation response type (flat structure from backend)
+export interface TrainingProgressAggregated {
+  _id: string;
+  trackingDate: string;
+  weight: number;
+  height: number;
+  bmi: number;
+  bodyFatPercentage?: number;
+  chest?: number;
+  waist?: number;
+  hips?: number;
+  arms?: number;
+  thighs?: number;
+  muscleMassPercentage?: number;
+  bodyWaterPercentage?: number;
+  metabolicAge?: number;
+  strength: number;
+  notes: string;
+  photos: TrainingProgressPhoto[];
+  exercises: string[];
+  customerName: string;
+  customerAvatar?: string;
+  trainerName: string;
+  trainerId: string;
+  photoCount: number;
+  exerciseCount: number;
+  createdAt: string;
+}
+
 export interface TrainingProgressListResponse {
-  progressRecords: TrainingProgress[];
+  progressRecords: TrainingProgressAggregated[];
   pagination: BackendPaginationResponse;
 }
 
