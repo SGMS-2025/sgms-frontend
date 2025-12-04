@@ -36,6 +36,23 @@ interface BankTransferPaymentDialogProps {
 }
 
 type Step = 'qr-code' | 'waiting' | 'success';
+type RemotePaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED' | 'EXPIRED';
+
+const normalizePaymentStatus = (data: unknown): RemotePaymentStatus | null => {
+  if (!data || typeof data !== 'object') return null;
+
+  const candidate =
+    (data as { paymentStatus?: string }).paymentStatus ||
+    (data as { status?: string }).status ||
+    (data as { paymentTransaction?: { status?: string } }).paymentTransaction?.status;
+
+  if (!candidate || typeof candidate !== 'string') return null;
+
+  const normalized = candidate.toUpperCase();
+  return ['PENDING', 'PAID', 'FAILED', 'CANCELLED', 'EXPIRED'].includes(normalized)
+    ? (normalized as RemotePaymentStatus)
+    : null;
+};
 
 export const BankTransferPaymentDialog = ({
   open,
@@ -111,7 +128,9 @@ export const BankTransferPaymentDialog = ({
       setIsPolling(true);
       try {
         const result = await subscriptionApi.checkPaymentStatus(paymentTransaction._id);
-        if (result.success && result.data.status === 'PAID') {
+        const remoteStatus = normalizePaymentStatus(result.data);
+
+        if (remoteStatus === 'PAID') {
           console.log('[Dialog] Payment paid via polling:', result.data);
           setPaymentStatus('paid');
           setCurrentStep('success');
@@ -121,6 +140,8 @@ export const BankTransferPaymentDialog = ({
             onOpenChange(false);
             onPaymentSuccess?.();
           }, 2000);
+        } else if (remoteStatus === 'EXPIRED' || remoteStatus === 'CANCELLED' || remoteStatus === 'FAILED') {
+          setPaymentStatus('expired');
         }
       } catch (error) {
         console.error('[Dialog] Error checking payment:', error);

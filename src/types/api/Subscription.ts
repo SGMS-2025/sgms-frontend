@@ -9,6 +9,8 @@ export interface PaymentTransactionInfo {
   description: string;
   expiresAt: string;
   qrCodeUrl: string;
+  status?: SubscriptionPaymentStatus | 'PENDING_PAYMENT';
+  paidAt?: string;
   metadata?: {
     packageName?: string;
     packageId?: string;
@@ -22,6 +24,8 @@ export interface PaymentTransactionInfo {
     paymentCodeDigits?: number;
   };
 }
+
+export type SubscriptionPaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED' | 'EXPIRED';
 
 // Subscription Package Types
 export interface SubscriptionPackage {
@@ -262,9 +266,14 @@ export interface PaymentStatusResponse {
   success: boolean;
   message: string;
   data: {
-    paymentTransaction: PaymentTransactionInfo;
+    paymentStatus?: SubscriptionPaymentStatus;
+    status?: SubscriptionPaymentStatus;
+    paymentCode?: string;
+    amount?: number;
+    paidAt?: string;
+    expiresAt?: string;
     subscription?: OwnerSubscription;
-    status: 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED';
+    paymentTransaction?: PaymentTransactionInfo;
   };
   statusCode: number;
 }
