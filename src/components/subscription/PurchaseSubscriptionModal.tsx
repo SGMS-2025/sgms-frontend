@@ -48,6 +48,23 @@ interface PurchaseSubscriptionModalProps {
 
 type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'CREDIT_CARD' | 'PAYOS';
 type FlowStep = 'details' | 'bank-qr' | 'bank-wait' | 'bank-success' | 'template' | 'send-contract';
+type RemotePaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED' | 'EXPIRED';
+
+const normalizePaymentStatus = (data: unknown): RemotePaymentStatus | null => {
+  if (!data || typeof data !== 'object') return null;
+
+  const candidate =
+    (data as { paymentStatus?: string }).paymentStatus ||
+    (data as { status?: string }).status ||
+    (data as { paymentTransaction?: { status?: string } }).paymentTransaction?.status;
+
+  if (!candidate || typeof candidate !== 'string') return null;
+
+  const normalized = candidate.toUpperCase();
+  return ['PENDING', 'PAID', 'FAILED', 'CANCELLED', 'EXPIRED'].includes(normalized)
+    ? (normalized as RemotePaymentStatus)
+    : null;
+};
 
 export const PurchaseSubscriptionModal = ({
   open,
@@ -198,7 +215,9 @@ export const PurchaseSubscriptionModal = ({
       setIsPolling(true);
       try {
         const result = await subscriptionApi.checkPaymentStatus(paymentTransaction._id);
-        if (result.success && result.data.status === 'PAID') {
+        const remoteStatus = normalizePaymentStatus(result.data);
+
+        if (remoteStatus === 'PAID') {
           setPaymentStatus('paid');
           setCurrentStep('bank-success');
           toast.success(t('subscription.payment.success'));
@@ -206,6 +225,8 @@ export const PurchaseSubscriptionModal = ({
           setTimeout(() => {
             handlePaymentSuccess();
           }, 1600);
+        } else if (remoteStatus === 'EXPIRED' || remoteStatus === 'CANCELLED' || remoteStatus === 'FAILED') {
+          setPaymentStatus('expired');
         }
       } catch (error) {
         console.error('[PurchaseSubscriptionModal] Error checking payment:', error);
