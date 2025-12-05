@@ -55,6 +55,7 @@ import TimeOffPage from '@/pages/owner/TimeOffPage';
 import TimeOffManagementPage from '@/pages/owner/TimeOffManagementPage';
 import PTTimeOffPage from '@/pages/pt/TimeOffPage';
 import TechnicianTimeOffPage from '@/pages/technician/TimeOffPage';
+import PTAvailabilityRequestManagement from '@/pages/ptavailability/PTAvailabilityRequestManagement';
 import CustomerPaymentsPage from '@/pages/owner/CustomerPaymentsPage';
 import ContractsPage from '@/pages/owner/ContractsPage';
 import ClassManagementPage from '@/pages/owner/ClassManagementPage';
@@ -479,6 +480,9 @@ const AppRoutes: React.FC = () => {
             <Route path="timeoff" element={<TimeOffPage />} />
             <Route path="timeoff/management" element={<TimeOffManagementPage />} />
 
+            {/* PT Availability Request Management Routes - for Owner/Manager to approve/reject */}
+            <Route path="pt-availability-requests" element={<PTAvailabilityRequestManagement />} />
+
             {/* Classes Management Route */}
             <Route path="classes" element={<ClassManagementPage />} />
 
@@ -583,6 +587,9 @@ const AppRoutes: React.FC = () => {
 
           {/* Time Off Route for PT */}
           <Route path="timeoff" element={<PTTimeOffPage />} />
+
+          {/* PT Availability Request Route for PT - to create and view requests */}
+          <Route path="pt-availability-requests" element={<PTAvailabilityRequestManagement />} />
 
           {/* Attendance History for PT */}
           <Route path="attendance" element={<PTAttendanceHistoryPage />} />

@@ -58,6 +58,10 @@ export const usePermissionChecks = ({
       canEditTimeOff: status === 'PENDING',
       canApproveTimeOff: status === 'PENDING' && isManager,
       canRejectTimeOff: status === 'PENDING' && isManager,
+
+      // PT Availability permissions (uses PENDING_APPROVAL status)
+      canApprovePTAvailability: status === 'PENDING_APPROVAL' && isManager,
+      canRejectPTAvailability: status === 'PENDING_APPROVAL' && isManager,
       // Only STAFF can cancel their own PENDING requests (owner doesn't have permission)
       canCancelTimeOff: status === 'PENDING' && isStaff && isRequester,
 

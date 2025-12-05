@@ -1,17 +1,15 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  BarChart3,
-  Dumbbell,
   Calendar,
   Users,
   LayoutDashboard,
-  Heart,
   TrendingUp,
   AlertTriangle,
   CalendarDays,
   UserCheck,
-  Bot
+  Bot,
+  Clock
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -81,34 +79,6 @@ export const PTSidebar: React.FC = () => {
       onClick: () => handleNavigation('/manage/pt/attendance')
     },
     {
-      icon: <Dumbbell className="w-5 h-5" />,
-      label: t('pt.sidebar.workoutPlans', 'Workout Plans'),
-      href: '/manage/pt/workout-plans',
-      isActive: location.pathname.startsWith('/manage/pt/workout-plans'),
-      onClick: () => handleNavigation('/manage/pt/workout-plans')
-    },
-    {
-      icon: <Heart className="w-5 h-5" />,
-      label: t('pt.sidebar.nutrition', 'Nutrition Plans'),
-      href: '/manage/pt/nutrition',
-      isActive: location.pathname.startsWith('/manage/pt/nutrition'),
-      onClick: () => handleNavigation('/manage/pt/nutrition')
-    },
-    {
-      icon: <TrendingUp className="w-5 h-5" />,
-      label: t('pt.sidebar.progress', 'Client Progress'),
-      href: '/manage/pt/progress',
-      isActive: location.pathname.startsWith('/manage/pt/progress'),
-      onClick: () => handleNavigation('/manage/pt/progress')
-    },
-    {
-      icon: <BarChart3 className="w-5 h-5" />,
-      label: t('pt.sidebar.reports', 'Reports'),
-      href: '/manage/pt/reports',
-      isActive: location.pathname.startsWith('/manage/pt/reports'),
-      onClick: () => handleNavigation('/manage/pt/reports')
-    },
-    {
       icon: <AlertTriangle className="w-5 h-5" />,
       label: t('pt.sidebar.equipmentIssues', 'Equipment Issues'),
       href: '/manage/pt/equipment-issues',
@@ -160,6 +130,12 @@ export const PTSidebar: React.FC = () => {
               label={t('sidebar.time_off', 'Time Off')}
               isActive={location.pathname.startsWith('/manage/pt/timeoff')}
               onClick={() => handleNavigation('/manage/pt/timeoff')}
+            />
+            <SubMenuItem
+              icon={<Clock className="w-5 h-5" />}
+              label={t('sidebar.pt_availability_requests')}
+              isActive={location.pathname.startsWith('/manage/pt/pt-availability-requests')}
+              onClick={() => handleNavigation('/manage/pt/pt-availability-requests')}
             />
           </DropdownSidebarItem>
         </div>
