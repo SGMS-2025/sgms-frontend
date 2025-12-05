@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  AlertTriangle,
   ArrowLeft,
   Calendar,
   CalendarCheck,
@@ -610,7 +609,7 @@ const CustomerDetailPage: React.FC = () => {
             {/* Service & Membership Cards - 3 Columns */}
             <div className="grid gap-6 lg:grid-cols-3">
               {/* Membership Card */}
-              <Card className="rounded-3xl border border-border bg-card shadow-sm">
+              <Card className="flex h-full flex-col rounded-3xl border border-border bg-card shadow-sm">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <CreditCard className="h-5 w-5 text-primary" />
@@ -618,8 +617,8 @@ const CustomerDetailPage: React.FC = () => {
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">{t('customer_detail.membership_card.description')}</p>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
+                <CardContent className="flex flex-1 flex-col space-y-4">
+                  <div className="grid flex-1 gap-4 sm:grid-cols-2">
                     <InfoField
                       label={t('customer_detail.membership_card.package_name')}
                       value={hasMembership ? membershipPlanName : t('customer_detail.not_registered')}
@@ -639,7 +638,7 @@ const CustomerDetailPage: React.FC = () => {
                   </div>
 
                   {hasMembership ? (
-                    <div className="flex gap-2">
+                    <div className="mt-auto flex gap-2">
                       <Button
                         type="button"
                         onClick={() => setShowExtendMembership(true)}
@@ -655,7 +654,7 @@ const CustomerDetailPage: React.FC = () => {
                         className="flex-1 rounded-full"
                         variant="destructive"
                       >
-                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        <XCircle className="h-4 w-4 mr-2" />
                         {t('customer_detail.cancel_package')}
                       </Button>
                     </div>
@@ -663,7 +662,7 @@ const CustomerDetailPage: React.FC = () => {
                     <Button
                       type="button"
                       onClick={() => setShowMembershipModal(true)}
-                      className="w-full rounded-full"
+                      className="mt-auto w-full rounded-full"
                       variant="outline"
                     >
                       <CreditCard className="h-4 w-4 mr-2" />
@@ -674,7 +673,7 @@ const CustomerDetailPage: React.FC = () => {
               </Card>
 
               {/* PT Service Card */}
-              <Card className="rounded-3xl border border-border bg-card shadow-sm">
+              <Card className="flex h-full flex-col rounded-3xl border border-border bg-card shadow-sm">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Dumbbell className="h-5 w-5 text-primary" />
@@ -682,8 +681,8 @@ const CustomerDetailPage: React.FC = () => {
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">{t('customer_detail.pt_card.description')}</p>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
+                <CardContent className="flex flex-1 flex-col space-y-4">
+                  <div className="grid flex-1 gap-4 sm:grid-cols-2">
                     <InfoField
                       label={t('customer_detail.pt_card.package_name')}
                       value={hasPTPackage ? ptPackageName : t('customer_detail.not_registered')}
@@ -705,7 +704,7 @@ const CustomerDetailPage: React.FC = () => {
                   </div>
 
                   {hasPTPackage ? (
-                    <div className="flex gap-2">
+                    <div className="mt-auto flex gap-2">
                       <Button
                         type="button"
                         onClick={() => setShowExtendPT(true)}
@@ -729,7 +728,7 @@ const CustomerDetailPage: React.FC = () => {
                     <Button
                       type="button"
                       onClick={() => setShowPTModal(true)}
-                      className="w-full rounded-full"
+                      className="mt-auto w-full rounded-full"
                       variant="outline"
                     >
                       <Dumbbell className="h-4 w-4 mr-2" />
@@ -740,7 +739,7 @@ const CustomerDetailPage: React.FC = () => {
               </Card>
 
               {/* Class Service Card */}
-              <Card className="rounded-3xl border border-border bg-card shadow-sm">
+              <Card className="flex h-full flex-col rounded-3xl border border-border bg-card shadow-sm">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <Users className="h-5 w-5 text-primary" />
@@ -748,8 +747,8 @@ const CustomerDetailPage: React.FC = () => {
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">{t('customer_detail.class_card.description')}</p>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
+                <CardContent className="flex flex-1 flex-col space-y-4">
+                  <div className="grid flex-1 gap-4 sm:grid-cols-2">
                     <InfoField
                       label={t('customer_detail.class_card.package_name')}
                       value={hasClassPackage ? classPackageName : t('customer_detail.not_registered')}
@@ -777,7 +776,7 @@ const CustomerDetailPage: React.FC = () => {
                   </div>
 
                   {hasClassPackage ? (
-                    <div className="flex gap-2">
+                    <div className="mt-auto flex gap-2">
                       <Button
                         type="button"
                         onClick={() => setShowExtendClass(true)}
@@ -801,7 +800,7 @@ const CustomerDetailPage: React.FC = () => {
                     <Button
                       type="button"
                       onClick={() => setShowClassModal(true)}
-                      className="w-full rounded-full"
+                      className="mt-auto w-full rounded-full"
                       variant="outline"
                     >
                       <Users className="h-4 w-4 mr-2" />

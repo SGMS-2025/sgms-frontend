@@ -1,7 +1,6 @@
-import { useState, forwardRef, useImperativeHandle, useEffect, useRef } from 'react';
+import { useState, forwardRef, useImperativeHandle, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { vi } from 'date-fns/locale';
 import {
   Plus,
   Search,
@@ -24,7 +23,6 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/utils/utils';
@@ -32,6 +30,7 @@ import { useExpenses } from '@/hooks/useExpenses';
 import { useBranch } from '@/contexts/BranchContext';
 import type { Expense, ExpenseCategory, ExpenseFilters } from '@/types/api/Expenses';
 import { EXPENSE_CATEGORY_DISPLAY } from '@/types/api/Expenses';
+import type { DateRange } from 'react-day-picker';
 
 interface ExpenseListProps {
   onExpenseSelect?: (expense: Expense) => void;
@@ -56,8 +55,7 @@ export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
       endDate: ''
     });
 
-    const [startDatePickerOpen, setStartDatePickerOpen] = useState(false);
-    const [endDatePickerOpen, setEndDatePickerOpen] = useState(false);
+    const [datePickerOpen, setDatePickerOpen] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize] = useState(10);
     const prevBranchIdRef = useRef<string | null>(null);
@@ -125,6 +123,49 @@ export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
       });
     };
 
+    const selectedRange = useMemo<DateRange | undefined>(() => {
+      if (!filters.startDate && !filters.endDate) return undefined;
+
+      const from = filters.startDate ? new Date(filters.startDate) : undefined;
+      const to = filters.endDate ? new Date(filters.endDate) : undefined;
+
+      if (from && Number.isNaN(from.getTime())) return undefined;
+      if (to && Number.isNaN(to.getTime())) return { from };
+
+      if (from || to) {
+        return { from: from || to || undefined, to };
+      }
+
+      return undefined;
+    }, [filters.startDate, filters.endDate]);
+
+    const rangeLabel = useMemo(() => {
+      if (!selectedRange?.from && !selectedRange?.to) {
+        return t('payment.date_range_placeholder', { defaultValue: 'All dates' });
+      }
+
+      const formatDisplay = (date: Date | undefined) =>
+        date ? format(date, 'dd/MM/yyyy') : t('payment.date_range_placeholder', { defaultValue: 'All dates' });
+
+      if (selectedRange?.from && selectedRange?.to) {
+        return `${formatDisplay(selectedRange.from)} - ${formatDisplay(selectedRange.to)}`;
+      }
+
+      return formatDisplay(selectedRange?.from || selectedRange?.to);
+    }, [selectedRange, t]);
+
+    const handleDateRangeChange = (range: DateRange | undefined) => {
+      const startDate = range?.from ? format(range.from, 'yyyy-MM-dd') : '';
+      const endDate = range?.to ? format(range.to, 'yyyy-MM-dd') : '';
+      handleFilterChange('startDate', startDate);
+      handleFilterChange('endDate', endDate);
+    };
+
+    const handleClearDateRange = () => {
+      handleFilterChange('startDate', '');
+      handleFilterChange('endDate', '');
+    };
+
     const handlePageChange = (page: number) => {
       setCurrentPage(page);
       updateFilters({ page, limit: pageSize });
@@ -184,143 +225,68 @@ export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
         {/* Filters */}
         <Card className="p-4">
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
               {/* Search */}
-              <div className="relative md:col-span-2" data-tour="expense-search-container">
+              <div className="relative flex-1" data-tour="expense-search-container">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder={t('expenses.search_placeholder', 'Tìm kiếm chi phí...')}
                   value={filters.search}
                   onChange={(e) => handleFilterChange('search', e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-11"
                   data-tour="expense-search-input"
                 />
               </div>
 
-              {/* Category */}
-              <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)}>
-                <SelectTrigger data-tour="expense-category-filter">
-                  <SelectValue placeholder={t('expenses.filter_category', 'Danh mục')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('common.all', 'Tất cả')}</SelectItem>
-                  {categoryOptions.map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Date Range Filter */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-200">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">
-                  {t('expenses.filter.start_date', 'Từ ngày')}
-                </Label>
-                <Popover open={startDatePickerOpen} onOpenChange={setStartDatePickerOpen}>
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
+                {/* Date range single calendar */}
+                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
-                        'w-full justify-start text-left font-normal',
-                        !filters.startDate && 'text-muted-foreground'
+                        'h-11 w-full md:w-auto justify-start text-left font-normal',
+                        !selectedRange?.from && !selectedRange?.to && 'text-muted-foreground'
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {filters.startDate ? (
-                        format(new Date(filters.startDate), 'dd/MM/yyyy', { locale: vi })
-                      ) : (
-                        <span>{t('expenses.filter.select_start_date', 'Chọn ngày bắt đầu')}</span>
-                      )}
+                      {selectedRange?.from || selectedRange?.to
+                        ? rangeLabel
+                        : t('payment.date_range_placeholder', { defaultValue: 'All dates' })}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent
-                    className="w-auto p-0 z-[9999]"
-                    align="start"
-                    side="bottom"
-                    sideOffset={4}
-                    avoidCollisions={true}
-                    collisionPadding={8}
-                  >
+                  <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
-                      mode="single"
-                      selected={filters.startDate ? new Date(filters.startDate) : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          const dateStr = format(date, 'yyyy-MM-dd');
-                          handleFilterChange('startDate', dateStr);
-                          setStartDatePickerOpen(false);
-                        }
-                      }}
-                      disabled={(date) => {
-                        if (filters.endDate) {
-                          return date > new Date(filters.endDate);
-                        }
-                        return false;
-                      }}
-                      initialFocus
-                      locale={vi}
-                      components={{
-                        Footer: () => <></>
-                      }}
+                      mode="range"
+                      selected={selectedRange}
+                      onSelect={handleDateRangeChange}
+                      numberOfMonths={1}
+                      defaultMonth={selectedRange?.from ?? selectedRange?.to ?? new Date()}
                     />
+                    {selectedRange && (
+                      <div className="border-t p-3">
+                        <Button variant="ghost" size="sm" onClick={handleClearDateRange} className="w-full">
+                          {t('payment.clear_date_filter', { defaultValue: 'Xóa bộ lọc' })}
+                        </Button>
+                      </div>
+                    )}
                   </PopoverContent>
                 </Popover>
-              </div>
 
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">{t('expenses.filter.end_date', 'Đến ngày')}</Label>
-                <Popover open={endDatePickerOpen} onOpenChange={setEndDatePickerOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'w-full justify-start text-left font-normal',
-                        !filters.endDate && 'text-muted-foreground'
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {filters.endDate ? (
-                        format(new Date(filters.endDate), 'dd/MM/yyyy', { locale: vi })
-                      ) : (
-                        <span>{t('expenses.filter.select_end_date', 'Chọn ngày kết thúc')}</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-auto p-0 z-[9999]"
-                    align="start"
-                    side="bottom"
-                    sideOffset={4}
-                    avoidCollisions={true}
-                    collisionPadding={8}
-                  >
-                    <Calendar
-                      mode="single"
-                      selected={filters.endDate ? new Date(filters.endDate) : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          const dateStr = format(date, 'yyyy-MM-dd');
-                          handleFilterChange('endDate', dateStr);
-                          setEndDatePickerOpen(false);
-                        }
-                      }}
-                      disabled={(date) => {
-                        if (filters.startDate) {
-                          return date < new Date(filters.startDate);
-                        }
-                        return false;
-                      }}
-                      initialFocus
-                      locale={vi}
-                      components={{
-                        Footer: () => <></>
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
+                {/* Category */}
+                <Select value={filters.category} onValueChange={(value) => handleFilterChange('category', value)}>
+                  <SelectTrigger className="h-11 w-full md:w-auto" data-tour="expense-category-filter">
+                    <SelectValue placeholder={t('expenses.filter_category', 'Danh mục')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('common.all', 'Tất cả')}</SelectItem>
+                    {categoryOptions.map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>

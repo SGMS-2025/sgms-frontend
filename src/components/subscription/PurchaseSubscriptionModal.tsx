@@ -334,12 +334,12 @@ export const PurchaseSubscriptionModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl border-none bg-transparent p-0 shadow-none">
-        <div className="relative overflow-hidden rounded-3xl border border-orange-100 bg-white/90 shadow-[0_32px_90px_rgba(244,114,36,0.18)] backdrop-blur">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden border-none bg-transparent p-0 shadow-none">
+        <div className="relative flex h-full max-h-[90vh] flex-col overflow-hidden rounded-3xl border border-orange-100 bg-white/90 shadow-[0_32px_90px_rgba(244,114,36,0.18)] backdrop-blur">
           <div className="pointer-events-none absolute -left-24 top-0 h-64 w-64 rounded-full bg-orange-100/50 blur-3xl"></div>
           <div className="pointer-events-none absolute -right-10 -bottom-10 h-72 w-72 rounded-full bg-amber-100/60 blur-3xl"></div>
 
-          <DialogHeader className="relative z-10 flex flex-col gap-1 border-b border-orange-100/80 px-8 pt-7 pb-5">
+          <DialogHeader className="relative z-10 flex flex-col gap-1 border-b border-orange-100/80 px-8 pt-7 pb-5 flex-shrink-0">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <DialogTitle className="text-2xl font-bold text-gray-900">{t('subscription.modal.title')}</DialogTitle>
@@ -392,7 +392,7 @@ export const PurchaseSubscriptionModal = ({
             </div>
           </DialogHeader>
 
-          <ScrollArea className="relative z-10 max-h-[70vh]">
+          <ScrollArea type="auto" className="relative z-10 flex-1 min-h-0 pr-2">
             {currentStep === 'template' && subscriptionId && (
               <SelectSubscriptionTemplateStep
                 subscriptionId={subscriptionId}
@@ -876,7 +876,7 @@ export const PurchaseSubscriptionModal = ({
           </ScrollArea>
 
           {currentStep === 'details' && (
-            <DialogFooter className="relative z-10 flex flex-col gap-3 border-t border-orange-100/80 bg-white/80 px-8 py-5 sm:flex-row sm:items-center sm:justify-end">
+            <DialogFooter className="relative z-10 flex flex-col gap-3 border-t border-orange-100/80 bg-white/80 px-8 py-5 sm:flex-row sm:items-center sm:justify-end flex-shrink-0">
               <Button
                 type="button"
                 variant="outline"

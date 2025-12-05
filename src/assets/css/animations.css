@@ -21,7 +21,8 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
   }
   50% {
@@ -30,7 +31,8 @@
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
@@ -57,10 +59,12 @@
 }
 
 @keyframes blink {
-  0%, 50% {
+  0%,
+  50% {
     opacity: 1;
   }
-  51%, 100% {
+  51%,
+  100% {
     opacity: 0;
   }
 }
@@ -82,12 +86,7 @@
 }
 
 .animate-shimmer {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.4),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
@@ -164,11 +163,21 @@
 }
 
 /* Stagger animation delays */
-.stagger-1 { animation-delay: 0.1s; }
-.stagger-2 { animation-delay: 0.2s; }
-.stagger-3 { animation-delay: 0.3s; }
-.stagger-4 { animation-delay: 0.4s; }
-.stagger-5 { animation-delay: 0.5s; }
+.stagger-1 {
+  animation-delay: 0.1s;
+}
+.stagger-2 {
+  animation-delay: 0.2s;
+}
+.stagger-3 {
+  animation-delay: 0.3s;
+}
+.stagger-4 {
+  animation-delay: 0.4s;
+}
+.stagger-5 {
+  animation-delay: 0.5s;
+}
 
 /* Video background effects - High quality rendering */
 .video-background-blur {
@@ -216,7 +225,7 @@
   will-change: opacity, transform;
 }
 
-.scroll-reveal[data-in-view="true"] {
+.scroll-reveal[data-in-view='true'] {
   opacity: 1;
   transform: translateY(0) scale(1);
 }
@@ -304,20 +313,20 @@
 
 /* Floating button pulse animation */
 @keyframes float-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
-    box-shadow: 0 8px 32px rgba(249,115,22,0.4);
+    box-shadow: 0 8px 32px rgba(249, 115, 22, 0.4);
   }
   50% {
     transform: scale(1.05);
-    box-shadow: 0 12px 40px rgba(249,115,22,0.6);
+    box-shadow: 0 12px 40px rgba(249, 115, 22, 0.6);
   }
 }
 
 .floating-button-pulse {
   animation: float-pulse 3s ease-in-out infinite;
 }
-
 
 /* Hide YouTube branding and controls completely */
 .youtube-background iframe::before {
@@ -333,7 +342,7 @@
 }
 
 /* Override YouTube's default styling */
-.youtube-background iframe[src*="youtube.com"] {
+.youtube-background iframe[src*='youtube.com'] {
   filter: contrast(1.1) brightness(1.05);
 }
 
@@ -371,7 +380,7 @@
     filter: blur(1px);
     transform: scale(1.05);
   }
-  
+
   .video-background-overlay {
     background: linear-gradient(
       135deg,
@@ -380,17 +389,17 @@
       rgba(251, 191, 36, 0.15) 100%
     );
   }
-  
+
   /* Reduce motion on mobile for better performance */
   .scroll-reveal {
     transition: all 0.6s ease-out;
   }
-  
+
   /* Simpler popup animations on mobile */
   .popup-enter {
     animation: popup-fade-in 0.2s ease-out forwards;
   }
-  
+
   .popup-exit {
     animation: popup-fade-out 0.2s ease-out forwards;
   }
