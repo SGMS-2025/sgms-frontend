@@ -150,13 +150,13 @@ select:focus {
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE and Edge */
   }
-  
+
   html::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */
     width: 0;
     height: 0;
   }
-  
+
   body {
     @apply bg-background text-foreground;
     height: 100%;
@@ -166,7 +166,7 @@ select:focus {
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE and Edge */
   }
-  
+
   body::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */
     width: 0;
@@ -591,7 +591,7 @@ body.landing-page-active {
   left: 0;
   z-index: 20;
   flex-shrink: 0;
-  box-shadow: 
+  box-shadow:
     4px 0 12px rgba(0, 0, 0, 0.04),
     inset -1px 0 0 rgba(255, 255, 255, 0.8);
   min-height: 600px;
@@ -636,7 +636,7 @@ body.landing-page-active {
   border-left: 4px solid #cbd5e1; /* Default border color */
   z-index: 15;
   pointer-events: none;
-  box-shadow: 
+  box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.06),
     0 1px 2px rgba(0, 0, 0, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 1);
@@ -652,7 +652,7 @@ body.landing-page-active {
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
+  background:
     radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.03) 0%, transparent 50%),
     radial-gradient(circle at 80% 50%, rgba(249, 115, 22, 0.02) 0%, transparent 50%);
   pointer-events: none;
@@ -726,11 +726,7 @@ body.landing-page-active {
   bottom: 0;
   right: -1px;
   width: 1px;
-  background: linear-gradient(to bottom, 
-    transparent 0%,
-    #e5e7eb 10%,
-    #e5e7eb 90%,
-    transparent 100%);
+  background: linear-gradient(to bottom, transparent 0%, #e5e7eb 10%, #e5e7eb 90%, transparent 100%);
   pointer-events: none;
   z-index: 10;
 }
@@ -836,9 +832,7 @@ body.landing-page-active {
   left: 0;
   right: 0;
   height: 50%;
-  background: linear-gradient(to bottom, 
-    rgba(255, 255, 255, 0.5) 0%, 
-    rgba(255, 255, 255, 0) 100%);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%);
   pointer-events: none;
   border-radius: 8px 8px 0 0;
   z-index: 0;
@@ -885,10 +879,18 @@ body.landing-page-active {
 }
 
 /* Stagger animation for multiple shifts */
-.calendar-time-cell > button:nth-child(1) { animation-delay: 0ms; }
-.calendar-time-cell > button:nth-child(2) { animation-delay: 50ms; }
-.calendar-time-cell > button:nth-child(3) { animation-delay: 100ms; }
-.calendar-time-cell > button:nth-child(4) { animation-delay: 150ms; }
+.calendar-time-cell > button:nth-child(1) {
+  animation-delay: 0ms;
+}
+.calendar-time-cell > button:nth-child(2) {
+  animation-delay: 50ms;
+}
+.calendar-time-cell > button:nth-child(3) {
+  animation-delay: 100ms;
+}
+.calendar-time-cell > button:nth-child(4) {
+  animation-delay: 150ms;
+}
 
 /* Ensure perfect horizontal line alignment */
 .calendar-main-container .h-16 {
@@ -1083,7 +1085,10 @@ body.landing-page-active {
   background: linear-gradient(135deg, #101d33 0%, #0b1221 100%);
   color: #f8fafc;
   box-shadow: 0 12px 30px rgba(16, 29, 51, 0.22);
-  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
 }
 
 .modern-toast__action:hover {
@@ -1104,7 +1109,10 @@ body.landing-page-active {
   border: 1px solid rgba(16, 29, 51, 0.12);
   background: rgba(255, 255, 255, 0.7);
   color: #0f172a;
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 
 .modern-toast__cancel:hover {
@@ -1134,7 +1142,11 @@ body.landing-page-active {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .modern-toast__close:hover {

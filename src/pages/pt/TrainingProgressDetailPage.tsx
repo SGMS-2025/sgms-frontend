@@ -160,7 +160,6 @@ export default function TrainingProgressDetailPage() {
   const handleAddProgress = (_data: ProgressFormData) => {
     // The API call is handled in AddProgressForm, this is just for UI updates
     setIsAddFormOpen(false);
-    toast.success('Progress saved successfully');
     // Refetch data to get updated list
     refetch();
   };
@@ -168,14 +167,12 @@ export default function TrainingProgressDetailPage() {
   const handleEditProgress = (_data: EditProgressFormData) => {
     // The API call is handled in EditProgressForm, this is just for UI updates
     setEditingLog(null);
-    toast.success('Progress updated successfully');
     // Refetch data to get updated list
     refetch();
   };
 
   const handleDeleteProgress = () => {
     // The API call is handled in TrainingLogTable, this is just for UI updates
-    toast.success('Progress deleted successfully');
     // Refetch data to get updated list
     refetch();
   };

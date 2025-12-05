@@ -155,7 +155,6 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
 
   // Handle payment success
   const handlePaymentSuccess = React.useCallback(() => {
-    toast.success(t('payos_payment.payment_success', 'Thanh toán thành công!'));
     wizard.goToNext();
   }, [wizard, t]);
 

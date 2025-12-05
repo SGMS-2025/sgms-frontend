@@ -43,20 +43,8 @@
   position: relative;
   width: 100%;
   overflow-x: hidden;
-  mask-image: linear-gradient(
-    to right,
-    transparent,
-    black 10%,
-    black 90%,
-    transparent
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent,
-    black 10%,
-    black 90%,
-    transparent
-  );
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
 }
 
 .marqueeTrack {
@@ -115,7 +103,7 @@
   .marqueeTrack {
     animation-duration: 45s;
   }
-  
+
   .marqueeContainer {
     overflow-x: auto;
     scroll-behavior: smooth;
@@ -124,7 +112,7 @@
     mask-image: none;
     -webkit-mask-image: none;
   }
-  
+
   .marqueeTrack {
     animation: none;
     padding: 0 20px;

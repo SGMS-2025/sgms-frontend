@@ -60,6 +60,8 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [latestStatus, setLatestStatus] = useState<'PENDING' | 'PROCESSING' | 'PAID' | 'CANCELLED'>('PENDING');
+  const [hasShownPaidToast, setHasShownPaidToast] = useState(false);
+  const paidNotifiedRef = React.useRef(false);
   const bankInfo = useMemo(() => {
     const bin = paymentData.bin?.trim() || null;
     const entry = bin ? VIETQR_BANKS[bin] : undefined;
@@ -270,26 +272,35 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
   useEffect(() => {
     setPaymentData(initialPaymentData);
     const initialStatus = (initialPaymentData?.payment as { status?: string } | undefined)?.status;
-    setPaymentStatus(
+    const status =
       initialStatus && ['PENDING', 'PROCESSING', 'PAID', 'CANCELLED'].includes(initialStatus)
         ? (initialStatus as 'PENDING' | 'PROCESSING' | 'PAID' | 'CANCELLED')
-        : 'PENDING'
-    );
-    setLatestStatus(
-      initialStatus && ['PENDING', 'PROCESSING', 'PAID', 'CANCELLED'].includes(initialStatus)
-        ? (initialStatus as 'PENDING' | 'PROCESSING' | 'PAID' | 'CANCELLED')
-        : 'PENDING'
-    );
+        : 'PENDING';
+    setPaymentStatus(status);
+    setLatestStatus(status);
     setTimeRemaining(900);
     setIsRecreating(false);
     setIsCancelling(false);
     setCancelTriggered(false);
+    // Reset toast flag when payment data changes
+    const isPaid = status === 'PAID';
+    setHasShownPaidToast(isPaid);
+    paidNotifiedRef.current = isPaid;
   }, [initialPaymentData]);
 
   // Subscribe to payment updates via WebSocket
   usePaymentSocket(
     paymentData.orderCode,
     (data: PaymentUpdateData) => {
+      if (!data.status) {
+        return;
+      }
+
+      // Ignore duplicate status notifications except when transitioning to PAID once
+      if (data.status === paymentStatus && data.status !== 'PAID') {
+        return;
+      }
+
       if (data.status) {
         setPaymentStatus(data.status);
         setLatestStatus(data.status);
@@ -299,7 +310,11 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
       }
 
       if (data.status === 'PAID') {
-        toast.success(t('payment.payment_successful_prompt'));
+        if (!paidNotifiedRef.current && paymentStatus !== 'PAID') {
+          toast.success(t('payment.payment_successful_prompt'));
+          setHasShownPaidToast(true);
+          paidNotifiedRef.current = true;
+        }
       } else if (data.status === 'CANCELLED') {
         toast.error(t('payment.payment_cancelled'));
       }
@@ -328,7 +343,11 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
 
           if (remoteStatus && remoteStatus !== paymentStatus) {
             if (remoteStatus === 'PAID') {
-              toast.success(t('payment.payment_successful_prompt'));
+              if (!paidNotifiedRef.current) {
+                toast.success(t('payment.payment_successful_prompt'));
+                setHasShownPaidToast(true);
+                paidNotifiedRef.current = true;
+              }
               setPaymentStatus('PAID');
               setLatestStatus('PAID');
             } else if (remoteStatus === 'CANCELLED') {
@@ -350,7 +369,15 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
     }, 5000);
 
     return () => clearInterval(pollInterval);
-  }, [paymentData.paymentLinkId, paymentData.orderCode, paymentStatus, onPaymentSuccess, onClose, t]);
+  }, [
+    paymentData.paymentLinkId,
+    paymentData.orderCode,
+    paymentStatus,
+    onPaymentSuccess,
+    onClose,
+    t,
+    hasShownPaidToast
+  ]);
 
   // Polling fallback: keeps status in sync even if socket updates are missed
 
@@ -437,7 +464,10 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
         const remoteStatus = typeof remoteStatusRaw === 'string' ? remoteStatusRaw.toUpperCase() : null;
 
         if (remoteStatus === 'PAID') {
-          toast.success(t('payment.payment_successful_prompt'));
+          if (!hasShownPaidToast) {
+            toast.success(t('payment.payment_successful_prompt'));
+            setHasShownPaidToast(true);
+          }
           setPaymentStatus('PAID');
           setLatestStatus('PAID');
         } else if (remoteStatus === 'CANCELLED') {

@@ -27,6 +27,8 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
   const [paymentStatus, setPaymentStatus] = useState<'PENDING' | 'PROCESSING' | 'PAID' | 'CANCELLED'>('PENDING');
   const [timeRemaining, setTimeRemaining] = useState(900); // 15 minutes
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasShownPaidToast, setHasShownPaidToast] = useState(false);
+  const paidNotifiedRef = React.useRef(false);
 
   // Helper function to handle status updates
   const handleStatusUpdate = useCallback(
@@ -64,12 +66,16 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
   useEffect(() => {
     if (paymentData) {
       const initialStatus = (paymentData?.payment as { status?: string } | undefined)?.status;
-      setPaymentStatus(
+      const status =
         initialStatus && ['PENDING', 'PROCESSING', 'PAID', 'CANCELLED'].includes(initialStatus)
           ? (initialStatus as 'PENDING' | 'PROCESSING' | 'PAID' | 'CANCELLED')
-          : 'PENDING'
-      );
+          : 'PENDING';
+      setPaymentStatus(status);
       setTimeRemaining(900);
+      // Reset toast flag when payment data changes
+      const isPaid = status === 'PAID';
+      setHasShownPaidToast(isPaid);
+      paidNotifiedRef.current = isPaid;
     }
   }, [paymentData]);
 
@@ -78,18 +84,26 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
     paymentData?.orderCode || 0,
     (data: PaymentUpdateData) => {
       console.log('[PaymentStep] Received payment update:', data);
-      if (data.status) {
-        setPaymentStatus(data.status);
+      if (!data.status) {
+        return;
+      }
 
-        if (data.status === 'PAID') {
+      // Ignore duplicate status notifications (except first PAID)
+      if (data.status === paymentStatus && data.status !== 'PAID') {
+        return;
+      }
+
+      setPaymentStatus(data.status);
+
+      if (data.status === 'PAID') {
+        if (!paidNotifiedRef.current) {
+          paidNotifiedRef.current = true;
           toast.success(t('payment.payment_successful_prompt'));
-          // Auto-advance to next step after a short delay
-          setTimeout(() => {
-            onPaymentSuccess();
-          }, 1500);
-        } else if (data.status === 'CANCELLED') {
-          toast.error(t('payment.payment_cancelled'));
+          setHasShownPaidToast(true);
         }
+        // Do not auto-advance; let user proceed manually to the next step
+      } else if (data.status === 'CANCELLED') {
+        toast.error(t('payment.payment_cancelled'));
       }
     },
     {
@@ -115,7 +129,15 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
           const remoteStatus = typeof remoteStatusRaw === 'string' ? remoteStatusRaw.toUpperCase() : null;
 
           if (!remoteStatus || remoteStatus === paymentStatus) return;
-          handleStatusUpdate(remoteStatus, false);
+
+          // Only show toast for PAID status if not already shown
+          if (remoteStatus === 'PAID' && !hasShownPaidToast) {
+            handleStatusUpdate(remoteStatus, true);
+            setHasShownPaidToast(true);
+            paidNotifiedRef.current = true;
+          } else {
+            handleStatusUpdate(remoteStatus, false);
+          }
         })
         .catch((error) => {
           console.error('[PaymentStep] Polling error:', error);
@@ -124,7 +146,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
 
     const pollInterval = setInterval(checkPaymentStatus, 5000);
     return () => clearInterval(pollInterval);
-  }, [paymentData?.paymentLinkId, paymentData?.orderCode, paymentStatus, handleStatusUpdate]);
+  }, [paymentData?.paymentLinkId, paymentData?.orderCode, paymentStatus, handleStatusUpdate, hasShownPaidToast]);
 
   // Countdown timer
   useEffect(() => {
