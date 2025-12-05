@@ -11,7 +11,7 @@ export interface TimestampFields {
 
 // Common status types
 export type Status = 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'CANCELLED';
-export type ScheduleStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+export type ScheduleStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW' | 'PENDING_APPROVAL';
 
 // Common schedule types
 export type ScheduleType = 'CLASS' | 'PERSONAL_TRAINING' | 'FREE_TIME' | 'MAINTENANCE';
@@ -180,7 +180,7 @@ export const isStatus = (value: string): value is Status => {
 };
 
 export const isScheduleStatus = (value: string): value is ScheduleStatus => {
-  return ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(value);
+  return ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW', 'PENDING_APPROVAL'].includes(value);
 };
 
 // ===== UTILITY FUNCTIONS =====

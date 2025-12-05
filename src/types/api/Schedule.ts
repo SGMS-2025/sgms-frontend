@@ -15,6 +15,35 @@ import type {
 
 export type SortField = 'createdAt' | 'scheduleDate' | 'name' | 'type' | 'status';
 
+export interface ScheduleServiceContract {
+  _id: string;
+  customerId?:
+    | string // Unpopulated ObjectId
+    | {
+        _id: string;
+        userId?:
+          | string // Unpopulated ObjectId
+          | {
+              _id: string;
+              fullName?: string;
+              firstName?: string;
+              lastName?: string;
+              username?: string;
+              phone?: string;
+              phoneNumber?: string;
+              email?: string;
+            };
+      };
+  customer?: {
+    fullName?: string;
+    firstName?: string;
+    lastName?: string;
+    username?: string;
+    phone?: string;
+  };
+  [key: string]: unknown;
+}
+
 export interface Schedule extends BaseEntity {
   name: string;
   type: ScheduleType;
@@ -42,6 +71,9 @@ export interface Schedule extends BaseEntity {
   isRecurring: boolean;
   recurringPattern?: RecurringPattern;
   recurringEndDate?: string;
+  // Fields for PT availability request
+  serviceContractIds?: ScheduleServiceContract[];
+  requestId?: string;
 }
 
 // ===== REQUEST/RESPONSE TYPES =====
@@ -98,8 +130,10 @@ export interface GetSchedulesParams {
 export interface GetSchedulesResponse {
   success: boolean;
   data: {
-    schedules: Schedule[];
+    data: Schedule[]; // PaginationHelper returns 'data' not 'schedules'
     pagination: PaginationResponse;
+    // Keep 'schedules' for backward compatibility
+    schedules?: Schedule[];
   };
   message: string;
 }

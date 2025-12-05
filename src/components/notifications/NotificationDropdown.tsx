@@ -8,6 +8,7 @@ import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import type { Notification } from '@/contexts/SocketContext';
 import type { WorkShiftNotificationData } from '@/types/api/NotificationWorkShift';
+import type { PTProgressReminderNotificationData } from '@/types/api/Socket';
 import { formatInVietnam } from '@/utils/datetime';
 import { translateNotificationTitle, translateNotificationMessage } from '@/utils/notificationTranslator';
 
@@ -121,6 +122,32 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
 
     if (isWorkShiftNotification) {
       handleViewWorkShift(workShiftData?.workShiftId);
+      return;
+    }
+
+    // Check if it's a PT Progress Reminder notification
+    const isPTProgressReminder =
+      notification.type?.startsWith('notification:pt-progress-reminder') ||
+      notification.data?.action === 'add-progress' ||
+      notification.title?.includes('Thêm Progress') ||
+      notification.title?.includes('Progress');
+
+    if (isPTProgressReminder) {
+      const data = notification.data as PTProgressReminderNotificationData['data'];
+      const customerId = data?.customerId;
+      const serviceContractId = data?.serviceContractId;
+
+      // Navigate to add progress page for the customer
+      if (customerId && serviceContractId) {
+        // Link tới trang add progress cho customer đó với contract ID
+        navigate(`/manage/pt/clients/${customerId}/progress?add=true&contractId=${serviceContractId}`);
+      } else if (customerId) {
+        navigate(`/manage/pt/clients/${customerId}/progress?add=true`);
+      } else {
+        // Fallback: navigate to clients list
+        navigate('/manage/pt/clients');
+      }
+      if (onClose) onClose();
       return;
     }
 

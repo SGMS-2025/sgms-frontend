@@ -74,7 +74,6 @@ export const EquipmentListPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'equipment' | 'repair' | 'maintenance'>('equipment');
   const [currentPage, setCurrentPage] = useState(1);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
@@ -286,90 +285,71 @@ export const EquipmentListPage: React.FC = () => {
                   categoryStats={stats.categoryStats}
                 />
 
-                {/* Desktop Category Cards - Full version with descriptions */}
+                {/* Desktop Category Cards - Enhanced */}
                 <div className="hidden lg:block mb-4" data-tour="equipment-stats-cards">
-                  <div className="rounded-xl border border-orange-100 bg-[#FFF6EE] p-6">
-                    <div className="mb-6">
-                      <div>
-                        <div className="text-xs font-semibold uppercase tracking-wide text-orange-500 mb-2">
-                          {t('equipment.total_equipment_helper')}
-                        </div>
-                        <div className="text-4xl font-bold text-gray-900 mb-2">{stats.totalEquipments}</div>
-                      </div>
-                    </div>
-
-                    {/* Category Cards Grid inside TOTAL card */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3">
-                      <div className="bg-white border border-gray-200 rounded-lg p-3">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-gray-900 mb-1">STRENGTH</div>
-                        <div className="text-2xl font-semibold text-gray-900 mb-1">
-                          {stats.categoryStats.find((c) => c._id === 'STRENGTH')?.count || 0}
-                        </div>
-                        <p className="text-xs text-gray-500">
-                          {t('equipment.strength_helper') || 'Strength training equipment'}
-                        </p>
-                      </div>
-
-                      <div className="bg-white border border-gray-200 rounded-lg p-3">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-gray-900 mb-1">CARDIO</div>
-                        <div className="text-2xl font-semibold text-gray-900 mb-1">
-                          {stats.categoryStats.find((c) => c._id === 'CARDIO')?.count || 0}
-                        </div>
-                        <p className="text-xs text-gray-500">
-                          {t('equipment.cardio_helper') || 'Cardiovascular equipment'}
-                        </p>
-                      </div>
-
-                      <div className="bg-white border border-gray-200 rounded-lg p-3">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-gray-900 mb-1">
-                          FLEXIBILITY
-                        </div>
-                        <div className="text-2xl font-semibold text-gray-900 mb-1">
-                          {stats.categoryStats.find((c) => c._id === 'FLEXIBILITY')?.count || 0}
-                        </div>
-                        <p className="text-xs text-gray-500">
-                          {t('equipment.flexibility_helper') || 'Flexibility & stretching equipment'}
-                        </p>
-                      </div>
-
-                      <div className="bg-white border border-gray-200 rounded-lg p-3">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-gray-900 mb-1">
-                          FUNCTIONAL
-                        </div>
-                        <div className="text-2xl font-semibold text-gray-900 mb-1">
-                          {stats.categoryStats.find((c) => c._id === 'FUNCTIONAL')?.count || 0}
-                        </div>
-                        <p className="text-xs text-gray-500">
-                          {t('equipment.functional_helper') || 'Functional training equipment'}
-                        </p>
-                      </div>
-
-                      <div className="bg-white border border-gray-200 rounded-lg p-3">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-gray-900 mb-1">SPORTS</div>
-                        <div className="text-2xl font-semibold text-gray-900 mb-1">
-                          {stats.categoryStats.find((c) => c._id === 'SPORTS')?.count || 0}
-                        </div>
-                        <p className="text-xs text-gray-500">{t('equipment.sports_helper') || 'Sports equipment'}</p>
-                      </div>
-
-                      <div className="bg-white border border-gray-200 rounded-lg p-3">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-gray-900 mb-1">
-                          ACCESSORIES
-                        </div>
-                        <div className="text-2xl font-semibold text-gray-900 mb-1">
-                          {stats.categoryStats.find((c) => c._id === 'ACCESSORIES')?.count || 0}
-                        </div>
-                        <p className="text-xs text-gray-500">
-                          {t('equipment.accessories_helper') || 'Equipment accessories'}
-                        </p>
-                      </div>
-
-                      <div className="bg-white border border-gray-200 rounded-lg p-3">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-gray-900 mb-1">OTHER</div>
-                        <div className="text-2xl font-semibold text-gray-900 mb-1">
-                          {stats.categoryStats.find((c) => c._id === 'OTHER')?.count || 0}
-                        </div>
-                        <p className="text-xs text-gray-500">{t('equipment.other_helper') || 'Other equipment'}</p>
+                  <div className="overflow-hidden rounded-2xl border border-orange-100/80 bg-gradient-to-br from-orange-50 via-white to-white shadow-sm">
+                    {/* Category Cards Grid */}
+                    <div className="p-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-4 gap-4">
+                        {[
+                          {
+                            key: 'TOTAL_TILE',
+                            label: t('equipment.total_equipment_helper') || 'Total equipment items',
+                            helper: t('equipment.equipment_overview_subtitle') || 'All equipment items across branches',
+                            count: stats.totalEquipments
+                          },
+                          {
+                            key: 'STRENGTH',
+                            label: 'Strength',
+                            helper: t('equipment.strength_helper') || 'Strength training equipment'
+                          },
+                          {
+                            key: 'CARDIO',
+                            label: 'Cardio',
+                            helper: t('equipment.cardio_helper') || 'Cardiovascular equipment'
+                          },
+                          {
+                            key: 'FLEXIBILITY',
+                            label: 'Flexibility',
+                            helper: t('equipment.flexibility_helper') || 'Flexibility & stretching equipment'
+                          },
+                          {
+                            key: 'FUNCTIONAL',
+                            label: 'Functional',
+                            helper: t('equipment.functional_helper') || 'Functional training equipment'
+                          },
+                          {
+                            key: 'SPORTS',
+                            label: 'Sports',
+                            helper: t('equipment.sports_helper') || 'Sports equipment'
+                          },
+                          {
+                            key: 'ACCESSORIES',
+                            label: 'Accessories',
+                            helper: t('equipment.accessories_helper') || 'Equipment accessories'
+                          },
+                          { key: 'OTHER', label: 'Other', helper: t('equipment.other_helper') || 'Other equipment' }
+                        ].map((category) => {
+                          const count =
+                            category.key === 'TOTAL_TILE'
+                              ? category.count
+                              : stats.categoryStats.find((c) => c._id === category.key)?.count || 0;
+                          return (
+                            <div
+                              key={category.key}
+                              className="group relative overflow-hidden rounded-2xl border border-orange-100/80 bg-white/90 p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
+                            >
+                              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-orange-50/80 via-white to-white opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                              <div className="relative space-y-2">
+                                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gray-500">
+                                  {category.label}
+                                </div>
+                                <div className="text-3xl font-bold text-gray-900 leading-tight">{count}</div>
+                                <p className="text-xs text-gray-500 leading-relaxed">{category.helper}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -389,39 +369,10 @@ export const EquipmentListPage: React.FC = () => {
           <div className="mb-8 flex flex-col gap-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex flex-wrap gap-2" data-tour="equipment-tabs">
-                <button
-                  onClick={() => setActiveTab('equipment')}
-                  className={`inline-flex items-center rounded-full px-4 sm:px-6 py-2 text-sm font-medium transition-all ${
-                    activeTab === 'equipment'
-                      ? 'bg-orange-500 text-white shadow-sm'
-                      : 'border border-gray-200 bg-white text-gray-500 hover:border-orange-300 hover:text-orange-500'
-                  }`}
-                >
+                <button className="inline-flex items-center rounded-full px-4 sm:px-6 py-2 text-sm font-medium transition-all bg-orange-500 text-white shadow-sm">
                   <Building2 className="mr-1 sm:mr-2 h-4 w-4" />
                   <span className="hidden sm:inline">{t('equipment.equipment_list')}</span>
                   <span className="sm:hidden">Equipment</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('repair')}
-                  className={`inline-flex items-center rounded-full px-4 sm:px-6 py-2 text-sm font-medium transition-all ${
-                    activeTab === 'repair'
-                      ? 'bg-orange-500 text-white shadow-sm'
-                      : 'border border-gray-200 bg-white text-gray-500 hover:border-orange-300 hover:text-orange-500'
-                  }`}
-                >
-                  <span className="hidden sm:inline">{t('equipment.repair_requests')}</span>
-                  <span className="sm:hidden">Repair</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('maintenance')}
-                  className={`inline-flex items-center rounded-full px-4 sm:px-6 py-2 text-sm font-medium transition-all ${
-                    activeTab === 'maintenance'
-                      ? 'bg-orange-500 text-white shadow-sm'
-                      : 'border border-gray-200 bg-white text-gray-500 hover:border-orange-300 hover:text-orange-500'
-                  }`}
-                >
-                  <span className="hidden sm:inline">{t('equipment.report_history')}</span>
-                  <span className="sm:hidden">History</span>
                 </button>
               </div>
 

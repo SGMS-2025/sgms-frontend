@@ -21,6 +21,7 @@ import { formatInVietnam } from '@/utils/datetime';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { useClassesByTrainer } from '@/hooks/useClassesByTrainer';
+import { usePTSchedules } from '@/hooks/usePTSchedules';
 import { ClassesListTab } from './tabs/ClassesListTab';
 import { ClassDetailModal } from './modals/ClassDetailModal';
 
@@ -68,6 +69,19 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
   const classes = classesResult?.classes || [];
   const classesLoading = classesResult?.loading || false;
   const classesError = classesResult?.error || null;
+
+  // Fetch PT 1-1 schedules for PT
+  const schedulesResult = usePTSchedules(
+    isPT && activeTabValue === 'classes' && isOpen ? workShift?.staffId?._id : null,
+    {
+      type: 'PERSONAL_TRAINING',
+      enabled: isPT && activeTabValue === 'classes' && isOpen
+    }
+  );
+
+  const schedules = schedulesResult?.schedules || [];
+  const schedulesLoading = schedulesResult?.loading || false;
+  const schedulesError = schedulesResult?.error || null;
 
   // Get branch working config to auto-adjust endTime
   const branchId = currentWorkShift?.branchId?._id;
@@ -563,8 +577,11 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
               {ClassesListTab ? (
                 <ClassesListTab
                   classes={classes || []}
+                  schedules={schedules || []}
                   loading={classesLoading || false}
+                  schedulesLoading={schedulesLoading || false}
                   error={classesError || null}
+                  schedulesError={schedulesError || null}
                   staffId={workShift?.staffId?._id}
                   filterStartTime={currentWorkShift?.startTimeLocal}
                   filterEndTime={currentWorkShift?.endTimeLocal}
@@ -572,6 +589,10 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                   onClassClick={(classId) => {
                     setSelectedClassId(classId);
                     setShowClassDetail(true);
+                  }}
+                  onScheduleClick={(scheduleId) => {
+                    // TODO: Open schedule detail modal
+                    console.log('Schedule clicked:', scheduleId);
                   }}
                 />
               ) : (

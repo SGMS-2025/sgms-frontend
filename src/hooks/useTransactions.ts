@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { transactionApi } from '@/services/api/transactionApi';
 import type {
   Transaction,
@@ -86,24 +86,45 @@ export const useTransactions = (initialQuery: TransactionListParams = {}): UseTr
     status: DEFAULT_STATUS,
     ...initialQuery
   });
+  const activeRequestRef = useRef(0);
 
   const fetchTransactions = useCallback(async () => {
+    const requestId = ++activeRequestRef.current;
     setLoading(true);
     setError(null);
 
-    const response = await transactionApi.getTransactions(query);
+    try {
+      const response = await transactionApi.getTransactions(query);
 
-    if (response.success) {
-      const items = response.data.items;
-      setTransactions(items);
-      setPagination(response.data.pagination);
-      setSummary(response.data.summary ?? calculateSummary(items));
-    } else {
-      setError(response.message || 'Failed to fetch transactions');
-      setSummary(null);
+      // Only update state if this is the latest request to avoid stale data overriding filtered results
+      if (requestId !== activeRequestRef.current) {
+        return;
+      }
+
+      if (response.success) {
+        const items = response.data.items;
+        setTransactions(items);
+        setPagination(response.data.pagination);
+        setSummary(response.data.summary ?? calculateSummary(items));
+      } else {
+        setError(response.message || 'Failed to fetch transactions');
+        setTransactions([]);
+        setPagination(null);
+        setSummary(null);
+      }
+    } catch (error) {
+      if (requestId === activeRequestRef.current) {
+        const message = error instanceof Error ? error.message : 'Failed to fetch transactions';
+        setError(message);
+        setTransactions([]);
+        setPagination(null);
+        setSummary(null);
+      }
+    } finally {
+      if (requestId === activeRequestRef.current) {
+        setLoading(false);
+      }
     }
-
-    setLoading(false);
   }, [query]);
 
   useEffect(() => {

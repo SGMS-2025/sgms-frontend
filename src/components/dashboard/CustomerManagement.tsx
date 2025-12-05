@@ -247,7 +247,12 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
   };
 
   const handlePageChange = (newPage: number) => {
-    goToPage(newPage);
+    if (!pagination) return;
+    const total = Math.max(pagination.totalPages, 1);
+    const clampedPage = Math.min(Math.max(newPage, 1), total);
+    if (clampedPage !== pagination.currentPage) {
+      goToPage(clampedPage);
+    }
   };
 
   const handleAddCustomer = () => {
@@ -544,10 +549,10 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
   };
 
   const paginationPages = React.useMemo(() => {
-    if (!pagination) return [];
+    if (!pagination || !pagination.totalPages) return [];
     const pages = new Set<number>();
-    const total = pagination.totalPages;
-    const current = pagination.currentPage;
+    const total = Math.max(pagination.totalPages, 1);
+    const current = Math.min(Math.max(pagination.currentPage, 1), total);
 
     pages.add(1);
     pages.add(total);
@@ -560,7 +565,9 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
       }
     });
 
-    return Array.from(pages).sort((a, b) => a - b);
+    return Array.from(pages)
+      .filter((page) => page >= 1 && page <= total)
+      .sort((a, b) => a - b);
   }, [pagination]);
 
   // Show loading state
@@ -903,7 +910,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
       </div>
 
       {/* Pagination Info and Controls */}
-      {pagination && (
+      {pagination && pagination.totalPages > 0 && paginationPages.length > 0 && (
         <div
           className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
           data-tour="customers-pagination"

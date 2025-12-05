@@ -1,69 +1,49 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { useLocation } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Search, Bell } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { useSocketNotifications } from '@/hooks/useSocket';
 import { Badge } from '@/components/ui/badge';
-import { useBranch } from '@/contexts/BranchContext';
-import { BranchSelectorButton } from '@/components/dashboard/BranchSelectorButton';
-import type { BranchDisplay } from '@/types/api/Branch';
 
-interface DashboardHeaderProps {
+interface CustomerHeaderProps {
   title?: string;
-  hideBranchSelector?: boolean;
 }
 
 const formatSegment = (segment: string) => segment.replace(/[-_]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 
-export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, hideBranchSelector = false }) => {
+export const CustomerHeader: React.FC<CustomerHeaderProps> = ({ title }) => {
   const { t } = useTranslation();
   const location = useLocation();
-  const navigate = useNavigate();
   const { unreadCount } = useSocketNotifications();
-  const { currentBranch, branches, switchBranch } = useBranch();
 
   const computedTitle = React.useMemo(() => {
     if (title) return title;
 
     const segments = location.pathname.split('/').filter(Boolean);
-    let lastSegment = segments.at(-1) ?? 'overview';
+    let lastSegment = segments.at(-1) ?? 'dashboard';
 
     // Nếu lastSegment là ObjectId (24 ký tự hex), dùng segment trước đó
     if (lastSegment && /^[a-f\d]{24}$/i.test(lastSegment)) {
-      lastSegment = segments.at(-2) ?? 'overview';
+      lastSegment = segments.at(-2) ?? 'dashboard';
     }
 
     const translationMap: Record<string, string> = {
-      owner: t('dashboard.overview'),
+      customer: t('dashboard.overview'),
       dashboard: t('dashboard.overview'),
-      staff: t('sidebar.staff'),
-      branch: t('sidebar.branch'),
-      branches: t('sidebar.branch'),
-      'equipment-inventory': t('equipmentInventory.title'),
-      session: t('equipmentInventory.sessionTitle')
+      profile: t('sidebar.profile'),
+      membership: t('sidebar.membership'),
+      schedule: t('sidebar.schedule'),
+      progress: t('sidebar.progress'),
+      contracts: t('sidebar.contracts'),
+      security: t('sidebar.security')
     };
 
     return translationMap[lastSegment] ?? formatSegment(lastSegment);
   }, [location.pathname, t, title]);
-
-  // Branch switching handlers
-  const handleBranchSelect = async (branch: BranchDisplay) => {
-    await switchBranch(branch._id);
-  };
-
-  const handleAddBranch = () => {
-    navigate('/manage/add-branch');
-  };
-
-  const handleViewBranch = (branch: BranchDisplay) => {
-    // Directly navigate to branch detail page without switching
-    // This allows viewing inactive branches without triggering switch validation
-    navigate(`/manage/branch/${branch._id}`);
-  };
 
   return (
     <header>
@@ -88,7 +68,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, hideBra
           </div>
         </div>
 
-        {/* Right side - Icons and User Profile */}
+        {/* Right side - Notifications */}
         <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
           {/* Notifications */}
           <DropdownMenu>
@@ -109,40 +89,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, hideBra
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={8} className="w-96 p-0 z-[120]">
+            <DropdownMenuContent align="end" className="w-96 p-0">
               <NotificationDropdown showBadge={false} />
             </DropdownMenuContent>
           </DropdownMenu>
-
-          {/* Branch Selector - Mobile */}
-          {!hideBranchSelector && (
-            <div className="sm:hidden">
-              <BranchSelectorButton
-                currentBranch={currentBranch}
-                branches={branches}
-                onBranchSelect={handleBranchSelect}
-                onAddBranch={handleAddBranch}
-                onViewBranch={handleViewBranch}
-                collapsed
-              />
-            </div>
-          )}
-
-          {/* Separator (hidden on mobile) */}
-          {!hideBranchSelector && <div className="hidden sm:block h-6 w-px bg-gray-200"></div>}
-
-          {/* Branch Selector */}
-          {!hideBranchSelector && (
-            <div className="hidden sm:block w-64 flex-shrink-0">
-              <BranchSelectorButton
-                currentBranch={currentBranch}
-                branches={branches}
-                onBranchSelect={handleBranchSelect}
-                onAddBranch={handleAddBranch}
-                onViewBranch={handleViewBranch}
-              />
-            </div>
-          )}
         </div>
       </div>
     </header>

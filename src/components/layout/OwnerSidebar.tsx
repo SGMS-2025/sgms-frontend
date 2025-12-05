@@ -22,7 +22,8 @@ import {
   FileText,
   TrendingUp,
   Wallet,
-  Percent
+  Percent,
+  Clock
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
@@ -337,6 +338,13 @@ export const OwnerSidebar: React.FC = () => {
               isActive={location.pathname.startsWith('/manage/timeoff')}
               onClick={() => navigate('/manage/timeoff')}
               data-tour="timeoff-menu-item"
+            />
+            <SubMenuItem
+              icon={<Clock className="w-5 h-5 stroke-[1.75]" />}
+              label={t('sidebar.pt_availability_requests')}
+              isActive={location.pathname.startsWith('/manage/pt-availability-requests')}
+              onClick={() => navigate('/manage/pt-availability-requests')}
+              data-tour="pt-availability-requests-menu-item"
             />
             <SubMenuItem
               icon={<UsersRound className="w-5 h-5 stroke-[1.75]" />}

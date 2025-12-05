@@ -23,6 +23,7 @@ import { customerApi } from '@/services/api/customerApi';
 import { toast } from 'sonner';
 import type { TrainingProgressDisplay } from '@/types/api/TrainingProgress';
 import type { ProgressFormData, EditProgressFormData, CustomerStats } from '@/types/forms/Progress';
+import type { ServiceContractItem } from '@/types/api/Customer';
 
 export default function TrainingProgressDetailPage() {
   const { t } = useTranslation();
@@ -32,8 +33,10 @@ export default function TrainingProgressDetailPage() {
   const currentUser = useUser();
   const isDesktop = !useIsMobile(1024);
 
-  // Get serviceContractId from navigation state
-  const serviceContractId = location.state?.serviceContractId;
+  // Get serviceContractId from navigation state or query params
+  const searchParams = new URLSearchParams(location.search);
+  const serviceContractIdFromQuery = searchParams.get('contractId');
+  const serviceContractId = location.state?.serviceContractId || serviceContractIdFromQuery || null;
   const customerName = location.state?.customerName;
 
   // Use training progress hook
@@ -93,13 +96,6 @@ export default function TrainingProgressDetailPage() {
   useEffect(() => {
     const loadCustomerData = async () => {
       if (customerId) {
-        // Check if serviceContractId is available
-        if (!serviceContractId) {
-          toast.error(t('progress_detail.error.no_contract'));
-          navigate('/manage/pt/clients');
-          return;
-        }
-
         // Check if trainerId is available
         if (!currentUser?._id) {
           toast.error(t('progress_detail.error.no_trainer'));
@@ -111,6 +107,36 @@ export default function TrainingProgressDetailPage() {
         const response = await customerApi.getCustomerById(customerId);
 
         if (response.success) {
+          // If serviceContractId is not provided, try to get it from customer's contracts
+          let finalServiceContractId = serviceContractId;
+
+          if (!finalServiceContractId) {
+            // Try to get from allServiceContracts (returned from backend)
+            const allServiceContracts: ServiceContractItem[] =
+              (response.data as { allServiceContracts?: ServiceContractItem[] }).allServiceContracts || [];
+            if (allServiceContracts.length > 0) {
+              // Find the first active PT contract
+              const ptContract = allServiceContracts.find(
+                (contract: ServiceContractItem) => contract.packageType === 'PT' && contract.status === 'ACTIVE'
+              );
+              if (ptContract) {
+                finalServiceContractId = ptContract._id?.toString() || ptContract._id || ptContract.id;
+              } else if (allServiceContracts.length > 0) {
+                // Fallback: use the first contract if no active PT contract found
+                const firstContract = allServiceContracts[0];
+                finalServiceContractId = firstContract._id?.toString() || firstContract._id || firstContract.id;
+              }
+            }
+          }
+
+          // Check if serviceContractId is available after trying to get from contracts
+          if (!finalServiceContractId) {
+            toast.error(t('progress_detail.error.no_contract'));
+            navigate('/manage/pt/clients');
+            setCustomerLoading(false);
+            return;
+          }
+
           // Transform the customer data to match our expected format
           setCustomer({
             id: response.data.id,
@@ -120,7 +146,7 @@ export default function TrainingProgressDetailPage() {
             avatar: '/avatars/customer-1.jpg', // Default avatar since CustomerDisplay doesn't have avatar
             package: response.data.membershipType || 'Personal Training - Basic',
             status: response.data.membershipStatus === 'ACTIVE' ? 'Active' : 'Inactive',
-            serviceContractId: serviceContractId || '', // Use from navigation state
+            serviceContractId: finalServiceContractId,
             trainerId: currentUser?._id || '' // Keep current user as trainer
           });
         } else {
@@ -133,7 +159,7 @@ export default function TrainingProgressDetailPage() {
     };
 
     loadCustomerData();
-  }, [customerId, serviceContractId, currentUser?._id, navigate]);
+  }, [customerId, serviceContractId, currentUser?._id, navigate, t]);
 
   // Load customer stats and trend data
   useEffect(() => {
@@ -153,6 +179,33 @@ export default function TrainingProgressDetailPage() {
     loadCustomerStats();
   }, [customerId, getCustomerStats]);
 
+  // Check URL params to auto-open add progress form
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const shouldAdd = searchParams.get('add') === 'true';
+    const contractIdFromUrl = searchParams.get('contractId');
+
+    if (shouldAdd && !isAddFormOpen && !customerLoading) {
+      // Update serviceContractId if provided in URL
+      if (contractIdFromUrl && contractIdFromUrl !== customer.serviceContractId) {
+        setCustomer((prev) => ({
+          ...prev,
+          serviceContractId: contractIdFromUrl
+        }));
+      }
+
+      // Open add form
+      setIsAddFormOpen(true);
+
+      // Clean up URL params after opening form
+      const newSearchParams = new URLSearchParams(location.search);
+      newSearchParams.delete('add');
+      newSearchParams.delete('contractId');
+      const newSearch = newSearchParams.toString();
+      navigate({ pathname: location.pathname, search: newSearch ? `?${newSearch}` : '' }, { replace: true });
+    }
+  }, [location.search, isAddFormOpen, customerLoading, customer.serviceContractId, navigate, location.pathname]);
+
   const handleBack = () => {
     navigate('/manage/pt/clients');
   };
@@ -160,7 +213,6 @@ export default function TrainingProgressDetailPage() {
   const handleAddProgress = (_data: ProgressFormData) => {
     // The API call is handled in AddProgressForm, this is just for UI updates
     setIsAddFormOpen(false);
-    toast.success('Progress saved successfully');
     // Refetch data to get updated list
     refetch();
   };
@@ -168,14 +220,12 @@ export default function TrainingProgressDetailPage() {
   const handleEditProgress = (_data: EditProgressFormData) => {
     // The API call is handled in EditProgressForm, this is just for UI updates
     setEditingLog(null);
-    toast.success('Progress updated successfully');
     // Refetch data to get updated list
     refetch();
   };
 
   const handleDeleteProgress = () => {
     // The API call is handled in TrainingLogTable, this is just for UI updates
-    toast.success('Progress deleted successfully');
     // Refetch data to get updated list
     refetch();
   };
