@@ -25,7 +25,8 @@ export type NotificationCategory =
   | 'timeoff'
   | 'reschedule'
   | 'membership'
-  | 'contract';
+  | 'contract'
+  | 'pt_availability';
 
 export interface NotificationData {
   type: string;
@@ -111,6 +112,48 @@ export interface RescheduleNotificationData extends NotificationData {
   };
 }
 
+export interface PTAvailabilityNotificationData extends NotificationData {
+  category: 'pt_availability';
+  data: {
+    requestId: string;
+    staffId: string;
+    staffName: string;
+    branchId: string;
+    branchName: string;
+    slotsCount: number;
+    status: string;
+    actor?: {
+      id: string;
+      name: string;
+      role: string;
+    };
+    approvedBy?: {
+      id: string;
+      name: string;
+      role: string;
+    };
+    approvedAt?: string;
+    rejectionReason?: string;
+    rejectedBy?: {
+      id: string;
+      name: string;
+      role: string;
+    };
+    rejectedAt?: string;
+  };
+}
+
+export interface PTProgressReminderNotificationData extends NotificationData {
+  category: 'general';
+  data: {
+    customerId: string;
+    serviceContractId: string;
+    trainerId?: string;
+    customerName: string;
+    action: 'add-progress';
+  };
+}
+
 // ===== SOCKET EVENT TYPES =====
 
 export interface SocketEvents {
@@ -166,11 +209,16 @@ export interface SocketEvents {
   'notification:servicecontract:assigned': (data: NotificationData) => void;
   'notification:servicecontract:owner_update': (data: NotificationData) => void;
   'notification:servicecontract:manager_update': (data: NotificationData) => void;
+  'notification:pt-availability:created': (data: PTAvailabilityNotificationData) => void;
+  'notification:pt-availability:approved': (data: PTAvailabilityNotificationData) => void;
+  'notification:pt-availability:rejected': (data: PTAvailabilityNotificationData) => void;
+  'notification:pt-progress-reminder:add-progress': (data: PTProgressReminderNotificationData) => void;
 
   // Custom events
   'workshift-notification': (data: WorkShiftNotificationData) => void;
   'timeoff-notification': (data: TimeOffNotificationData) => void;
   'reschedule-notification': (data: RescheduleNotificationData) => void;
+  'pt-availability-notification': (data: PTAvailabilityNotificationData) => void;
   'payment:updated': (data: PaymentUpdateEvent) => void;
   'membership:contract:updated': (data: MembershipContractUpdateEvent) => void;
 

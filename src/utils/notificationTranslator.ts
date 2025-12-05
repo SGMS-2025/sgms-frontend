@@ -55,7 +55,10 @@ function getNotificationTitleKey(type: string): string {
 
     // KPI notifications
     'notification:kpi:achieved': 'notifications.kpi.achieved.title',
-    KPI: 'notifications.kpi.achieved.title'
+    KPI: 'notifications.kpi.achieved.title',
+
+    // PT Progress Reminder notifications
+    'notification:pt-progress-reminder:add-progress': 'notifications.pt_progress_reminder.add_progress.title'
   };
 
   return keyMap[type] || '';
@@ -108,7 +111,10 @@ function getNotificationMessageKey(type: string): string {
 
     // KPI notifications
     'notification:kpi:achieved': 'notifications.kpi.achieved.message',
-    KPI: 'notifications.kpi.achieved.message'
+    KPI: 'notifications.kpi.achieved.message',
+
+    // PT Progress Reminder notifications
+    'notification:pt-progress-reminder:add-progress': 'notifications.pt_progress_reminder.add_progress.message'
   };
 
   return keyMap[type] || '';

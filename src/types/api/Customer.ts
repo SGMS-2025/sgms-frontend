@@ -196,6 +196,19 @@ export interface ApiResponse<T> {
   };
 }
 
+export interface ServiceContractItem {
+  _id?: string;
+  id?: string;
+  packageType?: 'PT' | 'CLASS' | string;
+  status?: string;
+  servicePackageId?: { name?: string };
+  paidAmount?: number;
+  total?: number;
+  startDate?: string;
+  endDate?: string;
+  [key: string]: unknown;
+}
+
 export interface ServiceContract {
   _id: string;
   servicePackageId: {

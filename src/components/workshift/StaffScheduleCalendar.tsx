@@ -31,8 +31,12 @@ import CreateDropdown from './CreateDropdown';
 import CreateWorkShiftModal from './CreateWorkShiftModal';
 import BranchWorkingConfigModal from './BranchWorkingConfigModal';
 import MobileCalendarView from './mobile/MobileCalendarView';
-import { ClassCalendarTab } from '@/components/class/ClassCalendarTab';
+import { ClassesListTab } from './tabs/ClassesListTab';
+import { useClassList } from '@/hooks/useClassList';
+import { scheduleApi } from '@/services/api/scheduleApi';
+import type { Schedule } from '@/types/api/Schedule';
 import { useCalendarTour } from '@/hooks/useCalendarTour';
+import { ClassDetailModal } from './modals/ClassDetailModal';
 
 // Custom type for realtime notification event
 interface RealtimeNotificationEvent extends Event {
@@ -121,12 +125,74 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     slot: { type?: string; startTime?: string; endTime?: string; hour?: number; display?: string };
     timeRange: string;
   } | null>(null);
+  // State for class detail modal
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [showClassDetail, setShowClassDetail] = useState(false);
   const { currentBranch } = useBranch();
   const { currentStaff } = useCurrentUserStaff();
   const { user } = useAuthState();
 
+  // State for classes and schedules in the Classes tab
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [schedulesLoading, setSchedulesLoading] = useState(false);
+  const [schedulesError, setSchedulesError] = useState<Error | null>(null);
+
   // Fetch branch working config
   const { config: branchConfig, refetch: refetchBranchConfig } = useBranchWorkingConfig(currentBranch?._id);
+
+  // Fetch classes for the branch
+  const classesResult = useClassList({
+    branchId: currentBranch?._id,
+    status: 'ACTIVE'
+  });
+
+  const classes = classesResult?.classes || [];
+  const classesLoading = classesResult?.loading || false;
+  const classesError = classesResult?.error ? new Error(classesResult.error) : null;
+
+  // Fetch PT 1-1 schedules when modal is open and we have selected shift data
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      if (!showStaffListModal || !selectedShiftData || !currentBranch) {
+        setSchedules([]);
+        setSchedulesError(null);
+        return;
+      }
+
+      setSchedulesLoading(true);
+      setSchedulesError(null);
+
+      try {
+        // Format date for API (YYYY-MM-DD)
+        const dateStr = formatDateString(selectedShiftData.date);
+        const dateFrom = `${dateStr}T00:00:00.000Z`;
+        const dateTo = `${dateStr}T23:59:59.999Z`;
+
+        const response = await scheduleApi.getSchedulesByBranch(currentBranch._id, {
+          type: 'PERSONAL_TRAINING',
+          dateFrom,
+          dateTo,
+          limit: 100,
+          page: 1
+        });
+
+        if (response.success) {
+          const schedulesData = response.data?.data || response.data?.schedules || [];
+          setSchedules(schedulesData);
+        } else {
+          setSchedulesError(new Error(response.message || 'Failed to fetch schedules'));
+          setSchedules([]);
+        }
+      } catch (err) {
+        setSchedulesError(err instanceof Error ? err : new Error('Failed to fetch schedules'));
+        setSchedules([]);
+      } finally {
+        setSchedulesLoading(false);
+      }
+    };
+
+    fetchSchedules();
+  }, [showStaffListModal, selectedShiftData, currentBranch]);
 
   // Check if current user can view all staff schedules in the branch
   const canViewAllStaffSchedules = useMemo(() => {
@@ -1787,13 +1853,24 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                     }}
                   >
                     <div className="pr-2">
-                      {currentBranch && (
-                        <ClassCalendarTab
-                          branchId={currentBranch._id}
-                          date={selectedShiftData.date}
-                          timeSlot={{
-                            startTime: selectedShiftData.slot.startTime || '',
-                            endTime: selectedShiftData.slot.endTime || ''
+                      {selectedShiftData && (
+                        <ClassesListTab
+                          classes={classes}
+                          schedules={schedules}
+                          loading={classesLoading}
+                          schedulesLoading={schedulesLoading}
+                          error={classesError}
+                          schedulesError={schedulesError}
+                          filterStartTime={selectedShiftData.slot.startTime}
+                          filterEndTime={selectedShiftData.slot.endTime}
+                          filterDayOfWeek={getDayOfWeekName(selectedShiftData.date)}
+                          onClassClick={(classId) => {
+                            setSelectedClassId(classId);
+                            setShowClassDetail(true);
+                          }}
+                          onScheduleClick={(scheduleId) => {
+                            // Schedule detail modal can be added later if needed
+                            console.log('Schedule clicked:', scheduleId);
                           }}
                         />
                       )}
@@ -1842,6 +1919,17 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
             onSuccess={refreshBranchConfigAndShifts}
           />
         )}
+
+        {/* Class Detail Modal */}
+        <ClassDetailModal
+          isOpen={showClassDetail}
+          onClose={() => {
+            setShowClassDetail(false);
+            setSelectedClassId(null);
+          }}
+          classId={selectedClassId || undefined}
+          selectedDate={selectedShiftData?.date}
+        />
       </div>
     </>
   );

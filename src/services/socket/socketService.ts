@@ -7,6 +7,7 @@ import type {
   WorkShiftNotificationData,
   TimeOffNotificationData,
   RescheduleNotificationData,
+  PTAvailabilityNotificationData,
   ContractSignerSignedEvent,
   ContractCompletedEvent,
   BusinessVerificationUpdateEvent,
@@ -238,6 +239,19 @@ class SocketService implements SocketServiceInterface {
       this.handleBranchWorkingConfigNotification(data);
     });
 
+    // PT Availability notifications
+    this.socket.on('notification:pt-availability:created', (data: PTAvailabilityNotificationData) => {
+      this.handlePTAvailabilityNotification(data);
+    });
+
+    this.socket.on('notification:pt-availability:approved', (data: PTAvailabilityNotificationData) => {
+      this.handlePTAvailabilityNotification(data);
+    });
+
+    this.socket.on('notification:pt-availability:rejected', (data: PTAvailabilityNotificationData) => {
+      this.handlePTAvailabilityNotification(data);
+    });
+
     // KPI notifications
     this.socket.on('notification:kpi:achieved', (data: NotificationData) => {
       this.handleKPINotification(data);
@@ -350,6 +364,19 @@ class SocketService implements SocketServiceInterface {
     // Don't show toast here - let the notification panel handle display
     // SocketContext will handle the notification directly from socket events
     console.log('🔔 Reschedule notification received in socketService:', data);
+  }
+
+  private handlePTAvailabilityNotification(data: PTAvailabilityNotificationData) {
+    // Don't show toast here - let the notification panel handle display
+    // SocketContext will handle the notification directly from socket events
+    console.log('🔔 PT Availability notification received in socketService:', data);
+
+    // Dispatch custom event for components to listen and update
+    globalThis.dispatchEvent(
+      new CustomEvent('pt-availability:updated', {
+        detail: data
+      })
+    );
   }
 
   private handleBranchWorkingConfigNotification(data: NotificationData) {

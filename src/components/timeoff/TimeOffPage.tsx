@@ -10,6 +10,7 @@ import { useTimeOffList, useTimeOffOperations } from '@/hooks/useTimeOff';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { useAuthState } from '@/hooks/useAuth';
 import { useTimeOffTour } from '@/hooks/useTimeOffTour';
+import { useBranch } from '@/contexts/BranchContext';
 import TimeOffList from '@/components/timeoff/TimeOffList';
 import CreateTimeOffModal from '@/components/timeoff/CreateTimeOffModal';
 import TimeOffDetailModal from '@/components/timeoff/TimeOffDetailModal';
@@ -28,6 +29,7 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
   const [searchParams] = useSearchParams();
   const { currentStaff } = useCurrentUserStaff();
   const { user } = useAuthState();
+  const { currentBranch } = useBranch();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTimeOff, setSelectedTimeOff] = useState<TimeOff | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -60,15 +62,26 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
         }
       : {};
 
-  const { timeOffs, stats, loading, error, pagination, refetch, updateFilters, goToPage } = useTimeOffList({
+  const { timeOffs, loading, error, pagination, refetch, updateFilters, goToPage } = useTimeOffList({
     // For owner: show all requests
     // For technician/pt: if manager, show all staff in their branches, otherwise show only their own
     staffId: getStaffId(),
     status: statusFilter === 'ALL' ? undefined : (statusFilter as TimeOffStatus),
     type: typeFilter === 'ALL' ? undefined : (typeFilter as TimeOffType),
+    branchId: currentBranch?._id,
     ...dateFilters,
     search: searchValue.trim() || undefined
   });
+
+  // Update filters when branch changes
+  useEffect(() => {
+    if (currentBranch?._id) {
+      updateFilters({
+        branchId: currentBranch._id,
+        page: 1
+      });
+    }
+  }, [currentBranch?._id, updateFilters]);
 
   const { approveTimeOff, rejectTimeOff, cancelTimeOff, deleteTimeOff } = useTimeOffOperations();
 
@@ -175,6 +188,7 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
     setSearchValue(value);
     updateFilters({
       search: value.trim() || undefined,
+      branchId: currentBranch?._id,
       page: 1 // Reset to first page when search changes
     });
   };
@@ -183,6 +197,7 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
     setStatusFilter(value);
     updateFilters({
       status: value === 'ALL' ? undefined : (value as TimeOffStatus),
+      branchId: currentBranch?._id,
       page: 1 // Reset to first page when filter changes
     });
   };
@@ -191,6 +206,7 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
     setTypeFilter(value);
     updateFilters({
       type: value === 'ALL' ? undefined : (value as TimeOffType),
+      branchId: currentBranch?._id,
       page: 1 // Reset to first page when filter changes
     });
   };
@@ -204,6 +220,7 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
       updateFilters({
         startDate: start ? start.toISOString().split('T')[0] : undefined,
         endDate: end ? end.toISOString().split('T')[0] : undefined,
+        branchId: currentBranch?._id,
         page: 1 // Reset to first page when date range changes
       });
     }
@@ -262,17 +279,13 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
         <MobileTimeOffView
           timeOffs={timeOffs}
           loading={loading}
-          stats={
-            stats
-              ? {
-                  total: stats.totalRequests,
-                  pending: stats.pendingRequests,
-                  approved: stats.approvedRequests,
-                  rejected: stats.rejectedRequests,
-                  cancelled: stats.cancelledRequests
-                }
-              : undefined
-          }
+          stats={{
+            total: timeOffs.length,
+            pending: timeOffs.filter((t) => t.status === 'PENDING').length,
+            approved: timeOffs.filter((t) => t.status === 'APPROVED').length,
+            rejected: timeOffs.filter((t) => t.status === 'REJECTED').length,
+            cancelled: timeOffs.filter((t) => t.status === 'CANCELLED').length
+          }}
           onCreateNew={userRole !== 'owner' ? handleCreateNew : undefined}
           onRefresh={handleRefresh}
           onView={handleViewTimeOff}
@@ -305,17 +318,13 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
           showStats={true}
           showHeader={true}
           onStartTour={startTimeOffTour}
-          stats={
-            stats
-              ? {
-                  total: stats.totalRequests,
-                  pending: stats.pendingRequests,
-                  approved: stats.approvedRequests,
-                  rejected: stats.rejectedRequests,
-                  cancelled: stats.cancelledRequests
-                }
-              : undefined
-          }
+          stats={{
+            total: timeOffs.length,
+            pending: timeOffs.filter((t) => t.status === 'PENDING').length,
+            approved: timeOffs.filter((t) => t.status === 'APPROVED').length,
+            rejected: timeOffs.filter((t) => t.status === 'REJECTED').length,
+            cancelled: timeOffs.filter((t) => t.status === 'CANCELLED').length
+          }}
         />
       )}
 

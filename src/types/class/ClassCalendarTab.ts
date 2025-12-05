@@ -6,4 +6,5 @@ export interface ClassCalendarTabProps {
   branchId: string;
   date: Date;
   timeSlot: { startTime: string; endTime: string };
+  staffId?: string; // Optional: If provided, only show classes assigned to this trainer
 }

@@ -26,7 +26,9 @@ export const useSchedule = (initialParams?: GetSchedulesParams): UseScheduleRetu
       setLoading(true);
       setError(null);
       const response = await scheduleApi.getSchedules(params || initialParams);
-      setSchedules(response.data.schedules);
+      if (response.data?.schedules) {
+        setSchedules(response.data.schedules);
+      }
       setLoading(false);
     },
     [initialParams]

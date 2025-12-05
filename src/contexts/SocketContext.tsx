@@ -10,6 +10,7 @@ import type {
   WorkShiftNotificationData,
   TimeOffNotificationData,
   RescheduleNotificationData,
+  PTAvailabilityNotificationData,
   NotificationData
 } from '@/types/api/Socket';
 
@@ -475,6 +476,13 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
     [handleWorkShiftNotification]
   );
 
+  const handlePTAvailabilitySocketNotification = useCallback(
+    (data: PTAvailabilityNotificationData) => {
+      handleWorkShiftNotification(data as unknown as Record<string, unknown>);
+    },
+    [handleWorkShiftNotification]
+  );
+
   const handleTestNotification = useCallback(
     (event: CustomEvent) => {
       const notification: Notification = event.detail;
@@ -517,6 +525,9 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       socketService.off('notification:reschedule:owner_update', handleRescheduleSocketNotification);
       socketService.off('notification:reschedule:manager_update', handleRescheduleSocketNotification);
       socketService.off('notification:reschedule:staff_update', handleRescheduleSocketNotification);
+      socketService.off('notification:pt-availability:created', handlePTAvailabilitySocketNotification);
+      socketService.off('notification:pt-availability:approved', handlePTAvailabilitySocketNotification);
+      socketService.off('notification:pt-availability:rejected', handlePTAvailabilitySocketNotification);
       socketService.off('notification:membership:registered', handleMembershipSocketNotification);
       socketService.off('notification:membership:purchased', handleMembershipSocketNotification);
       socketService.off('notification:membership:owner_update', handleMembershipSocketNotification);
@@ -556,6 +567,9 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
       socketService.on('notification:reschedule:owner_update', handleRescheduleSocketNotification);
       socketService.on('notification:reschedule:manager_update', handleRescheduleSocketNotification);
       socketService.on('notification:reschedule:staff_update', handleRescheduleSocketNotification);
+      socketService.on('notification:pt-availability:created', handlePTAvailabilitySocketNotification);
+      socketService.on('notification:pt-availability:approved', handlePTAvailabilitySocketNotification);
+      socketService.on('notification:pt-availability:rejected', handlePTAvailabilitySocketNotification);
 
       // Membership notifications
       socketService.on('notification:membership:registered', handleMembershipSocketNotification);
@@ -621,6 +635,11 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
         socketService.off('notification:reschedule:owner_update', handleRescheduleSocketNotification);
         socketService.off('notification:reschedule:manager_update', handleRescheduleSocketNotification);
         socketService.off('notification:reschedule:staff_update', handleRescheduleSocketNotification);
+
+        // PT Availability notifications
+        socketService.off('notification:pt-availability:created', handlePTAvailabilitySocketNotification);
+        socketService.off('notification:pt-availability:approved', handlePTAvailabilitySocketNotification);
+        socketService.off('notification:pt-availability:rejected', handlePTAvailabilitySocketNotification);
 
         // Membership notifications
         socketService.off('notification:membership:registered', handleMembershipSocketNotification);

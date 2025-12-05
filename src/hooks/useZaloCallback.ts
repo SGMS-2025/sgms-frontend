@@ -22,14 +22,40 @@ export const useZaloCallback = () => {
     setIsLoading(true);
     setError(null);
 
-    const profileResponse = await userApi.getProfile();
+    try {
+      // Đợi cookies được browser lưu sau cross-origin redirect
+      // Đặc biệt quan trọng với cross-origin redirect (gymsmart.site → gym1smart.io.vn)
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-    if (profileResponse.success) {
-      login(profileResponse.data);
-      toast.success(t('auth.welcome_back'));
-      navigate('/', { replace: true });
-    } else {
-      setError(profileResponse.message || t('auth.load_profile_error'));
+      const profileResponse = await userApi.getProfile();
+
+      if (profileResponse.success) {
+        login(profileResponse.data);
+        toast.success(t('auth.welcome_back'));
+        navigate('/', { replace: true });
+      } else {
+        // Nếu lỗi 401, có thể cookies chưa được set - thử lại sau delay dài hơn
+        // Check if response has error property (might be ApiErrorResponse)
+        const errorResponse = profileResponse as unknown as { error?: { statusCode?: number } };
+        if (errorResponse.error?.statusCode === 401) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          const retryResponse = await userApi.getProfile();
+
+          if (retryResponse.success) {
+            login(retryResponse.data);
+            toast.success(t('auth.welcome_back'));
+            navigate('/', { replace: true });
+            return;
+          }
+        }
+
+        setError(profileResponse.message || t('auth.load_profile_error'));
+        setIsLoading(false);
+      }
+    } catch (error) {
+      // Nếu có exception (ví dụ: network error), hiển thị lỗi
+      const errorMessage = error instanceof Error ? error.message : t('auth.load_profile_error');
+      setError(errorMessage);
       setIsLoading(false);
     }
   };

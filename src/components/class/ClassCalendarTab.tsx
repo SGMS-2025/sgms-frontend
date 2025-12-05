@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useClassList } from '@/hooks/useClassList';
+import { useClassesByTrainer } from '@/hooks/useClassesByTrainer';
 import { ClassInfoCard } from './ClassInfoCard';
 import { ClassQuickViewModal } from './ClassQuickViewModal';
 import type { ClassCalendarTabProps } from '@/types/class/ClassCalendarTab';
@@ -33,26 +34,41 @@ const timeToMinutes = (timeStr: string): number => {
  * - Class 3: 04:00 - 05:00 ❌ (no overlap)
  */
 
-export const ClassCalendarTab: React.FC<ClassCalendarTabProps> = ({ branchId, date, timeSlot }) => {
+export const ClassCalendarTab: React.FC<ClassCalendarTabProps> = ({ branchId, date, timeSlot, staffId }) => {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'INACTIVE' | 'ALL'>('ACTIVE');
   const [viewMode, setViewMode] = useState<'card' | 'table'>('table');
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
 
-  // Fetch classes for this branch
-  const { classes, loading, error, refetch } = useClassList({
+  const classesByTrainerResult = useClassesByTrainer(staffId || null, { enabled: !!staffId });
+
+  const classListResult = useClassList({
     branchId,
     status: statusFilter === 'ALL' ? undefined : statusFilter,
     search
   });
 
+  const classes = staffId ? classesByTrainerResult.classes : classListResult.classes;
+  const loading = staffId ? classesByTrainerResult.loading : classListResult.loading;
+  const error = staffId ? classesByTrainerResult.error?.message : classListResult.error;
+  const refetch = staffId ? classesByTrainerResult.refetch : classListResult.refetch;
+
   // Filter classes by schedule pattern using TIME OVERLAP detection
   const dayName = date.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
+  let filteredClasses = classes;
 
-  const classesInSlot = classes.filter((cls) => {
+  if (staffId && search) {
+    filteredClasses = filteredClasses.filter((cls) => cls.name.toLowerCase().includes(search.toLowerCase()));
+  }
+
+  if (staffId && statusFilter !== 'ALL') {
+    filteredClasses = filteredClasses.filter((cls) => cls.status === statusFilter);
+  }
+
+  const classesInSlot = filteredClasses.filter((cls) => {
     // 1. Check day of week matches
-    if (!cls.schedulePattern.daysOfWeek.includes(dayName as any)) {
+    if (!cls.schedulePattern?.daysOfWeek?.includes(dayName as any)) {
       return false;
     }
 

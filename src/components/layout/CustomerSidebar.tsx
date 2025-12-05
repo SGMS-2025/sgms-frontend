@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { IdCard, Calendar, TrendingUp, Settings, FileText, BookOpen } from 'lucide-react';
+import { IdCard, TrendingUp, Settings, FileText, BookOpen } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -38,13 +38,6 @@ export const CustomerSidebar: React.FC = () => {
       href: '/customer/membership',
       isActive: location.pathname.startsWith('/customer/membership'),
       onClick: () => handleNavigation('/customer/membership')
-    },
-    {
-      icon: <Calendar className="w-5 h-5 stroke-[1.75]" />,
-      label: t('customer.sidebar.schedule', 'Schedule'),
-      href: '/customer/schedule',
-      isActive: location.pathname.startsWith('/customer/schedule'),
-      onClick: () => handleNavigation('/customer/schedule')
     },
     {
       icon: <BookOpen className="w-5 h-5 stroke-[1.75]" />,
