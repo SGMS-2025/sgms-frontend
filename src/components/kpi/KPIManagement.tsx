@@ -59,13 +59,12 @@ import { toast } from 'sonner';
 import type { KPIStatus, KPIDisplay, KPIListParams } from '@/types/api/KPI';
 import type { KPIUpdateEvent } from '@/types/api/Socket';
 
-type KPISortField = 'staffName' | 'actualRevenue' | 'commission' | 'status';
+type KPISortField = 'staffName' | 'actualRevenue' | 'commission';
 
 const kpiSortConfig = {
   staffName: (item: KPIDisplay) => item.staffName || '',
   actualRevenue: (item: KPIDisplay) => item.actualRevenue || 0,
-  commission: (item: KPIDisplay) => item.commission || 0,
-  status: (item: KPIDisplay) => item.status || ''
+  commission: (item: KPIDisplay) => item.commission || 0
 };
 
 export const KPIManagement: React.FC = () => {
@@ -524,14 +523,6 @@ export const KPIManagement: React.FC = () => {
                     onSort={handleSort}
                     getSortIcon={getSortIcon}
                   />
-                  <th className="px-4 py-3 text-sm font-semibold text-orange-600">{t('kpi.table.reward', 'Thưởng')}</th>
-                  <SortableHeader
-                    field="status"
-                    label={t('kpi.table.status', 'Trạng thái')}
-                    sortState={sortState}
-                    onSort={handleSort}
-                    getSortIcon={getSortIcon}
-                  />
                   <th className="px-4 py-3 text-sm font-semibold text-orange-600 last:rounded-r-2xl">
                     {t('kpi.table.actions', 'Thao tác')}
                   </th>
@@ -616,25 +607,13 @@ export const KPIManagement: React.FC = () => {
                               <span className="font-medium">DT:</span> {formatCurrency(kpi.actualRevenue)}
                             </div>
                           )}
-                          {kpi.actualNewMembers !== undefined && kpi.actualNewMembers !== null && (
-                            <div className="text-xs">
-                              <span className="font-medium">KH:</span> {kpi.actualNewMembers}
-                            </div>
-                          )}
                           {kpi.actualPtSessions !== undefined && kpi.actualPtSessions !== null && (
                             <div className="text-xs">
                               <span className="font-medium">PT:</span> {kpi.actualPtSessions}
                             </div>
                           )}
-                          {kpi.actualContracts !== undefined && kpi.actualContracts !== null && (
-                            <div className="text-xs">
-                              <span className="font-medium">HĐ:</span> {kpi.actualContracts}
-                            </div>
-                          )}
                           {(kpi.actualRevenue === undefined || kpi.actualRevenue === null) &&
-                            (kpi.actualNewMembers === undefined || kpi.actualNewMembers === null) &&
-                            (kpi.actualPtSessions === undefined || kpi.actualPtSessions === null) &&
-                            (kpi.actualContracts === undefined || kpi.actualContracts === null) && (
+                            (kpi.actualPtSessions === undefined || kpi.actualPtSessions === null) && (
                               <span className="text-xs text-gray-400">-</span>
                             )}
                         </div>
@@ -643,43 +622,6 @@ export const KPIManagement: React.FC = () => {
                         {kpi.commission !== undefined && kpi.commission !== null && kpi.commission > 0
                           ? formatCurrency(kpi.commission)
                           : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {kpi.rewardType && kpi.rewardType !== 'NONE' && kpi.rewardAmount && kpi.rewardAmount > 0 ? (
-                          <div className="text-xs">
-                            <div className="font-medium text-orange-600">
-                              {kpi.rewardType === 'FIXED_AMOUNT'
-                                ? formatCurrency(kpi.rewardAmount)
-                                : kpi.rewardType === 'PERCENTAGE_BONUS'
-                                  ? `${kpi.rewardAmount}%`
-                                  : kpi.rewardType === 'VOUCHER'
-                                    ? t('kpi.reward.voucher', 'Voucher')
-                                    : '-'}
-                            </div>
-                            {kpi.achievementStatus === 'ACHIEVED' && (
-                              <span className="text-green-600 text-[10px]">✓ {t('kpi.reward.achieved')}</span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <span
-                          className={`inline-flex min-w-[88px] justify-center rounded-full px-3 py-1 text-xs font-semibold ${
-                            kpi.status === 'ACTIVE'
-                              ? 'bg-green-50 text-green-600'
-                              : kpi.status === 'CANCELLED'
-                                ? 'bg-red-50 text-red-500'
-                                : 'bg-gray-50 text-gray-600'
-                          }`}
-                        >
-                          {kpi.status === 'ACTIVE'
-                            ? t('kpi.status.active', 'Đang hoạt động')
-                            : kpi.status === 'CANCELLED'
-                              ? t('kpi.status.cancelled', 'Đã hủy')
-                              : kpi.status}
-                        </span>
                       </td>
                       <td className="px-4 py-3">
                         <DropdownMenu>

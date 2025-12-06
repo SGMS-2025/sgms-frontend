@@ -9,6 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { Class, DayName } from '@/types/Class';
 import type { Schedule, ScheduleServiceContract } from '@/types/api/Schedule';
 import type { Staff } from '@/types/api/Staff';
+
+// Extended Schedule type to support both timeRange object and direct startTime/endTime fields
+interface ScheduleWithTimeFields extends Schedule {
+  startTime?: string;
+  endTime?: string;
+}
 import { trainingProgressApi } from '@/services/api/trainingProgressApi';
 import { useUser } from '@/hooks/useAuth';
 
@@ -96,17 +102,29 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
     if (filterStartTime && filterEndTime && filterDayOfWeek) {
       result = result.filter((schedule) => {
         // Check if schedule date matches the day of week
-        const scheduleDate = new Date(schedule.scheduleDate);
-        const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-        const scheduleDayName = dayNames[scheduleDate.getDay()];
+        // Prefer workShiftsId.dayOfTheWeek if available (more accurate)
+        let scheduleDayName: string | undefined;
+
+        if (schedule.workShiftsId && typeof schedule.workShiftsId === 'object' && schedule.workShiftsId.dayOfTheWeek) {
+          scheduleDayName = schedule.workShiftsId.dayOfTheWeek;
+        } else {
+          // Calculate from scheduleDate using UTC to match backend logic
+          const scheduleDate = new Date(schedule.scheduleDate);
+          // Use UTC methods to get day of week (matches backend dowNameUTC function)
+          const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+          const utcDay = scheduleDate.getUTCDay(); // 0=Sunday, 1=Monday, etc.
+          scheduleDayName = dayNames[utcDay];
+        }
 
         if (scheduleDayName !== filterDayOfWeek) {
           return false;
         }
 
         // Check if time overlaps
-        const scheduleStart = schedule.timeRange?.startTime || '00:00';
-        const scheduleEnd = schedule.timeRange?.endTime || '00:00';
+        // Support both timeRange object and direct startTime/endTime fields
+        const scheduleWithTime = schedule as ScheduleWithTimeFields;
+        const scheduleStart = scheduleWithTime.timeRange?.startTime || scheduleWithTime.startTime || '00:00';
+        const scheduleEnd = scheduleWithTime.timeRange?.endTime || scheduleWithTime.endTime || '00:00';
 
         // Simple overlap check: schedule starts before shift ends AND schedule ends after shift starts
         const startMatch = scheduleStart <= filterEndTime && scheduleEnd >= filterStartTime;
@@ -187,13 +205,15 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
       const ptName = schedule.ptId?.userId?.fullName || 'PT';
 
       // Format time range for schedules
+      // Support both timeRange object and direct startTime/endTime fields
       const formatTime = (timeString?: string) => {
         if (!timeString) return '00:00';
         // Remove seconds if present (HH:MM:SS -> HH:MM)
         return timeString.substring(0, 5);
       };
-      const startTime = formatTime(schedule.timeRange?.startTime);
-      const endTime = formatTime(schedule.timeRange?.endTime);
+      const scheduleWithTime = schedule as ScheduleWithTimeFields;
+      const startTime = formatTime(scheduleWithTime.timeRange?.startTime || scheduleWithTime.startTime);
+      const endTime = formatTime(scheduleWithTime.timeRange?.endTime || scheduleWithTime.endTime);
       const timeRange = `${startTime} - ${endTime}`;
 
       // Extract customer names from serviceContractIds

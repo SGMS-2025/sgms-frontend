@@ -10,12 +10,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Clock, User, AlertCircle, Loader2, CheckCircle2, XCircle, Search } from 'lucide-react';
+import { Clock, User, AlertCircle, Loader2, CheckCircle2, Search } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { usePTAvailabilityRequestOperations } from '@/hooks/usePTAvailabilityRequest';
 import { useBranch } from '@/contexts/BranchContext';
 import { useUser } from '@/hooks/useAuth';
+import { useBranchWorkingConfig } from '@/hooks/useBranchWorkingConfig';
 import { toast } from 'sonner';
 import { ScheduleGridSelector } from './ScheduleGridSelector';
 import { usePTCustomerList } from '@/hooks/usePTCustomer';
@@ -52,6 +53,35 @@ const createPTAvailabilityRequestSchema = (t: (key: string) => string) =>
           message: t('pt_availability.validation.end_time_after_start'),
           path: ['slots']
         }
+      )
+      .refine(
+        (slots) => {
+          const now = new Date();
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+          return slots.every((slot) => {
+            const slotDate = new Date(slot.date);
+            slotDate.setHours(0, 0, 0, 0);
+
+            // If slot date is before today, it's invalid
+            if (slotDate < today) {
+              return false;
+            }
+
+            // If slot date is today, check if start time is in the past
+            if (slotDate.getTime() === today.getTime()) {
+              const [startHours, startMinutes] = slot.startTime.split(':').map(Number);
+              const slotDateTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), startHours, startMinutes);
+              return slotDateTime >= now;
+            }
+
+            return true;
+          });
+        },
+        {
+          message: t('pt_availability.validation.slot_in_past') || 'Không thể chọn khung giờ trong quá khứ',
+          path: ['slots']
+        }
       ),
     serviceContractIds: z.array(z.string()).optional(),
     notes: z.string().max(500).optional()
@@ -70,6 +100,7 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
   const { currentBranch } = useBranch();
   const { createRequest, loading } = usePTAvailabilityRequestOperations();
   const currentUser = useUser();
+  const { config: branchConfig } = useBranchWorkingConfig(currentBranch?._id);
 
   const [conflictInfo, setConflictInfo] = useState<{
     hasConflicts: boolean;
@@ -77,7 +108,10 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
     conflictingShifts: Array<{ _id: string; startTime: string; endTime: string; status: string }>;
   } | null>(null);
   const [customerSearch, setCustomerSearch] = useState('');
-  const [selectedContractIds, setSelectedContractIds] = useState<string[]>(prefillData?.serviceContractIds || []);
+  // Change from array to single selection - only allow one customer at a time
+  const [selectedContractId, setSelectedContractId] = useState<string | null>(
+    prefillData?.serviceContractIds?.[0] || null
+  );
 
   // Fetch PT customers
   // Note: trainerId should be User._id, not Staff._id
@@ -104,14 +138,15 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
     );
   }, [customerList, customerSearch]);
 
-  // Handle contract selection
+  // Handle contract selection - Single select only (one customer at a time)
   const handleContractToggle = (contractId: string) => {
-    setSelectedContractIds((prev) => {
-      if (prev.includes(contractId)) {
-        return prev.filter((id) => id !== contractId);
-      } else {
-        return [...prev, contractId];
+    setSelectedContractId((prev) => {
+      // If clicking the same contract, deselect it
+      if (prev === contractId) {
+        return null;
       }
+      // Otherwise, select the new contract (replaces previous selection)
+      return contractId;
     });
   };
 
@@ -126,10 +161,35 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
 
   const watchedSlots = watch('slots');
 
-  // Update form when selected contracts change
+  // Calculate working days from branch config
+  // Priority: roleConfigs for PT > defaultWorkingDays > all days (fallback)
+  const workingDays = useMemo(() => {
+    if (!branchConfig) {
+      // If no config, allow all days (fallback)
+      return [0, 1, 2, 3, 4, 5, 6];
+    }
+
+    // Check if there's a role config for PT
+    if (currentStaff?.jobTitle === 'Personal Trainer') {
+      const ptRoleConfig = branchConfig.roleConfigs?.find((config) => config.role === 'PT');
+      if (ptRoleConfig && ptRoleConfig.workingDays && ptRoleConfig.workingDays.length > 0) {
+        return ptRoleConfig.workingDays;
+      }
+    }
+
+    // Fallback to defaultWorkingDays
+    if (branchConfig.defaultWorkingDays && branchConfig.defaultWorkingDays.length > 0) {
+      return branchConfig.defaultWorkingDays;
+    }
+
+    // Final fallback: all days
+    return [0, 1, 2, 3, 4, 5, 6];
+  }, [branchConfig, currentStaff?.jobTitle]);
+
+  // Update form when selected contract changes (convert single contractId to array format for API)
   useEffect(() => {
-    setValue('serviceContractIds', selectedContractIds);
-  }, [selectedContractIds, setValue]);
+    setValue('serviceContractIds', selectedContractId ? [selectedContractId] : []);
+  }, [selectedContractId, setValue]);
 
   // Merge consecutive and overlapping slots on the same day
   const mergeConsecutiveSlots = (
@@ -255,17 +315,17 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
   // Reset form when modal opens/closes
   useEffect(() => {
     if (isOpen) {
-      const initialContractIds = prefillData?.serviceContractIds || [];
-      setSelectedContractIds(initialContractIds);
+      const initialContractId = prefillData?.serviceContractIds?.[0] || null;
+      setSelectedContractId(initialContractId);
       reset({
         slots: prefillData?.slots || [],
-        serviceContractIds: initialContractIds,
+        serviceContractIds: initialContractId ? [initialContractId] : [],
         notes: prefillData?.notes || ''
       });
       setConflictInfo(null);
       setCustomerSearch('');
     } else {
-      setSelectedContractIds([]);
+      setSelectedContractId(null);
       setCustomerSearch('');
     }
   }, [isOpen, reset, prefillData]);
@@ -334,30 +394,6 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto px-6 py-4">
-            {/* Staff Information Card */}
-            {currentStaff && (
-              <Card className="border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 mb-6">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                      {(currentStaff.userId?.fullName || 'U').charAt(0)}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900 text-lg">
-                        {currentStaff.userId?.fullName || 'Unknown'}
-                      </p>
-                      <p className="text-sm text-gray-600 flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="bg-white">
-                          {currentStaff.jobTitle}
-                        </Badge>
-                        {currentBranch && <span className="text-gray-500">• {currentBranch.branchName}</span>}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Conflict Warning */}
             {conflictInfo?.hasConflicts && (
               <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4 shadow-sm mb-6">
@@ -379,35 +415,6 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
             )}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {/* Slots Section - Grid Selector */}
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-orange-500" />
-                    {t('pt_availability.time_slots', 'Khung Giờ Kèm')}
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {t(
-                      'pt_availability.time_slots_description',
-                      'Click vào các ô trong lưới để chọn khung giờ bạn muốn đăng ký kèm 1vs1'
-                    )}
-                  </p>
-                </div>
-
-                <ScheduleGridSelector
-                  selectedSlots={gridSlots}
-                  onSlotsChange={(slots) => {
-                    // Don't merge immediately - let users see all selected slots
-                    // Merge will happen only when submitting the form
-                    setValue('slots', slots, { shouldValidate: true });
-                  }}
-                  slotDuration={30}
-                  minTime="06:00"
-                  maxTime="22:00"
-                  staffId={currentStaff?._id}
-                />
-              </div>
-
               {/* Customer Selection Section */}
               <div className="space-y-4">
                 <div>
@@ -457,7 +464,8 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
                         <div className="divide-y divide-gray-100">
                           {filteredCustomers.map((customer: PTCustomer) => {
                             const contractId = customer.package.contractId;
-                            const isSelected = selectedContractIds.includes(contractId);
+                            // Single selection - check if this contract is selected
+                            const isSelected = selectedContractId === contractId;
                             const isActive = customer.package.status === 'ACTIVE';
 
                             return (
@@ -530,34 +538,36 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
                     </ScrollArea>
                   </CardContent>
                 </Card>
+              </div>
 
-                {/* Selected Summary */}
-                {selectedContractIds.length > 0 && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-sm font-medium text-blue-900 mb-2">
-                      {t('pt_availability.selected_customers', 'Đã chọn')}: {selectedContractIds.length}{' '}
-                      {t('pt_availability.customer', 'khách hàng')}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedContractIds.map((contractId) => {
-                        const customer = customerList.find((c) => c.package.contractId === contractId);
-                        if (!customer) return null;
-                        return (
-                          <Badge key={contractId} variant="outline" className="bg-white text-blue-700 border-blue-300">
-                            {customer.fullName}
-                            <button
-                              type="button"
-                              onClick={() => handleContractToggle(contractId)}
-                              className="ml-2 hover:text-red-600"
-                            >
-                              <XCircle className="w-3 h-3" />
-                            </button>
-                          </Badge>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+              {/* Slots Section - Grid Selector */}
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-orange-500" />
+                    {t('pt_availability.time_slots', 'Khung Giờ Kèm')}
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {t(
+                      'pt_availability.time_slots_description',
+                      'Click vào các ô trong lưới để chọn khung giờ bạn muốn đăng ký kèm 1vs1'
+                    )}
+                  </p>
+                </div>
+
+                <ScheduleGridSelector
+                  selectedSlots={gridSlots}
+                  onSlotsChange={(slots) => {
+                    // Don't merge immediately - let users see all selected slots
+                    // Merge will happen only when submitting the form
+                    setValue('slots', slots, { shouldValidate: true });
+                  }}
+                  slotDuration={30}
+                  minTime="06:00"
+                  maxTime="22:00"
+                  staffId={currentStaff?._id}
+                  workingDays={workingDays}
+                />
               </div>
 
               {/* Notes Section */}

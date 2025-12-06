@@ -477,24 +477,26 @@ const BranchWorkingConfigModal: React.FC<BranchWorkingConfigModalProps> = ({ isO
                         </td>
                         <td className="text-center align-middle px-4 py-2">
                           <div className="flex flex-wrap gap-1 justify-center">
-                            {(DAYS || []).map((d) => (
-                              <Button
-                                key={d.value}
-                                size="sm"
-                                variant={role.workingDays?.includes(d.value) ? 'default' : 'outline'}
-                                className="text-xs h-7"
-                                onClick={() =>
-                                  handleRoleChange(
-                                    idx,
-                                    'workingDays',
-                                    toggleArray<number>(role.workingDays || [], Number(d.value))
-                                  )
-                                }
-                                id={`working-day-${idx}-${d.value}`}
-                              >
-                                {d.label}
-                              </Button>
-                            ))}
+                            {(DAYS || [])
+                              .filter((d) => (form.defaultWorkingDays || []).includes(d.value))
+                              .map((d) => (
+                                <Button
+                                  key={d.value}
+                                  size="sm"
+                                  variant={role.workingDays?.includes(d.value) ? 'default' : 'outline'}
+                                  className="text-xs h-7"
+                                  onClick={() =>
+                                    handleRoleChange(
+                                      idx,
+                                      'workingDays',
+                                      toggleArray<number>(role.workingDays || [], Number(d.value))
+                                    )
+                                  }
+                                  id={`working-day-${idx}-${d.value}`}
+                                >
+                                  {d.label}
+                                </Button>
+                              ))}
                           </div>
                         </td>
                         <td className="text-center align-middle px-4 py-2">
