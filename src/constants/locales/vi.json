@@ -6083,6 +6083,7 @@
     },
     "staff_or_branch_missing": "Thông tin nhân viên hoặc chi nhánh bị thiếu",
     "create_request": "Tạo Yêu Cầu Lịch Kèm 1vs1",
+    "create_description": "Đăng ký các khung giờ bạn có thể kèm 1vs1. Yêu cầu sẽ được gửi đến Owner/Manager để phê duyệt.",
     "conflict_warning": "Cảnh báo xung đột lịch",
     "conflict_details": "Phát hiện {{count}} xung đột lịch với ca làm việc, nghỉ phép hoặc lịch lớp học hiện có",
     "time_slots_description": "Click vào các ô trong lưới để chọn khung giờ bạn muốn đăng ký kèm 1vs1",

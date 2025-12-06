@@ -402,6 +402,18 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
   });
 
   const weekDates = getWeekDates(currentDate);
+
+  // Filter weekDates based on branch config defaultWorkingDays
+  const filteredWeekDates = useMemo(() => {
+    if (!branchConfig?.defaultWorkingDays || branchConfig.defaultWorkingDays.length === 0) {
+      return weekDates; // Show all days if no config
+    }
+    return weekDates.filter((date) => {
+      const dayOfWeek = date.getDay();
+      return branchConfig.defaultWorkingDays?.includes(dayOfWeek);
+    });
+  }, [weekDates, branchConfig?.defaultWorkingDays]);
+
   const isToday = (date: Date) => {
     const today = new Date();
     return date.toDateString() === today.toDateString();
@@ -1611,8 +1623,11 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
 
                   {/* Days header */}
                   <div className="flex-1">
-                    <div className="grid grid-cols-7">
-                      {weekDates.map((date) => {
+                    <div
+                      className="grid"
+                      style={{ gridTemplateColumns: `repeat(${filteredWeekDates.length}, minmax(0, 1fr))` }}
+                    >
+                      {filteredWeekDates.map((date) => {
                         const dayOfWeek = date.getDay();
                         const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
                         const dayKey = dayKeys[dayOfWeek];
@@ -1678,8 +1693,11 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                         </div>
                       </div>
                     ) : (
-                      <div className="calendar-day-grid">
-                        {weekDates.map((date) => (
+                      <div
+                        className="calendar-day-grid"
+                        style={{ gridTemplateColumns: `repeat(${filteredWeekDates.length}, 1fr)` }}
+                      >
+                        {filteredWeekDates.map((date) => (
                           <div key={`day-${date.getTime()}`} className="calendar-day-column-new">
                             {/* Time cells for this day */}
                             {timeSlots.map((slot, slotIndex) => (

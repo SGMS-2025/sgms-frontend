@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Clock, MapPin, User, CheckCircle2, XCircle, AlertCircle, Loader2, Info, Mail } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, CheckCircle2, XCircle, AlertCircle, Loader2, Mail } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { usePTAvailabilityRequestOperations } from '@/hooks/usePTAvailabilityRequest';
 import { useUser } from '@/hooks/useAuth';
@@ -43,6 +43,52 @@ const PTAvailabilityRequestDetailModal: React.FC<PTAvailabilityRequestDetailModa
     const earliestDate = new Date(Math.min(...dates.map((d) => d.getTime())));
     return startOfWeek(earliestDate, { weekStartsOn: 1 });
   }, [request]);
+
+  // Extract customer names from serviceContractIds
+  const customerNames = useMemo(() => {
+    if (!request || !request.serviceContractIds || request.serviceContractIds.length === 0) return [];
+
+    return request.serviceContractIds.map((contract: PTAvailabilityServiceContract | string, index: number) => {
+      let customerName = 'Unknown';
+
+      // Check if contract is populated object
+      if (contract && typeof contract === 'object' && '_id' in contract) {
+        // Contract is populated
+        if (contract.customerId) {
+          if (typeof contract.customerId === 'object' && '_id' in contract.customerId) {
+            // customerId is populated object
+            // Customer model has userId (ref to User), not fullName directly
+            if (contract.customerId.userId) {
+              if (typeof contract.customerId.userId === 'object' && '_id' in contract.customerId.userId) {
+                // userId is populated
+                customerName = contract.customerId.userId.fullName || 'Unknown';
+              } else if (typeof contract.customerId.userId === 'string') {
+                // userId is just ObjectId, not populated
+                customerName = `Customer ${index + 1}`;
+              }
+            } else {
+              // customerId object but no userId
+              customerName = `Customer ${index + 1}`;
+            }
+          } else if (typeof contract.customerId === 'string') {
+            // customerId is just ObjectId string, not populated
+            customerName = `Contract ${index + 1}`;
+          }
+        } else if (contract.customer && typeof contract.customer === 'object') {
+          // Alternative structure
+          customerName = contract.customer.fullName || 'Unknown';
+        } else {
+          // Contract object but no customerId field
+          customerName = `Contract ${index + 1}`;
+        }
+      } else if (typeof contract === 'string') {
+        // Contract is just ObjectId string, not populated
+        customerName = `Contract ${index + 1}`;
+      }
+
+      return customerName;
+    });
+  }, [request?.serviceContractIds]);
 
   if (!request) {
     return null;
@@ -147,7 +193,7 @@ const PTAvailabilityRequestDetailModal: React.FC<PTAvailabilityRequestDetailModa
 
           <div className="flex-1 overflow-y-auto px-6 py-4">
             <div className="space-y-6">
-              {/* Staff Information */}
+              {/* Staff Information & Branch Information */}
               <Card className="border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -156,51 +202,72 @@ const PTAvailabilityRequestDetailModal: React.FC<PTAvailabilityRequestDetailModa
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-16 w-16 ring-2 ring-orange-200">
-                      <AvatarImage
-                        src={
-                          request.staffId.userId?.email
-                            ? `https://ui-avatars.com/api/?name=${request.staffId.userId?.fullName || 'Unknown'}&background=orange&color=fff`
-                            : undefined
-                        }
-                        alt={request.staffId.userId?.fullName || 'Unknown'}
-                      />
-                      <AvatarFallback className="bg-gradient-to-br from-orange-500 to-amber-500 text-white text-xl font-bold">
-                        {(request.staffId.userId?.fullName || 'U').charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-gray-900 text-lg">
-                        {request.staffId.userId?.fullName || 'Unknown'}
-                      </h3>
-                      <p className="text-sm text-gray-600 mt-1">{request.staffId.jobTitle}</p>
-                      {request.staffId.userId?.email && (
-                        <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
-                          <Mail className="w-4 h-4" />
-                          <span>{request.staffId.userId.email}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left: PT Information */}
+                    <div className="flex items-start gap-4">
+                      <Avatar className="h-16 w-16 ring-2 ring-orange-200 flex-shrink-0">
+                        <AvatarImage
+                          src={
+                            request.staffId.userId?.email
+                              ? `https://ui-avatars.com/api/?name=${request.staffId.userId?.fullName || 'Unknown'}&background=orange&color=fff`
+                              : undefined
+                          }
+                          alt={request.staffId.userId?.fullName || 'Unknown'}
+                        />
+                        <AvatarFallback className="bg-gradient-to-br from-orange-500 to-amber-500 text-white text-xl font-bold">
+                          {(request.staffId.userId?.fullName || 'U').charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <h3 className="font-bold text-gray-900 text-lg">
+                            {request.staffId.userId?.fullName || 'Unknown'}
+                          </h3>
+                          {customerNames.length > 0 && (
+                            <>
+                              <span className="text-gray-400">|</span>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm text-gray-500 font-medium">
+                                  {t('pt_availability.customer', 'Khách hàng')}:
+                                </span>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {customerNames.map((name, index) => (
+                                    <span key={index} className="text-sm font-medium text-gray-900">
+                                      {name}
+                                      {index < customerNames.length - 1 && ','}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </div>
-                      )}
+                        <p className="text-sm text-gray-600 mt-1">{request.staffId.jobTitle}</p>
+                        {request.staffId.userId?.email && (
+                          <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
+                            <Mail className="w-4 h-4 flex-shrink-0" />
+                            <span className="break-all">{request.staffId.userId.email}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right: Branch Information */}
+                    <div className="flex items-start gap-3 border-l border-orange-200 pl-6 md:pl-6">
+                      <MapPin className="w-5 h-5 text-orange-500 flex-shrink-0 mt-1" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-500 font-medium mb-1">
+                          {t('pt_availability.branch', 'Chi Nhánh')}
+                        </p>
+                        <p className="font-medium text-gray-900">
+                          {request.branchId?.branchName || t('common.unknown', 'Unknown')}
+                        </p>
+                        {request.branchId?.location && (
+                          <p className="text-sm text-gray-600 mt-1">{request.branchId.location}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Branch Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-orange-500" />
-                    {t('pt_availability.branch', 'Chi Nhánh')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="font-medium text-gray-900">
-                    {request.branchId?.branchName || t('common.unknown', 'Unknown')}
-                  </p>
-                  {request.branchId?.location && (
-                    <p className="text-sm text-gray-600 mt-1">{request.branchId.location}</p>
-                  )}
                 </CardContent>
               </Card>
 
@@ -224,86 +291,6 @@ const PTAvailabilityRequestDetailModal: React.FC<PTAvailabilityRequestDetailModa
                   />
                 </CardContent>
               </Card>
-
-              {/* Service Contracts */}
-              {request.serviceContractIds && request.serviceContractIds.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                      <Info className="w-5 h-5 text-orange-500" />
-                      {t('pt_availability.service_contracts', 'Hợp Đồng Dịch Vụ')} ({request.serviceContractIds.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-gray-600 mb-3">
-                      {t(
-                        'pt_availability.service_contracts_description',
-                        'Yêu cầu này liên quan đến các hợp đồng dịch vụ đã chọn'
-                      )}
-                    </p>
-                    <div className="space-y-2">
-                      {request.serviceContractIds.map(
-                        (contract: PTAvailabilityServiceContract | string, index: number) => {
-                          // Extract customer name from contract
-                          let customerName = 'Unknown';
-                          let customerPhone = '';
-
-                          // Check if contract is populated object
-                          if (contract && typeof contract === 'object' && '_id' in contract) {
-                            // Contract is populated
-                            if (contract.customerId) {
-                              if (typeof contract.customerId === 'object' && '_id' in contract.customerId) {
-                                // customerId is populated object
-                                // Customer model has userId (ref to User), not fullName directly
-                                if (contract.customerId.userId) {
-                                  if (
-                                    typeof contract.customerId.userId === 'object' &&
-                                    '_id' in contract.customerId.userId
-                                  ) {
-                                    // userId is populated
-                                    customerName = contract.customerId.userId.fullName || 'Unknown';
-                                    customerPhone =
-                                      contract.customerId.userId.phone || contract.customerId.userId.phoneNumber || '';
-                                  } else if (typeof contract.customerId.userId === 'string') {
-                                    // userId is just ObjectId, not populated
-                                    customerName = `Customer ${index + 1}`;
-                                  }
-                                } else {
-                                  // customerId object but no userId
-                                  customerName = `Customer ${index + 1}`;
-                                }
-                              } else if (typeof contract.customerId === 'string') {
-                                // customerId is just ObjectId string, not populated
-                                customerName = `Contract ${index + 1} (ID: ${contract.customerId.substring(0, 8)}...)`;
-                              }
-                            } else if (contract.customer && typeof contract.customer === 'object') {
-                              // Alternative structure
-                              customerName = contract.customer.fullName || 'Unknown';
-                              customerPhone = contract.customer.phone || '';
-                            } else {
-                              // Contract object but no customerId field
-                              customerName = `Contract ${index + 1}`;
-                            }
-                          } else if (typeof contract === 'string') {
-                            // Contract is just ObjectId string, not populated
-                            customerName = `Contract ${index + 1} (ID: ${contract.substring(0, 8)}...)`;
-                          }
-
-                          const contractKey = typeof contract === 'string' ? contract : contract?._id || index;
-
-                          return (
-                            <div key={contractKey} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                              <User className="w-4 h-4 text-gray-500" />
-                              <span className="text-sm font-medium">{customerName}</span>
-                              {customerPhone && <span className="text-xs text-gray-500">({customerPhone})</span>}
-                            </div>
-                          );
-                        }
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
 
               {/* Notes */}
               {request.notes && (

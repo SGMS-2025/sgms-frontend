@@ -129,12 +129,23 @@ export const usePTAvailabilityRequestOperations = () => {
           );
           return response.data;
         } else {
-          toast.error(response.message || t('pt_availability.create_error', 'Failed to create request'));
+          // API interceptor already shows toast for 400 errors
+          // Check if response has statusCode property (error response from interceptor)
+          const errorResponse = response as { statusCode?: number; message: string; success: false };
+          if (errorResponse.statusCode !== 400) {
+            toast.error(response.message || t('pt_availability.create_error', 'Failed to create request'));
+          }
           return null;
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        toast.error(errorMessage);
+        // Interceptor handles most errors and shows toast
+        // Only show toast here for unexpected errors (network errors, etc.)
+        // Check if error has response property (AxiosError) - if so, interceptor handled it
+        const axiosError = err as { response?: { status?: number } };
+        if (!axiosError.response) {
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+          toast.error(errorMessage);
+        }
         return null;
       } finally {
         setLoading(false);

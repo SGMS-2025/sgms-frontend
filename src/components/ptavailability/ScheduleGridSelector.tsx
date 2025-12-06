@@ -3,10 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Check, Circle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/utils/utils';
-import { format, addDays, startOfWeek, eachDayOfInterval, isSameDay, subWeeks, addWeeks } from 'date-fns';
+import { format, addDays, eachDayOfInterval, isSameDay, subWeeks } from 'date-fns';
 import { ptAvailabilityRequestApi } from '@/services/api/ptAvailabilityRequestApi';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import type { PTAvailabilitySlot, PTAvailabilityRequest } from '@/types/api/PTAvailabilityRequest';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ScheduleGridSelectorProps {
   selectedSlots: PTAvailabilitySlot[];
@@ -20,6 +21,7 @@ interface ScheduleGridSelectorProps {
   className?: string;
   staffId?: string; // Staff ID to fetch existing requests
   readOnly?: boolean; // If true, slots cannot be modified
+  workingDays?: number[]; // Array of working days (0=Sunday, 1=Monday, ..., 6=Saturday). If not provided, all days are allowed.
 }
 
 // Generate time slots array
@@ -64,7 +66,14 @@ const normalizeDateToString = (date: Date | string): string => {
 };
 
 // Check if a slot is selected
-const isSlotSelected = (date: Date, timeSlot: string, selectedSlots: PTAvailabilitySlot[]): boolean => {
+// Each cell in the grid represents a single 30-minute slot
+// A cell is selected if it overlaps with any selected slot's time range
+const isSlotSelected = (
+  date: Date,
+  timeSlot: string,
+  selectedSlots: PTAvailabilitySlot[],
+  slotDuration: number = 30
+): boolean => {
   const dateStr = normalizeDateToString(date);
 
   return selectedSlots.some((slot) => {
@@ -75,7 +84,7 @@ const isSlotSelected = (date: Date, timeSlot: string, selectedSlots: PTAvailabil
       return false;
     }
 
-    // Check if timeSlot is within the slot's time range
+    // Check if timeSlot overlaps with slot's time range
     // Convert times to minutes for easier comparison
     const timeToMinutes = (time: string): number => {
       const [hours, minutes] = time.split(':').map(Number);
@@ -86,24 +95,21 @@ const isSlotSelected = (date: Date, timeSlot: string, selectedSlots: PTAvailabil
     const slotEndMinutes = timeToMinutes(slot.endTime);
     const timeSlotMinutes = timeToMinutes(timeSlot);
 
-    // Check if timeSlot is within slot's time range
-    // timeSlot is selected if it starts within [slot.startTime, slot.endTime)
-    // For inclusive end time: if slot ends exactly at timeSlot start, include it
-    // This handles the case where user selects 18:00-20:00 and expects 20:00 cell to be selected
-    // The 20:00 cell represents slot 20:00-20:30, but if the merged slot ends at 20:00,
-    // we should still show it as selected for visual consistency
-    if (timeSlotMinutes >= slotStartMinutes && timeSlotMinutes < slotEndMinutes) {
-      // Standard case: timeSlot starts within the slot range
-      return true;
-    }
+    // Calculate slot duration in minutes
+    const slotDurationMinutes = slotEndMinutes - slotStartMinutes;
 
-    // Edge case: if slot ends exactly at timeSlot start, include it
-    // This means if slot is 18:00-20:00, the 20:00 cell (20:00-20:30) should be shown as selected
-    if (timeSlotMinutes === slotEndMinutes) {
-      return true;
+    // If slot duration equals slotDuration (30 min), it's a single cell slot
+    // Only highlight the start cell for single cell slots
+    if (slotDurationMinutes === slotDuration) {
+      // For single cell slots, only highlight if timeSlot matches startTime exactly
+      // This prevents highlighting 2 cells when clicking 1 cell
+      return timeSlotMinutes === slotStartMinutes;
+    } else {
+      // For merged slots (duration > slotDuration), highlight all cells in range
+      // Include the end cell by checking if timeSlot is within [startTime, endTime]
+      // Use <= for slotEndMinutes to include the last cell (e.g., 09:30 for slot 07:30-09:30)
+      return timeSlotMinutes >= slotStartMinutes && timeSlotMinutes <= slotEndMinutes;
     }
-
-    return false;
   });
 };
 
@@ -138,8 +144,9 @@ const isSlotExisting = (
 
     // Check if timeSlot overlaps with slot's time range
     // timeSlot overlaps if:
-    // - timeSlot starts before slot ends AND timeSlot ends after slot starts
-    return timeSlotMinutes < slotEndMinutes && timeSlotEndMinutes > slotStartMinutes;
+    // - timeSlot starts before or at slot ends AND timeSlot ends after slot starts
+    // Use <= for slotEndMinutes to include the cell where slot ends (e.g., 09:30 for slot 07:30-09:30)
+    return timeSlotMinutes <= slotEndMinutes && timeSlotEndMinutes > slotStartMinutes;
   });
 };
 
@@ -158,6 +165,40 @@ const _getSlotStatus = (
   return 'selected';
 };
 
+// Check if a slot is in the past
+const isSlotInPast = (date: Date, timeSlot: string): boolean => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const slotDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+  // If slot date is before today, it's in the past
+  if (slotDate < today) {
+    return true;
+  }
+
+  // If slot date is today, check if time is in the past
+  if (slotDate.getTime() === today.getTime()) {
+    const [hour, minute] = timeSlot.split(':').map(Number);
+    const slotDateTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute);
+    return slotDateTime < now;
+  }
+
+  return false;
+};
+
+// Check if a date is a working day
+// workingDays: array of day numbers (0=Sunday, 1=Monday, ..., 6=Saturday)
+// If workingDays is not provided or empty, all days are considered working days
+const isSlotInWorkingDay = (date: Date, workingDays?: number[]): boolean => {
+  // If no workingDays provided, allow all days
+  if (!workingDays || workingDays.length === 0) {
+    return true;
+  }
+
+  const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  return workingDays.includes(dayOfWeek);
+};
+
 export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
   selectedSlots,
   onSlotsChange,
@@ -168,22 +209,51 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
   maxTime = '22:00',
   className,
   staffId,
-  readOnly = false
+  readOnly = false,
+  workingDays
 }) => {
   const { t } = useTranslation();
   const { currentStaff } = useCurrentUserStaff();
-  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(
-    startDate || startOfWeek(new Date(), { weekStartsOn: 1 })
-  );
+  const isMobile = useIsMobile();
+
+  // Start from today instead of startOfWeek
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startDate || today);
   const [existingRequests, setExistingRequests] = useState<PTAvailabilityRequest[]>([]);
   const [_loadingExisting, setLoadingExisting] = useState(false);
 
-  // Generate dates for current week (7 days)
+  // Swipe gesture state
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  // Generate dates for current week (7 days from currentWeekStart, filter out past dates and non-working days)
   const dates = useMemo(() => {
     const start = currentWeekStart;
-    const end = addDays(start, 6); // 7 days total (Monday to Sunday)
-    return eachDayOfInterval({ start, end });
-  }, [currentWeekStart]);
+    const end = addDays(start, 6); // 7 days total
+    const allDates = eachDayOfInterval({ start, end });
+
+    // Filter out past dates and non-working days
+    return allDates.filter((date) => {
+      const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+      // Filter out past dates - only show from today onwards
+      if (dateOnly < today) {
+        return false;
+      }
+
+      // Filter out non-working days if workingDays is provided
+      if (workingDays && workingDays.length > 0) {
+        const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+        if (!workingDays.includes(dayOfWeek)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [currentWeekStart, today, workingDays]);
 
   // Fetch existing requests
   useEffect(() => {
@@ -337,103 +407,80 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
     }
   };
 
-  // Handle range selection (click and drag)
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState<{ date: Date; timeSlot: string } | null>(null);
-  const [clickStartTime, setClickStartTime] = useState<number | null>(null);
+  // Swipe handlers for mobile
+  const minSwipeDistance = 50;
 
-  const handleMouseDown = (date: Date, timeSlot: string) => {
-    setClickStartTime(Date.now());
-    setIsDragging(true);
-    setDragStart({ date, timeSlot });
-    // Don't toggle on mousedown - wait for click to determine if it's a click or drag
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (!isMobile) return;
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
   };
 
-  const handleMouseEnter = (date: Date, timeSlot: string) => {
-    if (readOnly || !onSlotsChange) return;
-    if (isDragging && dragStart) {
-      // Select range from dragStart to current
-      const startDateStr = normalizeDateToString(dragStart.date);
-      const currentDateStr = normalizeDateToString(date);
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!isMobile) return;
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
 
-      // Only handle same date for now
-      if (startDateStr === currentDateStr) {
-        const startIndex = generatedTimeSlots.indexOf(dragStart.timeSlot);
-        const endIndex = generatedTimeSlots.indexOf(timeSlot);
+  const onTouchEnd = () => {
+    if (!isMobile || !touchStart || !touchEnd) return;
 
-        if (startIndex !== -1 && endIndex !== -1) {
-          const minIndex = Math.min(startIndex, endIndex);
-          const maxIndex = Math.max(startIndex, endIndex);
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
 
-          const newSlots: PTAvailabilitySlot[] = [];
-          for (let i = minIndex; i <= maxIndex; i++) {
-            const slotTime = generatedTimeSlots[i];
-            const [hour, minute] = slotTime.split(':').map(Number);
-            const startMinutes = hour * 60 + minute;
-            const endMinutes = startMinutes + slotDuration;
-            const endHour = Math.floor(endMinutes / 60);
-            const endMinute = endMinutes % 60;
-            const endTime = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
+    if (isLeftSwipe) {
+      // Swipe left = next week
+      setCurrentWeekStart((prev) => addDays(prev, 7));
+    }
 
-            newSlots.push({
-              date: currentDateStr,
-              startTime: slotTime,
-              endTime,
-              maxCapacity: 1
-            });
-          }
-
-          // Remove existing slots for this date in the range
-          const filteredSlots = selectedSlots.filter(
-            (slot) =>
-              !(
-                slot.date === currentDateStr &&
-                generatedTimeSlots.indexOf(slot.startTime) >= minIndex &&
-                generatedTimeSlots.indexOf(slot.startTime) <= maxIndex
-              )
-          );
-
-          onSlotsChange([...filteredSlots, ...newSlots]);
+    if (isRightSwipe) {
+      // Swipe right = previous week (but not before today)
+      setCurrentWeekStart((prev) => {
+        const prevStart = subWeeks(prev, 1);
+        // Don't allow going before today
+        const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        if (prevStart < todayOnly) {
+          return todayOnly;
         }
-      }
+        return prevStart;
+      });
     }
-  };
-
-  const handleMouseUp = (date: Date, timeSlot: string) => {
-    const clickDuration = clickStartTime ? Date.now() - clickStartTime : 0;
-
-    // If it was a quick click (less than 200ms), treat it as a toggle click
-    if (
-      clickDuration < 200 &&
-      dragStart &&
-      normalizeDateToString(dragStart.date) === normalizeDateToString(date) &&
-      dragStart.timeSlot === timeSlot
-    ) {
-      handleSlotClick(date, timeSlot);
-    }
-
-    setIsDragging(false);
-    setDragStart(null);
-    setClickStartTime(null);
   };
 
   // Navigation handlers
   const handlePreviousWeek = () => {
-    setCurrentWeekStart((prev) => subWeeks(prev, 1));
+    setCurrentWeekStart((prev) => {
+      const prevStart = subWeeks(prev, 1);
+      // Don't allow going before today
+      const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      if (prevStart < todayOnly) {
+        return todayOnly;
+      }
+      return prevStart;
+    });
   };
 
   const handleNextWeek = () => {
-    setCurrentWeekStart((prev) => addWeeks(prev, 1));
+    setCurrentWeekStart((prev) => addDays(prev, 7));
   };
 
   const handleToday = () => {
-    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+    setCurrentWeekStart(today);
   };
 
-  const weekRange = `${format(dates[0], 'MMM d')} - ${format(dates[6], 'MMM d, yyyy')}`;
+  // Calculate week range for display
+  const weekRange =
+    dates.length > 0
+      ? `${format(dates[0], 'MMM d')} - ${format(dates[dates.length - 1], 'MMM d, yyyy')}`
+      : format(today, 'MMM d, yyyy');
 
   return (
-    <div className={cn('w-full space-y-4', className)}>
+    <div
+      className={cn('w-full space-y-4', className)}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
       {/* Header with Week Navigation */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-t-lg">
         <div className="flex items-center justify-between mb-3">
@@ -447,43 +494,55 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
           </div>
         </div>
 
-        {/* Week Navigation */}
-        <div className="flex items-center justify-between">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handlePreviousWeek}
-            className="text-white hover:bg-blue-700"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            {t('common.previous_week', 'Tuần trước')}
-          </Button>
-
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">{weekRange}</span>
+        {/* Week Navigation - Hide on mobile, show on desktop */}
+        {!isMobile && (
+          <div className="flex items-center justify-between">
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              onClick={handleToday}
-              className="text-white hover:bg-blue-700 text-xs"
+              onClick={handlePreviousWeek}
+              className="text-white hover:bg-blue-700"
             >
-              {t('common.today', 'Hôm nay')}
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              {t('common.previous_week', 'Tuần trước')}
+            </Button>
+
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium">{weekRange}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleToday}
+                className="text-white hover:bg-blue-700 text-xs"
+              >
+                {t('common.today', 'Hôm nay')}
+              </Button>
+            </div>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleNextWeek}
+              className="text-white hover:bg-blue-700"
+            >
+              {t('common.next_week', 'Tuần sau')}
+              <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
+        )}
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleNextWeek}
-            className="text-white hover:bg-blue-700"
-          >
-            {t('common.next_week', 'Tuần sau')}
-            <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-        </div>
+        {/* Mobile: Show week range and swipe hint */}
+        {isMobile && (
+          <div className="flex items-center justify-center gap-3 flex-col">
+            <span className="text-sm font-medium">{weekRange}</span>
+            <span className="text-xs opacity-75">
+              {t('pt_availability.swipe_to_navigate', 'Vuốt trái/phải để chuyển tuần')}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Grid Container */}
@@ -501,12 +560,25 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
             <div className="bg-gray-50 border-r border-b border-gray-200 p-2" />
 
             {/* Date Headers */}
-            {dates.map((date, dateIndex) => (
-              <div key={dateIndex} className="bg-gray-50 border-r border-b border-gray-200 p-2 text-center">
-                <div className="text-xs font-semibold text-gray-700">{format(date, 'EEE')}</div>
-                <div className="text-sm font-bold text-gray-900">{format(date, 'd')}</div>
-              </div>
-            ))}
+            {dates.map((date, dateIndex) => {
+              const isWorkingDay = isSlotInWorkingDay(date, workingDays);
+              return (
+                <div
+                  key={dateIndex}
+                  className={cn(
+                    'bg-gray-50 border-r border-b border-gray-200 p-2 text-center',
+                    !isWorkingDay && 'opacity-40'
+                  )}
+                >
+                  <div className={cn('text-xs font-semibold', isWorkingDay ? 'text-gray-700' : 'text-gray-400')}>
+                    {format(date, 'EEE')}
+                  </div>
+                  <div className={cn('text-sm font-bold', isWorkingDay ? 'text-gray-900' : 'text-gray-400')}>
+                    {format(date, 'd')}
+                  </div>
+                </div>
+              );
+            })}
 
             {/* Time Slots and Grid Cells */}
             {generatedTimeSlots.map((timeSlot, timeIndex) => (
@@ -518,9 +590,15 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
 
                 {/* Date Cells */}
                 {dates.map((date, dateIndex) => {
-                  const isSelected = isSlotSelected(date, timeSlot, selectedSlots);
+                  const isSelected = isSlotSelected(date, timeSlot, selectedSlots, slotDuration);
                   const isExisting = isSlotExisting(date, timeSlot, existingSlots, slotDuration);
                   const isToday = isSameDay(date, new Date());
+                  const isPast = isSlotInPast(date, timeSlot);
+                  const isWorkingDay = isSlotInWorkingDay(date, workingDays);
+
+                  // Get day name for tooltip
+                  const dayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+                  const dayName = dayNames[date.getDay()];
 
                   return (
                     <button
@@ -528,31 +606,39 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
                       type="button"
                       onClick={(e) => {
                         e.preventDefault();
-                        if (!isExisting && !readOnly) {
+                        e.stopPropagation();
+                        if (!isExisting && !readOnly && !isPast && isWorkingDay) {
                           handleSlotClick(date, timeSlot);
                         }
                       }}
-                      onMouseDown={() => !isExisting && !readOnly && handleMouseDown(date, timeSlot)}
-                      onMouseEnter={() => !isExisting && !readOnly && handleMouseEnter(date, timeSlot)}
-                      onMouseUp={() => !isExisting && !readOnly && handleMouseUp(date, timeSlot)}
-                      disabled={isExisting || readOnly}
+                      disabled={isExisting || readOnly || isPast || !isWorkingDay}
                       className={cn(
                         'border-r border-b border-gray-200 transition-all duration-150',
                         !readOnly &&
-                          'hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset',
+                          !isPast &&
+                          isWorkingDay &&
+                          'hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset cursor-pointer',
                         readOnly && 'cursor-default',
                         isSelected && 'bg-green-100 border-green-300',
                         isExisting && 'bg-purple-100 border-purple-300 cursor-not-allowed opacity-75',
-                        isToday && !isSelected && !isExisting && 'bg-blue-50/30',
-                        isDragging && dragStart?.date === date && !isExisting && !readOnly && 'bg-blue-100'
+                        isPast && 'bg-gray-100 cursor-not-allowed opacity-50',
+                        !isWorkingDay && 'bg-gray-100 cursor-not-allowed opacity-40',
+                        isToday && !isSelected && !isExisting && !isPast && isWorkingDay && 'bg-blue-50/30'
                       )}
                       style={{ minHeight: '40px' }}
                       title={
-                        isExisting
-                          ? t('pt_availability.slot_already_registered', 'Đã đăng ký trước đó')
-                          : readOnly
-                            ? ''
-                            : ''
+                        !isWorkingDay
+                          ? t(
+                              'pt_availability.slot_outside_working_days',
+                              `Không thể tạo lịch vào ${dayName}. Chi nhánh đóng cửa vào ngày này.`
+                            ).replace('{dayName}', dayName)
+                          : isPast
+                            ? t('pt_availability.slot_in_past', 'Khung giờ trong quá khứ')
+                            : isExisting
+                              ? t('pt_availability.slot_already_registered', 'Đã đăng ký trước đó')
+                              : readOnly
+                                ? ''
+                                : ''
                       }
                     >
                       {isSelected && (

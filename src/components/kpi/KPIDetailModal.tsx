@@ -344,20 +344,6 @@ export const KPIDetailModal: React.FC<KPIDetailModalProps> = ({ kpiId, isOpen, o
                             </tr>
                           )}
 
-                          {/* New Members Row */}
-                          {kpiConfig.targets?.newMembers !== undefined && (
-                            <tr className="hover:bg-gray-50">
-                              <td className="px-4 py-3 text-sm text-gray-900">
-                                <span className="font-medium">KH:</span> {kpiConfig.targets.newMembers}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-900">
-                                <span className="font-medium">KH:</span>{' '}
-                                {achievement ? achievement.actual.members.newMembers : 0}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-500">-</td>
-                            </tr>
-                          )}
-
                           {/* PT Sessions Row */}
                           {kpiConfig.targets?.ptSessions !== undefined && (
                             <tr className="hover:bg-gray-50">
@@ -367,20 +353,6 @@ export const KPIDetailModal: React.FC<KPIDetailModalProps> = ({ kpiId, isOpen, o
                               <td className="px-4 py-3 text-sm text-gray-900">
                                 <span className="font-medium">PT:</span>{' '}
                                 {achievement ? achievement.actual.sessions.ptSessions : 0}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-500">-</td>
-                            </tr>
-                          )}
-
-                          {/* Contracts Row */}
-                          {kpiConfig.targets?.contracts !== undefined && (
-                            <tr className="hover:bg-gray-50">
-                              <td className="px-4 py-3 text-sm text-gray-900">
-                                <span className="font-medium">HĐ:</span> {kpiConfig.targets.contracts}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-900">
-                                <span className="font-medium">HĐ:</span>{' '}
-                                {achievement ? achievement.actual.contracts.total : 0}
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-500">-</td>
                             </tr>
