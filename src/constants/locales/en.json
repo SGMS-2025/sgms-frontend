@@ -6119,6 +6119,7 @@
       "pending": "Pending",
       "approved": "Approved",
       "rejected": "Rejected"
-    }
+    },
+    "swipe_to_navigate": "Swipe left/right to change week"
   }
 }
