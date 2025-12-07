@@ -6075,14 +6075,18 @@
       "selected": "Selected"
     },
     "existing_slot": "Previously registered",
+    "slot_in_past": "Time slot in the past",
+    "slot_outside_working_days": "Cannot create schedule on {dayName}. Branch is closed on this day.",
     "validation": {
       "date_required": "Date is required",
       "time_format": "Invalid time format (HH:mm)",
       "at_least_one_slot": "Please select at least one time slot",
-      "end_time_after_start": "End time must be after start time"
+      "end_time_after_start": "End time must be after start time",
+      "slot_in_past": "Cannot select time slots in the past"
     },
     "staff_or_branch_missing": "Staff or branch information is missing",
     "create_request": "Create PT 1vs1 Schedule Request",
+    "create_description": "Register the time slots you can coach 1vs1. The request will be sent to the Owner/Manager for approval.",
     "conflict_warning": "Schedule Conflict Warning",
     "conflict_details": "Detected {{count}} schedule conflicts with existing work shifts, time-off requests, or class schedules",
     "time_slots_description": "Click on the grid cells to select the time slots you want to register for 1vs1 training",
@@ -6115,6 +6119,7 @@
       "pending": "Pending",
       "approved": "Approved",
       "rejected": "Rejected"
-    }
+    },
+    "swipe_to_navigate": "Swipe left/right to change week"
   }
 }

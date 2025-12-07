@@ -10,7 +10,6 @@ import {
   Trophy,
   AlertCircle,
   Award,
-  FileText,
   MapPin,
   BarChart3
 } from 'lucide-react';
@@ -65,9 +64,6 @@ export const MyKPICard: React.FC<MyKPICardProps> = ({ kpiData }) => {
     targets.newMembers > 0 ? Math.min(100, ((actual.members.newMembers || 0) / targets.newMembers) * 100) : 0;
   const ptSessionsProgress =
     targets.ptSessions > 0 ? Math.min(100, ((actual.sessions.ptSessions || 0) / targets.ptSessions) * 100) : 0;
-  const contractsProgress =
-    targets.contracts > 0 ? Math.min(100, ((actual.contracts.total || 0) / targets.contracts) * 100) : 0;
-
   // Get branch name
   const branchName =
     typeof config.branchId === 'object' && config.branchId?.branchName ? config.branchId.branchName : 'N/A';
@@ -185,7 +181,7 @@ export const MyKPICard: React.FC<MyKPICardProps> = ({ kpiData }) => {
       </div>
 
       {/* Targets and Actuals Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <KPIMetricCard
           title={t('kpi.metrics.total_revenue', 'Tổng Doanh Thu')}
           target={targets.revenue || 0}
@@ -209,78 +205,73 @@ export const MyKPICard: React.FC<MyKPICardProps> = ({ kpiData }) => {
           icon={<Target className="w-5 h-5" />}
           isCount
         />
-        <KPIMetricCard
-          title={t('kpi.metrics.contracts', 'Hợp Đồng')}
-          target={targets.contracts || 0}
-          actual={actual.contracts.total || 0}
-          progress={contractsProgress}
-          icon={<FileText className="w-5 h-5" />}
-          isCount
-        />
       </div>
 
-      {/* Branch Ranking */}
-      {achievement?.rankings?.branch && (
-        <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-          <div className="flex items-center space-x-2 mb-4">
-            <Trophy className="w-5 h-5 text-yellow-500" />
-            <h3 className="text-lg font-semibold text-gray-900">{t('kpi.ranking.branch', 'Xếp Hạng Chi Nhánh')}</h3>
-          </div>
-          <div className="text-3xl font-bold text-gray-900 text-center">#{achievement.rankings.branch}</div>
-        </div>
-      )}
-
-      {/* Earnings Summary */}
-      <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <DollarSign className="w-5 h-5 text-green-600" />
-          {t('kpi.earnings.title', 'Thu Nhập')}
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className="text-sm text-gray-600 mb-1">{t('kpi.earnings.commission', 'Hoa Hồng')}</div>
-            <div className="text-xl font-bold text-gray-900">
-              {formatCurrency(achievement?.commission?.amount || 0)}
-            </div>
-            {achievement?.commission?.applicableRate != null && achievement.commission.applicableRate > 0 && (
-              <div className="text-xs text-gray-500 mt-1">
-                {t('kpi.earnings.rate', 'Tỷ lệ')}: {achievement.commission.applicableRate.toFixed(1)}%
+      {/* Earnings Summary and Branch Ranking */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Earnings Summary */}
+        <div className="lg:col-span-2 bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-green-600" />
+            {t('kpi.earnings.title', 'Thu Nhập')}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-gray-50 rounded-lg">
+              <div className="text-sm text-gray-600 mb-1">{t('kpi.earnings.commission', 'Hoa Hồng')}</div>
+              <div className="text-xl font-bold text-gray-900">
+                {formatCurrency(achievement?.commission?.amount || 0)}
               </div>
-            )}
-          </div>
-          {hasReward && achievementStatus === 'ACHIEVED' && (
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-sm text-gray-600 mb-1 flex items-center justify-center gap-1">
-                <Award className="w-4 h-4 text-green-600" />
-                {t('kpi.earnings.reward', 'Thưởng')}
-              </div>
-              <div className="text-xl font-bold text-green-600">
-                {reward?.type === 'FIXED_AMOUNT' && rewardAmount > 0
-                  ? formatCurrency(rewardAmount)
-                  : reward?.type === 'PERCENTAGE_BONUS' && rewardAmount > 0
-                    ? `${rewardAmount}%`
-                    : reward?.type === 'VOUCHER'
-                      ? t('kpi.reward.voucher', 'Voucher')
-                      : formatCurrency(0)}
-              </div>
-            </div>
-          )}
-          <div className="text-center p-4 bg-orange-50 rounded-lg">
-            <div className="text-sm text-gray-600 mb-1">{t('kpi.earnings.total', 'Tổng')}</div>
-            <div className="text-xl font-bold text-orange-600">
-              {formatCurrency(
-                (achievement?.commission?.amount || 0) + (achievementStatus === 'ACHIEVED' ? rewardAmount : 0)
+              {achievement?.commission?.applicableRate != null && achievement.commission.applicableRate > 0 && (
+                <div className="text-xs text-gray-500 mt-1">
+                  {t('kpi.earnings.rate', 'Tỷ lệ')}: {achievement.commission.applicableRate.toFixed(1)}%
+                </div>
               )}
             </div>
+            {hasReward && achievementStatus === 'ACHIEVED' && (
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-sm text-gray-600 mb-1 flex items-center justify-center gap-1">
+                  <Award className="w-4 h-4 text-green-600" />
+                  {t('kpi.earnings.reward', 'Thưởng')}
+                </div>
+                <div className="text-xl font-bold text-green-600">
+                  {reward?.type === 'FIXED_AMOUNT' && rewardAmount > 0
+                    ? formatCurrency(rewardAmount)
+                    : reward?.type === 'PERCENTAGE_BONUS' && rewardAmount > 0
+                      ? `${rewardAmount}%`
+                      : reward?.type === 'VOUCHER'
+                        ? t('kpi.reward.voucher', 'Voucher')
+                        : formatCurrency(0)}
+                </div>
+              </div>
+            )}
+            <div className="text-center p-4 bg-orange-50 rounded-lg">
+              <div className="text-sm text-gray-600 mb-1">{t('kpi.earnings.total', 'Tổng')}</div>
+              <div className="text-xl font-bold text-orange-600">
+                {formatCurrency(
+                  (achievement?.commission?.amount || 0) + (achievementStatus === 'ACHIEVED' ? rewardAmount : 0)
+                )}
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Branch Ranking */}
+        {achievement?.rankings?.branch && (
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+            <div className="flex items-center space-x-2 mb-4">
+              <Trophy className="w-5 h-5 text-yellow-500" />
+              <h3 className="text-lg font-semibold text-gray-900">{t('kpi.ranking.branch', 'Xếp Hạng Chi Nhánh')}</h3>
+            </div>
+            <div className="text-3xl font-bold text-gray-900 text-center">#{achievement.rankings.branch}</div>
+          </div>
+        )}
       </div>
 
       {/* Targets Summary */}
       {hasTargets && (
         <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('kpi.targets.title', 'Mục Tiêu KPI')}</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {targets.revenue > 0 && (
               <div className="p-3 bg-blue-50 rounded-lg">
                 <div className="text-xs text-gray-600 mb-1">{t('kpi.targets.revenue', 'Doanh thu')}</div>
@@ -305,15 +296,6 @@ export const MyKPICard: React.FC<MyKPICardProps> = ({ kpiData }) => {
                 <div className="text-lg font-bold text-orange-600">{targets.ptSessions}</div>
                 <div className="text-xs text-gray-500 mt-1">
                   {t('kpi.actual', 'Thực tế')}: {actual.sessions.ptSessions || 0}
-                </div>
-              </div>
-            )}
-            {targets.contracts > 0 && (
-              <div className="p-3 bg-purple-50 rounded-lg">
-                <div className="text-xs text-gray-600 mb-1">{t('kpi.targets.contracts', 'Hợp đồng')}</div>
-                <div className="text-lg font-bold text-purple-600">{targets.contracts}</div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {t('kpi.actual', 'Thực tế')}: {actual.contracts.total || 0}
                 </div>
               </div>
             )}
