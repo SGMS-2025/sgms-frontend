@@ -6121,5 +6121,97 @@
       "rejected": "Đã Từ Chối"
     },
     "swipe_to_navigate": "Vuốt trái/phải để chuyển tuần"
+  },
+  "common": {
+    "na": "N/A",
+    "remove": "Xoá"
+  },
+  "meal_plan": {
+    "status": {
+      "SUGGESTED": "Gợi ý",
+      "EDITED": "Đã chỉnh sửa",
+      "FINAL": "Chốt",
+      "ARCHIVED": "Lưu trữ",
+      "DELETED": "Đã xoá"
+    },
+    "form": {
+      "name": "Tên",
+      "name_placeholder": "Meal plan cho tuần này",
+      "status": "Trạng thái",
+      "status_placeholder": "Chọn trạng thái",
+      "focus": "Mục tiêu",
+      "focus_placeholder": "cutting / bulking / performance",
+      "target_calories": "Target Calories",
+      "target_calories_placeholder": "Tự tính từ ngày/bữa",
+      "notes": "Ghi chú",
+      "notes_placeholder": "Dị ứng, sở thích, lưu ý...",
+      "days": "Ngày",
+      "add_day": "+ Thêm ngày",
+      "day_prefix": "Ngày",
+      "day_label_placeholder": "Tên ngày"
+    },
+    "table": {
+      "meal": "Bữa",
+      "total_cal": "Total Cal",
+      "notes": "Ghi chú",
+      "actions": "Thao tác",
+      "meal_placeholder": "Loại bữa",
+      "notes_placeholder": "Ghi chú",
+      "items": "Món",
+      "no_meals": "Chưa có bữa. Nhấn \"+ Meal\" để thêm.",
+      "add_meal": "+ Bữa ăn"
+    },
+    "items_dialog": {
+      "title": "Món ăn",
+      "add_item": "+ Món",
+      "name_label": "Tên món",
+      "cal_label": "Calo",
+      "protein_label": "Đạm (g)",
+      "carbs_label": "Tinh bột (g)",
+      "fat_label": "Chất béo (g)",
+      "ingredients_label": "Nguyên liệu (tách bằng dấu ,)"
+    }
+  },
+  "progress_detail": {
+    "meal_plan": {
+      "create_title": "Tạo Meal Plan",
+      "edit_title": "Chỉnh sửa Meal Plan",
+      "view_title": "Chi tiết Meal Plan",
+      "title": "Meal Plans",
+      "create": "Tạo Meal Plan",
+      "loading": "Đang tải meal plan...",
+      "empty": "Chưa có meal plan nào.",
+      "view": "Xem chi tiết",
+      "edit": "Chỉnh sửa",
+      "delete": "Xóa",
+      "toast": {
+        "need_goal": "Cần có Customer Goal trước khi tạo meal plan.",
+        "create_success": "Tạo meal plan thành công.",
+        "create_fail": "Tạo meal plan thất bại.",
+        "update_success": "Cập nhật meal plan thành công.",
+        "update_fail": "Cập nhật meal plan thất bại.",
+        "delete_success": "Đã xóa meal plan.",
+        "delete_fail": "Xóa meal plan thất bại.",
+        "fetch_fail": "Không tải được chi tiết meal plan."
+      },
+      "confirm_delete": "Bạn có chắc muốn xóa meal plan này?",
+      "table": {
+        "no_meals": "Chưa có bữa. Nhấn \"+ Meal\" để thêm."
+      },
+      "card": {
+        "focus": "Focus: {{focus}}",
+        "target_calories": "Target cal: {{value}}",
+        "created_at": "Ngày tạo: {{value}}",
+        "updated_at": "Ngày cập nhật: {{value}}",
+        "status": "Trạng thái: {{status}}",
+        "days": "Các ngày",
+        "day_total": "Tổng calo: {{value}} cal",
+        "notes": "Ghi chú: {{value}}",
+        "coaching_notes": "Ghi chú huấn luyện: {{value}}",
+        "meal_notes": "Ghi chú: {{value}}",
+        "ingredients": "Nguyên liệu",
+        "default_name": "Meal Plan"
+      }
+    }
   }
 }
