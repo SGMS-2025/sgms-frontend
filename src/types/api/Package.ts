@@ -144,7 +144,7 @@ export interface PTRegistrationFormData {
   startDate: string;
   branchId: string;
   discountCampaignId?: string;
-  paymentMethod: 'CASH' | 'BANK_TRANSFER';
+  paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'QR_BANK';
   referrerStaffId?: string;
   notes?: string;
 }
@@ -158,7 +158,7 @@ export interface ClassRegistrationFormData {
   startDate: string;
   branchId: string;
   discountCampaignId?: string;
-  paymentMethod: 'CASH' | 'BANK_TRANSFER';
+  paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'QR_BANK';
   referrerStaffId?: string;
   notes?: string;
 }

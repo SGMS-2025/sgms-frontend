@@ -8,7 +8,7 @@ export interface ServiceRegistrationFormData {
   startDate: string;
   branchId: string;
   discountCampaignId?: string;
-  paymentMethod: 'CASH' | 'BANK_TRANSFER';
+  paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'QR_BANK';
   referrerStaffId?: string;
   notes?: string;
   // PT specific fields (optional)

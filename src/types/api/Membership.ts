@@ -139,7 +139,7 @@ export interface User {
   updatedAt: string;
 }
 
-export type MembershipPaymentMethod = 'CASH' | 'BANK_TRANSFER';
+export type MembershipPaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'QR_BANK';
 
 export interface PublicMembershipCustomerSummary {
   _id: string;

@@ -295,7 +295,7 @@ export interface MembershipRegistrationFormData {
   cardCode?: string;
   startDate: string;
   discountCampaignId?: string;
-  paymentMethod: 'CASH' | 'BANK_TRANSFER';
+  paymentMethod: 'CASH' | 'BANK_TRANSFER' | 'QR_BANK';
   referrerStaffId?: string;
   notes?: string;
 }
@@ -306,7 +306,22 @@ export interface MembershipRegistrationFormData {
 export interface MembershipContractResponse {
   success: boolean;
   data?: {
-    contract: {
+    _id: string;
+    customerId: string;
+    membershipPlanId: string;
+    branchId: string;
+    startDate: string;
+    endDate: string;
+    price: number;
+    discountAmount: number;
+    total: number;
+    paidAmount: number;
+    status: string;
+    activationDate?: string;
+    paymentMethod?: 'CASH' | 'BANK_TRANSFER' | 'QR_BANK';
+    createdAt: string;
+    // Support both structures for backward compatibility
+    contract?: {
       _id: string;
       customerId: string;
       membershipPlanId: string;
@@ -319,6 +334,7 @@ export interface MembershipContractResponse {
       paidAmount: number;
       status: string;
       activationDate?: string;
+      paymentMethod?: 'CASH' | 'BANK_TRANSFER' | 'QR_BANK';
       createdAt: string;
     };
     contractDocument?: ContractDocument;
