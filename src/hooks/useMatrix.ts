@@ -8,7 +8,6 @@ import type { MatrixDisplayData, MatrixCellData } from '@/types/api/Matrix';
 import type { LegacyService } from '@/types/api/Package';
 import type { FeatureFormData } from '@/types/api/Feature';
 import { convertMatrixToLegacyFormat, createMatrixCellKey } from '@/utils/matrixUtils';
-import { sanitizeFeatureKey } from '@/utils/featureUtils';
 import { validatePackageData } from '@/utils/packageUtils';
 import { toast } from 'sonner';
 
@@ -269,7 +268,6 @@ export function useMatrix(serviceType?: 'PT' | 'CLASS') {
       const featureType: 'PT' | 'CLASS' | 'GENERAL' = serviceType || 'GENERAL';
 
       const createData = {
-        key: sanitizeFeatureKey(payload.name),
         name: payload.name,
         type: featureType
       };
@@ -282,21 +280,6 @@ export function useMatrix(serviceType?: 'PT' | 'CLASS') {
         throw new Error(response.message || 'Failed to create feature');
       }
 
-      const maxOrder = matrixData.features.reduce((m, f) => Math.max(m, f.rowOrder), 0);
-      const newFeature = {
-        id: response.data._id,
-        name: response.data.name as string,
-        type: 'BOOLEAN' as const,
-        unit: null,
-        rowOrder: maxOrder + 1
-      };
-
-      setMatrixData((prev) => ({
-        ...prev,
-        features: [...prev.features, newFeature]
-      }));
-
-      ensureCellsForNew(undefined, newFeature.id);
       await loadMatrix();
       setLoading(false);
       toast.success(t('matrix.add_feature_success', { name: payload.name }));

@@ -30,7 +30,7 @@ export interface FeatureDisplay {
 
 // API Request/Response Types
 export interface CreateFeatureRequest {
-  key: string;
+  key?: string;
   name: string | { vi: string; en: string };
   type?: 'PT' | 'CLASS' | 'GENERAL';
 }

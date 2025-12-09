@@ -24,8 +24,10 @@ export function ConfirmDeleteFeatureDialog({
   const [open, setOpen] = useState(false);
 
   React.useEffect(() => {
-    setOpen(!!feature);
-  }, [feature]);
+    if (feature) {
+      setOpen(true);
+    }
+  }, [feature?.id]);
 
   const handleConfirm = () => {
     onConfirm();

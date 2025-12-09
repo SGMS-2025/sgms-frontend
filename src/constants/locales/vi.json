@@ -681,6 +681,8 @@
   "toast.discount_campaign_deleted": "Xóa chiến dịch giảm giá thành công!",
   "toast.branch_status_updated_success": "Cập nhật trạng thái chi nhánh thành công!",
   "toast.branch_status_updated_failed": "Cập nhật trạng thái chi nhánh thất bại",
+  "toast.customer_disabled": "Khách hàng đã được vô hiệu hóa",
+  "toast.customer_enabled": "Khách hàng đã được kích hoạt",
   "toast.progress_max_photos": "Tối đa 3 ảnh. Vui lòng xóa ảnh trước khi chụp ảnh mới.",
   "toast.progress_capture_photo_failed": "Không thể chụp ảnh. Vui lòng thử lại.",
   "toast.progress_max_photos_limit": "Tối đa 3 ảnh. Bạn có thể thêm {{count}} ảnh nữa.",
