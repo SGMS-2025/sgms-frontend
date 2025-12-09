@@ -10,10 +10,12 @@ import { useServiceRegistrationSubmit } from '@/hooks/useServiceRegistrationSubm
 import { useFetchRegistrationData } from '@/hooks/useFetchRegistrationData';
 import { useBranch } from '@/contexts/BranchContext';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
+import { useUser } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import type { ServiceContractResponse } from '@/types/api/Package';
 import type { ContractDocument } from '@/types/api/ContractDocument';
 import type { PayOSPaymentData } from '@/services/api/paymentApi';
+import { BankQRPaymentContent } from './shared/BankQRPaymentContent';
 
 // Import step components
 import { RegistrationFormStep } from './steps/RegistrationFormStep';
@@ -40,6 +42,7 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
   const { t } = useTranslation();
   const { currentBranch } = useBranch();
   const { currentStaff } = useCurrentUserStaff();
+  const currentUser = useUser();
 
   // Form data
   const { formData, setFormData, priceCalculation, handlePackageChange, handlePromotionChange } =
@@ -62,7 +65,7 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
   const wizard = useServiceRegistrationWizard({
     paymentMethod: formData.paymentMethod,
     // Only skip payment step if paying with CASH (no PayOS needed)
-    // For BANK_TRANSFER, always show payment step to display QR code
+    // For BANK_TRANSFER and QR_BANK, show payment step to display QR code
     skipPayment: formData.paymentMethod === 'CASH',
     // Skip template and send contract steps for CLASS
     skipTemplate: packageType === 'CLASS',
@@ -89,12 +92,15 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
       }
     ];
 
-    // Add payment step if BANK_TRANSFER (to show QR code and payment info)
-    if (formData.paymentMethod === 'BANK_TRANSFER') {
+    // Add payment step if BANK_TRANSFER or QR_BANK (to show QR code and payment info)
+    if (formData.paymentMethod === 'BANK_TRANSFER' || formData.paymentMethod === 'QR_BANK') {
       steps.push({
         id: 'payment',
         title: t('wizard.step_payment', 'Thanh toán'),
-        description: t('wizard.step_payment_desc', 'Thanh toán qua PayOS')
+        description:
+          formData.paymentMethod === 'QR_BANK'
+            ? t('wizard.step_payment_desc_qr', 'Thanh toán qua QR ngân hàng')
+            : t('wizard.step_payment_desc', 'Thanh toán qua PayOS')
       });
     }
 
@@ -123,6 +129,9 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
 
   // PayOS payment state
   const [payOSData, setPayOSData] = React.useState<PayOSPaymentData | null>(null);
+
+  // Bank QR payment state
+  const [bankQRContractId, setBankQRContractId] = React.useState<string | null>(null);
 
   // Handle PayOS payment creation
   const handlePayOSPayment = React.useCallback(
@@ -158,6 +167,24 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
     wizard.goToNext();
   }, [wizard, t]);
 
+  // Create contract function for QR_BANK (returns Promise)
+  const createContractForQRBank = React.useCallback(async (): Promise<ServiceContractResponse | null> => {
+    if (!formData.servicePackageId) {
+      toast.error(t('service_registration.please_select_package', 'Vui lòng chọn gói dịch vụ'));
+      return null;
+    }
+
+    try {
+      const { serviceContractApi } = await import('@/services/api/serviceContractApi');
+      const response = await serviceContractApi.createServiceContract(customerId, formData);
+      return response;
+    } catch (error) {
+      console.error('Error creating contract:', error);
+      toast.error(t('service_registration.registration_error', 'Có lỗi xảy ra khi đăng ký dịch vụ'));
+      return null;
+    }
+  }, [customerId, formData, t]);
+
   // Submit handler
   const { loading: submitLoading, handleSubmit: handleFormSubmit } = useServiceRegistrationSubmit({
     customerId,
@@ -166,13 +193,32 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
       if (response?.success && response?.data) {
         setContractResponse(response);
 
-        // If BANK_TRANSFER, go to payment step to show QR code
+        // If BANK_TRANSFER, go to payment step to show PayOS QR code
         if (formData.paymentMethod === 'BANK_TRANSFER') {
           const contractId = response.data._id;
           if (contractId) {
             handlePayOSPayment(contractId);
           }
           wizard.goToStep('payment');
+        } else if (formData.paymentMethod === 'QR_BANK') {
+          // If QR_BANK, go to payment step to show Bank QR content
+          const contractId = response.data._id;
+          if (contractId) {
+            setBankQRContractId(contractId);
+          }
+          // Ensure payment step exists in wizard steps before navigating
+          if (wizard.steps.includes('payment')) {
+            wizard.goToStep('payment');
+          } else {
+            // If payment step doesn't exist, log error and proceed to next available step
+            console.error('Payment step not found in wizard steps:', wizard.steps);
+            // Fallback: go to template or success
+            if (packageType === 'CLASS') {
+              wizard.goToStep('success');
+            } else {
+              wizard.goToStep('template');
+            }
+          }
         } else {
           // CASH payment, skip payment step
           // For CLASS, skip template and go to success
@@ -205,6 +251,13 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
         return;
       }
 
+      // For QR_BANK, don't create contract yet, just go to payment step
+      if (formData.paymentMethod === 'QR_BANK') {
+        wizard.goToStep('payment');
+        return;
+      }
+
+      // For other payment methods, create contract immediately
       setIsCreatingContract(true);
       handleFormSubmit(formData);
     } else if (wizard.currentStep === 'payment') {
@@ -255,15 +308,21 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
       setContractDocument(null);
       setIsCreatingContract(false);
       setPayOSData(null);
+      setBankQRContractId(null);
     }
   }, [isOpen, wizard]);
 
-  // Trigger payment creation when entering payment step
+  // Trigger payment creation when entering payment step (only for BANK_TRANSFER)
   useEffect(() => {
-    if (wizard.currentStep === 'payment' && contractResponse?.data?._id && !payOSData) {
+    if (
+      wizard.currentStep === 'payment' &&
+      formData.paymentMethod === 'BANK_TRANSFER' &&
+      contractResponse?.data?._id &&
+      !payOSData
+    ) {
       handlePayOSPayment(contractResponse.data._id);
     }
-  }, [wizard.currentStep, contractResponse?.data?._id, payOSData, handlePayOSPayment]);
+  }, [wizard.currentStep, contractResponse?.data?._id, payOSData, handlePayOSPayment, formData.paymentMethod]);
 
   // Render step content
   const renderStepContent = () => {
@@ -284,6 +343,52 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
         );
 
       case 'payment':
+        // If QR_BANK, show QR content directly in the step
+        if (formData.paymentMethod === 'QR_BANK') {
+          // Create contract callback
+          const handleCreateContract = async (): Promise<string | null> => {
+            try {
+              setIsCreatingContract(true);
+              const response = await createContractForQRBank();
+              if (response?.success && response?.data?._id) {
+                const newContractId = response.data._id;
+                setContractResponse(response);
+                setBankQRContractId(newContractId);
+                setIsCreatingContract(false);
+                return newContractId;
+              }
+              setIsCreatingContract(false);
+              return null;
+            } catch (error) {
+              console.error('Error creating contract:', error);
+              setIsCreatingContract(false);
+              return null;
+            }
+          };
+
+          return (
+            <BankQRPaymentContent
+              branchId={currentBranch?._id || ''}
+              amount={priceCalculation.totalPrice}
+              contractId={bankQRContractId || contractResponse?.data?._id}
+              contractType="service"
+              contractPaymentMethod={formData.paymentMethod}
+              contractStatus={contractResponse?.data?.status}
+              requiresApproval={currentUser?.role === 'CUSTOMER'}
+              formData={formData}
+              onCreateContract={!bankQRContractId && !contractResponse?.data?._id ? handleCreateContract : undefined}
+              packageType={packageType}
+              onPaymentSubmitted={(contractId) => {
+                setBankQRContractId(contractId);
+                // If staff/owner, auto proceed to next step
+                if (currentUser?.role !== 'CUSTOMER') {
+                  handlePaymentSuccess();
+                }
+              }}
+            />
+          );
+        }
+        // BANK_TRANSFER (PayOS)
         return (
           <PaymentStep
             contractId={contractResponse?.data?._id || null}

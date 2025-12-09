@@ -1,21 +1,19 @@
 import { useState, useCallback, useMemo } from 'react';
 
-export type WizardStep = 'form' | 'payment' | 'template' | 'send-contract' | 'success';
+export type MembershipWizardStep = 'form' | 'payment' | 'success';
 
-export interface UseServiceRegistrationWizardOptions {
+export interface UseMembershipRegistrationWizardOptions {
   paymentMethod?: 'CASH' | 'BANK_TRANSFER' | 'QR_BANK';
   skipPayment?: boolean;
-  skipTemplate?: boolean;
-  skipSendContract?: boolean;
 }
 
-export interface UseServiceRegistrationWizardReturn {
-  currentStep: WizardStep;
+export interface UseMembershipRegistrationWizardReturn {
+  currentStep: MembershipWizardStep;
   stepIndex: number;
-  steps: WizardStep[];
+  steps: MembershipWizardStep[];
   canGoBack: boolean;
   canGoNext: boolean;
-  goToStep: (step: WizardStep) => void;
+  goToStep: (step: MembershipWizardStep) => void;
   goToNext: () => void;
   goToPrevious: () => void;
   reset: () => void;
@@ -24,33 +22,23 @@ export interface UseServiceRegistrationWizardReturn {
   totalSteps: number;
 }
 
-export function useServiceRegistrationWizard(
-  options: UseServiceRegistrationWizardOptions = {}
-): UseServiceRegistrationWizardReturn {
-  const { paymentMethod, skipPayment, skipTemplate, skipSendContract } = options;
+export function useMembershipRegistrationWizard(
+  options: UseMembershipRegistrationWizardOptions = {}
+): UseMembershipRegistrationWizardReturn {
+  const { paymentMethod, skipPayment } = options;
 
   // Determine which steps to show
-  const steps = useMemo((): WizardStep[] => {
-    const stepList: WizardStep[] = ['form'];
+  const steps = useMemo((): MembershipWizardStep[] => {
+    const stepList: MembershipWizardStep[] = ['form'];
 
     // Add payment step if BANK_TRANSFER or QR_BANK and not skipped
     if ((paymentMethod === 'BANK_TRANSFER' || paymentMethod === 'QR_BANK') && !skipPayment) {
       stepList.push('payment');
     }
 
-    // Add template step if not skipped
-    if (!skipTemplate) {
-      stepList.push('template');
-    }
-
-    // Add send contract step if not skipped
-    if (!skipSendContract) {
-      stepList.push('send-contract');
-    }
-
     stepList.push('success');
     return stepList;
-  }, [paymentMethod, skipPayment, skipTemplate, skipSendContract]);
+  }, [paymentMethod, skipPayment]);
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
@@ -60,7 +48,7 @@ export function useServiceRegistrationWizard(
   const canGoNext = currentStepIndex < steps.length - 1;
 
   const goToStep = useCallback(
-    (step: WizardStep) => {
+    (step: MembershipWizardStep) => {
       const index = steps.indexOf(step);
       if (index !== -1) {
         setCurrentStepIndex(index);

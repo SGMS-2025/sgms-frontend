@@ -133,6 +133,8 @@ const CustomerDetailPage: React.FC = () => {
   const [showPTModal, setShowPTModal] = useState(false);
   const [showClassModal, setShowClassModal] = useState(false);
   const [showMembershipModal, setShowMembershipModal] = useState(false);
+  const [isMembershipQRPaymentActive, setIsMembershipQRPaymentActive] = useState(false);
+  const [membershipWizardStep, setMembershipWizardStep] = useState<'form' | 'payment' | 'success'>('form');
 
   // Cancel modals state
   const [showCancelMembership, setShowCancelMembership] = useState(false);
@@ -146,64 +148,88 @@ const CustomerDetailPage: React.FC = () => {
 
   // Ref to abort previous requests (prevent race conditions)
   const abortControllerRef = useRef<AbortController | null>(null);
+  const hasCustomerDataRef = useRef(false);
 
-  const fetchCustomerDetail = useCallback(async () => {
-    if (!id) return;
+  const fetchCustomerDetail = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!id) return;
 
-    // Abort previous request if still in flight
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // Create new abort controller for this request
-    abortControllerRef.current = new AbortController();
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Pass branchId if available (for PT/Staff role to check branch access)
-      // If branchId is not available, backend will extract it from customer record
-      const branchId = currentBranch?._id;
-      console.log('[CustomerDetailPage] Fetching customer detail:', { customerId: id, branchId });
-      const response = await customerApi.getCustomerById(id, branchId);
-
-      // Check if request was aborted
-      if (abortControllerRef.current?.signal.aborted) {
-        console.log('[CustomerDetailPage] Request was aborted');
-        return;
+      // Abort previous request if still in flight
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
 
-      if (response.success && response.data) {
-        setCustomer(response.data);
-      } else {
-        setError(response.message || t('customer_detail.error.fetch_failed'));
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
+
+      const silent = options?.silent ?? false;
+      const shouldShowLoading = !hasCustomerDataRef.current || !silent;
+
+      if (shouldShowLoading) {
+        setLoading(true);
       }
-    } catch (fetchError: unknown) {
-      // Don't show error if request was aborted
-      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        console.log('[CustomerDetailPage] Request aborted');
-        return;
+      if (!silent) {
+        setError(null);
       }
 
-      console.error('Error fetching customer detail:', fetchError);
-      // Check if it's an axios error with response
-      if (fetchError && typeof fetchError === 'object' && 'response' in fetchError) {
-        const axiosError = fetchError as { response?: { data?: { message?: string } } };
-        const errorMessage = axiosError.response?.data?.message || t('customer_detail.error.fetch_error');
-        setError(errorMessage);
-      } else {
-        setError(t('customer_detail.error.fetch_error'));
+      try {
+        // Pass branchId if available (for PT/Staff role to check branch access)
+        // If branchId is not available, backend will extract it from customer record
+        const branchId = currentBranch?._id;
+        console.log('[CustomerDetailPage] Fetching customer detail:', { customerId: id, branchId });
+        const response = await customerApi.getCustomerById(id, branchId);
+
+        // Check if request was aborted
+        if (abortControllerRef.current?.signal.aborted) {
+          console.log('[CustomerDetailPage] Request was aborted');
+          return;
+        }
+
+        if (response.success && response.data) {
+          setCustomer(response.data);
+          hasCustomerDataRef.current = true;
+          // Clear any previous error when refresh succeeds
+          setError(null);
+        } else if (!silent) {
+          setError(response.message || t('customer_detail.error.fetch_failed'));
+        } else {
+          console.error(
+            '[CustomerDetailPage] Silent refresh failed:',
+            response.message || t('customer_detail.error.fetch_failed')
+          );
+        }
+      } catch (fetchError: unknown) {
+        // Don't show error if request was aborted
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          console.log('[CustomerDetailPage] Request aborted');
+          return;
+        }
+
+        console.error('Error fetching customer detail:', fetchError);
+        // Check if it's an axios error with response
+        if (!silent) {
+          if (fetchError && typeof fetchError === 'object' && 'response' in fetchError) {
+            const axiosError = fetchError as { response?: { data?: { message?: string } } };
+            const errorMessage = axiosError.response?.data?.message || t('customer_detail.error.fetch_error');
+            setError(errorMessage);
+          } else {
+            setError(t('customer_detail.error.fetch_error'));
+          }
+        }
+      } finally {
+        // Clear loading only when we actually showed it (background refresh keeps UI visible)
+        if (shouldShowLoading) {
+          setLoading(false);
+        }
       }
-    } finally {
-      setLoading(false);
-    }
-  }, [id, currentBranch?._id, t]);
+    },
+    [id, currentBranch?._id, t]
+  );
 
   // Debounced version of fetchCustomerDetail (1 second delay)
   // This prevents multiple rapid API calls when socket events fire in quick succession
   const debouncedFetchCustomerDetail = useMemo(
-    () => debounce(() => fetchCustomerDetail(), 1000),
+    () => debounce(() => fetchCustomerDetail({ silent: true }), 1000),
     [fetchCustomerDetail]
   );
 
@@ -254,13 +280,23 @@ const CustomerDetailPage: React.FC = () => {
       const updateCustomerId = data.customerId?.toString();
       const currentCustomerId = customer?.id?.toString();
 
+      // Skip refresh while membership wizard is open and not yet success
+      if (showMembershipModal && membershipWizardStep !== 'success') {
+        return;
+      }
+
+      if (isMembershipQRPaymentActive) {
+        // Skip refresh while membership QR payment step is active to avoid wizard reset
+        return;
+      }
+
       if (updateCustomerId === currentCustomerId || (!customer && id)) {
         console.log('[CustomerDetailPage] Membership contract updated, refreshing data (debounced)');
         // Use debounced version to prevent rapid successive calls
         debouncedFetchCustomerDetail();
       }
     },
-    [id, debouncedFetchCustomerDetail, customer]
+    [id, debouncedFetchCustomerDetail, customer, isMembershipQRPaymentActive, showMembershipModal, membershipWizardStep]
   );
 
   useEffect(() => {
@@ -306,7 +342,7 @@ const CustomerDetailPage: React.FC = () => {
           <AlertDescription>{error || t('customer_detail.error.not_found')}</AlertDescription>
         </Alert>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" className="rounded-full" onClick={fetchCustomerDetail}>
+          <Button size="sm" className="rounded-full" onClick={() => fetchCustomerDetail()}>
             {t('customer_detail.error.retry')}
           </Button>
           <Button variant="outline" size="sm" className="rounded-full" onClick={() => navigate('/manage/customers')}>
@@ -912,6 +948,8 @@ const CustomerDetailPage: React.FC = () => {
         onClose={() => setShowMembershipModal(false)}
         customerId={customer.id}
         onSuccess={() => debouncedFetchCustomerDetail()}
+        onPaymentStepActiveChange={setIsMembershipQRPaymentActive}
+        onStepChange={setMembershipWizardStep}
       />
 
       {/* Cancel Dialogs */}

@@ -1,0 +1,225 @@
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { Calendar, CreditCard, User } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { formatCurrency } from '@/utils/currency';
+import type { MembershipRegistrationFormData } from '@/types/api/Customer';
+import type { MembershipPlan } from '@/types/api/Membership';
+import type { DiscountCampaign } from '@/types/api/Discount';
+import type { Staff } from '@/types/api/Staff';
+import { PriceSummaryCard } from '../shared/PriceSummaryCard';
+import { PaymentMethodSelector } from '../shared/PaymentMethodSelector';
+import { NotesField } from '../shared/NotesField';
+
+interface MembershipFormStepProps {
+  formData: MembershipRegistrationFormData;
+  setFormData: React.Dispatch<React.SetStateAction<MembershipRegistrationFormData>>;
+  plans: MembershipPlan[];
+  promotions: DiscountCampaign[];
+  staffList: Staff[];
+  selectedPlan: MembershipPlan | null;
+  priceCalculation: {
+    basePrice: number;
+    discountPercent: number;
+    discountAmount: number;
+    totalPrice: number;
+  };
+  handlePlanChange: (planId: string) => void;
+  handlePromotionChange: (promotionId: string | undefined) => void;
+  currentStaff?: Staff | null;
+  loadingStaff?: boolean;
+}
+
+export const MembershipFormStep: React.FC<MembershipFormStepProps> = ({
+  formData,
+  setFormData,
+  plans,
+  promotions,
+  staffList,
+  selectedPlan,
+  priceCalculation,
+  handlePlanChange,
+  handlePromotionChange,
+  currentStaff,
+  loadingStaff = false
+}) => {
+  const { t } = useTranslation();
+
+  return (
+    <Card className="rounded-3xl border border-border bg-card shadow-sm">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <CreditCard className="h-5 w-5 text-primary" />
+          {t('membership_registration.registration_info')}
+        </CardTitle>
+        <CardDescription>{t('membership_registration.description')}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid gap-6 xl:grid-cols-2">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">{t('membership_registration.plan_label')}</Label>
+              <Select
+                value={formData.membershipPlanId}
+                onValueChange={(value) => {
+                  handlePlanChange(value);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('membership_registration.plan_placeholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {plans.map((plan) => (
+                    <SelectItem key={plan._id} value={plan._id}>
+                      <div className="flex flex-col">
+                        <span>
+                          {plan.name} - {formatCurrency(plan.price)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {plan.durationInMonths} {t('membership_registration.month')}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedPlan?.description && <p className="text-xs text-muted-foreground">{selectedPlan.description}</p>}
+              {selectedPlan?.benefits && selectedPlan.benefits.length > 0 && (
+                <div className="rounded-xl border border-border bg-muted/30 p-3">
+                  <p className="text-xs font-semibold mb-2">{t('membership_registration.benefits_label')}</p>
+                  <ul className="text-xs space-y-1 list-disc list-inside text-muted-foreground">
+                    {selectedPlan.benefits.map((benefit, idx) => (
+                      <li key={idx}>{benefit}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                <CreditCard className="inline h-4 w-4" /> {t('membership_registration.card_code_label')}
+              </Label>
+              <Input
+                value={formData.cardCode}
+                onChange={(e) => setFormData((prev) => ({ ...prev, cardCode: e.target.value }))}
+                placeholder={t('membership_registration.card_code_placeholder')}
+              />
+              <p className="text-xs text-muted-foreground">{t('membership_registration.card_code_helper')}</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                <Calendar className="inline h-4 w-4" /> {t('membership_registration.activation_date_label')}
+              </Label>
+              <Input
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => setFormData((prev) => ({ ...prev, startDate: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">{t('membership_registration.promotion_label')}</Label>
+              <Select
+                value={formData.discountCampaignId || 'none'}
+                onValueChange={(value) => {
+                  if (value === 'none') {
+                    handlePromotionChange(undefined);
+                  } else {
+                    handlePromotionChange(value);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('membership_registration.promotion_placeholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{t('membership_registration.promotion_none')}</SelectItem>
+                  {promotions.map((promo) => (
+                    <SelectItem key={promo._id} value={promo._id}>
+                      {promo.campaignName} (-{promo.discountPercentage}%)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Staff/PT Selector */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <User className="h-4 w-4" /> PT/Staff hỗ trợ (tùy chọn)
+              </Label>
+              <Select
+                value={formData.referrerStaffId || 'none'}
+                onValueChange={(value) => {
+                  if (value === 'none') {
+                    setFormData((prev) => ({ ...prev, referrerStaffId: undefined }));
+                  } else {
+                    setFormData((prev) => ({ ...prev, referrerStaffId: value }));
+                  }
+                }}
+                disabled={loadingStaff}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn PT/Staff" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Không có</SelectItem>
+                  {staffList
+                    .filter((staff) => staff.userId?._id)
+                    .map((staff) => (
+                      <SelectItem key={staff._id} value={staff.userId._id}>
+                        {staff.userId?.fullName || staff.userId?.username} ({staff.jobTitle})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {currentStaff && currentStaff.jobTitle === 'Personal Trainer' && (
+                <p className="text-xs text-blue-600">Đã tự động chọn bạn (PT): {currentStaff.userId?.fullName}</p>
+              )}
+              {currentStaff && currentStaff.jobTitle !== 'Personal Trainer' && (
+                <p className="text-xs text-muted-foreground">
+                  Bạn đang đăng nhập với tư cách: {currentStaff.jobTitle}. Vui lòng chọn PT để attribute KPI.
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Chọn PT/Staff hỗ trợ khách hàng mua để họ nhận được hoa hồng
+              </p>
+            </div>
+
+            <PaymentMethodSelector
+              value={formData.paymentMethod}
+              onChange={(value) => setFormData((prev) => ({ ...prev, paymentMethod: value }))}
+            />
+
+            <PriceSummaryCard
+              basePrice={priceCalculation.basePrice}
+              discountAmount={priceCalculation.discountAmount}
+              totalPrice={priceCalculation.totalPrice}
+            />
+
+            {selectedPlan && (
+              <div className="flex justify-between items-center text-blue-600 text-xs">
+                <span>{t('membership_registration.duration')}</span>
+                <span className="font-semibold">
+                  {selectedPlan.durationInMonths} {t('membership_registration.month')}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <NotesField
+          value={formData.notes || ''}
+          onChange={(value) => setFormData((prev) => ({ ...prev, notes: value }))}
+        />
+      </CardContent>
+    </Card>
+  );
+};

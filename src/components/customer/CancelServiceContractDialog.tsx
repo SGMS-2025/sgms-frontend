@@ -3,8 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, AlertTriangle, Info } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { serviceContractApi } from '@/services/api/serviceContractApi';
 
@@ -32,9 +31,9 @@ export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogPr
   endDate
 }) => {
   const [loading, setLoading] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [formData, setFormData] = useState({
-    cancelReason: '',
-    notes: ''
+    cancelReason: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -73,8 +72,12 @@ export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogPr
 
   const handleSubmit = () => {
     if (!validateForm()) return;
+    setShowConfirmDialog(true);
+  };
 
+  const handleConfirmCancel = () => {
     setLoading(true);
+    setShowConfirmDialog(false);
 
     // API call - Note: Backend endpoint not yet implemented
     serviceContractApi
@@ -99,10 +102,10 @@ export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogPr
   const handleClose = () => {
     if (!loading) {
       setFormData({
-        cancelReason: '',
-        notes: ''
+        cancelReason: ''
       });
       setErrors({});
+      setShowConfirmDialog(false);
       onClose();
     }
   };
@@ -164,35 +167,6 @@ export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogPr
             />
             {errors.cancelReason && <p className="text-sm text-red-500">{errors.cancelReason}</p>}
           </div>
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Ghi chú thêm (tùy chọn)</Label>
-            <Textarea
-              id="notes"
-              rows={2}
-              value={formData.notes}
-              onChange={(e) => handleInputChange('notes', e.target.value)}
-              placeholder="Thêm ghi chú nếu cần..."
-              disabled={loading}
-            />
-          </div>
-
-          <Alert className="bg-yellow-50 border-yellow-200">
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-            <AlertDescription className="text-sm text-yellow-800">
-              <strong>Cảnh báo:</strong> Hành động này không thể hoàn tác. Gói dịch vụ sẽ bị hủy ngay lập tức và khách
-              hàng sẽ không thể sử dụng các buổi tập còn lại.
-            </AlertDescription>
-          </Alert>
-
-          <Alert className="bg-blue-50 border-blue-200">
-            <Info className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-sm text-blue-800">
-              <strong>Lưu ý:</strong> Tính năng này đang trong giai đoạn phát triển. Vui lòng liên hệ quản trị viên để
-              hoàn tất việc hủy gói.
-            </AlertDescription>
-          </Alert>
         </div>
 
         <DialogFooter>
@@ -205,6 +179,35 @@ export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogPr
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Xác nhận hủy gói
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Bạn có chắc chắn muốn hủy gói <strong>{serviceName || 'này'}</strong> không? Hành động này không thể hoàn
+              tác.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirmDialog(false)} disabled={loading}>
+              Hủy bỏ
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmCancel} disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Xác nhận
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 };

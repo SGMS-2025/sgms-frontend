@@ -29,5 +29,21 @@ export const walletApi = {
   listWithdrawals: async (branchId?: string) => {
     const res = await api.get('/wallets/withdrawals', { params: { branchId } });
     return res.data?.data;
+  },
+  getBankAccount: async (branchId: string) => {
+    const res = await api.get(`/wallets/${branchId}/bank-account`);
+    return res.data?.data;
+  },
+  saveBankAccount: async (formData: FormData) => {
+    const res = await api.post('/wallets/bank-account', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return res.data?.data;
+  },
+  deleteBankAccount: async (branchId: string) => {
+    const res = await api.delete(`/wallets/${branchId}/bank-account`);
+    return res.data?.data;
   }
 };
