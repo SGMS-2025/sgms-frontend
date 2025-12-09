@@ -6159,7 +6159,17 @@
       "notes_placeholder": "Notes",
       "items": "Items",
       "no_meals": "No meals. Click \"+ Meal\" to add.",
-      "add_meal": "+ Meal"
+      "add_meal": "+ Meal",
+      "meal_types": {
+        "breakfast": "Breakfast",
+        "lunch": "Lunch",
+        "dinner": "Dinner",
+        "snack": "Snack",
+        "pre_workout": "Pre-workout",
+        "post_workout": "Post-workout",
+        "late_night": "Late Night",
+        "other": "Other"
+      }
     },
     "items_dialog": {
       "title": "Meal Items",
@@ -6170,6 +6180,42 @@
       "carbs_label": "Carbs (g) ",
       "fat_label": "Fat (g)",
       "ingredients_label": "Ingredients (comma)"
+    },
+    "validation": {
+      "name_required": "Name is required",
+      "name_max": "Name must not exceed 200 characters",
+      "goal_max": "Goal must not exceed 500 characters",
+      "focus_max": "Focus must not exceed 100 characters",
+      "target_calories_min": "Target calories must be at least 0",
+      "target_calories_max": "Target calories must not exceed 10000",
+      "notes_max": "Notes must not exceed 2000 characters",
+      "coaching_notes_max": "Coaching notes must not exceed 2000 characters",
+      "days_min": "Must have at least 1 day",
+      "days_max": "Cannot have more than 14 days",
+      "day_required": "Day label is required",
+      "day_max": "Day label must not exceed 100 characters",
+      "meals_min": "Each day must have at least 3 meals",
+      "items_min": "At least 1 item",
+      "day_total_calories_min": "Day total calories must be at least 0",
+      "day_total_calories_max": "Day total calories must not exceed 10000",
+      "meal_type_required": "Meal type is required",
+      "meal_type_max": "Meal type must not exceed 100 characters",
+      "meal_type_duplicate": "Meal type cannot be duplicated within the same day",
+      "meal_total_calories_min": "Meal total calories must be at least 0",
+      "meal_total_calories_max": "Meal total calories must not exceed 5000",
+      "meal_notes_max": "Meal notes must not exceed 500 characters",
+      "item_name_required": "Item name is required",
+      "item_name_max": "Item name must not exceed 200 characters",
+      "item_calories_min": "Calories must be at least 0",
+      "item_calories_max": "Calories must not exceed 5000",
+      "item_protein_min": "Protein must be at least 0",
+      "item_protein_max": "Protein must not exceed 500",
+      "item_carbs_min": "Carbs must be at least 0",
+      "item_carbs_max": "Carbs must not exceed 1000",
+      "item_fat_min": "Fat must be at least 0",
+      "item_fat_max": "Fat must not exceed 500",
+      "ingredient_max": "Each ingredient must not exceed 200 characters",
+      "status_invalid": "Invalid status"
     }
   },
   "progress_detail": {

@@ -741,6 +741,7 @@ export default function TrainingProgressDetailPage() {
                       loading={creatingMealPlan || updatingMealPlan}
                       initialValues={{
                         ...(selectedMealPlan || {}),
+                        name: selectedMealPlan?.name ?? '',
                         customerId: customerId || '',
                         customerGoalId: activeGoal?.id || '',
                         status: selectedMealPlan?.status || 'SUGGESTED',
