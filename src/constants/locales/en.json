@@ -681,6 +681,8 @@
   "toast.discount_campaign_deleted": "Discount campaign deleted successfully!",
   "toast.branch_status_updated_success": "Branch status updated successfully!",
   "toast.branch_status_updated_failed": "Failed to update branch status",
+  "toast.customer_disabled": "Customer disabled successfully",
+  "toast.customer_enabled": "Customer enabled successfully",
   "toast.progress_max_photos": "Maximum 3 photos allowed. Please remove a photo before capturing a new one.",
   "toast.progress_capture_photo_failed": "Failed to capture photo. Please try again.",
   "toast.progress_max_photos_limit": "Maximum 3 photos allowed. You can add {{count}} more photo(s).",
