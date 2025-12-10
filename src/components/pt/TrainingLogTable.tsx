@@ -19,7 +19,7 @@ import type { TrainingLogTableProps } from '@/types/components/pt/Progress';
 
 type TrainingLog = TrainingProgressDisplay;
 
-export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit, onDelete }) => {
+export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit, onDelete, readOnly }) => {
   const { t } = useTranslation();
   const { deleteProgress, deleteLoading } = useTrainingProgress();
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -48,16 +48,17 @@ export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit
   const canNext = page < totalPages;
 
   const handleDeleteClick = (logId: string) => {
+    if (readOnly) return;
     setDeleteLogId(logId);
   };
 
   const handleConfirmDelete = async () => {
-    if (!deleteLogId) return;
+    if (!deleteLogId || readOnly) return;
 
     const response = await deleteProgress(deleteLogId);
 
     if (response.success) {
-      onDelete(deleteLogId);
+      onDelete?.(deleteLogId);
       setDeleteLogId(null);
       toast.success(t('toast.progress_deleted_success'));
     } else {
@@ -74,25 +75,32 @@ export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit
   };
 
   // Reusable Components
-  const ActionMenu: React.FC<{ log: TrainingLog }> = ({ log }) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-32">
-        <DropdownMenuItem onClick={() => onEdit(log)}>
-          <Edit className="h-4 w-4 mr-2" />
-          {t('training_log.table.edit')}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleDeleteClick(log.id)} className="text-red-600 focus:text-red-600">
-          <Trash2 className="h-4 w-4 mr-2" />
-          {t('training_log.table.delete')}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+  const ActionMenu: React.FC<{ log: TrainingLog }> = ({ log }) => {
+    if (readOnly) return null;
+    if (!onEdit) return null;
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-32">
+          <DropdownMenuItem onClick={() => onEdit(log)}>
+            <Edit className="h-4 w-4 mr-2" />
+            {t('training_log.table.edit')}
+          </DropdownMenuItem>
+          {onDelete && (
+            <DropdownMenuItem onClick={() => handleDeleteClick(log.id)} className="text-red-600 focus:text-red-600">
+              <Trash2 className="h-4 w-4 mr-2" />
+              {t('training_log.table.delete')}
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
 
   const BMIBadge: React.FC<{ bmi: number }> = ({ bmi }) => (
     <Badge variant="outline" className={`${getBMIColor(bmi)} border font-medium`}>
@@ -206,14 +214,16 @@ export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit
       </Dialog>
 
       {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        isOpen={!!deleteLogId}
-        onClose={() => setDeleteLogId(null)}
-        onConfirm={handleConfirmDelete}
-        isLoading={deleteLoading}
-        title={t('training_log.modal.delete_title')}
-        description={t('training_log.modal.delete_description')}
-      />
+      {!readOnly && onDelete && (
+        <DeleteConfirmationModal
+          isOpen={!!deleteLogId}
+          onClose={() => setDeleteLogId(null)}
+          onConfirm={handleConfirmDelete}
+          isLoading={deleteLoading}
+          title={t('training_log.modal.delete_title')}
+          description={t('training_log.modal.delete_description')}
+        />
+      )}
     </>
   );
 
@@ -253,9 +263,11 @@ export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit
                 <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
                   {t('training_log.table.photos')}
                 </th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-gray-600">
-                  {t('training_log.table.actions')}
-                </th>
+                {!readOnly && onEdit && (
+                  <th className="text-right py-3 px-4 text-sm font-semibold text-gray-600">
+                    {t('training_log.table.actions')}
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -287,9 +299,11 @@ export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit
                   <td className="py-4 px-4">
                     <PhotoGallery photos={log.photos} maxPhotos={3} size="sm" />
                   </td>
-                  <td className="py-4 px-4 text-right">
-                    <ActionMenu log={log} />
-                  </td>
+                  {!readOnly && onEdit && (
+                    <td className="py-4 px-4 text-right">
+                      <ActionMenu log={log} />
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -312,7 +326,7 @@ export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit
               <Calendar className="h-4 w-4 text-gray-400" />
               <span className="text-sm font-medium text-gray-900">{formatDate(log.date)}</span>
             </div>
-            <ActionMenu log={log} />
+            {!readOnly && onEdit && <ActionMenu log={log} />}
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-3">
