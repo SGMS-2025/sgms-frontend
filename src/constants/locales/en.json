@@ -3501,6 +3501,10 @@
   "timeoff.pending": "Pending",
   "timeoff.approved": "Approved",
   "timeoff.rejected": "Rejected",
+  "timeoff.stats.total_helper": "Total number of leave requests",
+  "timeoff.stats.pending_helper": "Requests awaiting approval",
+  "timeoff.stats.approved_helper": "Requests that have been approved",
+  "timeoff.stats.rejected_helper": "Requests that have been rejected",
   "timeoff.cancelled": "Cancelled",
   "timeoff.approve": "Approve",
   "timeoff.reject": "Reject",
@@ -6131,7 +6135,11 @@
       "total": "Total",
       "pending": "Pending",
       "approved": "Approved",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "total_helper": "Total number of requests",
+      "pending_helper": "Requests awaiting approval",
+      "approved_helper": "Requests that have been approved",
+      "rejected_helper": "Requests that have been rejected"
     },
     "swipe_to_navigate": "Swipe left/right to change week"
   },
