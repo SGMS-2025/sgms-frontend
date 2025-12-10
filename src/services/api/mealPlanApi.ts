@@ -4,7 +4,9 @@ import type {
   MealPlanListParams,
   MealPlanListResponse,
   CreateMealPlanRequest,
-  UpdateMealPlanRequest
+  UpdateMealPlanRequest,
+  GenerateMealPlanRequest,
+  GenerateMealPlanResponse
 } from '@/types/api/MealPlan';
 import type { ApiResponse } from '@/types/api/Api';
 
@@ -31,6 +33,14 @@ export const mealPlanApi = {
 
   deleteMealPlan: async (mealPlanId: string): Promise<ApiResponse<void>> => {
     const response = await api.delete(`/meal-plans/${mealPlanId}`);
+    return response.data;
+  },
+
+  generateMealPlan: async (params: GenerateMealPlanRequest): Promise<ApiResponse<GenerateMealPlanResponse>> => {
+    const response = await api.post('/meal-plans/generate', params, {
+      // @ts-expect-error Custom flag consumed by interceptor to suppress default toast
+      skipErrorToast: true
+    });
     return response.data;
   }
 };

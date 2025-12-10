@@ -5,7 +5,9 @@ import type {
   MealPlanListParams,
   MealPlanListResponse,
   CreateMealPlanRequest,
-  UpdateMealPlanRequest
+  UpdateMealPlanRequest,
+  GenerateMealPlanRequest,
+  GenerateMealPlanResponse
 } from '@/types/api/MealPlan';
 import type { BackendPaginationResponse } from '@/types/api/TrainingProgress';
 import type { ApiResponse } from '@/types/api/Api';
@@ -20,9 +22,12 @@ export interface UseMealPlansReturn {
   update: (id: string, data: UpdateMealPlanRequest) => Promise<ApiResponse<MealPlan>>;
   remove: (id: string) => Promise<ApiResponse<void>>;
   getById: (id: string) => Promise<ApiResponse<MealPlan>>;
+  generate: (data: GenerateMealPlanRequest) => Promise<ApiResponse<GenerateMealPlanResponse>>;
+  cancelGenerate: () => void;
   creating: boolean;
   updating: boolean;
   removing: boolean;
+  generating: boolean;
 }
 
 export const useMealPlans = (initialParams: MealPlanListParams): UseMealPlansReturn => {
@@ -34,6 +39,7 @@ export const useMealPlans = (initialParams: MealPlanListParams): UseMealPlansRet
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   const fetchList = useCallback(async () => {
     setLoading(true);
@@ -106,6 +112,17 @@ export const useMealPlans = (initialParams: MealPlanListParams): UseMealPlansRet
     return response;
   }, []);
 
+  const generate = useCallback(async (data: GenerateMealPlanRequest) => {
+    setGenerating(true);
+    const response = await mealPlanApi.generateMealPlan(data);
+    setGenerating(false);
+    return response;
+  }, []);
+
+  const cancelGenerate = useCallback(() => {
+    setGenerating(false);
+  }, []);
+
   return {
     items,
     pagination,
@@ -116,8 +133,11 @@ export const useMealPlans = (initialParams: MealPlanListParams): UseMealPlansRet
     update,
     remove,
     getById,
+    generate,
+    cancelGenerate,
     creating,
     updating,
-    removing
+    removing,
+    generating
   };
 };
