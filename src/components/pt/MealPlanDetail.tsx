@@ -63,14 +63,6 @@ export function MealPlanDetail({ mealPlan, onEdit, onDelete }: Readonly<MealPlan
               <div className="bg-white border rounded p-2 whitespace-pre-wrap text-sm">{mealPlan.notes}</div>
             </div>
           ) : null}
-          {mealPlan.coachingNotes ? (
-            <div className="space-y-1">
-              <div className="font-semibold text-[#0B1220]">
-                {t('progress_detail.meal_plan.card.coaching_notes', { value: '' })}
-              </div>
-              <div className="bg-white border rounded p-2 whitespace-pre-wrap text-sm">{mealPlan.coachingNotes}</div>
-            </div>
-          ) : null}
         </div>
         <div className="space-y-2 bg-gray-50 rounded-md p-4 border">
           <div className="font-semibold text-[#0B1220]">

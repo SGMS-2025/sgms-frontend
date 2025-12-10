@@ -10,7 +10,17 @@ import { useUser } from '@/hooks/useAuth';
 import { useTrainingProgress } from '@/hooks/useTrainingProgress';
 import { useCustomerGoal } from '@/hooks/useCustomerGoal';
 import { useMealPlans } from '@/hooks/useMealPlans';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
+} from '@/components/ui/pagination';
 import type { CustomerStats } from '@/types/forms/Progress';
+import { Loader2 } from 'lucide-react';
 
 export default function CustomerProgress() {
   const { t } = useTranslation();
@@ -36,17 +46,116 @@ export default function CustomerProgress() {
 
   const { activeGoal, loading: goalLoading, error: goalError } = useCustomerGoal(customerId || undefined);
 
+  const [mealPlanPage, setMealPlanPage] = useState(1);
+
   const mealPlanParams = useMemo(
     () => ({
       customerId: customerId || '',
       customerGoalId: activeGoal?.id,
       sortBy: 'createdAt' as const,
       sortOrder: 'desc' as const,
-      limit: 12
+      page: mealPlanPage,
+      limit: 6
     }),
-    [customerId, activeGoal?.id]
+    [customerId, activeGoal?.id, mealPlanPage]
   );
-  const { items: mealPlans, loading: mealPlanLoading, error: mealPlanError } = useMealPlans(mealPlanParams);
+  const {
+    items: mealPlans,
+    pagination: mealPlanPagination,
+    loading: mealPlanLoading,
+    error: mealPlanError
+  } = useMealPlans(mealPlanParams);
+
+  useEffect(() => {
+    setMealPlanPage(1);
+  }, [customerId, activeGoal?.id]);
+
+  const mealPlanPaginationPages = useMemo(() => {
+    if (!mealPlanPagination) return [];
+
+    const { currentPage, totalPages } = mealPlanPagination;
+    const pages: Array<number | 'ellipsis'> = [];
+
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+      return pages;
+    }
+
+    pages.push(1);
+
+    const showEllipsisStart = currentPage > 3;
+    const showEllipsisEnd = currentPage < totalPages - 2;
+
+    if (showEllipsisStart) {
+      pages.push('ellipsis');
+    }
+
+    const rangeStart = Math.max(2, currentPage - 1);
+    const rangeEnd = Math.min(totalPages - 1, currentPage + 1);
+
+    for (let i = rangeStart; i <= rangeEnd; i++) {
+      if (i !== 1 && i !== totalPages) {
+        pages.push(i);
+      }
+    }
+
+    if (showEllipsisEnd) {
+      pages.push('ellipsis');
+    }
+
+    if (totalPages > 1) {
+      pages.push(totalPages);
+    }
+
+    return pages;
+  }, [mealPlanPagination]);
+
+  const handleMealPlanPageChange = (page: number) => {
+    if (page < 1) return;
+    if (mealPlanPagination && page > mealPlanPagination.totalPages) return;
+    setMealPlanPage(page);
+  };
+
+  const renderMealPlans = () => {
+    if (mealPlanLoading) {
+      return (
+        <div className="flex items-center justify-center py-6 text-gray-600 gap-2">
+          <Loader2 className="h-5 w-5 animate-spin text-[#F05A29]" />
+          <span>{t('progress_detail.meal_plan.loading')}</span>
+        </div>
+      );
+    }
+
+    if (mealPlans.length === 0) {
+      return <p className="text-gray-600">{t('progress_detail.meal_plan.empty')}</p>;
+    }
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {mealPlans.map((plan) => (
+          <div key={plan._id} className="border rounded-lg p-3 bg-white shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="font-semibold text-[#101D33] line-clamp-1">{plan.name || 'Meal Plan'}</div>
+              <Badge variant="secondary" className="capitalize">
+                {(plan.status ?? 'unknown').toLowerCase()}
+              </Badge>
+            </div>
+            <div className="text-sm text-gray-600 space-y-1">
+              <div>
+                {t('progress_detail.meal_plan.card.created_at', {
+                  value: new Date(plan.createdAt).toLocaleDateString('vi-VN')
+                })}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  let mealPlanEllipsisCounter = 0;
 
   const [customerStats, setCustomerStats] = useState<CustomerStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -114,10 +223,7 @@ export default function CustomerProgress() {
   const radarCurrentData = recordsWithMeasurements[0] || progressList[0] || null;
   const radarFirstData = useMemo(() => {
     if (!progressList.length) return null;
-    const baseline =
-      recordsWithMeasurements.length > 1
-        ? recordsWithMeasurements[recordsWithMeasurements.length - 1]
-        : progressList[progressList.length - 1];
+    const baseline = recordsWithMeasurements.length > 1 ? recordsWithMeasurements.at(-1) : progressList.at(-1);
     if (!baseline) return null;
     if (radarCurrentData && baseline.id && radarCurrentData.id && baseline.id === radarCurrentData.id) {
       return null;
@@ -282,29 +388,57 @@ export default function CustomerProgress() {
             <CardTitle className="text-xl font-bold text-[#101D33]">{t('progress_detail.meal_plan.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {mealPlanLoading ? (
-              <p className="text-gray-600">{t('progress_detail.meal_plan.loading')}</p>
-            ) : mealPlans.length === 0 ? (
-              <p className="text-gray-600">{t('progress_detail.meal_plan.empty')}</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {mealPlans.map((plan) => (
-                  <div key={plan._id} className="border rounded-lg p-3 bg-white shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="font-semibold text-[#101D33] line-clamp-1">{plan.name || 'Meal Plan'}</div>
-                      <Badge variant="secondary" className="capitalize">
-                        {(plan.status ?? 'unknown').toLowerCase()}
-                      </Badge>
-                    </div>
-                    <div className="text-sm text-gray-600 space-y-1">
-                      <div>
-                        {t('progress_detail.meal_plan.card.created_at', {
-                          value: new Date(plan.createdAt).toLocaleDateString('vi-VN')
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            {renderMealPlans()}
+            {mealPlanPagination && mealPlanPagination.totalPages > 1 && (
+              <div className="flex justify-center pt-1">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          if (mealPlanPagination.hasPrevPage) {
+                            handleMealPlanPageChange(mealPlanPagination.currentPage - 1);
+                          }
+                        }}
+                      />
+                    </PaginationItem>
+                    {mealPlanPaginationPages.map((page) =>
+                      page === 'ellipsis' ? (
+                        <PaginationItem
+                          key={`meal-plan-ellipsis-${mealPlanPagination.currentPage}-${++mealPlanEllipsisCounter}`}
+                        >
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      ) : (
+                        <PaginationItem key={`meal-plan-page-${page}`}>
+                          <PaginationLink
+                            href="#"
+                            isActive={mealPlanPagination.currentPage === page}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              handleMealPlanPageChange(page);
+                            }}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )
+                    )}
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          if (mealPlanPagination.hasNextPage) {
+                            handleMealPlanPageChange(mealPlanPagination.currentPage + 1);
+                          }
+                        }}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               </div>
             )}
           </CardContent>

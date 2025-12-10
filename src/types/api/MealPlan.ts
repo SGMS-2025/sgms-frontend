@@ -37,7 +37,6 @@ export interface MealPlan {
   goal?: string;
   focus?: string;
   notes?: string;
-  coachingNotes?: string;
   createdBy: string;
   updatedBy?: string;
   createdAt: string;
@@ -65,5 +64,16 @@ export type CreateMealPlanRequest = Partial<MealPlan> & {
 };
 
 export type UpdateMealPlanRequest = Partial<MealPlan>;
+
+export interface GenerateMealPlanRequest {
+  customerId: string;
+  serviceContractId: string;
+  days?: number;
+  dishLimit?: number;
+}
+
+export interface GenerateMealPlanResponse {
+  backend_plan: Omit<MealPlan, '_id' | 'createdBy' | 'updatedBy' | 'createdAt' | 'updatedAt' | 'customerGoalId'>;
+}
 
 export type MealPlanListApiResponse = ApiResponse<MealPlanListResponse>;

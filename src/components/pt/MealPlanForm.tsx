@@ -22,7 +22,6 @@ export interface MealPlanFormValues {
   focus?: string;
   targetCalories?: number;
   notes?: string;
-  coachingNotes?: string;
   status?: MealPlanStatus;
   days?: DayPlan[];
 }
@@ -132,16 +131,10 @@ const buildMealPlanSchema = (t: TFunction) => {
     targetCalories: z
       .number()
       .min(0, t('meal_plan.validation.target_calories_min'))
-      .max(10000, t('meal_plan.validation.target_calories_max'))
+      .max(25000, t('meal_plan.validation.target_calories_max'))
       .optional()
       .or(z.undefined()),
     notes: z.string().trim().max(2000, t('meal_plan.validation.notes_max')).optional().or(z.undefined()),
-    coachingNotes: z
-      .string()
-      .trim()
-      .max(2000, t('meal_plan.validation.coaching_notes_max'))
-      .optional()
-      .or(z.undefined()),
     status: z.enum(['SUGGESTED', 'EDITED', 'FINAL', 'ARCHIVED', 'DELETED']).optional(),
     days: z
       .array(dayPlanSchema)
@@ -185,7 +178,6 @@ export const MealPlanForm = ({ initialValues, loading, onSubmit }: MealPlanFormP
       focus: initialValues.focus,
       targetCalories: initialValues.targetCalories,
       notes: initialValues.notes,
-      coachingNotes: initialValues.coachingNotes,
       status: initialValues.status || 'SUGGESTED',
       days: initialValues.days || []
     },
