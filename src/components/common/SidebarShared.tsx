@@ -332,8 +332,8 @@ export const UserProfileSection: React.FC<UserProfileProps> = ({
           <DropdownMenuContent
             side={isMobile ? 'top' : 'right'}
             align={isMobile ? 'center' : 'end'}
-            sideOffset={8}
-            className="w-56"
+            sideOffset={isMobile ? 12 : 8}
+            className={`w-56 ${isMobile ? 'z-[150]' : 'z-50'}`}
           >
             {menuItems}
           </DropdownMenuContent>
@@ -364,8 +364,8 @@ export const UserProfileSection: React.FC<UserProfileProps> = ({
         <DropdownMenuContent
           side={isMobile ? 'top' : 'right'}
           align={isMobile ? 'center' : 'end'}
-          sideOffset={8}
-          className={isMobile ? 'w-56' : 'w-56 ml-2'}
+          sideOffset={isMobile ? 12 : 8}
+          className={`w-56 ${isMobile ? 'z-[150]' : 'z-50'} ${isMobile ? '' : 'ml-2'}`}
         >
           {menuItems}
         </DropdownMenuContent>

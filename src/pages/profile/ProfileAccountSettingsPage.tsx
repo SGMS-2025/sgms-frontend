@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Loader2, AlertCircle, Camera, Shield, FileText, Eye, Download } from 'lucide-react';
 import { useProfileData } from '@/hooks/useProfileData';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +26,7 @@ import type { ContractDocument } from '@/types/api/ContractDocument';
 import EmbeddedDocumentViewer from '@/components/contracts/EmbeddedDocumentViewer';
 
 const ProfileAccountSettingsPage: React.FC = () => {
+  const { t } = useTranslation();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const {
     userData,
@@ -189,7 +191,7 @@ const ProfileAccountSettingsPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to fetch contracts:', error);
-      toast.error('Không thể tải danh sách hợp đồng');
+      toast.error(t('settings.error.load_contracts'));
       setContracts([]);
     } finally {
       setLoadingContracts(false);
@@ -214,7 +216,7 @@ const ProfileAccountSettingsPage: React.FC = () => {
         setEmbeddedIframeUrl(response.data.link);
         setEmbeddedViewerOpen(true);
       } else {
-        toast.error('Không thể mở hợp đồng');
+        toast.error(t('settings.error.open_contract'));
       }
     } catch (error) {
       console.error('Failed to open contract:', error);
@@ -234,10 +236,10 @@ const ProfileAccountSettingsPage: React.FC = () => {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success('Đã tải xuống hợp đồng');
+      toast.success(t('settings.success.download_contract'));
     } catch (error) {
       console.error('Failed to download contract:', error);
-      toast.error('Không thể tải xuống hợp đồng');
+      toast.error(t('settings.error.download_contract'));
     }
   };
 
@@ -256,11 +258,11 @@ const ProfileAccountSettingsPage: React.FC = () => {
   const handleAvatarUpload = async (file?: File) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      toast.error('Vui lòng chọn tệp hình ảnh');
+      toast.error(t('settings.error.select_image'));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Ảnh quá lớn, tối đa 5MB');
+      toast.error(t('settings.error.image_too_large'));
       return;
     }
 
@@ -269,7 +271,7 @@ const ProfileAccountSettingsPage: React.FC = () => {
     if (response.success && response.data) {
       setUserData((prev) => ({ ...prev, avatar: response.data.avatar?.url || '' }));
       updateUser(response.data);
-      toast.success('Đã cập nhật ảnh đại diện');
+      toast.success(t('settings.success.update_avatar'));
     }
     setIsUploading(false);
   };
@@ -283,16 +285,16 @@ const ProfileAccountSettingsPage: React.FC = () => {
       <div className="min-h-[60vh] flex items-center justify-center bg-[#f4f5fb]">
         <div className="flex items-center gap-3 text-gray-600">
           <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
-          <span>Đang tải hồ sơ...</span>
+          <span>{t('settings.loading.profile')}</span>
         </div>
       </div>
     );
   }
 
   const navItems: { key: 'edit-profile' | 'security' | 'contracts'; label: string }[] = [
-    { key: 'edit-profile', label: 'Chỉnh sửa hồ sơ' },
-    { key: 'security', label: 'Bảo mật' },
-    { key: 'contracts', label: 'Hợp đồng' }
+    { key: 'edit-profile', label: t('settings.nav.edit_profile') },
+    { key: 'security', label: t('settings.nav.security') },
+    { key: 'contracts', label: t('settings.nav.contracts') }
   ];
 
   const handleNavClick = (key: 'edit-profile' | 'security' | 'contracts') => {
@@ -304,8 +306,8 @@ const ProfileAccountSettingsPage: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4">
         <div className="bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100">
-            <h1 className="text-lg font-semibold text-gray-900">Cài đặt</h1>
-            <p className="text-sm text-gray-500">Cập nhật thông tin cá nhân của bạn</p>
+            <h1 className="text-lg font-semibold text-gray-900">{t('settings.title')}</h1>
+            <p className="text-sm text-gray-500">{t('settings.subtitle')}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-[240px_1fr]">
             <div className="border-r border-gray-100 bg-[#fafafa] p-4 space-y-1">
@@ -331,11 +333,11 @@ const ProfileAccountSettingsPage: React.FC = () => {
                   <>
                     <div className="flex items-center justify-between mb-6">
                       <div>
-                        <p className="text-xs uppercase tracking-wide text-gray-500">Hồ sơ</p>
-                        <h2 className="text-xl font-semibold text-gray-900">Thông tin cá nhân</h2>
+                        <p className="text-xs uppercase tracking-wide text-gray-500">{t('settings.profile.section')}</p>
+                        <h2 className="text-xl font-semibold text-gray-900">{t('settings.profile.title')}</h2>
                       </div>
                       <Badge variant="outline" className="text-xs border-gray-200 text-gray-700 bg-white">
-                        {isEditing ? 'Đang chỉnh sửa' : 'Chỉ xem'}
+                        {isEditing ? t('settings.profile.editing') : t('settings.profile.view_only')}
                       </Badge>
                     </div>
 
@@ -364,20 +366,20 @@ const ProfileAccountSettingsPage: React.FC = () => {
                           disabled={isUploading}
                         >
                           <Camera className="w-4 h-4 mr-2" />
-                          {isUploading ? 'Đang tải...' : 'Thay đổi ảnh'}
+                          {isUploading ? t('settings.profile.uploading') : t('settings.profile.change_avatar')}
                         </Button>
                       </div>
                     </div>
 
                     <div className="space-y-4">
                       <div>
-                        <Label htmlFor="fullName">Họ và tên</Label>
+                        <Label htmlFor="fullName">{t('settings.profile.full_name')}</Label>
                         <Input
                           id="fullName"
                           className="rounded-full border-gray-200 h-11"
                           value={formData.fullName || ''}
                           onChange={(e) => handleFieldChange('fullName', e.target.value)}
-                          placeholder="Nhập họ và tên"
+                          placeholder={t('settings.profile.full_name_placeholder')}
                           disabled={!isEditing}
                           aria-invalid={Boolean(validationErrors.fullName)}
                         />
@@ -388,16 +390,16 @@ const ProfileAccountSettingsPage: React.FC = () => {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label>Email</Label>
+                          <Label>{t('settings.profile.email')}</Label>
                           <Input
                             className="rounded-full border-gray-200 h-11 bg-gray-50"
                             value={userData.email}
                             disabled
                           />
-                          <p className="text-xs text-gray-400 mt-1">Email đăng nhập và nhận thông báo</p>
+                          <p className="text-xs text-gray-400 mt-1">{t('settings.profile.email_description')}</p>
                         </div>
                         <div>
-                          <Label>Tên đăng nhập</Label>
+                          <Label>{t('settings.profile.username')}</Label>
                           <Input
                             className="rounded-full border-gray-200 h-11 bg-gray-50"
                             value={profile?.username || ''}
@@ -408,13 +410,13 @@ const ProfileAccountSettingsPage: React.FC = () => {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="phone">Số điện thoại</Label>
+                          <Label htmlFor="phone">{t('settings.profile.phone')}</Label>
                           <Input
                             id="phone"
                             className="rounded-full border-gray-200 h-11"
                             value={formData.phoneNumber || ''}
                             onChange={(e) => handleFieldChange('phoneNumber', e.target.value)}
-                            placeholder="Nhập số điện thoại"
+                            placeholder={t('settings.profile.phone_placeholder')}
                             disabled={!isEditing}
                             aria-invalid={Boolean(validationErrors.phoneNumber)}
                           />
@@ -423,7 +425,7 @@ const ProfileAccountSettingsPage: React.FC = () => {
                           )}
                         </div>
                         <div>
-                          <Label htmlFor="dateOfBirth">Ngày sinh</Label>
+                          <Label htmlFor="dateOfBirth">{t('settings.profile.date_of_birth')}</Label>
                           <Input
                             id="dateOfBirth"
                             type="date"
@@ -441,7 +443,7 @@ const ProfileAccountSettingsPage: React.FC = () => {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label>Giới tính</Label>
+                          <Label>{t('settings.profile.gender')}</Label>
                           <div className="flex gap-2 mt-2">
                             {['MALE', 'FEMALE', 'OTHER'].map((gender) => (
                               <Button
@@ -456,19 +458,23 @@ const ProfileAccountSettingsPage: React.FC = () => {
                                 onClick={() => handleFieldChange('gender', gender)}
                                 disabled={!isEditing}
                               >
-                                {gender === 'MALE' ? 'Nam' : gender === 'FEMALE' ? 'Nữ' : 'Khác'}
+                                {gender === 'MALE'
+                                  ? t('settings.profile.gender_male')
+                                  : gender === 'FEMALE'
+                                    ? t('settings.profile.gender_female')
+                                    : t('settings.profile.gender_other')}
                               </Button>
                             ))}
                           </div>
                         </div>
                         <div>
-                          <Label htmlFor="address">Địa chỉ</Label>
+                          <Label htmlFor="address">{t('settings.profile.address')}</Label>
                           <Input
                             id="address"
                             className="rounded-full border-gray-200 h-11"
                             value={formData.address || ''}
                             onChange={(e) => handleFieldChange('address', e.target.value)}
-                            placeholder="Địa chỉ sinh sống"
+                            placeholder={t('settings.profile.address_placeholder')}
                             disabled={!isEditing}
                             aria-invalid={Boolean(validationErrors.address)}
                           />
@@ -479,14 +485,14 @@ const ProfileAccountSettingsPage: React.FC = () => {
                       </div>
 
                       <div>
-                        <Label htmlFor="bio">Bio</Label>
+                        <Label htmlFor="bio">{t('settings.profile.bio')}</Label>
                         <Textarea
                           id="bio"
                           rows={4}
                           className="rounded-2xl border-gray-200"
                           value={formData.bio || ''}
                           onChange={(e) => handleFieldChange('bio', e.target.value)}
-                          placeholder="Chia sẻ đôi nét về bản thân và phong cách làm việc của bạn."
+                          placeholder={t('settings.profile.bio_placeholder')}
                           disabled={!isEditing}
                           aria-invalid={Boolean(validationErrors.bio)}
                         />
@@ -495,7 +501,7 @@ const ProfileAccountSettingsPage: React.FC = () => {
 
                       <div className="flex items-center gap-3 pt-2">
                         <Button variant="outline" className="rounded-full border-gray-200" onClick={handleCancelEdit}>
-                          Hủy
+                          {t('common.cancel')}
                         </Button>
                         <Button
                           onClick={handleSaveProfile}
@@ -505,10 +511,10 @@ const ProfileAccountSettingsPage: React.FC = () => {
                           {isSaving ? (
                             <>
                               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Đang lưu
+                              {t('common.saving')}
                             </>
                           ) : (
-                            'Lưu thay đổi'
+                            t('settings.profile.save_changes')
                           )}
                         </Button>
                       </div>
@@ -520,8 +526,10 @@ const ProfileAccountSettingsPage: React.FC = () => {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between mb-2">
                       <div>
-                        <p className="text-xs uppercase tracking-wide text-gray-500">Bảo mật</p>
-                        <h2 className="text-xl font-semibold text-gray-900">Mật khẩu & đăng nhập</h2>
+                        <p className="text-xs uppercase tracking-wide text-gray-500">
+                          {t('settings.security.section')}
+                        </p>
+                        <h2 className="text-xl font-semibold text-gray-900">{t('settings.security.title')}</h2>
                       </div>
                     </div>
 
@@ -529,7 +537,7 @@ const ProfileAccountSettingsPage: React.FC = () => {
                       <form className="space-y-3" onSubmit={handlePasswordChange}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <Label htmlFor="currentPassword">Mật khẩu hiện tại</Label>
+                            <Label htmlFor="currentPassword">{t('settings.security.current_password')}</Label>
                             <Input
                               id="currentPassword"
                               type="password"
@@ -538,25 +546,25 @@ const ProfileAccountSettingsPage: React.FC = () => {
                               onChange={(e) =>
                                 setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))
                               }
-                              placeholder="Nhập mật khẩu đang dùng"
+                              placeholder={t('settings.security.current_password_placeholder')}
                             />
                           </div>
                           <div>
-                            <Label htmlFor="newPassword">Mật khẩu mới</Label>
+                            <Label htmlFor="newPassword">{t('settings.security.new_password')}</Label>
                             <Input
                               id="newPassword"
                               type="password"
                               className="rounded-full border-gray-200 h-11"
                               value={passwordForm.newPassword}
                               onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
-                              placeholder="Mật khẩu mới mạnh hơn"
+                              placeholder={t('settings.security.new_password_placeholder')}
                             />
                           </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <Label htmlFor="confirmPassword">Xác nhận mật khẩu mới</Label>
+                            <Label htmlFor="confirmPassword">{t('settings.security.confirm_password')}</Label>
                             <Input
                               id="confirmPassword"
                               type="password"
@@ -565,7 +573,7 @@ const ProfileAccountSettingsPage: React.FC = () => {
                               onChange={(e) =>
                                 setPasswordForm((prev) => ({ ...prev, confirmNewPassword: e.target.value }))
                               }
-                              placeholder="Nhập lại mật khẩu mới"
+                              placeholder={t('settings.security.confirm_password_placeholder')}
                             />
                           </div>
                           <div className="flex items-end">
@@ -577,12 +585,12 @@ const ProfileAccountSettingsPage: React.FC = () => {
                               {isChangingPassword ? (
                                 <>
                                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  Đang cập nhật
+                                  {t('settings.security.updating')}
                                 </>
                               ) : (
                                 <>
                                   <Shield className="w-4 h-4 mr-2" />
-                                  Đổi mật khẩu
+                                  {t('settings.security.change_password')}
                                 </>
                               )}
                             </Button>
@@ -597,11 +605,11 @@ const ProfileAccountSettingsPage: React.FC = () => {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between mb-2">
                       <div>
-                        <p className="text-xs uppercase tracking-wide text-gray-500">Hợp đồng</p>
-                        <h2 className="text-xl font-semibold text-gray-900">Hợp đồng đã ký</h2>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Xem và tải xuống các hợp đồng subscription đã được ký
+                        <p className="text-xs uppercase tracking-wide text-gray-500">
+                          {t('settings.contracts.section')}
                         </p>
+                        <h2 className="text-xl font-semibold text-gray-900">{t('settings.contracts.title')}</h2>
+                        <p className="text-sm text-gray-500 mt-1">{t('settings.contracts.description')}</p>
                       </div>
                     </div>
 
@@ -609,13 +617,13 @@ const ProfileAccountSettingsPage: React.FC = () => {
                       <div className="flex items-center justify-center py-12">
                         <div className="flex items-center gap-3 text-gray-600">
                           <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
-                          <span>Đang tải hợp đồng...</span>
+                          <span>{t('settings.contracts.loading')}</span>
                         </div>
                       </div>
                     ) : contracts.length === 0 ? (
                       <div className="rounded-2xl border border-gray-200 bg-white/60 p-8 text-center">
                         <FileText className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-                        <p className="text-gray-600">Chưa có hợp đồng nào đã được ký</p>
+                        <p className="text-gray-600">{t('settings.contracts.empty')}</p>
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -628,7 +636,7 @@ const ProfileAccountSettingsPage: React.FC = () => {
                               <div className="flex-1">
                                 <h3 className="font-semibold text-gray-900 mb-1">{contract.title}</h3>
                                 <p className="text-sm text-gray-500 mb-2">
-                                  {contract.description || 'Hợp đồng subscription'}
+                                  {contract.description || t('settings.contracts.default_description')}
                                 </p>
                                 <div className="flex items-center gap-2 text-xs text-gray-500">
                                   <span>
@@ -656,7 +664,7 @@ const ProfileAccountSettingsPage: React.FC = () => {
                                   onClick={() => handleViewContract(contract)}
                                 >
                                   <Eye className="w-4 h-4 mr-2" />
-                                  Xem
+                                  {t('common.view')}
                                 </Button>
                                 <Button
                                   variant="outline"
@@ -665,7 +673,7 @@ const ProfileAccountSettingsPage: React.FC = () => {
                                   onClick={() => handleDownloadContract(contract)}
                                 >
                                   <Download className="w-4 h-4 mr-2" />
-                                  Tải xuống
+                                  {t('common.download')}
                                 </Button>
                               </div>
                             </div>
@@ -684,19 +692,19 @@ const ProfileAccountSettingsPage: React.FC = () => {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold text-gray-800">Xóa ảnh đại diện</AlertDialogTitle>
+            <AlertDialogTitle className="text-xl font-bold text-gray-800">
+              {t('settings.dialog.delete_avatar_title')}
+            </AlertDialogTitle>
           </AlertDialogHeader>
-          <p className="text-gray-600 px-4">
-            Bạn có chắc chắn muốn xóa ảnh đại diện hiện tại? Hành động này không thể hoàn tác.
-          </p>
+          <p className="text-gray-600 px-4">{t('settings.dialog.delete_avatar_message')}</p>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-lg">Hủy</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-lg">{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteAvatar}
               className="bg-red-500 hover:bg-red-600 rounded-lg flex items-center gap-2"
             >
               {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertCircle className="w-4 h-4" />}
-              {isUploading ? 'Đang xóa...' : 'Xóa ảnh'}
+              {isUploading ? t('settings.dialog.deleting') : t('settings.dialog.delete_avatar')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

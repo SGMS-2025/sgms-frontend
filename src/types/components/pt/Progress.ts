@@ -4,8 +4,9 @@ type TrainingLog = TrainingProgressDisplay;
 
 export interface TrainingLogTableProps {
   logs: TrainingLog[];
-  onEdit: (log: TrainingLog) => void;
-  onDelete: (logId: string) => void;
+  onEdit?: (log: TrainingLog) => void;
+  onDelete?: (logId: string) => void;
+  readOnly?: boolean;
 }
 
 export interface BMIDisplayProps {

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useUser } from '@/hooks/useAuth';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -133,9 +133,26 @@ export default function TrainingProgressDetailPage() {
   }, [progressList]);
 
   // Current = most recent record with body measurements
-  // Previous = second most recent record with body measurements
   const radarCurrentData = recordsWithBodyMeasurements[0] || progressList[0] || null;
-  const radarPreviousData = recordsWithBodyMeasurements[1] || null;
+
+  // First = earliest record (prefer ones with measurements)
+  const radarFirstData = useMemo(() => {
+    if (!progressList.length) return null;
+
+    const baseline =
+      recordsWithBodyMeasurements.length > 1
+        ? recordsWithBodyMeasurements[recordsWithBodyMeasurements.length - 1]
+        : progressList[progressList.length - 1];
+
+    if (!baseline) return null;
+
+    // Avoid duplicating the same record as current
+    if (radarCurrentData && baseline.id && radarCurrentData.id && baseline.id === radarCurrentData.id) {
+      return null;
+    }
+
+    return baseline;
+  }, [progressList, recordsWithBodyMeasurements, radarCurrentData]);
   const [customerLoading, setCustomerLoading] = useState(true);
 
   // Load customer data from API
@@ -388,6 +405,10 @@ export default function TrainingProgressDetailPage() {
   }));
 
   const filteredChartData = chartFilter === '4weeks' ? chartData.slice(-4) : chartData;
+  const chartToggleClass = (active: boolean) =>
+    `rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+      active ? 'bg-white text-[#101D33] shadow-sm' : 'text-slate-600 hover:text-slate-900'
+    }`;
 
   const FormComponent = isDesktop ? Dialog : Drawer;
   const FormContent = isDesktop ? DialogContent : DrawerContent;
@@ -532,35 +553,40 @@ export default function TrainingProgressDetailPage() {
                 {/* Radar Chart - Body Metrics Overview */}
                 {/* currentData = most recent record with body measurements */}
                 {/* previousData = second most recent record with body measurements */}
-                <TrainingProgressRadarChart currentData={radarCurrentData} previousData={radarPreviousData} />
+                <TrainingProgressRadarChart currentData={radarCurrentData} previousData={radarFirstData} />
 
                 {/* Training Progress Line Chart */}
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-xl font-bold text-[#101D33]">
-                      {t('progress_detail.chart.title')}
-                    </CardTitle>
-                    <div className="flex gap-2">
-                      <Button
-                        variant={chartFilter === '4weeks' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setChartFilter('4weeks')}
-                        className={chartFilter === '4weeks' ? 'bg-[#F05A29] hover:bg-[#E04A1F]' : ''}
-                      >
-                        {t('progress_detail.chart.last_4_weeks')}
-                      </Button>
-                      <Button
-                        variant={chartFilter === 'all' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setChartFilter('all')}
-                        className={chartFilter === 'all' ? 'bg-[#F05A29] hover:bg-[#E04A1F]' : ''}
-                      >
-                        {t('progress_detail.chart.all_time')}
-                      </Button>
+                  <CardHeader className="pb-4 gap-3">
+                    <div className="space-y-1">
+                      <CardTitle className="text-xl font-bold text-[#101D33]">
+                        {t('progress_detail.chart.title')}
+                      </CardTitle>
+                      <CardDescription className="text-gray-600">
+                        {t('progress_detail.chart.description', 'Track weight and strength over time')}
+                      </CardDescription>
+                    </div>
+                    <div className="col-span-full">
+                      <div className="grid h-11 w-full grid-cols-2 rounded-full bg-slate-100 p-1 shadow-inner">
+                        <button
+                          type="button"
+                          onClick={() => setChartFilter('4weeks')}
+                          className={chartToggleClass(chartFilter === '4weeks')}
+                        >
+                          {t('progress_detail.chart.last_4_weeks')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setChartFilter('all')}
+                          className={chartToggleClass(chartFilter === 'all')}
+                        >
+                          {t('progress_detail.chart.all_time')}
+                        </button>
+                      </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <TrainingProgressChart data={filteredChartData} />
+                  <CardContent className="pb-10">
+                    <TrainingProgressChart data={filteredChartData} onAddProgress={() => setIsAddFormOpen(true)} />
                   </CardContent>
                 </Card>
               </div>

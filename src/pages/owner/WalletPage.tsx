@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { walletApi } from '@/services/api/walletApi';
 import { useBranch } from '@/contexts/BranchContext';
@@ -82,6 +83,7 @@ type BankAccount = {
 };
 
 const WalletPage: React.FC = () => {
+  const { t } = useTranslation();
   const { currentBranch, branches } = useBranch();
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [selectedWalletId, setSelectedWalletId] = useState<string>('');
@@ -178,7 +180,7 @@ const WalletPage: React.FC = () => {
       setWallets(data || []);
       // Auto-select will be handled by useEffect when currentBranch or wallets change
     } catch (_error) {
-      toast.error('Không thể tải ví');
+      toast.error(t('wallet.error.load_failed'));
     } finally {
       setLoading(false);
     }
@@ -194,7 +196,7 @@ const WalletPage: React.FC = () => {
       const data = await walletApi.listWithdrawals(branchId);
       setWithdrawals(data || []);
     } catch (_error) {
-      toast.error('Không thể tải lịch sử rút');
+      toast.error(t('wallet.error.load_withdrawals_failed'));
     } finally {
       setWithdrawalsLoading(false);
     }
@@ -263,7 +265,7 @@ const WalletPage: React.FC = () => {
 
   const handleOpenWithdrawalDialog = () => {
     if (!selectedWallet) {
-      toast.error('Chọn ví để tạo lệnh rút');
+      toast.error(t('wallet.error.select_wallet'));
       return;
     }
     // Reset form and check if we should use linked bank account
@@ -286,20 +288,20 @@ const WalletPage: React.FC = () => {
     // Auto-get branchId from selected wallet
     const branchIdToUse = selectedWallet?.branchId || form.branchId;
     if (!branchIdToUse) {
-      toast.error('Chọn ví để tạo lệnh rút');
+      toast.error(t('wallet.error.select_wallet'));
       return;
     }
     const amountNumber = Number(form.amount);
     if (!amountNumber || amountNumber <= 0) {
-      toast.error('Số tiền không hợp lệ');
+      toast.error(t('wallet.error.invalid_amount'));
       return;
     }
     if (!form.toBin) {
-      toast.error('Chọn ngân hàng nhận');
+      toast.error(t('wallet.error.select_bank'));
       return;
     }
     if (!form.toAccountNumber.trim()) {
-      toast.error('Nhập số tài khoản nhận');
+      toast.error(t('wallet.error.enter_account_number'));
       return;
     }
 
@@ -312,7 +314,7 @@ const WalletPage: React.FC = () => {
         toAccountName: form.toAccountName || undefined,
         description: form.description || undefined
       });
-      toast.success('Tạo lệnh rút thành công');
+      toast.success(t('wallet.success.create_withdrawal'));
       setForm({
         branchId: branchIdToUse,
         amount: '',
@@ -329,7 +331,7 @@ const WalletPage: React.FC = () => {
       await loadWallets();
       await loadWithdrawals(branchIdToUse);
     } catch (_error) {
-      toast.error('Tạo lệnh rút thất bại');
+      toast.error(t('wallet.error.create_withdrawal_failed'));
     } finally {
       setSubmitting(false);
     }
@@ -390,12 +392,12 @@ const WalletPage: React.FC = () => {
     if (file) {
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        toast.error('Vui lòng chọn file ảnh');
+        toast.error(t('wallet.error.select_image_file'));
         return;
       }
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('Kích thước file không được vượt quá 5MB');
+        toast.error(t('wallet.error.file_size_exceeded'));
         return;
       }
       setQrCodeFile(file);
@@ -425,20 +427,20 @@ const WalletPage: React.FC = () => {
   const handleSaveBankAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedWallet) {
-      toast.error('Chọn ví để liên kết tài khoản');
+      toast.error(t('wallet.error.select_wallet_to_link'));
       return;
     }
 
     if (!bankAccountForm.accountNumber.trim()) {
-      toast.error('Nhập số tài khoản');
+      toast.error(t('wallet.error.enter_account_number'));
       return;
     }
     if (!bankAccountForm.accountName.trim()) {
-      toast.error('Nhập tên tài khoản');
+      toast.error(t('wallet.error.enter_account_name'));
       return;
     }
     if (!bankAccountForm.bankBin) {
-      toast.error('Chọn ngân hàng');
+      toast.error(t('wallet.error.select_bank'));
       return;
     }
 
@@ -460,10 +462,10 @@ const WalletPage: React.FC = () => {
       }
 
       await walletApi.saveBankAccount(formData);
-      toast.success('Liên kết tài khoản ngân hàng thành công');
+      toast.success(t('wallet.success.link_bank_account'));
       await loadBankAccount(selectedWallet.branchId);
     } catch (_error) {
-      toast.error('Liên kết tài khoản ngân hàng thất bại');
+      toast.error(t('wallet.error.link_bank_account_failed'));
     } finally {
       setSavingBankAccount(false);
     }
@@ -478,9 +480,9 @@ const WalletPage: React.FC = () => {
     if (!linkedBankAccount?.accountNumber) return;
     try {
       await navigator.clipboard.writeText(linkedBankAccount.accountNumber);
-      toast.success('Đã sao chép số tài khoản');
+      toast.success(t('wallet.success.copy_account_number'));
     } catch (_error) {
-      toast.error('Không thể sao chép, thử lại sau');
+      toast.error(t('wallet.error.copy_failed'));
     }
   };
 
@@ -497,7 +499,7 @@ const WalletPage: React.FC = () => {
 
   const openBankLinkDialog = () => {
     if (!selectedWallet) {
-      toast.error('Chọn ví để liên kết tài khoản');
+      toast.error(t('wallet.error.select_wallet_to_link'));
       return;
     }
     setBankLinkDialogOpen(true);
@@ -505,22 +507,22 @@ const WalletPage: React.FC = () => {
 
   const withdrawalStatuses: Record<Withdrawal['status'], { label: string; className: string; dotClass: string }> = {
     PENDING_PAYOUT: {
-      label: 'Đang xử lý payout',
+      label: t('wallet.status.pending_payout'),
       className: 'bg-amber-50 text-amber-700 border border-amber-100',
       dotClass: 'bg-amber-500 shadow-amber-300/60'
     },
     SUCCESS: {
-      label: 'Đã rút thành công',
+      label: t('wallet.status.success'),
       className: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
       dotClass: 'bg-emerald-500 shadow-emerald-300/70'
     },
     FAILED: {
-      label: 'Thất bại',
+      label: t('wallet.status.failed'),
       className: 'bg-rose-50 text-rose-700 border border-rose-100',
       dotClass: 'bg-rose-500 shadow-rose-300/70'
     },
     CANCELED: {
-      label: 'Đã huỷ',
+      label: t('wallet.status.canceled'),
       className: 'bg-slate-100 text-slate-600 border border-slate-200',
       dotClass: 'bg-slate-400 shadow-slate-200/80'
     }
@@ -548,23 +550,22 @@ const WalletPage: React.FC = () => {
               <div className="space-y-3">
                 <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.1em] text-amber-100">
                   <ShieldCheck className="h-4 w-4" />
-                  Trung tâm vận hành ví
+                  {t('wallet.title.operation_center')}
                 </div>
                 <div className="space-y-2">
-                  <h1 className="text-3xl md:text-4xl font-semibold leading-tight">Điều phối số dư theo chi nhánh</h1>
-                  <p className="text-sm text-slate-100/80 max-w-2xl">
-                    Một màn hình duy nhất để quan sát sức khỏe ví, thực hiện rút tiền và cập nhật thông tin ngân hàng
-                    theo chuẩn dashboard doanh nghiệp.
-                  </p>
+                  <h1 className="text-3xl md:text-4xl font-semibold leading-tight">
+                    {t('wallet.title.balance_management')}
+                  </h1>
+                  <p className="text-sm text-slate-100/80 max-w-2xl">{t('wallet.description.main')}</p>
                 </div>
                 <div className="flex flex-wrap gap-2 text-sm text-slate-100/80">
                   <Badge className="bg-white/10 text-white border-white/20">
                     <Building2 className="h-4 w-4 mr-1" />
-                    {activeBranchName || 'Chưa chọn chi nhánh'}
+                    {activeBranchName || t('wallet.no_branch_selected')}
                   </Badge>
                   <Badge variant="secondary" className="bg-white/5 text-white border-white/10">
                     <Sparkles className="h-4 w-4 mr-1" />
-                    Trạng thái thời gian thực
+                    {t('wallet.real_time_status')}
                   </Badge>
                 </div>
               </div>
@@ -576,11 +577,11 @@ const WalletPage: React.FC = () => {
                   disabled={loading}
                 >
                   <RefreshCcw className="h-4 w-4 mr-2" />
-                  {loading ? 'Đang tải...' : 'Làm mới dữ liệu'}
+                  {loading ? t('wallet.loading') : t('wallet.refresh_data')}
                 </Button>
                 <Button className="bg-white text-slate-900 hover:bg-slate-100" onClick={handleOpenWithdrawalDialog}>
                   <ArrowUpRight className="h-4 w-4 mr-2" />
-                  Tạo lệnh rút
+                  {t('wallet.create_withdrawal')}
                 </Button>
               </div>
             </div>
@@ -588,7 +589,7 @@ const WalletPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-sm backdrop-blur">
                 <div className="flex items-center justify-between text-xs uppercase text-amber-100">
-                  <span>Tổng số dư</span>
+                  <span>{t('wallet.total_balance')}</span>
                   <LineChart className="h-4 w-4" />
                 </div>
                 <div className="text-2xl font-semibold mt-2">
@@ -601,30 +602,32 @@ const WalletPage: React.FC = () => {
                   />
                 </div>
                 <div className="text-xs text-slate-100/80 mt-2">
-                  {activeBranchName ? `Chi nhánh ${activeBranchName}` : 'Chọn ví để xem chi tiết'}
+                  {activeBranchName
+                    ? t('wallet.branch_name', { name: activeBranchName })
+                    : t('wallet.select_wallet_to_view')}
                 </div>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-sm backdrop-blur">
                 <div className="flex items-center justify-between text-xs uppercase text-amber-100">
                   <div className="flex items-center gap-2">
                     <Unlock className="h-4 w-4" />
-                    Khả dụng
+                    {t('wallet.available')}
                   </div>
                   <Badge className="bg-white/10 text-white border-white/20">{Math.round(availableRatio * 100)}%</Badge>
                 </div>
                 <div className="text-2xl font-semibold mt-2">{activeBalances.available.toLocaleString()}</div>
-                <p className="text-xs text-slate-100/80 mt-1">Sẵn sàng rút ngay</p>
+                <p className="text-xs text-slate-100/80 mt-1">{t('wallet.ready_to_withdraw')}</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-sm backdrop-blur">
                 <div className="flex items-center justify-between text-xs uppercase text-amber-100">
                   <div className="flex items-center gap-2">
                     <Lock className="h-4 w-4" />
-                    Đang xử lý payout
+                    {t('wallet.processing_payout')}
                   </div>
                   <Badge className="bg-white/10 text-white border-white/20">{Math.round(lockedRatio * 100)}%</Badge>
                 </div>
                 <div className="text-2xl font-semibold mt-2">{activeBalances.locked.toLocaleString()}</div>
-                <p className="text-xs text-slate-100/80 mt-1">Tiền chờ đối soát từ PayOS</p>
+                <p className="text-xs text-slate-100/80 mt-1">{t('wallet.pending_payos')}</p>
               </div>
             </div>
           </div>
@@ -633,25 +636,23 @@ const WalletPage: React.FC = () => {
         <div className="space-y-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.1em] text-slate-500">Ví chi nhánh</p>
+              <p className="text-xs uppercase tracking-[0.1em] text-slate-500">{t('wallet.branch_wallet')}</p>
               <div className="flex flex-wrap items-center gap-2 text-slate-700">
-                <span className="text-lg font-semibold">Điều hướng nhanh giữa các ví và thao tác rút/đối soát</span>
+                <span className="text-lg font-semibold">{t('wallet.quick_navigation')}</span>
                 <Badge variant="secondary" className="inline-flex items-center gap-1 bg-slate-100 text-slate-700">
                   <WalletIcon className="h-4 w-4" />
-                  {filteredWallets.length} ví đang hoạt động
+                  {t('wallet.active_wallets', { count: filteredWallets.length })}
                 </Badge>
               </div>
-              <p className="text-sm text-slate-500">
-                Chọn ví chi nhánh để xem số dư chi tiết, mở lệnh rút và cập nhật liên kết ngân hàng tức thì.
-              </p>
+              <p className="text-sm text-slate-500">{t('wallet.select_wallet_description')}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={openBankLinkDialog} disabled={!selectedWallet}>
-                Liên kết/Chỉnh sửa tài khoản
+                {t('wallet.link_edit_account')}
               </Button>
               <Button size="sm" className="bg-amber-500 hover:bg-amber-600" onClick={handleOpenWithdrawalDialog}>
                 <ArrowUpRight className="h-4 w-4 mr-2" />
-                Rút tiền nhanh
+                {t('wallet.quick_withdraw')}
               </Button>
             </div>
           </div>
@@ -660,48 +661,46 @@ const WalletPage: React.FC = () => {
             <CardHeader className="space-y-2 pb-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs uppercase text-slate-500">Liên kết ngân hàng</p>
+                  <p className="text-xs uppercase text-slate-500">{t('wallet.bank_link')}</p>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Link2 className="h-5 w-5 text-amber-600" />
-                    Hồ sơ ngân hàng của ví
+                    {t('wallet.bank_profile')}
                   </CardTitle>
                 </div>
                 {selectedWallet && (
                   <Button variant="outline" size="sm" onClick={openBankLinkDialog}>
-                    {linkedBankAccount ? 'Chỉnh sửa liên kết' : 'Liên kết ngay'}
+                    {linkedBankAccount ? t('wallet.edit_link') : t('wallet.link_now')}
                   </Button>
                 )}
               </div>
-              <p className="text-sm text-slate-500">
-                Trạng thái liên kết cho ví đang chọn. Dùng QR hoặc thông tin tài khoản để chuyển chính xác.
-              </p>
+              <p className="text-sm text-slate-500">{t('wallet.link_status_description')}</p>
             </CardHeader>
             <CardContent className="space-y-3">
               {!selectedWallet ? (
                 <div className="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-600 text-center">
-                  Chọn một ví chi nhánh để xem thông tin ngân hàng.
+                  {t('wallet.select_wallet_to_view_bank')}
                 </div>
               ) : loadingBankAccount ? (
                 <div className="flex items-center gap-2 text-slate-500">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Đang tải liên kết ngân hàng...
+                  {t('wallet.loading_bank_link')}
                 </div>
               ) : !linkedBankAccount ? (
                 <div className="rounded-lg border border-dashed border-amber-200 bg-amber-50/60 p-4 text-sm text-amber-800 space-y-2">
-                  <div>Chưa liên kết ngân hàng cho chi nhánh {getBranchName(selectedWallet.branchId)}.</div>
+                  <div>{t('wallet.no_bank_link', { branch: getBranchName(selectedWallet.branchId) })}</div>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-amber-700">
-                    Nhấn "Liên kết ngay" để thêm thông tin ngân hàng.
+                    {t('wallet.click_to_link')}
                   </div>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="text-xs uppercase text-slate-500">Chi nhánh</p>
+                      <p className="text-xs uppercase text-slate-500">{t('wallet.branch')}</p>
                       <div className="font-semibold text-slate-900">{getBranchName(selectedWallet.branchId)}</div>
                     </div>
                     <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-100">
-                      Đã liên kết
+                      {t('wallet.linked')}
                     </Badge>
                   </div>
                   <div
@@ -725,7 +724,7 @@ const WalletPage: React.FC = () => {
                         <div className="flex flex-wrap items-center justify-end gap-2">
                           <Button variant="outline" size="sm" onClick={handleCopyAccountNumber} className="gap-1">
                             <Copy className="h-4 w-4" />
-                            Sao chép
+                            {t('wallet.copy')}
                           </Button>
                         </div>
                       </div>
@@ -750,17 +749,17 @@ const WalletPage: React.FC = () => {
                       <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:p-4 space-y-3 h-full">
                         <div className="flex items-start justify-between gap-2">
                           <div className="space-y-1">
-                            <p className="text-xs uppercase text-slate-500">Mã QR chuyển khoản</p>
-                            <span className="text-xs text-slate-500">Quét để nhận đúng.</span>
+                            <p className="text-xs uppercase text-slate-500">{t('wallet.qr_transfer_code')}</p>
+                            <span className="text-xs text-slate-500">{t('wallet.scan_to_receive')}</span>
                             {linkedBankAccount.updatedAt && (
                               <p className="text-xs text-slate-500">
-                                Cập nhật: {new Date(linkedBankAccount.updatedAt).toLocaleString()}
+                                {t('wallet.updated')}: {new Date(linkedBankAccount.updatedAt).toLocaleString()}
                               </p>
                             )}
                           </div>
                           <Button variant="ghost" size="sm" onClick={handleDownloadQr} className="gap-1 text-amber-700">
                             <Download className="h-4 w-4" />
-                            Lưu QR
+                            {t('wallet.save_qr')}
                           </Button>
                         </div>
                         <div className="rounded-lg border border-slate-200 bg-white p-3 flex items-center justify-center shadow-sm">
@@ -783,7 +782,7 @@ const WalletPage: React.FC = () => {
                 onClick={openBankLinkDialog}
                 disabled={!selectedWallet}
               >
-                Liên kết ngay
+                {t('wallet.link_now')}
               </Button>
             </div>
           </Card>
@@ -795,30 +794,32 @@ const WalletPage: React.FC = () => {
               <div>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <History className="h-5 w-5 text-amber-600" />
-                  Timeline rút theo chi nhánh
+                  {t('wallet.withdrawal_timeline')}
                 </CardTitle>
                 <p className="text-sm text-slate-500">
-                  {activeBranchName ? `Hiển thị giao dịch của ${activeBranchName}.` : 'Chọn ví để xem lịch sử rút.'}
+                  {activeBranchName
+                    ? t('wallet.show_transactions', { branch: activeBranchName })
+                    : t('wallet.select_wallet_to_view_history')}
                 </p>
               </div>
               <Badge variant="secondary" className="flex items-center gap-1">
                 <Banknote className="h-4 w-4" />
-                {activeBranchName || 'Chưa chọn chi nhánh'}
+                {activeBranchName || t('wallet.no_branch_selected')}
               </Badge>
             </CardHeader>
             <CardContent className="space-y-3">
               {withdrawalsLoading ? (
                 <div className="flex items-center gap-2 text-slate-500">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Đang tải lịch sử rút...
+                  {t('wallet.loading_withdrawal_history')}
                 </div>
               ) : !selectedWallet ? (
                 <div className="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-600">
-                  Chọn một ví chi nhánh để xem lịch sử rút tiền.
+                  {t('wallet.select_wallet_to_view_withdrawal_history')}
                 </div>
               ) : withdrawals.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-600">
-                  Chưa có lệnh rút cho chi nhánh này. Nhấn "Tạo lệnh rút" để bắt đầu.
+                  {t('wallet.no_withdrawals')}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -841,7 +842,9 @@ const WalletPage: React.FC = () => {
                                 <Banknote className="h-5 w-5" />
                               </div>
                               <div className="space-y-1">
-                                <div className="text-xs uppercase text-slate-500">Rút về tài khoản</div>
+                                <div className="text-xs uppercase text-slate-500">
+                                  {t('wallet.withdraw_to_account')}
+                                </div>
                                 <div className="text-xl font-semibold text-slate-900">
                                   {withdrawal.amount?.toLocaleString()} {currencyLabel}
                                 </div>
@@ -866,7 +869,7 @@ const WalletPage: React.FC = () => {
                             </div>
                             <div className="flex items-center gap-2">
                               <Clock3 className="h-4 w-4 text-slate-500" />
-                              <span>{withdrawal.description || 'Không có ghi chú'}</span>
+                              <span>{withdrawal.description || t('wallet.no_note')}</span>
                             </div>
                           </div>
                         </div>
@@ -903,17 +906,17 @@ const WalletPage: React.FC = () => {
       >
         <DialogContent className="max-w-3xl">
           <DialogHeader className="gap-1">
-            <DialogTitle className="text-xl">Tạo lệnh rút</DialogTitle>
-            <DialogDescription>Tiền sẽ được trừ/khóa từ ví đang chọn và xử lý qua PayOS Payout.</DialogDescription>
+            <DialogTitle className="text-xl">{t('wallet.create_withdrawal')}</DialogTitle>
+            <DialogDescription>{t('wallet.withdrawal_description')}</DialogDescription>
           </DialogHeader>
 
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 space-y-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1">
-                <p className="text-xs uppercase text-slate-500">Ví đang chọn</p>
-                <div className="font-semibold text-slate-900">{activeBranchName || 'Chưa chọn ví'}</div>
+                <p className="text-xs uppercase text-slate-500">{t('wallet.selected_wallet')}</p>
+                <div className="font-semibold text-slate-900">{activeBranchName || t('wallet.no_wallet_selected')}</div>
                 <p className="text-sm text-slate-600">
-                  Khả dụng:{' '}
+                  {t('wallet.available')}:{' '}
                   <span className="font-semibold">
                     {activeBalances.available.toLocaleString()} {currencyLabel}
                   </span>
@@ -921,24 +924,24 @@ const WalletPage: React.FC = () => {
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full sm:w-auto">
                 <div className="rounded-lg bg-white border border-slate-200 px-3 py-2">
-                  <div className="text-[11px] uppercase text-slate-500">Tổng</div>
+                  <div className="text-[11px] uppercase text-slate-500">{t('wallet.total')}</div>
                   <div className="font-semibold">
                     {activeBalances.total.toLocaleString()} {currencyLabel}
                   </div>
                 </div>
                 <div className="rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2">
-                  <div className="text-[11px] uppercase text-emerald-700">Khả dụng</div>
+                  <div className="text-[11px] uppercase text-emerald-700">{t('wallet.available')}</div>
                   <div className="font-semibold text-emerald-800">{activeBalances.available.toLocaleString()}</div>
                 </div>
                 <div className="rounded-lg bg-amber-50 border border-amber-100 px-3 py-2">
-                  <div className="text-[11px] uppercase text-amber-700">Đang xử lý</div>
+                  <div className="text-[11px] uppercase text-amber-700">{t('wallet.processing')}</div>
                   <div className="font-semibold text-amber-800">{activeBalances.locked.toLocaleString()}</div>
                 </div>
               </div>
             </div>
             <div className="text-xs text-slate-500 flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-amber-600" />
-              Tiền khả dụng sẽ được trừ và khóa tương ứng trong lúc PayOS payout xử lý.
+              {t('wallet.payos_processing_note')}
             </div>
           </div>
 
@@ -949,7 +952,7 @@ const WalletPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Link2 className="h-4 w-4 text-emerald-700" />
-                    <Label className="text-sm font-medium text-emerald-900">Sử dụng ngân hàng đã liên kết</Label>
+                    <Label className="text-sm font-medium text-emerald-900">{t('wallet.use_linked_bank')}</Label>
                   </div>
                   <Button
                     type="button"
@@ -980,7 +983,7 @@ const WalletPage: React.FC = () => {
                       }
                     }}
                   >
-                    {form.useLinkedBank ? 'Đang sử dụng' : 'Chọn'}
+                    {form.useLinkedBank ? t('wallet.using') : t('wallet.select')}
                   </Button>
                 </div>
                 {form.useLinkedBank && (
@@ -996,18 +999,18 @@ const WalletPage: React.FC = () => {
 
             <div className="grid md:grid-cols-2 gap-3">
               <div>
-                <Label className="text-sm">Số tiền</Label>
+                <Label className="text-sm">{t('wallet.amount')}</Label>
                 <Input
                   type="number"
                   value={form.amount}
                   onChange={(e) => setForm({ ...form, amount: e.target.value })}
                   min={0}
-                  placeholder="Nhập số tiền muốn rút"
+                  placeholder={t('wallet.enter_amount')}
                   className="mt-1"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Chọn ngân hàng</Label>
+                <Label>{t('wallet.select_bank')}</Label>
                 <Popover
                   open={bankPopoverOpen}
                   onOpenChange={(open) => {
@@ -1024,7 +1027,7 @@ const WalletPage: React.FC = () => {
                       className={cn('w-full justify-between h-11', !form.selectedBank && 'text-muted-foreground')}
                       disabled={form.useLinkedBank}
                     >
-                      {form.selectedBank ? getBankName(form.selectedBank) : 'Chọn ngân hàng'}
+                      {form.selectedBank ? getBankName(form.selectedBank) : t('wallet.select_bank')}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -1078,32 +1081,32 @@ const WalletPage: React.FC = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <Label>Số tài khoản</Label>
+                <Label>{t('wallet.account_number')}</Label>
                 <Input
                   value={form.toAccountNumber}
                   onChange={(e) => setForm({ ...form, toAccountNumber: e.target.value, useLinkedBank: false })}
-                  placeholder="Nhập số tài khoản"
+                  placeholder={t('wallet.enter_account_number_placeholder')}
                   className="mt-1"
                   disabled={form.useLinkedBank}
                 />
               </div>
               <div>
-                <Label>Tên tài khoản (tuỳ chọn)</Label>
+                <Label>{t('wallet.account_name_optional')}</Label>
                 <Input
                   value={form.toAccountName}
                   onChange={(e) => setForm({ ...form, toAccountName: e.target.value, useLinkedBank: false })}
-                  placeholder="Tên người nhận"
+                  placeholder={t('wallet.recipient_name')}
                   className="mt-1"
                   disabled={form.useLinkedBank}
                 />
               </div>
             </div>
             <div>
-              <Label>Ghi chú (tối đa 25 ký tự)</Label>
+              <Label>{t('wallet.note_max_chars')}</Label>
               <Textarea
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Ví dụ: Rút về MB chi nhánh HN"
+                placeholder={t('wallet.note_example')}
                 className="mt-1"
                 maxLength={25}
               />
@@ -1112,11 +1115,11 @@ const WalletPage: React.FC = () => {
             <DialogFooter>
               <DialogClose asChild>
                 <Button variant="outline" type="button">
-                  Hủy
+                  {t('common.cancel')}
                 </Button>
               </DialogClose>
               <Button type="submit" className="bg-amber-500 hover:bg-amber-600" disabled={submitting}>
-                {submitting ? 'Đang tạo...' : 'Tạo lệnh rút'}
+                {submitting ? t('wallet.creating') : t('wallet.create_withdrawal')}
               </Button>
             </DialogFooter>
           </form>
@@ -1135,26 +1138,28 @@ const WalletPage: React.FC = () => {
       >
         <DialogContent className="max-w-3xl">
           <DialogHeader className="gap-1">
-            <DialogTitle className="text-xl">Liên kết tài khoản ngân hàng</DialogTitle>
+            <DialogTitle className="text-xl">{t('wallet.link_bank_account_title')}</DialogTitle>
             <DialogDescription>
-              Liên kết tài khoản cho chi nhánh {activeBranchName || selectedWallet?.branchId || 'đang chọn'}.
+              {t('wallet.link_bank_account_description', {
+                branch: activeBranchName || selectedWallet?.branchId || t('wallet.selected')
+              })}
             </DialogDescription>
           </DialogHeader>
 
           {loadingBankAccount ? (
             <div className="flex items-center gap-2 text-slate-500">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Đang tải thông tin...
+              {t('wallet.loading_info')}
             </div>
           ) : !selectedWallet ? (
             <div className="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-600 text-center">
-              Chọn một ví chi nhánh để liên kết tài khoản ngân hàng.
+              {t('wallet.select_wallet_to_link_bank')}
             </div>
           ) : (
             <form id="bank-link-form" onSubmit={handleSaveBankAccount} className="space-y-5">
               <div className="grid gap-4 md:grid-cols-[1.05fr_1fr]">
                 <div className="space-y-2">
-                  <Label className="text-sm">Mã QR tài khoản ngân hàng</Label>
+                  <Label className="text-sm">{t('wallet.bank_qr_code')}</Label>
                   <div className="mt-1">
                     {qrCodePreview ? (
                       <div className="relative rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -1180,9 +1185,10 @@ const WalletPage: React.FC = () => {
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                           <Upload className="w-8 h-8 mb-2 text-slate-400" />
                           <p className="mb-2 text-sm text-slate-500">
-                            <span className="font-semibold">Click để upload</span> hoặc kéo thả
+                            <span className="font-semibold">{t('wallet.click_to_upload')}</span>{' '}
+                            {t('wallet.or_drag_drop')}
                           </p>
-                          <p className="text-xs text-slate-500">PNG, JPG, GIF (MAX. 5MB)</p>
+                          <p className="text-xs text-slate-500">{t('wallet.image_formats')}</p>
                         </div>
                         <input type="file" className="hidden" accept="image/*" onChange={handleQrCodeUpload} />
                       </label>
@@ -1192,7 +1198,7 @@ const WalletPage: React.FC = () => {
 
                 <div className="space-y-3">
                   <div>
-                    <Label>Ngân hàng</Label>
+                    <Label>{t('wallet.bank')}</Label>
                     <Popover
                       open={bankAccountPopoverOpen}
                       onOpenChange={(open) => {
@@ -1211,18 +1217,20 @@ const WalletPage: React.FC = () => {
                             !bankAccountForm.selectedBank && 'text-muted-foreground'
                           )}
                         >
-                          {bankAccountForm.selectedBank ? getBankName(bankAccountForm.selectedBank) : 'Chọn ngân hàng'}
+                          {bankAccountForm.selectedBank
+                            ? getBankName(bankAccountForm.selectedBank)
+                            : t('wallet.select_bank')}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-full p-0 z-[102]" align="start">
                         <Command shouldFilter={false}>
                           <CommandInput
-                            placeholder="Tìm: MBBank, TPBank, Vietcom..."
+                            placeholder={t('wallet.search_bank_placeholder')}
                             value={bankAccountSearchValue}
                             onValueChange={setBankAccountSearchValue}
                           />
-                          <CommandEmpty>Không tìm thấy ngân hàng.</CommandEmpty>
+                          <CommandEmpty>{t('wallet.bank_not_found')}</CommandEmpty>
                           <CommandGroup>
                             <CommandList>
                               {filteredBanksForAccount.map((bank) => {
@@ -1255,21 +1263,21 @@ const WalletPage: React.FC = () => {
 
                   <div className="grid sm:grid-cols-2 gap-3">
                     <div>
-                      <Label>Số tài khoản</Label>
+                      <Label>{t('wallet.account_number')}</Label>
                       <Input
                         value={bankAccountForm.accountNumber}
                         onChange={(e) => setBankAccountForm({ ...bankAccountForm, accountNumber: e.target.value })}
-                        placeholder="Nhập số tài khoản"
+                        placeholder={t('wallet.enter_account_number_placeholder')}
                         className="mt-1"
                         required
                       />
                     </div>
                     <div>
-                      <Label>Tên tài khoản</Label>
+                      <Label>{t('wallet.account_name')}</Label>
                       <Input
                         value={bankAccountForm.accountName}
                         onChange={(e) => setBankAccountForm({ ...bankAccountForm, accountName: e.target.value })}
-                        placeholder="Nhập tên chủ tài khoản"
+                        placeholder={t('wallet.enter_account_owner_name')}
                         className="mt-1"
                         required
                       />
@@ -1279,11 +1287,11 @@ const WalletPage: React.FC = () => {
               </div>
 
               <div>
-                <Label>Ghi chú (tùy chọn)</Label>
+                <Label>{t('wallet.note_optional')}</Label>
                 <Textarea
                   value={bankAccountForm.note}
                   onChange={(e) => setBankAccountForm({ ...bankAccountForm, note: e.target.value })}
-                  placeholder="Ghi chú về tài khoản ngân hàng"
+                  placeholder={t('wallet.bank_account_note_placeholder')}
                   className="mt-1"
                   rows={2}
                 />
@@ -1291,7 +1299,7 @@ const WalletPage: React.FC = () => {
 
               {linkedBankAccount && (
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-3">
-                  <div className="text-xs uppercase text-emerald-700 mb-1">Đã liên kết</div>
+                  <div className="text-xs uppercase text-emerald-700 mb-1">{t('wallet.linked')}</div>
                   <div className="text-sm text-emerald-900">
                     <div className="font-medium">{linkedBankAccount.accountName}</div>
                     <div className="text-xs text-emerald-700 mt-1">
@@ -1306,12 +1314,12 @@ const WalletPage: React.FC = () => {
                   {savingBankAccount ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Đang lưu...
+                      {t('wallet.saving')}
                     </>
                   ) : linkedBankAccount ? (
-                    'Cập nhật liên kết'
+                    t('wallet.update_link')
                   ) : (
-                    'Liên kết tài khoản'
+                    t('wallet.link_account')
                   )}
                 </Button>
               </DialogFooter>
