@@ -172,5 +172,15 @@ export const membershipApi = {
   ): Promise<{ success: boolean; data: MembershipContract; message?: string }> => {
     const response = await api.patch(`/membership-contracts/public/${contractId}/extend`, payload);
     return response.data;
+  },
+
+  /**
+   * Confirm QR Bank payment
+   */
+  confirmQRBankPayment: async (
+    contractId: string
+  ): Promise<{ success: boolean; data: MembershipContract; message?: string }> => {
+    const response = await api.patch(`/membership-contracts/${contractId}/confirm-payment`);
+    return response.data;
   }
 };

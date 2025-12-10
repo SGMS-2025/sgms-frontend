@@ -22,8 +22,10 @@ export function ConfirmDeleteServiceDialog({
   const [open, setOpen] = useState(false);
 
   React.useEffect(() => {
-    setOpen(!!service);
-  }, [service]);
+    if (service) {
+      setOpen(true);
+    }
+  }, [service?.id]);
 
   const handleConfirm = () => {
     onConfirm();

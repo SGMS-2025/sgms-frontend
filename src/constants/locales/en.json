@@ -681,6 +681,8 @@
   "toast.discount_campaign_deleted": "Discount campaign deleted successfully!",
   "toast.branch_status_updated_success": "Branch status updated successfully!",
   "toast.branch_status_updated_failed": "Failed to update branch status",
+  "toast.customer_disabled": "Customer disabled successfully",
+  "toast.customer_enabled": "Customer enabled successfully",
   "toast.progress_max_photos": "Maximum 3 photos allowed. Please remove a photo before capturing a new one.",
   "toast.progress_capture_photo_failed": "Failed to capture photo. Please try again.",
   "toast.progress_max_photos_limit": "Maximum 3 photos allowed. You can add {{count}} more photo(s).",
@@ -6121,5 +6123,143 @@
       "rejected": "Rejected"
     },
     "swipe_to_navigate": "Swipe left/right to change week"
+  },
+  "common": {
+    "na": "N/A",
+    "remove": "Remove"
+  },
+  "meal_plan": {
+    "status": {
+      "SUGGESTED": "Suggested",
+      "EDITED": "Edited",
+      "FINAL": "Final",
+      "ARCHIVED": "Archived",
+      "DELETED": "Deleted"
+    },
+    "form": {
+      "name": "Name",
+      "name_placeholder": "Meal plan for this week",
+      "status": "Status",
+      "status_placeholder": "Select status",
+      "focus": "Focus",
+      "focus_placeholder": "cutting / bulking / performance",
+      "target_calories": "Target Calories",
+      "target_calories_placeholder": "Auto-calculated from days/meals",
+      "notes": "Notes",
+      "notes_placeholder": "Allergies, preferences, notes...",
+      "days": "Days",
+      "add_day": "+ Add Day",
+      "day_prefix": "Day",
+      "day_label_placeholder": "Day label"
+    },
+    "table": {
+      "meal": "Meal",
+      "total_cal": "Total Cal",
+      "notes": "Notes",
+      "actions": "Actions",
+      "meal_placeholder": "Meal type",
+      "notes_placeholder": "Notes",
+      "items": "Items",
+      "no_meals": "No meals. Click \"+ Meal\" to add.",
+      "add_meal": "+ Meal",
+      "meal_types": {
+        "breakfast": "Breakfast",
+        "lunch": "Lunch",
+        "dinner": "Dinner",
+        "snack": "Snack",
+        "pre_workout": "Pre-workout",
+        "post_workout": "Post-workout",
+        "late_night": "Late Night",
+        "other": "Other"
+      }
+    },
+    "items_dialog": {
+      "title": "Meal Items",
+      "add_item": "+ Item",
+      "name_label": "Name",
+      "cal_label": "Cal",
+      "protein_label": "Protein (g)",
+      "carbs_label": "Carbs (g) ",
+      "fat_label": "Fat (g)",
+      "ingredients_label": "Ingredients (comma)"
+    },
+    "validation": {
+      "name_required": "Name is required",
+      "name_max": "Name must not exceed 200 characters",
+      "goal_max": "Goal must not exceed 500 characters",
+      "focus_max": "Focus must not exceed 100 characters",
+      "target_calories_min": "Target calories must be at least 0",
+      "target_calories_max": "Target calories must not exceed 10000",
+      "notes_max": "Notes must not exceed 2000 characters",
+      "coaching_notes_max": "Coaching notes must not exceed 2000 characters",
+      "days_min": "Must have at least 1 day",
+      "days_max": "Cannot have more than 14 days",
+      "day_required": "Day label is required",
+      "day_max": "Day label must not exceed 100 characters",
+      "meals_min": "Each day must have at least 3 meals",
+      "items_min": "At least 1 item",
+      "day_total_calories_min": "Day total calories must be at least 0",
+      "day_total_calories_max": "Day total calories must not exceed 10000",
+      "meal_type_required": "Meal type is required",
+      "meal_type_max": "Meal type must not exceed 100 characters",
+      "meal_type_duplicate": "Meal type cannot be duplicated within the same day",
+      "meal_total_calories_min": "Meal total calories must be at least 0",
+      "meal_total_calories_max": "Meal total calories must not exceed 5000",
+      "meal_notes_max": "Meal notes must not exceed 500 characters",
+      "item_name_required": "Item name is required",
+      "item_name_max": "Item name must not exceed 200 characters",
+      "item_calories_min": "Calories must be at least 0",
+      "item_calories_max": "Calories must not exceed 5000",
+      "item_protein_min": "Protein must be at least 0",
+      "item_protein_max": "Protein must not exceed 500",
+      "item_carbs_min": "Carbs must be at least 0",
+      "item_carbs_max": "Carbs must not exceed 1000",
+      "item_fat_min": "Fat must be at least 0",
+      "item_fat_max": "Fat must not exceed 500",
+      "ingredient_max": "Each ingredient must not exceed 200 characters",
+      "status_invalid": "Invalid status"
+    }
+  },
+  "progress_detail": {
+    "meal_plan": {
+      "create_title": "Create Meal Plan",
+      "edit_title": "Edit Meal Plan",
+      "view_title": "Meal Plan Detail",
+      "title": "Meal Plans",
+      "create": "Create Meal Plan",
+      "loading": "Loading meal plans...",
+      "empty": "No meal plans yet.",
+      "view": "View detail",
+      "edit": "Edit",
+      "delete": "Delete",
+      "toast": {
+        "need_goal": "Need a customer goal before creating a meal plan.",
+        "create_success": "Meal plan created successfully.",
+        "create_fail": "Failed to create meal plan.",
+        "update_success": "Meal plan updated successfully.",
+        "update_fail": "Failed to update meal plan.",
+        "delete_success": "Meal plan deleted.",
+        "delete_fail": "Failed to delete meal plan.",
+        "fetch_fail": "Failed to load meal plan detail."
+      },
+      "confirm_delete": "Are you sure you want to delete this meal plan?",
+      "table": {
+        "no_meals": "No meals. Click \"+ Meal\" to add."
+      },
+      "card": {
+        "focus": "Focus: {{focus}}",
+        "target_calories": "Target cal: {{value}}",
+        "created_at": "Created at: {{value}}",
+        "updated_at": "Updated at: {{value}}",
+        "status": "Status: {{status}}",
+        "days": "Days",
+        "day_total": "Total calories: {{value}} cal",
+        "notes": "Notes: {{value}}",
+        "coaching_notes": "Coaching notes: {{value}}",
+        "meal_notes": "Note: {{value}}",
+        "ingredients": "Ingredients",
+        "default_name": "Meal Plan"
+      }
+    }
   }
 }

@@ -31,6 +31,7 @@ const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({ message, formatMe
           </div>
         </div>
       )}
+      {/* có thể tăng lên 60% */}
       <div className={cn('flex flex-col gap-1 max-w-[40%] min-w-0', message.senderType === 'PT' && 'items-end')}>
         <div
           className={cn(baseBubbleClass, visualStateClass, 'w-full break-words')}

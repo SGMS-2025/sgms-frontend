@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import type {
   CustomerDisplay,
   UseCustomerListOptions,
@@ -116,6 +117,7 @@ export const useUpdateCustomerStatus = (): UseUpdateCustomerStatusReturn => {
 
     if (response.success) {
       setLoading(false);
+      toast.success(response.message || t('customer.error.failed_to_update_status'));
     } else {
       setError(response.message || t('customer.error.failed_to_update_status'));
       setLoading(false);

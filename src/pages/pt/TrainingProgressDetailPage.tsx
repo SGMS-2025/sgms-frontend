@@ -5,8 +5,14 @@ import { useUser } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Plus, Calendar, Weight, Dumbbell, Target } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, Weight, Dumbbell, Target, MoreVertical } from 'lucide-react';
 import { TrainingProgressChart } from '@/components/pt/TrainingProgressChart';
 import { TrainingProgressRadarChart } from '@/components/pt/TrainingProgressRadarChart';
 import { TrainingLogTable } from '@/components/pt/TrainingLogTable';
@@ -20,10 +26,15 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/u
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTrainingProgress } from '@/hooks/useTrainingProgress';
 import { customerApi } from '@/services/api/customerApi';
+import { DeleteConfirmationModal } from '@/components/ui/delete-confirmation-modal';
 import { toast } from 'sonner';
+import { useMealPlans } from '@/hooks/useMealPlans';
+import { MealPlanForm, type MealPlanFormValues } from '@/components/pt/MealPlanForm';
+import { MealPlanDetail } from '@/components/pt/MealPlanDetail';
 import type { TrainingProgressDisplay } from '@/types/api/TrainingProgress';
 import type { ProgressFormData, EditProgressFormData, CustomerStats } from '@/types/forms/Progress';
 import type { ServiceContractItem } from '@/types/api/Customer';
+import type { MealPlan } from '@/types/api/MealPlan';
 
 export default function TrainingProgressDetailPage() {
   const { t } = useTranslation();
@@ -50,6 +61,30 @@ export default function TrainingProgressDetailPage() {
   // Use customer goal hook
   const { activeGoal, refetch: refetchGoal } = useCustomerGoal(customerId || undefined);
 
+  // Meal plans for this customer
+  const mealPlanParams = useMemo(
+    () => ({
+      customerId: customerId || '',
+      customerGoalId: activeGoal?.id,
+      sortBy: 'createdAt' as const,
+      sortOrder: 'desc' as const,
+      limit: 20
+    }),
+    [customerId, activeGoal?.id]
+  );
+
+  const {
+    items: mealPlans,
+    loading: mealPlanLoading,
+    create: createMealPlan,
+    update: updateMealPlan,
+    remove: deleteMealPlan,
+    getById: getMealPlanById,
+    refetch: refetchMealPlans,
+    creating: creatingMealPlan,
+    updating: updatingMealPlan
+  } = useMealPlans(mealPlanParams);
+
   // Customer data - will be loaded from API
   const [customer, setCustomer] = useState({
     id: customerId || '1',
@@ -68,6 +103,17 @@ export default function TrainingProgressDetailPage() {
   const [chartFilter, setChartFilter] = useState<'4weeks' | 'all'>('4weeks');
   const [customerStats, setCustomerStats] = useState<CustomerStats | null>(null);
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
+  const [isMealPlanModalOpen, setIsMealPlanModalOpen] = useState(false);
+  const [selectedMealPlanId, setSelectedMealPlanId] = useState<string | null>(null);
+  const [selectedMealPlan, setSelectedMealPlan] = useState<MealPlan | null>(null);
+  const [mealPlanMode, setMealPlanMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const mealPlanModalTitle = useMemo(() => {
+    if (mealPlanMode === 'create') return t('progress_detail.meal_plan.create_title');
+    if (mealPlanMode === 'edit') return t('progress_detail.meal_plan.edit_title');
+    return t('progress_detail.meal_plan.view_title');
+  }, [mealPlanMode, t]);
 
   // Memoize records with body measurements for radar chart
   // progressList is sorted by trackingDate DESC, createdAt DESC from API
@@ -205,6 +251,110 @@ export default function TrainingProgressDetailPage() {
       navigate({ pathname: location.pathname, search: newSearch ? `?${newSearch}` : '' }, { replace: true });
     }
   }, [location.search, isAddFormOpen, customerLoading, customer.serviceContractId, navigate, location.pathname]);
+
+  const handleCreateMealPlan = async (payload: MealPlanFormValues) => {
+    if (!customerId || !activeGoal?.id) {
+      toast.error(t('progress_detail.meal_plan.toast.need_goal'));
+      return;
+    }
+
+    const res = await createMealPlan({
+      ...payload,
+      customerId,
+      customerGoalId: activeGoal.id
+    });
+    if (res.success) {
+      toast.success(t('progress_detail.meal_plan.toast.create_success'));
+      setIsMealPlanModalOpen(false);
+      await refetchMealPlans();
+    } else {
+      toast.error(res.message || t('progress_detail.meal_plan.toast.create_fail'));
+    }
+  };
+
+  const handleUpsertMealPlan = async (payload: MealPlanFormValues) => {
+    if (!customerId || !activeGoal?.id) {
+      toast.error(t('progress_detail.meal_plan.toast.need_goal'));
+      return;
+    }
+
+    if (mealPlanMode === 'edit' && selectedMealPlanId) {
+      const res = await updateMealPlan(selectedMealPlanId, {
+        ...payload,
+        customerId,
+        customerGoalId: activeGoal.id
+      });
+      if (res.success) {
+        toast.success(t('progress_detail.meal_plan.toast.update_success'));
+        setIsMealPlanModalOpen(false);
+        setSelectedMealPlanId(null);
+        setSelectedMealPlan(null);
+        setMealPlanMode('create');
+        await refetchMealPlans();
+      } else {
+        toast.error(res.message || t('progress_detail.meal_plan.toast.update_fail'));
+      }
+    } else {
+      await handleCreateMealPlan(payload);
+    }
+  };
+
+  const openCreate = () => {
+    setMealPlanMode('create');
+    setSelectedMealPlan(null);
+    setSelectedMealPlanId(null);
+    setIsMealPlanModalOpen(true);
+  };
+
+  const openView = async (id: string) => {
+    const res = await getMealPlanById(id);
+    if (res.success) {
+      setSelectedMealPlan(res.data);
+      setSelectedMealPlanId(id);
+      setMealPlanMode('view');
+      setIsMealPlanModalOpen(true);
+    } else {
+      toast.error(res.message || t('progress_detail.meal_plan.toast.fetch_fail'));
+    }
+  };
+
+  const openEdit = async (id: string) => {
+    const res = await getMealPlanById(id);
+    if (res.success) {
+      setSelectedMealPlan(res.data);
+      setSelectedMealPlanId(id);
+      setMealPlanMode('edit');
+      setIsMealPlanModalOpen(true);
+    } else {
+      toast.error(res.message || t('progress_detail.meal_plan.toast.fetch_fail'));
+    }
+  };
+
+  const openDeleteMealPlan = (id: string) => {
+    setPendingDeleteId(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteMealPlan = async () => {
+    if (!pendingDeleteId) {
+      setIsDeleteModalOpen(false);
+      return;
+    }
+    const res = await deleteMealPlan(pendingDeleteId);
+    if (res.success) {
+      toast.success(t('progress_detail.meal_plan.toast.delete_success'));
+      await refetchMealPlans();
+      if (selectedMealPlanId === pendingDeleteId) {
+        setSelectedMealPlanId(null);
+        setSelectedMealPlan(null);
+        setIsMealPlanModalOpen(false);
+      }
+    } else {
+      toast.error(res.message || t('progress_detail.meal_plan.toast.delete_fail'));
+    }
+    setIsDeleteModalOpen(false);
+    setPendingDeleteId(null);
+  };
 
   const handleBack = () => {
     navigate('/manage/pt/clients');
@@ -497,6 +647,122 @@ export default function TrainingProgressDetailPage() {
                 </div>
               </FormContent>
             </FormComponent>
+
+            {/* Meal Plans Section */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-xl font-bold text-[#101D33]">
+                  {t('progress_detail.meal_plan.title')}
+                </CardTitle>
+                <Button
+                  onClick={openCreate}
+                  className="bg-[#F05A29] hover:bg-[#E04A1F] text-white"
+                  disabled={creatingMealPlan}
+                >
+                  {t('progress_detail.meal_plan.create')}
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {(() => {
+                  if (mealPlanLoading) {
+                    return <p className="text-gray-600">{t('progress_detail.meal_plan.loading')}</p>;
+                  }
+                  if (mealPlans.length === 0) {
+                    return <p className="text-gray-600">{t('progress_detail.meal_plan.empty')}</p>;
+                  }
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {mealPlans.map((plan) => (
+                        <div key={plan._id} className="border rounded-lg p-3 bg-white shadow-sm">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="font-semibold text-[#101D33] line-clamp-1">{plan.name || 'Meal Plan'}</div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="capitalize">
+                                {(plan.status ?? 'unknown').toLowerCase()}
+                              </Badge>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => openView(plan._id)}>
+                                    {t('progress_detail.meal_plan.view')}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => openEdit(plan._id)}>
+                                    {t('progress_detail.meal_plan.edit')}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => openDeleteMealPlan(plan._id)}>
+                                    {t('progress_detail.meal_plan.delete')}
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </div>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            {/* <div>
+                              {t('progress_detail.meal_plan.card.focus', { focus: plan.focus || t('common.na') })}
+                            </div> */}
+                            {/* <div>
+                              {t('progress_detail.meal_plan.card.target_calories', {
+                                value: plan.targetCalories ?? t('common.na')
+                              })}
+                            </div> */}
+                            <div>
+                              {t('progress_detail.meal_plan.card.created_at', {
+                                value: new Date(plan.createdAt).toLocaleDateString('vi-VN')
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+
+            {/* Meal Plan Modal */}
+            <Dialog open={isMealPlanModalOpen} onOpenChange={setIsMealPlanModalOpen}>
+              <DialogContent className="max-w-4xl max-h-[85vh]">
+                <DialogHeader>
+                  <DialogTitle>{mealPlanModalTitle}</DialogTitle>
+                </DialogHeader>
+                <div className="max-h-[70vh] overflow-y-auto pr-1 space-y-4">
+                  {mealPlanMode === 'view' && selectedMealPlan ? (
+                    <MealPlanDetail
+                      mealPlan={selectedMealPlan}
+                      onEdit={() => openEdit(selectedMealPlan._id)}
+                      onDelete={() => openDeleteMealPlan(selectedMealPlan._id)}
+                    />
+                  ) : (
+                    <MealPlanForm
+                      loading={creatingMealPlan || updatingMealPlan}
+                      initialValues={{
+                        ...(selectedMealPlan || {}),
+                        name: selectedMealPlan?.name ?? '',
+                        customerId: customerId || '',
+                        customerGoalId: activeGoal?.id || '',
+                        status: selectedMealPlan?.status || 'SUGGESTED',
+                        days: selectedMealPlan?.days || []
+                      }}
+                      onSubmit={handleUpsertMealPlan}
+                    />
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <DeleteConfirmationModal
+              isOpen={isDeleteModalOpen}
+              onClose={() => {
+                setIsDeleteModalOpen(false);
+                setPendingDeleteId(null);
+              }}
+              onConfirm={confirmDeleteMealPlan}
+              isLoading={creatingMealPlan || updatingMealPlan}
+            />
 
             {/* Floating Add Button for Mobile */}
             {!isDesktop && (
