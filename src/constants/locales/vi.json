@@ -3500,6 +3500,10 @@
   "timeoff.pending": "Chờ duyệt",
   "timeoff.approved": "Đã phê duyệt",
   "timeoff.rejected": "Đã từ chối",
+  "timeoff.stats.total_helper": "Tổng số yêu cầu nghỉ phép",
+  "timeoff.stats.pending_helper": "Yêu cầu đang chờ phê duyệt",
+  "timeoff.stats.approved_helper": "Yêu cầu đã được phê duyệt",
+  "timeoff.stats.rejected_helper": "Yêu cầu đã bị từ chối",
   "timeoff.cancelled": "Đã hủy",
   "timeoff.approve": "Phê duyệt",
   "timeoff.reject": "Từ chối",
@@ -6131,7 +6135,11 @@
       "total": "Tổng Số",
       "pending": "Chờ Duyệt",
       "approved": "Đã Duyệt",
-      "rejected": "Đã Từ Chối"
+      "rejected": "Đã Từ Chối",
+      "total_helper": "Tổng số yêu cầu",
+      "pending_helper": "Yêu cầu đang chờ phê duyệt",
+      "approved_helper": "Yêu cầu đã được phê duyệt",
+      "rejected_helper": "Yêu cầu đã bị từ chối"
     },
     "swipe_to_navigate": "Vuốt trái/phải để chuyển tuần"
   },
