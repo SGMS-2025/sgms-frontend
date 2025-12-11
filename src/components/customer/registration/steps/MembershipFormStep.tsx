@@ -1,10 +1,15 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, CreditCard, User } from 'lucide-react';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { Button } from '@/components/ui/button';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatCurrency } from '@/utils/currency';
 import type { MembershipRegistrationFormData } from '@/types/api/Customer';
 import type { MembershipPlan } from '@/types/api/Membership';
@@ -47,6 +52,21 @@ export const MembershipFormStep: React.FC<MembershipFormStepProps> = ({
   loadingStaff = false
 }) => {
   const { t } = useTranslation();
+  const [datePickerOpen, setDatePickerOpen] = React.useState(false);
+
+  const selectedActivationDate = React.useMemo(
+    () => (formData.startDate ? new Date(`${formData.startDate}T00:00:00`) : undefined),
+    [formData.startDate]
+  );
+
+  const handleActivationDateChange = (date: Date | undefined) => {
+    if (date) {
+      setFormData((prev) => ({ ...prev, startDate: format(date, 'yyyy-MM-dd') }));
+      setDatePickerOpen(false);
+    } else {
+      setFormData((prev) => ({ ...prev, startDate: '' }));
+    }
+  };
 
   return (
     <Card className="rounded-3xl border border-border bg-card shadow-sm">
@@ -115,11 +135,36 @@ export const MembershipFormStep: React.FC<MembershipFormStepProps> = ({
               <Label className="text-sm font-medium">
                 <Calendar className="inline h-4 w-4" /> {t('membership_registration.activation_date_label')}
               </Label>
-              <Input
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => setFormData((prev) => ({ ...prev, startDate: e.target.value }))}
-              />
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen} modal={false}>
+                <PopoverTrigger asChild>
+                  <Button type="button" variant="outline" className="w-full justify-between text-left font-normal">
+                    <span className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      {selectedActivationDate
+                        ? format(selectedActivationDate, 'dd/MM/yyyy', { locale: vi })
+                        : t('membership_registration.activation_date_placeholder', {
+                            defaultValue: 'Chọn ngày kích hoạt'
+                          })}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
+                  align="start"
+                  side="bottom"
+                  sideOffset={8}
+                  collisionPadding={8}
+                >
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedActivationDate}
+                    onSelect={handleActivationDateChange}
+                    initialFocus
+                    locale={vi}
+                    className="bg-white"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 

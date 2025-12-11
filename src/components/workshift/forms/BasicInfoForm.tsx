@@ -3,6 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { User, MapPin } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/utils/utils';
@@ -29,6 +33,14 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
     formState: { errors }
   } = form;
   const watchedBranchId = watch('branchId');
+  const [scheduleDateOpen, setScheduleDateOpen] = React.useState(false);
+
+  const selectedScheduleDate = React.useMemo(() => {
+    const value = watch('scheduleDate');
+    if (!value) return undefined;
+    const date = new Date(`${value}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }, [watch]);
 
   return (
     <Card className="w-full">
@@ -64,16 +76,46 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({
             <Label htmlFor="scheduleDate" className="text-xs font-medium">
               {t('workshift.schedule_date')} *
             </Label>
-            <Input
-              id="scheduleDate"
-              type="date"
-              {...register('scheduleDate')}
-              onChange={(e) => {
-                register('scheduleDate').onChange(e);
-                onScheduleDateChange?.(e.target.value);
-              }}
-              className={cn('h-8 text-sm', (errors.scheduleDate || scheduleDateError) && 'border-red-500')}
-            />
+            <Popover open={scheduleDateOpen} onOpenChange={setScheduleDateOpen} modal={false}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={cn(
+                    'h-8 text-sm w-full justify-between text-left font-normal',
+                    (errors.scheduleDate || scheduleDateError) && 'border-red-500'
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    {selectedScheduleDate
+                      ? format(selectedScheduleDate, 'dd/MM/yyyy', { locale: vi })
+                      : t('membership_registration.activation_date_placeholder', { defaultValue: 'Chọn ngày' })}
+                  </span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
+                align="start"
+                side="bottom"
+                sideOffset={8}
+                collisionPadding={8}
+              >
+                <CalendarComponent
+                  mode="single"
+                  selected={selectedScheduleDate}
+                  onSelect={(date) => {
+                    const value = date ? format(date, 'yyyy-MM-dd') : '';
+                    form.setValue('scheduleDate', value, { shouldValidate: true, shouldDirty: true });
+                    onScheduleDateChange?.(value);
+                    setScheduleDateOpen(false);
+                  }}
+                  initialFocus
+                  locale={vi}
+                  className="bg-white"
+                />
+              </PopoverContent>
+            </Popover>
             {errors.scheduleDate && <p className="text-xs text-red-600">{errors.scheduleDate.message}</p>}
             {scheduleDateError && <p className="text-xs text-red-600">{scheduleDateError}</p>}
           </div>

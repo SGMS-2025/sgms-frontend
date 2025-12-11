@@ -1,12 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
-import { Loader2, AlertCircle, Camera, Shield, FileText, Eye, Download } from 'lucide-react';
+import { Loader2, AlertCircle, Camera, Shield, FileText, Eye, Download, Calendar as CalendarIcon } from 'lucide-react';
 import { useProfileData } from '@/hooks/useProfileData';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,6 +67,13 @@ const ProfileAccountSettingsPage: React.FC = () => {
   const [embeddedViewerOpen, setEmbeddedViewerOpen] = useState(false);
   const [selectedContract, setSelectedContract] = useState<ContractDocument | null>(null);
   const [embeddedIframeUrl, setEmbeddedIframeUrl] = useState<string | null>(null);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+
+  const selectedDateOfBirth = useMemo(() => {
+    if (!dateInputValue) return undefined;
+    const date = new Date(`${dateInputValue}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }, [dateInputValue]);
 
   useEffect(() => {
     setIsEditing(true);
@@ -196,7 +207,7 @@ const ProfileAccountSettingsPage: React.FC = () => {
     } finally {
       setLoadingContracts(false);
     }
-  }, [currentUser?._id]);
+  }, [currentUser?._id, t]);
 
   useEffect(() => {
     if (activeNav === 'contracts') {
@@ -426,15 +437,45 @@ const ProfileAccountSettingsPage: React.FC = () => {
                         </div>
                         <div>
                           <Label htmlFor="dateOfBirth">{t('settings.profile.date_of_birth')}</Label>
-                          <Input
-                            id="dateOfBirth"
-                            type="date"
-                            className="rounded-full border-gray-200 h-11"
-                            value={dateInputValue}
-                            onChange={(e) => handleDateChange(e.target.value)}
-                            disabled={!isEditing}
-                            aria-invalid={Boolean(validationErrors.dateOfBirth)}
-                          />
+                          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen} modal={false}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="rounded-full border-gray-200 h-11 w-full justify-between text-left font-normal"
+                                disabled={!isEditing}
+                                aria-invalid={Boolean(validationErrors.dateOfBirth)}
+                              >
+                                <span className="flex items-center gap-2">
+                                  <CalendarIcon className="h-4 w-4" />
+                                  {selectedDateOfBirth
+                                    ? format(selectedDateOfBirth, 'dd/MM/yyyy', { locale: vi })
+                                    : t('staff.select_birth_date')}
+                                </span>
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
+                              align="start"
+                              side="bottom"
+                              sideOffset={8}
+                              collisionPadding={8}
+                            >
+                              <CalendarComponent
+                                mode="single"
+                                selected={selectedDateOfBirth}
+                                onSelect={(date) => {
+                                  if (date) {
+                                    handleDateChange(format(date, 'yyyy-MM-dd'));
+                                    setDatePickerOpen(false);
+                                  }
+                                }}
+                                initialFocus
+                                locale={vi}
+                                className="bg-white"
+                              />
+                            </PopoverContent>
+                          </Popover>
                           {validationErrors.dateOfBirth && (
                             <p className="text-sm text-red-600">{validationErrors.dateOfBirth}</p>
                           )}

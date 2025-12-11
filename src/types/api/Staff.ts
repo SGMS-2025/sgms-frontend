@@ -58,7 +58,6 @@ export interface StaffStats {
 export interface StaffFilters {
   searchTerm: string;
   selectedJobTitle?: string;
-  selectedIds: string[];
   branchId?: string;
   status?: StaffStatus;
 }

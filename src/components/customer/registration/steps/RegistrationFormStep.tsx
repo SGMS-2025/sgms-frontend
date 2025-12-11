@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { User, Package, Calendar, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -8,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { formatCurrency } from '@/utils/currency';
 import type { ServiceRegistrationFormData, PriceCalculation } from '@/hooks/useServiceRegistration';
 import type { ServicePackage } from '@/types/api/Package';
@@ -43,6 +46,20 @@ export const RegistrationFormStep: React.FC<RegistrationFormStepProps> = ({
 }) => {
   const { t } = useTranslation();
   const [trainerPopoverOpen, setTrainerPopoverOpen] = useState(false);
+  const [startDateOpen, setStartDateOpen] = useState(false);
+
+  const selectedStartDate = useMemo(() => {
+    if (!formData.startDate) return undefined;
+    const date = new Date(`${formData.startDate}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }, [formData.startDate]);
+
+  const handleStartDateChange = (date?: Date) => {
+    if (date) {
+      setFormData((prev) => ({ ...prev, startDate: format(date, 'yyyy-MM-dd') }));
+      setStartDateOpen(false);
+    }
+  };
 
   // Get selected trainer name for display
   const selectedTrainer = trainers.find((trainer) => trainer.userId._id === formData.primaryTrainerId);
@@ -187,11 +204,36 @@ export const RegistrationFormStep: React.FC<RegistrationFormStepProps> = ({
                 <Calendar className="inline h-4 w-4" />{' '}
                 {t(`${packageType.toLowerCase()}_registration.start_date_label`)}
               </Label>
-              <Input
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => setFormData((prev) => ({ ...prev, startDate: e.target.value }))}
-              />
+              <Popover open={startDateOpen} onOpenChange={setStartDateOpen} modal={false}>
+                <PopoverTrigger asChild>
+                  <Button type="button" variant="outline" className="w-full justify-between text-left font-normal">
+                    <span className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      {selectedStartDate
+                        ? format(selectedStartDate, 'dd/MM/yyyy', { locale: vi })
+                        : t('membership_registration.activation_date_placeholder', {
+                            defaultValue: 'Chọn ngày bắt đầu'
+                          })}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
+                  align="start"
+                  side="bottom"
+                  sideOffset={8}
+                  collisionPadding={8}
+                >
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedStartDate}
+                    onSelect={handleStartDateChange}
+                    initialFocus
+                    locale={vi}
+                    className="bg-white"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
