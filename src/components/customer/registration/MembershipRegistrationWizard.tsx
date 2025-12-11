@@ -106,7 +106,9 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
   // Keep a stable payment method if a contract was already created, so steps don't drop the payment step on re-render
   const effectivePaymentMethod =
     contractPaymentMethodRef.current ||
-    (bankQRContractId || contractResponse?.data ? formData.paymentMethod : formData.paymentMethod);
+    (bankQRContractId || contractResponse?.data
+      ? getContractPaymentMethod(contractResponse) || formData.paymentMethod
+      : formData.paymentMethod);
 
   const wizard = useMembershipRegistrationWizard({
     paymentMethod: effectivePaymentMethod,

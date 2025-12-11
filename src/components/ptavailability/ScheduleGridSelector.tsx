@@ -228,8 +228,11 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
-  // Generate dates for current week (7 days from currentWeekStart, filter out past dates and non-working days)
-  const dates = useMemo(() => {
+  // Mobile: Track current day index for showing 3 days at a time
+  const [currentDayIndex, setCurrentDayIndex] = useState(0);
+
+  // Generate all available dates (7 days from currentWeekStart, filter out past dates and non-working days)
+  const allAvailableDates = useMemo(() => {
     const start = currentWeekStart;
     const end = addDays(start, 6); // 7 days total
     const allDates = eachDayOfInterval({ start, end });
@@ -254,6 +257,37 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
       return true;
     });
   }, [currentWeekStart, today, workingDays]);
+
+  // On mobile: show only 3 days at a time, on desktop: show all days
+  const dates = useMemo(() => {
+    if (isMobile) {
+      // On mobile, show 3 days starting from currentDayIndex
+      return allAvailableDates.slice(currentDayIndex, currentDayIndex + 3);
+    }
+    // On desktop, show all available dates
+    return allAvailableDates;
+  }, [allAvailableDates, currentDayIndex, isMobile]);
+
+  // Reset currentDayIndex when week changes, and ensure it doesn't exceed available dates
+  useEffect(() => {
+    if (isMobile) {
+      setCurrentDayIndex(0);
+    }
+  }, [currentWeekStart, isMobile]);
+
+  // Ensure currentDayIndex doesn't exceed available dates
+  useEffect(() => {
+    if (isMobile && allAvailableDates.length > 0) {
+      setCurrentDayIndex((prev) => {
+        // If current index is beyond available dates, reset to 0
+        if (prev >= allAvailableDates.length) {
+          return 0;
+        }
+        // Ensure we don't go beyond available dates
+        return Math.min(prev, Math.max(0, allAvailableDates.length - 3));
+      });
+    }
+  }, [allAvailableDates.length, isMobile]);
 
   // Fetch existing requests
   useEffect(() => {
@@ -339,18 +373,6 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
       }
     });
 
-    console.log('[ScheduleGridSelector] Existing slots for week:', {
-      weekStart: normalizeDateToString(currentWeekStart),
-      weekEnd: normalizeDateToString(addDays(currentWeekStart, 6)),
-      existingRequestsCount: existingRequests.length,
-      existingSlotsCount: slots.length,
-      existingSlots: slots.map((s) => ({
-        date: s.date,
-        startTime: s.startTime,
-        endTime: s.endTime
-      }))
-    });
-
     return slots;
   }, [existingRequests, currentWeekStart]);
 
@@ -429,20 +451,39 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
     const isRightSwipe = distance < -minSwipeDistance;
 
     if (isLeftSwipe) {
-      // Swipe left = next week
-      setCurrentWeekStart((prev) => addDays(prev, 7));
+      // Swipe left = next 3 days
+      setCurrentDayIndex((prev) => {
+        const nextIndex = prev + 3;
+        // If we've reached the end, move to next week and reset index
+        if (nextIndex >= allAvailableDates.length) {
+          setCurrentWeekStart((current) => addDays(current, 7));
+          return 0; // Reset to start of new week
+        }
+        return nextIndex;
+      });
     }
 
     if (isRightSwipe) {
-      // Swipe right = previous week (but not before today)
-      setCurrentWeekStart((prev) => {
-        const prevStart = subWeeks(prev, 1);
-        // Don't allow going before today
-        const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        if (prevStart < todayOnly) {
-          return todayOnly;
+      // Swipe right = previous 3 days
+      setCurrentDayIndex((prev) => {
+        const prevIndex = prev - 3;
+        // If we're at the beginning, try to go to previous week
+        if (prevIndex < 0) {
+          setCurrentWeekStart((current) => {
+            const prevStart = subWeeks(current, 1);
+            // Don't allow going before today
+            const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            if (prevStart < todayOnly) {
+              return todayOnly;
+            }
+            return prevStart;
+          });
+          // Calculate how many days we can show from previous week
+          // We'll reset to show the last 3 days of previous week, but this will be recalculated
+          // when allAvailableDates updates, so we return 0 for now
+          return 0;
         }
-        return prevStart;
+        return prevIndex;
       });
     }
   };
@@ -537,9 +578,13 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
         {/* Mobile: Show week range and swipe hint */}
         {isMobile && (
           <div className="flex items-center justify-center gap-3 flex-col">
-            <span className="text-sm font-medium">{weekRange}</span>
+            <span className="text-sm font-medium">
+              {dates.length > 0
+                ? `${format(dates[0], 'MMM d')} - ${format(dates[dates.length - 1], 'MMM d, yyyy')}`
+                : format(today, 'MMM d, yyyy')}
+            </span>
             <span className="text-xs opacity-75">
-              {t('pt_availability.swipe_to_navigate', 'Vuốt trái/phải để chuyển tuần')}
+              {t('pt_availability.swipe_to_navigate', 'Vuốt trái/phải để chuyển 3 ngày')}
             </span>
           </div>
         )}

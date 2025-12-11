@@ -14,11 +14,11 @@ import {
   MapPin,
   Settings,
   FileSpreadsheet,
-  HelpCircle
+  HelpCircle,
+  MoreVertical
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { SortableHeader } from '@/components/ui/SortableHeader';
 import {
   AlertDialog,
@@ -134,7 +134,6 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
 
   // Use the hook for updating customer status
   const { updateCustomerStatus } = useUpdateCustomerStatus();
-  const selectedCount = filters.selectedIds.length;
 
   // Reset pagination when branch changes
   React.useEffect(() => {
@@ -216,35 +215,6 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
       }
     }));
   }, []);
-
-  const handleSelectAll = () => {
-    const allIds = sortedCustomerList.map((customer) => customer.id);
-    const isAllSelected = allIds.every((id) => filters.selectedIds.includes(id));
-
-    if (isAllSelected) {
-      setFilters((prev) => ({
-        ...prev,
-        selectedIds: prev.selectedIds.filter((id) => !allIds.includes(id))
-      }));
-    } else {
-      setFilters((prev) => ({
-        ...prev,
-        selectedIds: [...new Set([...prev.selectedIds, ...allIds])]
-      }));
-    }
-  };
-
-  const handleSelectCustomer = (customerId: string) => {
-    setFilters((prev) => {
-      const newSelectedIds = prev.selectedIds.includes(customerId)
-        ? prev.selectedIds.filter((id) => id !== customerId)
-        : [...prev.selectedIds, customerId];
-      return {
-        ...prev,
-        selectedIds: newSelectedIds
-      };
-    });
-  };
 
   const handlePageChange = (newPage: number) => {
     if (!pagination) return;
@@ -348,34 +318,6 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
     );
   };
 
-  // Helper function to get select all button class
-  const getSelectAllButtonClass = () => {
-    if (!canManageCustomers()) {
-      return 'border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed';
-    }
-
-    const isAllSelected =
-      sortedCustomerList.length > 0 &&
-      sortedCustomerList.every((customer) => filters.selectedIds.includes(customer.id));
-
-    return isAllSelected
-      ? 'border border-orange-200 bg-orange-100 text-orange-600 shadow-sm'
-      : 'border border-gray-200 bg-white text-gray-500 hover:border-orange-200 hover:text-orange-500';
-  };
-
-  // Helper function to get select all checkbox class
-  const getSelectAllCheckboxClass = () => {
-    if (!canManageCustomers()) {
-      return 'border-gray-300 bg-gray-200 text-gray-400';
-    }
-
-    const isAllSelected =
-      sortedCustomerList.length > 0 &&
-      sortedCustomerList.every((customer) => filters.selectedIds.includes(customer.id));
-
-    return isAllSelected ? 'border-orange-400 bg-orange-500 text-white' : 'border-gray-300 text-transparent';
-  };
-
   // Helper function to get status badge class
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -416,10 +358,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
   };
 
   // Helper function to get table row class
-  const getTableRowClass = (customer: CustomerDisplay, index: number) => {
-    if (filters.selectedIds.includes(customer.id)) {
-      return 'bg-orange-50/80';
-    }
+  const getTableRowClass = (_customer: CustomerDisplay, index: number) => {
     return index % 2 === 0 ? 'bg-white' : 'bg-[#FFF9F2]';
   };
 
@@ -435,25 +374,8 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
         className={`${getTableRowClass(customer, index)} cursor-pointer hover:bg-orange-50 transition-colors`}
         onClick={() => handleRowClick(customer)}
       >
-        <td className="px-4 py-3 text-sm text-gray-600">
-          <div className="flex items-center space-x-3">
-            <Checkbox
-              checked={filters.selectedIds.includes(customer.id)}
-              onCheckedChange={canManageCustomers() ? () => handleSelectCustomer(customer.id) : undefined}
-              disabled={!canManageCustomers()}
-              className={canManageCustomers() ? '' : 'opacity-50'}
-              onClick={(e) => e.stopPropagation()}
-            />
-            <span
-              className={
-                filters.selectedIds.includes(customer.id)
-                  ? 'font-semibold text-orange-500'
-                  : 'font-medium text-gray-700'
-              }
-            >
-              {stt}
-            </span>
-          </div>
+        <td className="px-4 py-3 text-sm text-gray-600 text-center">
+          <span className="font-medium text-gray-700">{stt}</span>
         </td>
         {filters.visibleColumns.name && (
           <td className="px-4 py-3 text-sm font-semibold text-gray-900">{customer.name}</td>
@@ -489,60 +411,65 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
         {filters.visibleColumns.createdAt && (
           <td className="px-4 py-3 text-sm text-gray-600">{customer.createdAt || '-'}</td>
         )}
-        <td className="px-1 py-3">
-          <div className="flex items-center gap-0.5">
-            <button
-              className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:border-orange-200 hover:text-orange-500"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleViewCustomer(customer);
-              }}
-            >
-              <Eye className="h-3 w-3" />
-            </button>
-            <button
-              className={`inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors ${
-                canManageCustomer(customer)
-                  ? 'border-gray-200 bg-white text-gray-500 hover:border-orange-200 hover:text-orange-500'
-                  : 'border-gray-200 bg-gray-100 text-gray-300 cursor-not-allowed'
-              }`}
-              onClick={
-                canManageCustomer(customer)
-                  ? (e) => {
-                      e.stopPropagation();
-                      handleEditCustomer(customer);
-                    }
-                  : undefined
-              }
-              disabled={!canManageCustomer(customer)}
-              title={canManageCustomer(customer) ? t('common.edit') : t('dashboard.no_permission')}
-            >
-              <Edit className="h-3 w-3" />
-            </button>
-            <button
-              className={`inline-flex h-6 w-6 items-center justify-center rounded-full border transition-colors ${
-                canManageCustomer(customer)
-                  ? 'border-orange-100 bg-orange-50 text-orange-500 hover:bg-orange-100'
-                  : 'border-gray-200 bg-gray-100 text-gray-300 cursor-not-allowed'
-              }`}
-              onClick={
-                canManageCustomer(customer)
-                  ? (e) => {
-                      e.stopPropagation();
-                      handleToggleCustomerStatus(customer);
-                    }
-                  : undefined
-              }
-              title={getToggleStatusButtonTitle(customer)}
-              disabled={!canManageCustomer(customer)}
-            >
-              {customer.status === 'ACTIVE' ? (
-                <UserX className="h-3 w-3" />
-              ) : (
-                <UserCheck className="h-3 w-3 text-green-600" />
-              )}
-            </button>
-          </div>
+        <td className="px-4 py-3 text-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="inline-flex items-center justify-center p-2 text-gray-500 transition-colors hover:text-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200"
+                aria-label={t('common.more_actions') || 'More actions'}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewCustomer(customer);
+                }}
+                className="cursor-pointer"
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                {t('common.view')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={!canManageCustomer(customer)}
+                onClick={
+                  canManageCustomer(customer)
+                    ? (e) => {
+                        e.stopPropagation();
+                        handleEditCustomer(customer);
+                      }
+                    : undefined
+                }
+                className="cursor-pointer"
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                {t('common.edit')}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                disabled={!canManageCustomer(customer)}
+                onClick={
+                  canManageCustomer(customer)
+                    ? (e) => {
+                        e.stopPropagation();
+                        handleToggleCustomerStatus(customer);
+                      }
+                    : undefined
+                }
+                className="cursor-pointer"
+              >
+                {customer.status === 'ACTIVE' ? (
+                  <UserX className="mr-2 h-4 w-4" />
+                ) : (
+                  <UserCheck className="mr-2 h-4 w-4 text-green-600" />
+                )}
+                {getToggleStatusButtonTitle(customer)}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </td>
       </tr>
     );
@@ -636,12 +563,6 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
           </div>
 
           <div className="flex items-center gap-2" data-tour="customers-action-buttons">
-            {selectedCount > 0 && (
-              <span className="inline-flex items-center rounded-full bg-orange-50 px-3 py-1 text-sm font-medium text-orange-600">
-                {t('dashboard.selected')} {selectedCount}
-              </span>
-            )}
-
             <Button
               variant="outline"
               size="icon"
@@ -779,24 +700,6 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
             />
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           </div>
-
-          <button
-            className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${getSelectAllButtonClass()}`}
-            onClick={canManageCustomers() ? handleSelectAll : undefined}
-            disabled={!canManageCustomers()}
-            data-tour="customers-select-all"
-          >
-            <span
-              className={`flex h-4 w-4 items-center justify-center rounded-full border ${getSelectAllCheckboxClass()}`}
-            >
-              {canManageCustomers() &&
-                sortedCustomerList.length > 0 &&
-                sortedCustomerList.every((customer) => filters.selectedIds.includes(customer.id)) && (
-                  <span className="text-[10px]">✓</span>
-                )}
-            </span>
-            <span>{t('dashboard.select_all')}</span>
-          </button>
         </div>
       </div>
 
@@ -805,7 +708,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
         <table className="w-full text-left min-w-[1000px]">
           <thead className="bg-[#FFF7EF]">
             <tr>
-              <th className="px-4 py-3 text-sm font-semibold text-orange-600 first:rounded-l-2xl">
+              <th className="px-4 py-3 text-sm font-semibold text-orange-600 first:rounded-l-2xl text-center">
                 {t('dashboard.serial_number')}
               </th>
               {filters.visibleColumns.name && (
@@ -898,7 +801,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
                   getSortIcon={getSortIcon}
                 />
               )}
-              <th className="px-1 py-3 text-sm font-semibold text-orange-600 last:rounded-r-2xl">
+              <th className="px-4 py-3 text-sm font-semibold text-orange-600 text-center last:rounded-r-2xl">
                 {t('dashboard.action')}
               </th>
             </tr>

@@ -74,11 +74,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const userStr = localStorage.getItem('user');
         let user = null;
-        if (userStr) {
+
+        if (userStr && userStr !== 'null' && userStr !== 'undefined' && userStr.trim() !== '') {
           try {
             user = JSON.parse(userStr);
+            // Validate parsed user object
+            if (!user || typeof user !== 'object' || Array.isArray(user)) {
+              user = null;
+              localStorage.removeItem('user');
+            }
           } catch (error) {
             console.error('Error parsing user from localStorage:', error);
+            // Clear invalid data
+            localStorage.removeItem('user');
+            user = null;
           }
         }
 

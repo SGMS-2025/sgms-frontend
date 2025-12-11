@@ -4,12 +4,13 @@ import i18n from '@/configs/i18n';
 import type { ApiErrorResponse } from '@/types/api/Api';
 import { handleSpecificError } from '@/utils/permissionErrorHandler';
 import { convertMongoDecimalToNumbers } from '@/utils/mongodbDecimalConverter';
+import { decryptResponseIfNeeded } from '@/utils/responseDecryption';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 export const api = axios.create({
   baseURL: API_URL,
-  timeout: 30000, // Increased to 30 seconds for all requests
+  timeout: 120000, // Increased to 120 seconds for all requests
   headers: {
     'Content-Type': 'application/json'
   },
@@ -188,7 +189,24 @@ api.interceptors.response.use(
       return response;
     }
 
-    // Convert MongoDB Decimal values in response data for JSON responses only
+    // Bước 1: Decrypt response nếu cần
+    if (response.data) {
+      try {
+        response.data = decryptResponseIfNeeded(response.data);
+      } catch (decryptError) {
+        const isDevelopment = import.meta.env.MODE === 'development' || import.meta.env.DEV;
+        if (isDevelopment) {
+          console.warn('⚠️ Failed to decrypt response (dev mode - may not be encrypted):', decryptError);
+        } else {
+          console.error('❌ Failed to decrypt response:', decryptError);
+          throw new Error(
+            `Response decryption failed: ${decryptError instanceof Error ? decryptError.message : String(decryptError)}`
+          );
+        }
+      }
+    }
+
+    // Bước 2: Convert MongoDB Decimal values in response data for JSON responses only
     if (response.data) {
       response.data = convertMongoDecimalToNumbers(response.data);
     }

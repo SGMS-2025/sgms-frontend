@@ -39,7 +39,8 @@ import {
   Trash2,
   MapPin,
   HelpCircle,
-  X
+  X,
+  Target
 } from 'lucide-react';
 import { cn, formatDate } from '@/utils/utils';
 import { format } from 'date-fns';
@@ -408,62 +409,66 @@ const TimeOffList: React.FC<
 
         {/* Stats Cards */}
         {showStats && stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" data-tour="timeoff-stats-cards">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Calendar className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">{t('timeoff.total_requests') || 'Total'}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-                  </div>
+          <div className="grid w-full gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-8" data-tour="timeoff-stats-cards">
+            <div className="rounded-2xl border border-orange-100 bg-[#FFF6EE] p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-orange-500">
+                {t('timeoff.total_requests') || 'Total Requests'}
+              </div>
+              <div className="mt-2 flex items-end justify-between">
+                <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
+                <div className="rounded-full bg-white/70 p-2 text-orange-500">
+                  <Target className="h-5 w-5" />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                {t('timeoff.stats.total_helper', 'Tổng số yêu cầu nghỉ phép')}
+              </p>
+            </div>
 
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className="p-2 bg-yellow-100 rounded-lg">
-                    <Clock className="w-6 h-6 text-yellow-600" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">{t('timeoff.pending') || 'Pending'}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
-                  </div>
+            <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-yellow-600">
+                {t('timeoff.pending') || 'Pending'}
+              </div>
+              <div className="mt-2 flex items-end justify-between text-gray-900">
+                <span className="text-3xl font-semibold">{stats.pending}</span>
+                <div className="rounded-full bg-white p-2 text-yellow-600">
+                  <Clock className="h-5 w-5" />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                {t('timeoff.stats.pending_helper', 'Yêu cầu đang chờ phê duyệt')}
+              </p>
+            </div>
 
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <CheckCircle className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">{t('timeoff.approved') || 'Approved'}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.approved}</p>
-                  </div>
+            <div className="rounded-2xl border border-green-100 bg-green-50 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-green-600">
+                {t('timeoff.approved') || 'Approved'}
+              </div>
+              <div className="mt-2 flex items-end justify-between text-gray-900">
+                <span className="text-3xl font-semibold">{stats.approved}</span>
+                <div className="rounded-full bg-white p-2 text-green-600">
+                  <CheckCircle className="h-5 w-5" />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                {t('timeoff.stats.approved_helper', 'Yêu cầu đã được phê duyệt')}
+              </p>
+            </div>
 
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className="p-2 bg-red-100 rounded-lg">
-                    <XCircle className="w-6 h-6 text-red-600" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">{t('timeoff.rejected') || 'Rejected'}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.rejected}</p>
-                  </div>
+            <div className="rounded-2xl border border-red-100 bg-red-50 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-red-600">
+                {t('timeoff.rejected') || 'Rejected'}
+              </div>
+              <div className="mt-2 flex items-end justify-between text-gray-900">
+                <span className="text-3xl font-semibold">{stats.rejected}</span>
+                <div className="rounded-full bg-white p-2 text-red-600">
+                  <XCircle className="h-5 w-5" />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                {t('timeoff.stats.rejected_helper', 'Yêu cầu đã bị từ chối')}
+              </p>
+            </div>
           </div>
         )}
 

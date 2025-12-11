@@ -67,6 +67,7 @@ export const TrainingProgressRadarChart: React.FC<TrainingProgressRadarChartProp
 }) => {
   const { t } = useTranslation();
   const [chartView, setChartView] = React.useState<'basic' | 'measurements'>('basic');
+  const hasBaseline = Boolean(previousData);
 
   // Basic metrics chart data
   const basicChartData = React.useMemo((): RadarChartDataPoint[] => {
@@ -204,7 +205,7 @@ export const TrainingProgressRadarChart: React.FC<TrainingProgressRadarChartProp
 
   return (
     <Card>
-      <CardHeader className="items-center pb-4">
+      <CardHeader className="pb-4 gap-3">
         <CardTitle className="text-xl font-bold text-[#101D33]">
           {t('radar_chart.title', 'Biểu đồ Radar - Chỉ số cơ thể')}
         </CardTitle>
@@ -212,10 +213,24 @@ export const TrainingProgressRadarChart: React.FC<TrainingProgressRadarChartProp
 
         {/* View Toggle */}
         {hasMeasurements && (
-          <Tabs value={chartView} onValueChange={(v) => setChartView(v as 'basic' | 'measurements')} className="mt-2">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="basic">{t('radar_chart.basic_tab', 'Cơ bản')}</TabsTrigger>
-              <TabsTrigger value="measurements">{t('radar_chart.measurements_tab', 'Số đo')}</TabsTrigger>
+          <Tabs
+            value={chartView}
+            onValueChange={(v) => setChartView(v as 'basic' | 'measurements')}
+            className="w-full gap-0"
+          >
+            <TabsList className="grid h-11 w-full grid-cols-2 rounded-full bg-slate-100 p-1 shadow-inner">
+              <TabsTrigger
+                value="basic"
+                className="h-full rounded-full text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-[#101D33] data-[state=active]:shadow-sm text-slate-600"
+              >
+                {t('radar_chart.basic_tab', 'Cơ bản')}
+              </TabsTrigger>
+              <TabsTrigger
+                value="measurements"
+                className="h-full rounded-full text-sm font-semibold data-[state=active]:bg-white data-[state=active]:text-[#101D33] data-[state=active]:shadow-sm text-slate-600"
+              >
+                {t('radar_chart.measurements_tab', 'Số đo')}
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         )}
@@ -226,14 +241,16 @@ export const TrainingProgressRadarChart: React.FC<TrainingProgressRadarChartProp
             <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
               <PolarGrid stroke="#E5E7EB" />
               <PolarAngleAxis dataKey="metric" tick={{ fontSize: 10, fill: '#6B7280' }} />
-              <Radar
-                name={t('radar_chart.previous', 'Trước đó')}
-                dataKey="previous"
-                stroke="#3B82F6"
-                fill="#3B82F6"
-                fillOpacity={0.3}
-                strokeWidth={2}
-              />
+              {hasBaseline && (
+                <Radar
+                  name={t('radar_chart.first', 'Lần đầu')}
+                  dataKey="previous"
+                  stroke="#3B82F6"
+                  fill="#3B82F6"
+                  fillOpacity={0.3}
+                  strokeWidth={2}
+                />
+              )}
               <Radar
                 name={t('radar_chart.current', 'Hiện tại')}
                 dataKey="current"
@@ -244,6 +261,20 @@ export const TrainingProgressRadarChart: React.FC<TrainingProgressRadarChartProp
               />
             </RadarChart>
           </ResponsiveContainer>
+        </div>
+
+        {/* Legend */}
+        <div className="mt-4 flex items-center justify-center gap-6 text-sm font-semibold text-slate-600">
+          <div className="flex items-center gap-2">
+            <div className="h-2.5 w-2.5 rounded-full bg-[#F05A29]" />
+            <span>{t('radar_chart.current', 'Hiện tại')}</span>
+          </div>
+          {hasBaseline && (
+            <div className="flex items-center gap-2">
+              <div className="h-2.5 w-2.5 rounded-full bg-[#3B82F6]" />
+              <span>{t('radar_chart.first', 'Lần đầu')}</span>
+            </div>
+          )}
         </div>
 
         {/* Actual Values Display */}
@@ -304,18 +335,6 @@ export const TrainingProgressRadarChart: React.FC<TrainingProgressRadarChartProp
             </div>
           </div>
         )}
-
-        {/* Legend */}
-        <div className="mt-4 flex items-center justify-center gap-6 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-[#F05A29]" />
-            <span>{t('radar_chart.current', 'Hiện tại')}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-[#3B82F6]" />
-            <span>{previousData ? t('radar_chart.previous', 'Trước đó') : t('radar_chart.target', 'Mục tiêu')}</span>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
