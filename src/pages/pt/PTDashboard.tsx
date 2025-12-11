@@ -342,7 +342,9 @@ const PTDashboard: React.FC = () => {
         title: t('pt.dashboard.action_center.next_session', 'Check in the next session'),
         description: `${formatScheduleLabel(nextSchedule)} • ${timeLabel} • ${nextSchedule.branchId?.branchName || branchName}`,
         cta: t('pt.dashboard.quick_access.calendar', 'Open calendar'),
-        onClick: () => navigate('/manage/pt/calendar'),
+        onClick: () => {
+          void navigate('/manage/pt/calendar');
+        },
         icon: <Clock className="w-4 h-4 text-[#F05A29]" />
       });
     }
@@ -352,7 +354,9 @@ const PTDashboard: React.FC = () => {
         title: t('pt.dashboard.action_center.expiring_clients', 'Follow up expiring clients'),
         description: t('pt.dashboard.clients.days_left', '{{count}} days left', { count: 7 }),
         cta: t('pt.dashboard.clients.view_all', 'View clients'),
-        onClick: () => navigate('/manage/pt/clients'),
+        onClick: () => {
+          void navigate('/manage/pt/clients');
+        },
         icon: <AlertTriangle className="w-4 h-4 text-amber-600" />
       });
     }
@@ -365,7 +369,9 @@ const PTDashboard: React.FC = () => {
             ? t('pt.dashboard.progress.title', 'Latest progress updates')
             : t('pt.dashboard.progress.empty', 'No progress entries yet'),
         cta: t('pt.dashboard.progress.view_all', 'Log new progress'),
-        onClick: () => navigate('/manage/pt/clients'),
+        onClick: () => {
+          void navigate('/manage/pt/clients');
+        },
         icon: <Activity className="w-4 h-4 text-emerald-600" />
       });
     }
