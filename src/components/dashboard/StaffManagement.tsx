@@ -6,7 +6,6 @@ import {
   Plus,
   Eye,
   Edit,
-  Trash2,
   Users,
   FileText,
   Loader2,
@@ -22,7 +21,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { SortableHeader } from '@/components/ui/SortableHeader';
 import {
   AlertDialog,
@@ -82,8 +80,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
   const { canManageStaff } = useCanManageStaff();
   const { startStaffTour } = useStaffTour();
   const [filters, setFilters] = useState<StaffFilters>({
-    searchTerm: '',
-    selectedIds: []
+    searchTerm: ''
   });
 
   const [selectedStaff, setSelectedStaff] = useState<StaffDisplay | null>(null);
@@ -122,8 +119,6 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
 
   // Use the hook for updating staff status
   const { updateStaffStatus } = useUpdateStaffStatus();
-
-  const selectedCount = filters.selectedIds.length;
 
   React.useEffect(() => {
     // Only update filters when branch is loaded (not during initial loading)
@@ -200,38 +195,6 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
     setFilters((prev) => ({ ...prev, searchTerm: value }));
   };
 
-  const handleSelectAll = () => {
-    const allIds = sortedStaffList.map((staff) => staff.id);
-    const isAllSelected = allIds.every((id) => filters.selectedIds.includes(id));
-
-    if (isAllSelected) {
-      // Bỏ chọn tất cả
-      setFilters((prev) => ({
-        ...prev,
-        selectedIds: prev.selectedIds.filter((id) => !allIds.includes(id))
-      }));
-    } else {
-      // Chọn tất cả
-      setFilters((prev) => ({
-        ...prev,
-        selectedIds: [...new Set([...prev.selectedIds, ...allIds])]
-      }));
-    }
-  };
-
-  const handleSelectStaff = (staffId: string) => {
-    setFilters((prev) => {
-      const newSelectedIds = prev.selectedIds.includes(staffId)
-        ? prev.selectedIds.filter((id) => id !== staffId)
-        : [...prev.selectedIds, staffId];
-      console.log('New selected IDs:', newSelectedIds);
-      return {
-        ...prev,
-        selectedIds: newSelectedIds
-      };
-    });
-  };
-
   const handlePageChange = (newPage: number) => {
     if (!pagination) return;
     const total = Math.max(pagination.totalPages, 1);
@@ -248,18 +211,6 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
     if (onAddStaff) {
       onAddStaff();
     }
-  };
-
-  const handleBulkEdit = () => {
-    const selectedStaff = sortedStaffList.filter((staff) => filters.selectedIds.includes(staff.id));
-    console.log('Bulk edit selected staff:', selectedStaff);
-    // TODO: Implement bulk edit functionality
-  };
-
-  const handleBulkDelete = () => {
-    const selectedStaff = sortedStaffList.filter((staff) => filters.selectedIds.includes(staff.id));
-    console.log('Bulk delete selected staff:', selectedStaff);
-    // TODO: Implement bulk delete functionality
   };
 
   const handleViewStaff = (staff: StaffDisplay) => {
@@ -507,11 +458,6 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
           </div>
 
           <div className="flex items-center gap-2">
-            {selectedCount > 0 && (
-              <span className="inline-flex items-center rounded-full bg-orange-50 px-3 py-1 text-sm font-medium text-orange-600">
-                {t('dashboard.selected')} {selectedCount}
-              </span>
-            )}
             <div className="flex gap-2" data-tour="staff-action-buttons">
               <Button
                 className={`h-11 rounded-full px-6 text-sm font-semibold shadow-sm ${
@@ -561,70 +507,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
             />
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           </div>
-
-          <button
-            className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${
-              canManageStaffActions
-                ? sortedStaffList.length > 0 && sortedStaffList.every((staff) => filters.selectedIds.includes(staff.id))
-                  ? 'border border-orange-200 bg-orange-100 text-orange-600 shadow-sm'
-                  : 'border border-gray-200 bg-white text-gray-500 hover:border-orange-200 hover:text-orange-500'
-                : 'border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
-            }`}
-            onClick={canManageStaffActions ? handleSelectAll : undefined}
-            disabled={!canManageStaffActions}
-            data-tour="staff-select-all"
-          >
-            <span
-              className={`flex h-4 w-4 items-center justify-center rounded-full border ${
-                canManageStaffActions
-                  ? sortedStaffList.length > 0 &&
-                    sortedStaffList.every((staff) => filters.selectedIds.includes(staff.id))
-                    ? 'border-orange-400 bg-orange-500 text-white'
-                    : 'border-gray-300 text-transparent'
-                  : 'border-gray-300 bg-gray-200 text-gray-400'
-              }`}
-            >
-              {canManageStaffActions &&
-                sortedStaffList.length > 0 &&
-                sortedStaffList.every((staff) => filters.selectedIds.includes(staff.id)) && (
-                  <span className="text-[10px]">✓</span>
-                )}
-            </span>
-            <span>{t('dashboard.select_all')}</span>
-          </button>
         </div>
-
-        {selectedCount > 0 && (
-          <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
-            <span className="font-medium text-gray-600">{t('dashboard.bulk_actions') || 'Bulk actions'}:</span>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-all ${
-                  canManageStaffActions
-                    ? 'border border-gray-200 bg-white text-gray-600 hover:border-orange-200 hover:text-orange-500'
-                    : 'border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
-                }`}
-                onClick={canManageStaffActions ? handleBulkEdit : undefined}
-                disabled={!canManageStaffActions}
-              >
-                <Edit className="h-4 w-4" />
-                {t('dashboard.bulk_edit')}
-              </button>
-              <button
-                className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-all ${
-                  canManageStaffActions
-                    ? 'border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100'
-                    : 'border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
-                }`}
-                onClick={canManageStaffActions ? handleBulkDelete : undefined}
-                disabled={!canManageStaffActions}
-              >
-                <Trash2 className="h-4 w-4" />
-                {t('dashboard.bulk_delete')}
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Table */}
@@ -632,7 +515,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
         <table className="w-full text-left">
           <thead className="bg-[#FFF7EF]">
             <tr>
-              <th className="px-4 py-3 text-sm font-semibold text-orange-600 first:rounded-l-2xl">
+              <th className="px-4 py-3 text-sm font-semibold text-orange-600 text-center first:rounded-l-2xl">
                 {t('dashboard.serial_number')}
               </th>
               <SortableHeader
@@ -693,28 +576,9 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
                 staff.status === 'ACTIVE' ? t('dashboard.inactive_staff') : t('dashboard.activate_staff');
 
               return (
-                <tr
-                  key={staff.id}
-                  className={`${filters.selectedIds.includes(staff.id) ? 'bg-orange-50/80' : index % 2 === 0 ? 'bg-white' : 'bg-[#FFF9F2]'}`}
-                >
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    <div className="flex items-center space-x-3">
-                      <Checkbox
-                        checked={filters.selectedIds.includes(staff.id)}
-                        onCheckedChange={canManageStaffActions ? () => handleSelectStaff(staff.id) : undefined}
-                        disabled={!canManageStaffActions}
-                        className={canManageStaffActions ? '' : 'opacity-50'}
-                      />
-                      <span
-                        className={
-                          filters.selectedIds.includes(staff.id)
-                            ? 'font-semibold text-orange-500'
-                            : 'font-medium text-gray-700'
-                        }
-                      >
-                        {stt}
-                      </span>
-                    </div>
+                <tr key={staff.id} className={index % 2 === 0 ? 'bg-white' : 'bg-[#FFF9F2]'}>
+                  <td className="px-4 py-3 text-sm text-gray-600 text-center">
+                    <span className="font-medium text-gray-700">{stt}</span>
                   </td>
                   <td className="px-4 py-3 text-sm font-semibold text-gray-900">{staff.name}</td>
                   <td className="px-4 py-3 text-sm text-gray-500">{staff.jobTitle}</td>

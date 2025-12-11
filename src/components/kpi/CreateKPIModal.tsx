@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
-import { X } from 'lucide-react';
+import { X, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCreateKPI, useUpdateKPI, useKPIDetails } from '@/hooks/useKPI';
@@ -9,6 +11,8 @@ import { toast } from 'sonner';
 import { isBranchWideKPIResponse } from '@/types/api/KPI';
 import type { KPITargets, KPIReward, UpdateKPIRequest } from '@/types/api/KPI';
 import { formatPriceInput, parsePriceInput } from '@/utils/currency';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 
 interface KPIModalProps {
   open: boolean;
@@ -60,6 +64,20 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [startDateOpen, setStartDateOpen] = useState(false);
+  const [endDateOpen, setEndDateOpen] = useState(false);
+
+  const selectedStartDate = useMemo(() => {
+    if (!formData.startDate) return undefined;
+    const date = new Date(`${formData.startDate}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }, [formData.startDate]);
+
+  const selectedEndDate = useMemo(() => {
+    if (!formData.endDate) return undefined;
+    const date = new Date(`${formData.endDate}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }, [formData.endDate]);
 
   // Initialize form data
   useEffect(() => {
@@ -458,13 +476,46 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
                 {!isEditMode && <span className="text-red-500">*</span>}
                 {isEditMode && <span className="text-gray-500 text-xs ml-2">({t('kpi.form.cannot_change')})</span>}
               </label>
-              <Input
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                disabled={isEditMode ? true : loading}
-                className={`${errors.startDate ? 'border-red-500' : ''} ${isEditMode || loading ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-              />
+              <Popover open={startDateOpen} onOpenChange={setStartDateOpen} modal={false}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isEditMode ? true : loading}
+                    className={`w-full justify-between text-left font-normal ${isEditMode || loading ? 'bg-gray-100 cursor-not-allowed' : ''} ${errors.startDate ? 'border-red-500' : ''}`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4" />
+                      {selectedStartDate
+                        ? format(selectedStartDate, 'dd/MM/yyyy', { locale: vi })
+                        : t('membership_registration.activation_date_placeholder', {
+                            defaultValue: 'Chọn ngày bắt đầu'
+                          })}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
+                  align="start"
+                  side="bottom"
+                  sideOffset={8}
+                  collisionPadding={8}
+                >
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedStartDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        setFormData({ ...formData, startDate: format(date, 'yyyy-MM-dd') });
+                        setStartDateOpen(false);
+                      }
+                    }}
+                    initialFocus
+                    locale={vi}
+                    className="bg-white"
+                  />
+                </PopoverContent>
+              </Popover>
               {errors.startDate && <p className="mt-1 text-sm text-red-500">{errors.startDate}</p>}
             </div>
 
@@ -475,13 +526,46 @@ export const CreateKPIModal: React.FC<KPIModalProps> = ({ open, onClose, onSucce
                 {!isEditMode && <span className="text-red-500">*</span>}
                 {isEditMode && <span className="text-gray-500 text-xs ml-2">({t('kpi.form.cannot_change')})</span>}
               </label>
-              <Input
-                type="date"
-                value={formData.endDate}
-                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                disabled={isEditMode ? true : loading}
-                className={`${errors.endDate ? 'border-red-500' : ''} ${isEditMode || loading ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-              />
+              <Popover open={endDateOpen} onOpenChange={setEndDateOpen} modal={false}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isEditMode ? true : loading}
+                    className={`w-full justify-between text-left font-normal ${isEditMode || loading ? 'bg-gray-100 cursor-not-allowed' : ''} ${errors.endDate ? 'border-red-500' : ''}`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4" />
+                      {selectedEndDate
+                        ? format(selectedEndDate, 'dd/MM/yyyy', { locale: vi })
+                        : t('membership_registration.activation_date_placeholder', {
+                            defaultValue: 'Chọn ngày kết thúc'
+                          })}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
+                  align="start"
+                  side="bottom"
+                  sideOffset={8}
+                  collisionPadding={8}
+                >
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedEndDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        setFormData({ ...formData, endDate: format(date, 'yyyy-MM-dd') });
+                        setEndDateOpen(false);
+                      }
+                    }}
+                    initialFocus
+                    locale={vi}
+                    className="bg-white"
+                  />
+                </PopoverContent>
+              </Popover>
               {errors.endDate && <p className="mt-1 text-sm text-red-500">{errors.endDate}</p>}
             </div>
 

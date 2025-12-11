@@ -4,7 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Filter, Plus, Calendar } from 'lucide-react';
+import { Search, Filter, Plus, Calendar, Calendar as CalendarIcon } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import WorkShiftCard from './WorkShiftCard';
 import type {
   WorkShiftListProps,
@@ -56,6 +60,20 @@ export const WorkShiftFilters: React.FC<WorkShiftFiltersComponentProps> = ({
   branchList = []
 }) => {
   const { t } = useTranslation();
+  const [startDateOpen, setStartDateOpen] = React.useState(false);
+  const [endDateOpen, setEndDateOpen] = React.useState(false);
+
+  const selectedStartDate = React.useMemo(() => {
+    if (!filters.startDate) return undefined;
+    const date = new Date(`${filters.startDate}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }, [filters.startDate]);
+
+  const selectedEndDate = React.useMemo(() => {
+    if (!filters.endDate) return undefined;
+    const date = new Date(`${filters.endDate}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }, [filters.endDate]);
 
   const statusOptions: { value: WorkShiftStatus; label: string }[] = [
     { value: 'SCHEDULED', label: t('workshift.status.scheduled') },
@@ -173,19 +191,71 @@ export const WorkShiftFilters: React.FC<WorkShiftFiltersComponentProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">{t('workshift.start_date')}</label>
-            <Input
-              type="date"
-              value={filters.startDate || ''}
-              onChange={(e) => handleFilterChange('startDate', e.target.value)}
-            />
+            <Popover open={startDateOpen} onOpenChange={setStartDateOpen} modal={false}>
+              <PopoverTrigger asChild>
+                <Button type="button" variant="outline" className="w-full justify-between text-left font-normal">
+                  <span className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4" />
+                    {selectedStartDate
+                      ? format(selectedStartDate, 'dd/MM/yyyy', { locale: vi })
+                      : t('membership_registration.activation_date_placeholder', { defaultValue: 'Chọn ngày' })}
+                  </span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
+                align="start"
+                side="bottom"
+                sideOffset={8}
+                collisionPadding={8}
+              >
+                <CalendarComponent
+                  mode="single"
+                  selected={selectedStartDate}
+                  onSelect={(date) => {
+                    handleFilterChange('startDate', date ? format(date, 'yyyy-MM-dd') : '');
+                    setStartDateOpen(false);
+                  }}
+                  initialFocus
+                  locale={vi}
+                  className="bg-white"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">{t('workshift.end_date')}</label>
-            <Input
-              type="date"
-              value={filters.endDate || ''}
-              onChange={(e) => handleFilterChange('endDate', e.target.value)}
-            />
+            <Popover open={endDateOpen} onOpenChange={setEndDateOpen} modal={false}>
+              <PopoverTrigger asChild>
+                <Button type="button" variant="outline" className="w-full justify-between text-left font-normal">
+                  <span className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4" />
+                    {selectedEndDate
+                      ? format(selectedEndDate, 'dd/MM/yyyy', { locale: vi })
+                      : t('membership_registration.activation_date_placeholder', { defaultValue: 'Chọn ngày' })}
+                  </span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
+                align="start"
+                side="bottom"
+                sideOffset={8}
+                collisionPadding={8}
+              >
+                <CalendarComponent
+                  mode="single"
+                  selected={selectedEndDate}
+                  onSelect={(date) => {
+                    handleFilterChange('endDate', date ? format(date, 'yyyy-MM-dd') : '');
+                    setEndDateOpen(false);
+                  }}
+                  initialFocus
+                  locale={vi}
+                  className="bg-white"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 

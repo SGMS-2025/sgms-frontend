@@ -1,5 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +16,8 @@ import { validateProgressForm, canSubmitForm, formatValidationErrors } from '@/u
 import { BMIDisplay } from './shared/BMIDisplay';
 import { CameraModal } from './shared/CameraModal';
 import { PhotoUploadSection } from './shared/PhotoUploadSection';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import type { CreateTrainingProgressRequest, UpdateTrainingProgressRequest } from '@/types/api/TrainingProgress';
 import type { TrainingLog, ProgressFormData, EditProgressFormData } from '@/types/forms/Progress';
 
@@ -181,6 +186,13 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
   );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+
+  const selectedDate = useMemo(() => {
+    if (!formData.date) return undefined;
+    const date = new Date(`${formData.date}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }, [formData.date]);
 
   // Update form when initialData changes (edit mode only)
   useEffect(() => {
@@ -387,13 +399,39 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label htmlFor="date">Date</Label>
-          <Input
-            id="date"
-            type="date"
-            value={formData.date}
-            onChange={(e) => handleFieldChange('date', e.target.value)}
-            className="w-full"
-          />
+          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen} modal={false}>
+            <PopoverTrigger asChild>
+              <Button type="button" variant="outline" className="w-full justify-between text-left font-normal">
+                <span className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  {selectedDate
+                    ? format(selectedDate, 'dd/MM/yyyy', { locale: vi })
+                    : t('common.select_date', 'Select')}
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
+              align="start"
+              side="bottom"
+              sideOffset={8}
+              collisionPadding={8}
+            >
+              <CalendarComponent
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  if (date) {
+                    handleFieldChange('date', format(date, 'yyyy-MM-dd'));
+                    setDatePickerOpen(false);
+                  }
+                }}
+                initialFocus
+                locale={vi}
+                className="bg-white"
+              />
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="space-y-2">
           <Label htmlFor="weight">Weight (kg)</Label>
