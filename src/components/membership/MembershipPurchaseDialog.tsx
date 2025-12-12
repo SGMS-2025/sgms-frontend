@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -8,8 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { staffApi } from '@/services/api/staffApi';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import type { MembershipPaymentMethod, MembershipPlan } from '@/types/api/Membership';
 import type { Branch } from '@/types/api/Branch';
 
@@ -72,6 +75,20 @@ export const MembershipPurchaseDialog: React.FC<MembershipPurchaseDialogProps> =
   const acknowledgementLabel = t('gymDetail.membership.purchase.transferAcknowledgement');
   const acknowledgementRequiredMessage = t('gymDetail.membership.purchase.transferConfirmationRequired');
   const notePlaceholder = t('gymDetail.membership.purchase.notePlaceholderBank');
+  const [startDateOpen, setStartDateOpen] = useState(false);
+
+  const selectedStartDate = useMemo(() => {
+    if (!startDate) return undefined;
+    const date = new Date(`${startDate}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }, [startDate]);
+
+  const handleStartDateChange = (date?: Date) => {
+    if (date) {
+      setStartDate(format(date, 'yyyy-MM-dd'));
+      setStartDateOpen(false);
+    }
+  };
 
   // Validate referral code
   const validateReferralCode = async (code: string) => {
@@ -287,13 +304,36 @@ export const MembershipPurchaseDialog: React.FC<MembershipPurchaseDialogProps> =
               <Label htmlFor="startDate" className="text-sm font-medium text-foreground">
                 {t('gymDetail.membership.purchase.startDate')}
               </Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
-                className="w-full"
-              />
+              <Popover open={startDateOpen} onOpenChange={setStartDateOpen} modal={false}>
+                <PopoverTrigger asChild>
+                  <Button type="button" variant="outline" className="w-full justify-between text-left font-normal">
+                    <span className="flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4" />
+                      {selectedStartDate
+                        ? format(selectedStartDate, 'dd/MM/yyyy', { locale: vi })
+                        : t('membership_registration.activation_date_placeholder', {
+                            defaultValue: 'Chọn ngày bắt đầu'
+                          })}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
+                  align="start"
+                  side="bottom"
+                  sideOffset={8}
+                  collisionPadding={8}
+                >
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedStartDate}
+                    onSelect={handleStartDateChange}
+                    initialFocus
+                    locale={vi}
+                    className="bg-white"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* CASE 1: Referral Code Input */}

@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Settings, Info } from 'lucide-react';
+import { Settings, Info, Calendar as CalendarIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import type { TemplateCreationFormProps } from '@/types/forms/StaffScheduleFormTypes';
 
 const TemplateCreationForm: React.FC<TemplateCreationFormProps> = ({
@@ -22,6 +27,13 @@ const TemplateCreationForm: React.FC<TemplateCreationFormProps> = ({
   handleEndDateChange
 }) => {
   const { t } = useTranslation();
+  const [endDateOpen, setEndDateOpen] = useState(false);
+
+  const selectedEndDate = useMemo(() => {
+    if (!endDate) return undefined;
+    const date = new Date(`${endDate}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }, [endDate]);
 
   return (
     <Card className="w-full">
@@ -113,14 +125,46 @@ const TemplateCreationForm: React.FC<TemplateCreationFormProps> = ({
                       <Label htmlFor="endDate" className="text-xs font-medium">
                         {t('workshift.end_date')} *
                       </Label>
-                      <Input
-                        id="endDate"
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => handleEndDateChange(e.target.value)}
-                        min={new Date().toISOString().split('T')[0]}
-                        className={`h-8 text-sm ${endDateError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
-                      />
+                      <Popover open={endDateOpen} onOpenChange={setEndDateOpen} modal={false}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={`h-8 text-sm w-full justify-between text-left font-normal ${
+                              endDateError ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
+                            }`}
+                          >
+                            <span className="flex items-center gap-2">
+                              <CalendarIcon className="h-4 w-4" />
+                              {selectedEndDate
+                                ? format(selectedEndDate, 'dd/MM/yyyy', { locale: vi })
+                                : t('membership_registration.activation_date_placeholder', {
+                                    defaultValue: 'Chọn ngày'
+                                  })}
+                            </span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
+                          align="start"
+                          side="bottom"
+                          sideOffset={8}
+                          collisionPadding={8}
+                        >
+                          <CalendarComponent
+                            mode="single"
+                            selected={selectedEndDate}
+                            onSelect={(date) => {
+                              handleEndDateChange(date ? format(date, 'yyyy-MM-dd') : '');
+                              setEndDateOpen(false);
+                            }}
+                            initialFocus
+                            locale={vi}
+                            className="bg-white"
+                            fromDate={new Date()}
+                          />
+                        </PopoverContent>
+                      </Popover>
                       {endDateError && <p className="text-red-500 text-sm font-medium">{endDateError}</p>}
                       <p className="text-xs text-gray-500">{t('workshift.end_date_description')}</p>
                     </div>

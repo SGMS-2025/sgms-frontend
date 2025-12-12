@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useCustomerGoal } from '@/hooks/useCustomerGoal';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import type {
   CreateCustomerGoalRequest,
   UpdateCustomerGoalRequest,
@@ -57,6 +62,20 @@ export const GoalForm: React.FC<GoalFormProps> = ({
   });
 
   const [showTargets, setShowTargets] = useState(false);
+  const [startDateOpen, setStartDateOpen] = useState(false);
+  const [endDateOpen, setEndDateOpen] = useState(false);
+
+  const selectedStartDate = useMemo(() => {
+    if (!formData.startDate) return undefined;
+    const date = new Date(`${formData.startDate}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }, [formData.startDate]);
+
+  const selectedEndDate = useMemo(() => {
+    if (!formData.endDate) return undefined;
+    const date = new Date(`${formData.endDate}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }, [formData.endDate]);
 
   useEffect(() => {
     if (initialGoal) {
@@ -234,23 +253,75 @@ export const GoalForm: React.FC<GoalFormProps> = ({
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="startDate">{t('goal_form.start_date', 'Start Date')} *</Label>
-          <Input
-            id="startDate"
-            type="date"
-            value={formData.startDate}
-            onChange={(e) => setFormData((prev) => ({ ...prev, startDate: e.target.value }))}
-            required
-          />
+          <Popover open={startDateOpen} onOpenChange={setStartDateOpen} modal={false}>
+            <PopoverTrigger asChild>
+              <Button type="button" variant="outline" className="w-full justify-between text-left font-normal">
+                <span className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  {selectedStartDate
+                    ? format(selectedStartDate, 'dd/MM/yyyy', { locale: vi })
+                    : t('membership_registration.activation_date_placeholder', { defaultValue: 'Chọn ngày bắt đầu' })}
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
+              align="start"
+              side="bottom"
+              sideOffset={8}
+              collisionPadding={8}
+            >
+              <CalendarComponent
+                mode="single"
+                selected={selectedStartDate}
+                onSelect={(date) => {
+                  if (date) {
+                    setFormData((prev) => ({ ...prev, startDate: format(date, 'yyyy-MM-dd') }));
+                    setStartDateOpen(false);
+                  }
+                }}
+                initialFocus
+                locale={vi}
+                className="bg-white"
+              />
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="space-y-2">
           <Label htmlFor="endDate">{t('goal_form.end_date', 'End Date')} *</Label>
-          <Input
-            id="endDate"
-            type="date"
-            value={formData.endDate}
-            onChange={(e) => setFormData((prev) => ({ ...prev, endDate: e.target.value }))}
-            required
-          />
+          <Popover open={endDateOpen} onOpenChange={setEndDateOpen} modal={false}>
+            <PopoverTrigger asChild>
+              <Button type="button" variant="outline" className="w-full justify-between text-left font-normal">
+                <span className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4" />
+                  {selectedEndDate
+                    ? format(selectedEndDate, 'dd/MM/yyyy', { locale: vi })
+                    : t('membership_registration.activation_date_placeholder', { defaultValue: 'Chọn ngày kết thúc' })}
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
+              align="start"
+              side="bottom"
+              sideOffset={8}
+              collisionPadding={8}
+            >
+              <CalendarComponent
+                mode="single"
+                selected={selectedEndDate}
+                onSelect={(date) => {
+                  if (date) {
+                    setFormData((prev) => ({ ...prev, endDate: format(date, 'yyyy-MM-dd') }));
+                    setEndDateOpen(false);
+                  }
+                }}
+                initialFocus
+                locale={vi}
+                className="bg-white"
+              />
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
