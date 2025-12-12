@@ -13,7 +13,8 @@ import type {
   CancelSubscriptionRequest,
   GetSubscriptionsQuery,
   GetSubscriptionHistoryQuery,
-  PaymentStatusResponse
+  PaymentStatusResponse,
+  SubscriptionAnalyticsResponse
 } from '@/types/api/Subscription';
 
 const BASE_URL = '/subscriptions';
@@ -161,6 +162,14 @@ export const subscriptionApi = {
     data?: CancelSubscriptionRequest
   ): Promise<OwnerSubscriptionResponse> => {
     const response = await api.post(`${BASE_URL}/admin/cancel/${subscriptionId}`, data);
+    return response.data;
+  },
+
+  /**
+   * Get subscription analytics (Admin only)
+   */
+  getSubscriptionAnalytics: async (): Promise<SubscriptionAnalyticsResponse> => {
+    const response = await api.get(`${BASE_URL}/admin/stats`);
     return response.data;
   }
 };

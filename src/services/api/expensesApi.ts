@@ -5,7 +5,8 @@ import type {
   ExpenseListParams,
   ExpenseListResponse,
   CreateExpenseRequest,
-  UpdateExpenseRequest
+  UpdateExpenseRequest,
+  ExpenseStats
 } from '@/types/api/Expenses';
 
 export const expensesApi = {
@@ -30,6 +31,12 @@ export const expensesApi = {
   // Update expense
   updateExpense: async (id: string, data: UpdateExpenseRequest): Promise<ApiResponse<Expense>> => {
     const response = await api.patch(`/expenses/${id}`, data);
+    return response.data;
+  },
+
+  // Get expense statistics
+  getExpenseStats: async (params: ExpenseListParams = {}): Promise<ApiResponse<ExpenseStats>> => {
+    const response = await api.get('/expenses/stats', { params });
     return response.data;
   },
 

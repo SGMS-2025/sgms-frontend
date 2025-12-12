@@ -26,25 +26,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/utils/utils';
-import { useExpenses } from '@/hooks/useExpenses';
+import { useExpenses, useExpenseStats } from '@/hooks/useExpenses';
 import { useBranch } from '@/contexts/BranchContext';
-import type { Expense, ExpenseCategory, ExpenseFilters } from '@/types/api/Expenses';
+import type { Expense, ExpenseCategory, ExpenseFilters, ExpenseStatus, ExpenseListParams } from '@/types/api/Expenses';
 import { EXPENSE_CATEGORY_DISPLAY } from '@/types/api/Expenses';
 import type { DateRange } from 'react-day-picker';
+import { ExpenseStatsCards } from '@/components/expenses/ExpenseStatsCards';
 
 interface ExpenseListProps {
   onExpenseSelect?: (expense: Expense) => void;
   onExpenseEdit?: (expense: Expense) => void;
   onExpenseDelete?: (expense: Expense) => void;
   onCreateExpense?: () => void;
+  onStartTour?: () => void;
 }
 
 export interface ExpenseListRef {
   refetch: () => Promise<void>;
+  refetchStats: () => Promise<void>;
 }
 
 export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
-  ({ onExpenseSelect, onExpenseEdit, onExpenseDelete, onCreateExpense }, ref) => {
+  ({ onExpenseSelect, onExpenseEdit, onExpenseDelete, onCreateExpense, onStartTour }, ref) => {
     const { t } = useTranslation();
     const { currentBranch } = useBranch();
 
@@ -72,6 +75,7 @@ export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
       sortBy: 'createdAt',
       sortOrder: 'desc'
     });
+    const { stats, loading: statsLoading, error: statsError, refetch: refetchStats } = useExpenseStats();
 
     // Refetch when currentBranch changes (avoid infinite loop)
     useEffect(() => {
@@ -154,6 +158,22 @@ export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
       return formatDisplay(selectedRange?.from || selectedRange?.to);
     }, [selectedRange, t]);
 
+    const statsFilters = useMemo<ExpenseListParams>(
+      () => ({
+        search: filters.search || undefined,
+        category: filters.category && filters.category !== 'all' ? (filters.category as ExpenseCategory) : undefined,
+        status: 'ACTIVE' as ExpenseStatus,
+        branchId: currentBranch?._id,
+        startDate: filters.startDate || undefined,
+        endDate: filters.endDate || undefined
+      }),
+      [filters.search, filters.category, filters.startDate, filters.endDate, currentBranch?._id]
+    );
+
+    useEffect(() => {
+      refetchStats(statsFilters);
+    }, [refetchStats, statsFilters]);
+
     const handleDateRangeChange = (range: DateRange | undefined) => {
       const startDate = range?.from ? format(range.from, 'yyyy-MM-dd') : '';
       const endDate = range?.to ? format(range.to, 'yyyy-MM-dd') : '';
@@ -200,9 +220,10 @@ export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
     useImperativeHandle(
       ref,
       () => ({
-        refetch
+        refetch,
+        refetchStats: () => refetchStats(statsFilters)
       }),
-      [refetch]
+      [refetch, refetchStats, statsFilters]
     );
 
     const categoryOptions = Object.entries(EXPENSE_CATEGORY_DISPLAY).map(([key, _]) => [
@@ -222,6 +243,17 @@ export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
 
     return (
       <div className="space-y-6">
+        <ExpenseStatsCards
+          stats={stats}
+          loading={statsLoading}
+          error={statsError}
+          onRetry={() => refetchStats(statsFilters)}
+          dateRangeLabel={selectedRange ? rangeLabel : undefined}
+          branchName={currentBranch?.branchName}
+          onCreateExpense={onCreateExpense}
+          onStartTour={onStartTour}
+        />
+
         {/* Filters */}
         <Card className="p-4">
           <div className="space-y-4">

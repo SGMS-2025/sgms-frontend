@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Building2, MapPin, Users, Phone, Mail, Calendar } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, Users, Phone, Mail, Calendar, Package, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { userApi } from '@/services/api/userApi';
+import { subscriptionApi } from '@/services/api/subscriptionApi';
+import type { OwnerSubscription } from '@/types/api/Subscription';
 import type { User } from '@/types/api/User';
 import { format } from 'date-fns';
 
@@ -30,12 +32,15 @@ interface OwnerBranch {
 }
 
 const AdminOwnerDetailPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const [owner, setOwner] = useState<User | null>(null);
   const [branches, setBranches] = useState<OwnerBranch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [subscriptions, setSubscriptions] = useState<OwnerSubscription[]>([]);
+  const [subsLoading, setSubsLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
 
   const statusLabels: Record<string, string> = {
     ACTIVE: t('common.status.active'),
@@ -47,6 +52,7 @@ const AdminOwnerDetailPage = () => {
   useEffect(() => {
     if (userId) {
       fetchOwnerDetail();
+      fetchOwnerSubscriptions();
     }
   }, [userId]);
 
@@ -69,6 +75,30 @@ const AdminOwnerDetailPage = () => {
     setLoading(false);
   };
 
+  const fetchOwnerSubscriptions = async () => {
+    if (!userId) return;
+    setSubsLoading(true);
+    try {
+      const res = await subscriptionApi.getAllSubscriptions({
+        ownerId: userId,
+        limit: 20,
+        sortBy: 'startDate',
+        sortOrder: 'desc'
+      });
+      if (res.success && res.data) {
+        const subs = Array.isArray(res.data) ? res.data : [];
+        setSubscriptions(subs);
+      } else {
+        setSubscriptions([]);
+      }
+    } catch (error) {
+      console.error('Failed to load owner subscriptions', error);
+      setSubscriptions([]);
+    } finally {
+      setSubsLoading(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
       ACTIVE: 'bg-green-100 text-green-800 hover:bg-green-200',
@@ -82,6 +112,25 @@ const AdminOwnerDetailPage = () => {
         {statusLabels[status] || status}
       </Badge>
     );
+  };
+
+  const handleCancelSubscription = async (subId: string) => {
+    if (cancelling) return;
+    const confirm = window.confirm(t('admin.owner_detail.subscriptions.confirm_cancel', 'Hủy gói hiện tại?'));
+    if (!confirm) return;
+    setCancelling(true);
+    try {
+      await subscriptionApi.cancelSubscriptionByAdmin(subId);
+      toast.success(t('admin.owner_detail.subscriptions.cancel_success', 'Đã hủy gói đăng ký'));
+      fetchOwnerSubscriptions();
+    } catch (error) {
+      const msg =
+        (error as { message?: string })?.message ||
+        t('admin.owner_detail.subscriptions.cancel_error', 'Hủy gói thất bại');
+      toast.error(msg);
+    } finally {
+      setCancelling(false);
+    }
   };
 
   if (loading) {
@@ -242,6 +291,122 @@ const AdminOwnerDetailPage = () => {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      {/* Subscriptions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="w-5 h-5" />
+            {t('admin.owner_detail.subscriptions.title', 'Giao dịch gói đăng ký')}
+          </CardTitle>
+          <CardDescription>
+            {t('admin.owner_detail.subscriptions.description', 'Lịch sử và gói hiện tại')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {subsLoading ? (
+            <div className="text-center py-6 text-gray-500">{t('common.loading', 'Đang tải...')}</div>
+          ) : subscriptions.length === 0 ? (
+            <div className="text-center py-6 text-gray-500">
+              {t('admin.owner_detail.subscriptions.empty', 'Chưa có giao dịch')}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {(() => {
+                const activeSub = subscriptions.find((s) => s.status === 'ACTIVE');
+                if (!activeSub) return null;
+                return (
+                  <div className="p-3 rounded-lg border border-emerald-100 bg-emerald-50/80 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">
+                        {t('admin.owner_detail.subscriptions.current', 'Gói hiện tại')}
+                      </p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        {typeof activeSub.packageId === 'object' ? activeSub.packageId?.name : activeSub.packageId}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {t('admin.owner_detail.subscriptions.period', 'Hiệu lực')}:{' '}
+                        {activeSub.startDate
+                          ? new Date(activeSub.startDate).toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')
+                          : '-'}{' '}
+                        -{' '}
+                        {activeSub.endDate
+                          ? new Date(activeSub.endDate).toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')
+                          : '-'}
+                      </p>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="flex items-center gap-2"
+                      onClick={() => handleCancelSubscription(activeSub._id)}
+                      disabled={cancelling}
+                    >
+                      <XCircle className="w-4 h-4" />
+                      {cancelling
+                        ? t('admin.owner_detail.subscriptions.cancelling', 'Đang hủy...')
+                        : t('admin.owner_detail.subscriptions.cancel', 'Hủy gói')}
+                    </Button>
+                  </div>
+                );
+              })()}
+
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('admin.owner_detail.subscriptions.package', 'Gói')}</TableHead>
+                      <TableHead>{t('admin.owner_detail.subscriptions.amount', 'Giá')}</TableHead>
+                      <TableHead>{t('admin.owner_detail.subscriptions.start', 'Bắt đầu')}</TableHead>
+                      <TableHead>{t('admin.owner_detail.subscriptions.end', 'Kết thúc')}</TableHead>
+                      <TableHead>{t('admin.owner_detail.subscriptions.status', 'Trạng thái')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {subscriptions.map((sub) => (
+                      <TableRow key={sub._id}>
+                        <TableCell className="font-medium">
+                          {typeof sub.packageId === 'object' ? sub.packageId?.name : sub.packageId}
+                        </TableCell>
+                        <TableCell>{sub.amount?.toLocaleString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}</TableCell>
+                        <TableCell>
+                          {sub.startDate
+                            ? new Date(sub.startDate).toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {sub.endDate
+                            ? new Date(sub.endDate).toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={
+                              sub.status === 'ACTIVE'
+                                ? 'bg-green-100 text-green-800'
+                                : sub.status === 'CANCELLED'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-gray-100 text-gray-800'
+                            }
+                            variant="outline"
+                          >
+                            {sub.status === 'ACTIVE'
+                              ? t('admin.subscriptions.status.active', 'ACTIVE')
+                              : sub.status === 'CANCELLED'
+                                ? t('admin.subscriptions.status.cancelled', 'CANCELLED')
+                                : sub.status === 'EXPIRED'
+                                  ? t('admin.subscriptions.status.expired', 'EXPIRED')
+                                  : sub.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </CardContent>
