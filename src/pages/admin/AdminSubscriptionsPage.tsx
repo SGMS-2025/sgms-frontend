@@ -24,7 +24,6 @@ import {
   CheckCircle2,
   XCircle
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { subscriptionApi } from '@/services/api/subscriptionApi';
 import type { OwnerSubscription, GetSubscriptionsQuery, SubscriptionAnalyticsResponse } from '@/types/api/Subscription';
 import { Input } from '@/components/ui/input';
@@ -225,7 +224,10 @@ const AdminSubscriptionsPage: React.FC = () => {
           {analyticsLoading ? (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[1, 2, 3, 4].map((item) => (
-                <div key={item} className="p-4 rounded-xl border border-gray-100 bg-white animate-pulse space-y-3 shadow-sm">
+                <div
+                  key={item}
+                  className="p-4 rounded-xl border border-gray-100 bg-white animate-pulse space-y-3 shadow-sm"
+                >
                   <div className="h-4 w-24 bg-gray-200 rounded" />
                   <div className="h-6 w-20 bg-gray-200 rounded" />
                 </div>
@@ -250,7 +252,9 @@ const AdminSubscriptionsPage: React.FC = () => {
                       <BarChart3 className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">{t('admin.subscriptions.analytics.total', 'Tổng giao dịch')}</p>
+                      <p className="text-sm text-gray-600">
+                        {t('admin.subscriptions.analytics.total', 'Tổng giao dịch')}
+                      </p>
                       <p className="text-lg font-semibold text-gray-900">{summary.totalSubscriptions}</p>
                     </div>
                   </div>
@@ -259,7 +263,9 @@ const AdminSubscriptionsPage: React.FC = () => {
                       <Wallet className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">{t('admin.subscriptions.analytics.revenue', 'Tổng doanh thu')}</p>
+                      <p className="text-sm text-gray-600">
+                        {t('admin.subscriptions.analytics.revenue', 'Tổng doanh thu')}
+                      </p>
                       <p className="text-lg font-semibold text-gray-900">{formatCurrency(summary.totalRevenue || 0)}</p>
                     </div>
                   </div>
@@ -515,7 +521,6 @@ const AdminSubscriptionsPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
-
     </div>
   );
 };
