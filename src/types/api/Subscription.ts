@@ -179,6 +179,42 @@ export interface OwnerSubscriptionsResponse {
   statusCode: number;
 }
 
+export interface SubscriptionPackageAnalytics {
+  packageId: string;
+  packageName: string;
+  isTrial?: boolean;
+  tier?: number;
+  totalPurchases: number;
+  activeSubscriptions: number;
+  totalRevenue: number;
+  userCount?: number;
+}
+
+export interface SubscriptionAnalyticsResponse {
+  success: boolean;
+  message: string;
+  data: {
+    topPackages: SubscriptionPackageAnalytics[];
+    trialUsers: {
+      active: number;
+      total: number;
+      totalSubscriptions: number;
+    };
+    summary?: {
+      totalSubscriptions: number;
+      totalRevenue: number;
+      currentMonthRevenue?: number;
+      status: {
+        active: number;
+        cancelled: number;
+        expired: number;
+        unknown: number;
+      };
+    };
+  };
+  statusCode?: number;
+}
+
 export interface SubscriptionStatsResponse {
   success: boolean;
   message: string;
@@ -237,6 +273,8 @@ export interface AllSubscriptionsResponse {
 // Query Types
 export interface GetSubscriptionsQuery {
   status?: 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
+  search?: string;
+  ownerId?: string;
   page?: number;
   limit?: number;
   sortBy?: 'startDate' | 'endDate' | 'amount' | 'createdAt';

@@ -67,10 +67,11 @@ export interface RevenueChartParams {
   endDate?: string;
   groupBy?: 'month' | 'week';
   breakdown?: 'method' | 'contractType';
+  source?: 'subscription' | 'transaction';
 }
 
 export interface TrendsParams {
-  type?: 'customers' | 'staff' | 'pt';
+  type?: 'customers' | 'owners' | 'staff' | 'pt';
   year?: number;
   interval?: 'month' | 'week';
   branchId?: string;
