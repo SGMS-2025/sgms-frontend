@@ -65,7 +65,15 @@ const buildMealPlanSchema = (t: TFunction) => {
       .optional()
       .or(z.undefined()),
     ingredients: z
-      .array(z.string().trim().max(200, t('meal_plan.validation.ingredient_max')))
+      .array(
+        z.union([
+          z.string().trim().max(200, t('meal_plan.validation.ingredient_max')),
+          z.object({
+            name: z.string().trim().max(200, t('meal_plan.validation.ingredient_max')),
+            quantity_g: z.number().min(0).optional()
+          })
+        ])
+      )
       .optional()
       .default([])
   });
@@ -311,6 +319,7 @@ export const MealPlanForm = ({ initialValues, loading, onSubmit }: MealPlanFormP
   };
 
   const [itemsModal, setItemsModal] = useState<{ dayIdx: number; mealIdx: number } | null>(null);
+  const [ingredientsRawText, setIngredientsRawText] = useState<Record<string, string>>({});
 
   const onFormSubmit = (data: MealPlanFormValues) => {
     const processedData: MealPlanFormValues = {
@@ -676,7 +685,16 @@ export const MealPlanForm = ({ initialValues, loading, onSubmit }: MealPlanFormP
         })}
       </div>
 
-      <Dialog open={!!itemsModal} onOpenChange={() => setItemsModal(null)}>
+      <Dialog
+        open={!!itemsModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            setItemsModal(null);
+            // Reset raw text when modal closes
+            setIngredientsRawText({});
+          }
+        }}
+      >
         <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t('meal_plan.items_dialog.title')}</DialogTitle>
@@ -813,22 +831,73 @@ export const MealPlanForm = ({ initialValues, loading, onSubmit }: MealPlanFormP
                           <Controller
                             name={`days.${itemsModal.dayIdx}.meals.${itemsModal.mealIdx}.items.${itemIdx}.ingredients`}
                             control={control}
-                            render={({ field }) => (
-                              <div>
-                                <Input
-                                  className={cn('w-full', itemErrors?.ingredients && 'border-red-500')}
-                                  value={(field.value || []).join(', ')}
-                                  onChange={(e) =>
-                                    field.onChange(e.target.value ? e.target.value.split(',').map((s) => s.trim()) : [])
+                            render={({ field }) => {
+                              const fieldKey = `${itemsModal.dayIdx}-${itemsModal.mealIdx}-${itemIdx}`;
+
+                              // Convert ingredients to display string (one per line)
+                              const displayValueFromField = (field.value || [])
+                                .map((ing: unknown) => {
+                                  if (typeof ing === 'string') {
+                                    return ing;
                                   }
-                                />
-                                <div className="min-h-[16px]">
-                                  {itemErrors?.ingredients && (
-                                    <p className="text-xs text-red-600 mt-1">{itemErrors.ingredients.message}</p>
-                                  )}
+                                  if (ing && typeof ing === 'object' && 'name' in ing) {
+                                    const ingObj = ing as { name: string; quantity_g?: number };
+                                    return ingObj.quantity_g ? `${ingObj.name} (${ingObj.quantity_g}g)` : ingObj.name;
+                                  }
+                                  return '';
+                                })
+                                .filter(Boolean)
+                                .join('\n');
+
+                              // Use raw text if available, otherwise use converted value
+                              const displayValue = ingredientsRawText[fieldKey] ?? displayValueFromField;
+
+                              return (
+                                <div>
+                                  <Textarea
+                                    className={cn('w-full resize-y', itemErrors?.ingredients && 'border-red-500')}
+                                    rows={displayValue ? Math.max(1, displayValue.split('\n').length) : 1}
+                                    style={{
+                                      minHeight: '38px',
+                                      maxHeight: '200px'
+                                    }}
+                                    value={displayValue}
+                                    placeholder={
+                                      t('meal_plan.items_dialog.ingredients_placeholder') || 'Mỗi dòng một nguyên liệu'
+                                    }
+                                    onChange={(e) => {
+                                      // Keep raw text value to allow Enter to work
+                                      const rawValue = e.target.value;
+                                      setIngredientsRawText((prev) => ({
+                                        ...prev,
+                                        [fieldKey]: rawValue
+                                      }));
+                                    }}
+                                    onBlur={(e) => {
+                                      // Convert textarea lines back to array of strings when user leaves the field
+                                      const newValue = e.target.value
+                                        ? e.target.value
+                                            .split('\n')
+                                            .map((s) => s.trim())
+                                            .filter(Boolean)
+                                        : [];
+                                      field.onChange(newValue);
+                                      // Clear raw text after processing
+                                      setIngredientsRawText((prev) => {
+                                        const updated = { ...prev };
+                                        delete updated[fieldKey];
+                                        return updated;
+                                      });
+                                    }}
+                                  />
+                                  <div className="min-h-[16px]">
+                                    {itemErrors?.ingredients && (
+                                      <p className="text-xs text-red-600 mt-1">{itemErrors.ingredients.message}</p>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              );
+                            }}
                           />
                         </div>
                         <div className="flex items-start">

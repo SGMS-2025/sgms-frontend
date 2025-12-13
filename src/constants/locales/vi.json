@@ -6366,7 +6366,8 @@
       "protein_label": "Đạm (g)",
       "carbs_label": "Tinh bột (g)",
       "fat_label": "Chất béo (g)",
-      "ingredients_label": "Nguyên liệu (tách bằng dấu ,)"
+      "ingredients_label": "Nguyên liệu (xuống dòng)",
+      "ingredients_placeholder": "Mỗi dòng một nguyên liệu"
     },
     "validation": {
       "name_required": "Tên là bắt buộc",
