@@ -212,6 +212,28 @@ class ClassApi {
   }
 
   /**
+   * Activate student enrollment in class
+   *
+   * Marks enrollment as ACTIVE and clears:
+   * - droppedDate: removed
+   * - dropReason: removed
+   *
+   * @param classId - Class ID
+   * @param enrollmentId - Enrollment record ID
+   * @returns Updated class
+   */
+  async activateStudent(classId: string, enrollmentId: string): Promise<Class> {
+    try {
+      const response = await api.patch<ClassDetailResponse>(
+        `${this.baseURL}/${classId}/enrollments/${enrollmentId}/activate`
+      );
+      return convertMongoDecimalToNumbers(response.data.data) as Class;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
    * Generate schedules for class
    *
    * Creates WorkShift records for all schedule pattern dates

@@ -36,6 +36,7 @@ interface MembershipFormStepProps {
   handlePromotionChange: (promotionId: string | undefined) => void;
   currentStaff?: Staff | null;
   loadingStaff?: boolean;
+  branchId?: string;
 }
 
 export const MembershipFormStep: React.FC<MembershipFormStepProps> = ({
@@ -49,7 +50,8 @@ export const MembershipFormStep: React.FC<MembershipFormStepProps> = ({
   handlePlanChange,
   handlePromotionChange,
   currentStaff,
-  loadingStaff = false
+  loadingStaff = false,
+  branchId
 }) => {
   const { t } = useTranslation();
   const [datePickerOpen, setDatePickerOpen] = React.useState(false);
@@ -241,6 +243,7 @@ export const MembershipFormStep: React.FC<MembershipFormStepProps> = ({
             <PaymentMethodSelector
               value={formData.paymentMethod}
               onChange={(value) => setFormData((prev) => ({ ...prev, paymentMethod: value }))}
+              branchId={branchId}
             />
 
             <PriceSummaryCard

@@ -70,6 +70,7 @@ import CustomerSchedule from '@/pages/customer/CustomerSchedule';
 import CustomerMembership from '@/pages/customer/CustomerMembership';
 import CustomerProfile from '@/pages/customer/CustomerProfile';
 import CustomerDashboard from '@/pages/customer/CustomerDashboard';
+import CustomerPayments from '@/pages/customer/CustomerPayments';
 import CustomerContracts from '@/pages/customer/CustomerContracts';
 import ClassCalendarPage from '@/pages/customer/ClassCalendarPage';
 import { CustomerLayout } from '@/layouts/CustomerLayout';
@@ -283,7 +284,7 @@ const AuthenticatedRedirect: React.FC = () => {
 
   // Redirect based on role
   if (user.role === 'OWNER') {
-    return <Navigate to="/manage/staff" replace />;
+    return <Navigate to="/manage/owner" replace />;
   } else if (user.role === 'CUSTOMER') {
     return <Navigate to="/" replace />; // Landing page for customer
   } else if (user.role === 'ADMIN') {
@@ -624,6 +625,9 @@ const AppRoutes: React.FC = () => {
 
           {/* Membership Route */}
           <Route path="membership" element={<CustomerMembership />} />
+
+          {/* Payment History Route */}
+          <Route path="payments" element={<CustomerPayments />} />
 
           {/* Schedule Route */}
           <Route path="schedule" element={<CustomerSchedule />} />

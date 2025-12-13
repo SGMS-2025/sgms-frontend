@@ -55,6 +55,23 @@ export const useClassEnrollment = (options: UseClassEnrollmentOptions = {}) => {
   );
 
   /**
+   * Activate student enrollment in class
+   */
+  const activateStudent = useCallback(
+    async (classId: string, enrollmentId: string) => {
+      setLoading(true);
+      setError(null);
+
+      const response = await classApi.activateStudent(classId, enrollmentId);
+      toast.success('Student activated successfully');
+      options.onSuccess?.();
+      setLoading(false);
+      return response;
+    },
+    [options]
+  );
+
+  /**
    * Clear error
    */
   const clearError = useCallback(() => {
@@ -64,6 +81,7 @@ export const useClassEnrollment = (options: UseClassEnrollmentOptions = {}) => {
   return {
     enrollStudents,
     removeStudent,
+    activateStudent,
     loading,
     error,
     clearError

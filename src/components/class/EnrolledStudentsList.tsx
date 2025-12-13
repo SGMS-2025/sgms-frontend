@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Search, X, Calendar, Package } from 'lucide-react';
+import { Users, Search, X, Calendar, Package, UserCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -16,12 +16,13 @@ import type {
 export const EnrolledStudentsList: React.FC<EnrolledStudentsListProps> = ({
   classId,
   onRemoveStudent,
+  onActivateStudent,
   showHeader = true,
   compact = false
 }) => {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
 
   // Fetch class details with enrolled students
   const { classData, loading, error, refetch } = useClassDetail(classId);
@@ -33,9 +34,7 @@ export const EnrolledStudentsList: React.FC<EnrolledStudentsListProps> = ({
     let filtered = classData.enrolledStudents;
 
     // Filter by status
-    if (statusFilter !== 'ALL') {
-      filtered = filtered.filter((s) => s.status === statusFilter);
-    }
+    filtered = filtered.filter((s) => s.status === statusFilter);
 
     // Filter by search (name or email)
     if (search) {
@@ -126,9 +125,7 @@ export const EnrolledStudentsList: React.FC<EnrolledStudentsListProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5 text-gray-600" />
-            <h3 className="text-lg font-semibold">
-              {t('class.enrolledstudents.header_title', { count: validStudents.length })}
-            </h3>
+            <h3 className="text-lg font-semibold">{t('class.enrolledstudents.header_title')}</h3>
           </div>
           {classServicePackageName && (
             <Badge variant="outline" className="text-xs">
@@ -151,14 +148,6 @@ export const EnrolledStudentsList: React.FC<EnrolledStudentsListProps> = ({
           />
         </div>
         <div className="flex gap-1 border rounded-lg p-1">
-          <Button
-            size="sm"
-            variant={statusFilter === 'ALL' ? 'default' : 'ghost'}
-            onClick={() => setStatusFilter('ALL')}
-            className="h-7 px-3 text-xs"
-          >
-            {t('class.enrolledstudents.filter_all')}
-          </Button>
           <Button
             size="sm"
             variant={statusFilter === 'ACTIVE' ? 'default' : 'ghost'}
@@ -200,12 +189,10 @@ export const EnrolledStudentsList: React.FC<EnrolledStudentsListProps> = ({
         <div className="text-center py-12 text-gray-500">
           <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-lg font-medium">
-            {search || statusFilter !== 'ALL'
-              ? t('class.enrolledstudents.empty_no_match')
-              : t('class.enrolledstudents.empty_no_students')}
+            {search ? t('class.enrolledstudents.empty_no_match') : t('class.enrolledstudents.empty_no_students')}
           </p>
           <p className="text-sm mt-1">
-            {search || statusFilter !== 'ALL'
+            {search
               ? t('class.enrolledstudents.empty_adjust_search')
               : t('class.enrolledstudents.empty_enroll_students')}
           </p>
@@ -280,17 +267,46 @@ export const EnrolledStudentsList: React.FC<EnrolledStudentsListProps> = ({
                     )}
                   </div>
                 </div>
-                {onRemoveStudent && student.status === 'ACTIVE' && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onRemoveStudent(student._id || student.enrollmentId || '')}
-                    className="flex-shrink-0"
-                  >
-                    <X className="w-4 h-4 mr-1" />
-                    {t('class.enrolledstudents.button_remove')}
-                  </Button>
-                )}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {onActivateStudent && student.status === 'INACTIVE' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const enrollmentId = student._id || student.enrollmentId;
+                        if (enrollmentId) {
+                          onActivateStudent(enrollmentId, customerName);
+                        } else {
+                          console.error('Enrollment ID not found for student:', student);
+                        }
+                      }}
+                      className="flex-shrink-0"
+                    >
+                      <UserCheck className="w-4 h-4 mr-1" />
+                      {t('class.enrolledstudents.button_activate')}
+                    </Button>
+                  )}
+                  {onRemoveStudent && student.status === 'ACTIVE' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const enrollmentId = student._id || student.enrollmentId;
+                        if (enrollmentId) {
+                          onRemoveStudent(enrollmentId, customerName);
+                        } else {
+                          console.error('Enrollment ID not found for student:', student);
+                        }
+                      }}
+                      className="flex-shrink-0"
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      {t('class.enrolledstudents.button_remove')}
+                    </Button>
+                  )}
+                </div>
               </div>
             );
           })}

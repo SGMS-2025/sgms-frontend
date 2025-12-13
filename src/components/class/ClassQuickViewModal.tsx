@@ -3,6 +3,16 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Users, Clock, MapPin, Package, AlertCircle, Edit2, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -33,9 +43,13 @@ export const ClassQuickViewModal: React.FC<ClassQuickViewModalProps> = ({
   const { t } = useTranslation();
   const { classData, loading, error, refetch } = useClassDetail(classId);
   const [shouldRefreshParent, setShouldRefreshParent] = useState(false);
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+  const [activateDialogOpen, setActivateDialogOpen] = useState(false);
+  const [selectedEnrollmentId, setSelectedEnrollmentId] = useState<string | null>(null);
+  const [selectedStudentName, setSelectedStudentName] = useState<string>('');
 
-  // Remove student handler
-  const { removeStudent } = useClassEnrollment({
+  // Remove and activate student handlers
+  const { removeStudent, activateStudent } = useClassEnrollment({
     onSuccess: () => {
       toast.success(t('class.quickview.remove_success'));
       refetch();
@@ -75,7 +89,7 @@ export const ClassQuickViewModal: React.FC<ClassQuickViewModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0" showCloseButton={false}>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden" showCloseButton={false}>
         {/* Loading State */}
         {loading && !classData && (
           <div className="p-6 space-y-4">
@@ -137,8 +151,8 @@ export const ClassQuickViewModal: React.FC<ClassQuickViewModalProps> = ({
             </DialogHeader>
 
             {/* Tabs Content */}
-            <Tabs defaultValue="overview" className="flex-1 flex flex-col overflow-hidden">
-              <div className="px-6 pt-4 border-b">
+            <Tabs defaultValue="overview" className="flex-1 flex flex-col min-h-0">
+              <div className="px-6 pt-4 border-b flex-shrink-0">
                 <TabsList>
                   <TabsTrigger value="overview" className="flex items-center gap-2">
                     <Info className="w-4 h-4" />
@@ -146,15 +160,13 @@ export const ClassQuickViewModal: React.FC<ClassQuickViewModalProps> = ({
                   </TabsTrigger>
                   <TabsTrigger value="students" className="flex items-center gap-2">
                     <Users className="w-4 h-4" />
-                    {t('class.quickview.tab_students', {
-                      count: classData.enrolledStudents ? classData.enrolledStudents.length : 0
-                    })}
+                    {t('class.quickview.tab_students')}
                   </TabsTrigger>
                 </TabsList>
               </div>
 
               {/* Overview Tab */}
-              <TabsContent value="overview" className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+              <TabsContent value="overview" className="flex-1 overflow-y-auto px-6 py-4 space-y-6 min-h-0">
                 {/* Capacity Section */}
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
                   <div className="flex justify-between items-center mb-3">
@@ -269,21 +281,109 @@ export const ClassQuickViewModal: React.FC<ClassQuickViewModalProps> = ({
               </TabsContent>
 
               {/* Students Tab */}
-              <TabsContent value="students" className="flex-1 overflow-y-auto px-6 py-4">
+              <TabsContent value="students" className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
                 <EnrolledStudentsList
                   classId={classId}
                   showHeader={false}
                   compact={true}
-                  onRemoveStudent={async (enrollmentId) => {
-                    if (confirm(t('class.quickview.confirm_remove_student'))) {
-                      await removeStudent(classId, enrollmentId, 'Removed by admin');
+                  onRemoveStudent={(enrollmentId, studentName) => {
+                    if (!enrollmentId) {
+                      toast.error(t('class.quickview.remove_error') || 'Enrollment ID is missing');
+                      return;
                     }
+                    setSelectedEnrollmentId(enrollmentId);
+                    setSelectedStudentName(studentName || '');
+                    setRemoveDialogOpen(true);
+                  }}
+                  onActivateStudent={(enrollmentId, studentName) => {
+                    if (!enrollmentId) {
+                      toast.error('Enrollment ID is missing');
+                      return;
+                    }
+                    setSelectedEnrollmentId(enrollmentId);
+                    setSelectedStudentName(studentName || '');
+                    setActivateDialogOpen(true);
                   }}
                 />
               </TabsContent>
             </Tabs>
           </>
         )}
+
+        {/* Remove Student Confirmation Dialog */}
+        <AlertDialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('class.quickview.confirm_remove_student')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {selectedStudentName
+                  ? t('class.quickview.remove_student_description', { name: selectedStudentName }) ||
+                    `Are you sure you want to remove ${selectedStudentName} from this class?`
+                  : t('class.quickview.confirm_remove_student')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setRemoveDialogOpen(false)}>
+                {t('common.cancel') || 'Cancel'}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  if (!selectedEnrollmentId) return;
+                  setRemoveDialogOpen(false);
+                  try {
+                    await removeStudent(classId, selectedEnrollmentId, 'Removed by admin');
+                  } catch (error) {
+                    console.error('Error removing student:', error);
+                    toast.error(error instanceof Error ? error.message : t('class.quickview.remove_error'));
+                  } finally {
+                    setSelectedEnrollmentId(null);
+                    setSelectedStudentName('');
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {t('class.enrolledstudents.button_remove') || 'Remove'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Activate Student Confirmation Dialog */}
+        <AlertDialog open={activateDialogOpen} onOpenChange={setActivateDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('class.quickview.confirm_activate_student') || 'Activate Student'}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {selectedStudentName
+                  ? t('class.quickview.activate_student_description', { name: selectedStudentName })
+                  : 'Are you sure you want to activate this student? This will restore their access to the class.'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setActivateDialogOpen(false)}>
+                {t('common.cancel') || 'Cancel'}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  if (!selectedEnrollmentId) return;
+                  setActivateDialogOpen(false);
+                  try {
+                    await activateStudent(classId, selectedEnrollmentId);
+                  } catch (error) {
+                    console.error('Error activating student:', error);
+                    toast.error(error instanceof Error ? error.message : 'Failed to activate student');
+                  } finally {
+                    setSelectedEnrollmentId(null);
+                    setSelectedStudentName('');
+                  }
+                }}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {t('class.enrolledstudents.button_activate') || 'Activate'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

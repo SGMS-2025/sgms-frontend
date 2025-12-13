@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Eye, EyeOff, User, Crown, Mail, Lock } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +13,6 @@ export function LoginForm() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<'customer' | 'owner'>('customer');
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -41,43 +40,6 @@ export function LoginForm() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Role Selection */}
-        <div className="animate-fadeInUp" style={{ animationDelay: ANIMATION_DELAYS.ROLE_SELECTION }}>
-          <p className="text-md text-gray-600 mb-3 font-semibold">{t('auth.login_role')}</p>
-          <div className="flex space-x-2">
-            <Button
-              type="button"
-              onClick={() => setSelectedRole('customer')}
-              className={`flex-1 rounded-lg py-4 text-base ${
-                selectedRole === 'customer'
-                  ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-300'
-              }`}
-            >
-              <User className="w-5 h-5 mr-2" />
-              {t('auth.customer')}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => setSelectedRole('owner')}
-              className={`flex-1 rounded-lg py-4 text-base ${
-                selectedRole === 'owner'
-                  ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-300'
-              }`}
-            >
-              <Crown className="w-5 h-5 mr-2" />
-              {t('auth.owner')}
-            </Button>
-          </div>
-          <p className="text-xs text-gray-500 mt-1 md:mt-2 flex items-center">
-            <span className="w-3 h-3 md:w-4 md:h-4 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs mr-2">
-              i
-            </span>
-            {t('auth.role_selection_warning')}
-          </p>
-        </div>
-
         {/* Input Fields */}
         <div className="space-y-4 animate-fadeInUp" style={{ animationDelay: ANIMATION_DELAYS.INPUT_FIELDS }}>
           {/* Email or Username Field */}

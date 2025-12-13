@@ -402,6 +402,22 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
     wizard.goToPrevious();
   };
 
+  // Reset form data to initial state
+  const resetFormData = useCallback(() => {
+    setFormData({
+      membershipPlanId: '',
+      branchId: currentBranch?._id || '',
+      cardCode: '',
+      startDate: new Date().toISOString().split('T')[0],
+      discountCampaignId: undefined,
+      paymentMethod: 'CASH' as 'CASH' | 'BANK_TRANSFER' | 'QR_BANK',
+      referrerStaffId: undefined,
+      notes: ''
+    });
+    setSelectedPlan(null);
+    setSelectedPromotion(null);
+  }, [currentBranch?._id, setFormData]);
+
   // Handle final success
   const handleSuccess = () => {
     wizard.reset();
@@ -409,18 +425,22 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
     setPayOSData(null);
     setBankQRContractId(null);
     contractPaymentMethodRef.current = null;
+    previousPaymentMethodRef.current = undefined;
+    lastStepRef.current = 'form';
+    setIsCreatingContract(false);
+    resetFormData();
     onSuccess?.();
     onClose();
   };
 
-  // Reset only when fully closing and not in the middle of QR payment
+  // Reset wizard when dialog closes
   const prevIsOpenRef = useRef<boolean>(false);
   useEffect(() => {
-    // When closing: reset only if we're not on payment step of QR_BANK (keep state to avoid jump)
+    // When closing: reset all state if safe to reset
     if (!isOpen && prevIsOpenRef.current) {
       const safeToReset =
         formData.paymentMethod !== 'QR_BANK' ||
-        (wizard.currentStep === 'form' && !bankQRContractId && !contractResponse);
+        (wizard.currentStep === 'form' && !bankQRContractId && !getContractId(contractResponse));
       if (safeToReset) {
         wizard.reset();
         setContractResponse(null);
@@ -428,6 +448,26 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
         setPayOSData(null);
         setBankQRContractId(null);
         contractPaymentMethodRef.current = null;
+        previousPaymentMethodRef.current = undefined;
+        lastStepRef.current = 'form';
+        resetFormData();
+      }
+    }
+
+    // When opening: reset form data if no QR contract exists (fresh start)
+    if (isOpen && !prevIsOpenRef.current) {
+      const hasQRContract = bankQRContractId || getContractId(contractResponse);
+      // Only reset if no QR contract exists (fresh registration)
+      if (!hasQRContract) {
+        resetFormData();
+        wizard.reset();
+        setContractResponse(null);
+        setIsCreatingContract(false);
+        setPayOSData(null);
+        setBankQRContractId(null);
+        contractPaymentMethodRef.current = null;
+        previousPaymentMethodRef.current = undefined;
+        lastStepRef.current = 'form';
       }
     }
 
@@ -461,7 +501,9 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
     wizard.currentStep,
     formData.paymentMethod,
     bankQRContractId,
-    contractResponse
+    contractResponse,
+    resetFormData,
+    getContractId
   ]);
 
   // Force stay on payment step if QR contract exists (guard against re-mount/reset)
@@ -550,6 +592,7 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
             handlePromotionChange={handlePromotionChangeWrapper}
             currentStaff={currentStaff}
             loadingStaff={loadingStaff}
+            branchId={currentBranch?._id}
           />
         );
 
