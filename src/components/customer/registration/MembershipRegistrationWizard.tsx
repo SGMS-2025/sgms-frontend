@@ -98,7 +98,7 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
 
   // Bank QR payment state
   const [bankQRContractId, setBankQRContractId] = useState<string | null>(null);
-  const previousPaymentMethodRef = useRef(formData.paymentMethod);
+  const previousPaymentMethodRef = useRef<'CASH' | 'BANK_TRANSFER' | 'QR_BANK' | undefined>(formData.paymentMethod);
   const contractPaymentMethodRef = useRef<'CASH' | 'BANK_TRANSFER' | 'QR_BANK' | null>(null);
   const lastStepRef = useRef<MembershipWizardStep>('form');
 
