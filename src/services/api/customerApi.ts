@@ -135,5 +135,36 @@ export const customerApi = {
   ): Promise<ApiResponse<PTCustomerListResponse>> => {
     const response = await api.get(`/customers/trainer/${trainerId}`, { params });
     return response.data;
+  },
+
+  // Get current customer's own information (self-service)
+  getMyCustomerInfo: async (): Promise<
+    ApiResponse<{
+      _id: string;
+      id: string;
+      allergies: string[];
+      medicalConditions: string[];
+      status: string;
+    }>
+  > => {
+    const response = await api.get('/customers/me');
+    return response.data;
+  },
+
+  // Update current customer's own medical information (self-service)
+  updateMyCustomerInfo: async (updateData: {
+    allergies?: string[];
+    medicalConditions?: string[];
+  }): Promise<
+    ApiResponse<{
+      _id: string;
+      id: string;
+      allergies: string[];
+      medicalConditions: string[];
+      status: string;
+    }>
+  > => {
+    const response = await api.put('/customers/me', updateData);
+    return response.data;
   }
 };

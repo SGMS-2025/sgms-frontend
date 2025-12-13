@@ -5,21 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Loader2,
   AlertTriangle,
-  X,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
@@ -28,11 +18,15 @@ import {
   User,
   Package,
   DollarSign,
-  Filter
+  Filter,
+  BarChart3,
+  Wallet,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { subscriptionApi } from '@/services/api/subscriptionApi';
-import type { OwnerSubscription, GetSubscriptionsQuery } from '@/types/api/Subscription';
+import type { OwnerSubscription, GetSubscriptionsQuery, SubscriptionAnalyticsResponse } from '@/types/api/Subscription';
+import { Input } from '@/components/ui/input';
 
 const AdminSubscriptionsPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -45,13 +39,13 @@ const AdminSubscriptionsPage: React.FC = () => {
     sortBy: 'createdAt',
     sortOrder: 'desc'
   });
+  const [searchTerm, setSearchTerm] = React.useState<string>('');
   const [total, setTotal] = React.useState<number>(0);
   const [hasNext, setHasNext] = React.useState<boolean>(false);
   const [hasPrev, setHasPrev] = React.useState<boolean>(false);
-  const [cancelDialogOpen, setCancelDialogOpen] = React.useState<boolean>(false);
-  const [subscriptionToCancel, setSubscriptionToCancel] = React.useState<OwnerSubscription | null>(null);
-  const [cancelReason, setCancelReason] = React.useState<string>('');
-  const [cancelling, setCancelling] = React.useState<boolean>(false);
+  const [analytics, setAnalytics] = React.useState<SubscriptionAnalyticsResponse['data'] | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = React.useState<boolean>(true);
+  const [analyticsError, setAnalyticsError] = React.useState<string>('');
 
   const fetchData = () => {
     setLoading(true);
@@ -85,7 +79,46 @@ const AdminSubscriptionsPage: React.FC = () => {
   React.useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query.page, query.limit, query.sortBy, query.sortOrder, query.status]);
+  }, [query.page, query.limit, query.sortBy, query.sortOrder, query.status, query.search]);
+
+  // Debounce search updates
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setQuery((q) => ({
+        ...q,
+        search: searchTerm.trim() || undefined,
+        page: 1
+      }));
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  const fetchAnalytics = React.useCallback(() => {
+    setAnalyticsLoading(true);
+    setAnalyticsError('');
+
+    subscriptionApi
+      .getSubscriptionAnalytics()
+      .then((res) => {
+        if (res.success && res.data) {
+          setAnalytics(res.data);
+        } else {
+          setAnalytics(null);
+          setAnalyticsError(res.message || t('admin.subscriptions.error.load_failed'));
+        }
+      })
+      .catch((err) => {
+        const message = err?.response?.data?.message || err?.message || t('admin.subscriptions.error.load_failed');
+        setAnalytics(null);
+        setAnalyticsError(message);
+      })
+      .finally(() => setAnalyticsLoading(false));
+  }, [t]);
+
+  React.useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
   const formatDate = (iso: string | undefined) => {
     if (!iso) return '-';
@@ -134,45 +167,6 @@ const AdminSubscriptionsPage: React.FC = () => {
     );
   };
 
-  const handleCancelClick = (subscription: OwnerSubscription) => {
-    setSubscriptionToCancel(subscription);
-    setCancelReason('');
-    setCancelDialogOpen(true);
-  };
-
-  const handleCancelConfirm = async () => {
-    if (!subscriptionToCancel) return;
-
-    setCancelling(true);
-    try {
-      await subscriptionApi.cancelSubscriptionByAdmin(subscriptionToCancel._id, {
-        reason: cancelReason || undefined
-      });
-      toast.success(t('admin.subscriptions.cancel_dialog.success_message') || 'Subscription cancelled successfully');
-      setCancelDialogOpen(false);
-      setSubscriptionToCancel(null);
-      setCancelReason('');
-      fetchData();
-    } catch (err: unknown) {
-      const errorMessage =
-        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
-        (err as { message?: string })?.message ||
-        t('admin.subscriptions.error.cancel_failed');
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setCancelling(false);
-    }
-  };
-
-  const handleCancelDialogClose = () => {
-    if (!cancelling) {
-      setCancelDialogOpen(false);
-      setSubscriptionToCancel(null);
-      setCancelReason('');
-    }
-  };
-
   const getOwnerName = (subscription: OwnerSubscription) => {
     if (typeof subscription.userId === 'object') {
       return subscription.userId?.fullName || subscription.userId?.username || subscription.userId?.email || '-';
@@ -197,26 +191,135 @@ const AdminSubscriptionsPage: React.FC = () => {
             {t('admin.subscriptions.description') || 'Manage all owner subscriptions'}
           </p>
         </div>
-        <Button variant="outline" onClick={fetchData} disabled={loading} className="gap-2">
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+        <Button
+          variant="outline"
+          onClick={() => {
+            fetchData();
+            fetchAnalytics();
+          }}
+          disabled={loading || analyticsLoading}
+          className="gap-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading || analyticsLoading ? 'animate-spin' : ''}`} />
           {t('admin.subscriptions.button.refresh')}
         </Button>
       </div>
 
-      {/* Filters Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="w-5 h-5" />
-            {t('admin.subscriptions.filters.title') || 'Filters'}
-          </CardTitle>
-          <CardDescription>
-            {t('admin.subscriptions.filters.description') || 'Filter subscriptions by status'}
-          </CardDescription>
+      {/* Subscription statistics */}
+      <Card className="border border-gray-200 shadow-sm">
+        <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle className="text-lg font-semibold text-gray-900">
+              {t('admin.subscriptions.analytics.title', 'Thống kê giao dịch')}
+            </CardTitle>
+            <CardDescription>
+              {t('admin.subscriptions.analytics.subtitle', 'Tổng quan giao dịch gói đăng ký')}
+            </CardDescription>
+          </div>
+          <Badge variant="outline" className="bg-white text-gray-700 border-gray-200">
+            {analyticsLoading ? t('common.loading', 'Đang tải...') : t('admin.subscriptions.analytics.top', 'Cập nhật')}
+          </Badge>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
+          {analyticsLoading ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {[1, 2, 3, 4].map((item) => (
+                <div
+                  key={item}
+                  className="p-4 rounded-xl border border-gray-100 bg-white animate-pulse space-y-3 shadow-sm"
+                >
+                  <div className="h-4 w-24 bg-gray-200 rounded" />
+                  <div className="h-6 w-20 bg-gray-200 rounded" />
+                </div>
+              ))}
+            </div>
+          ) : analyticsError ? (
+            <Alert variant="destructive" className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              <AlertDescription>{analyticsError}</AlertDescription>
+            </Alert>
+          ) : (
+            (() => {
+              const summary = analytics?.summary || {
+                totalSubscriptions: 0,
+                totalRevenue: 0,
+                status: { active: 0, cancelled: 0, expired: 0, unknown: 0 }
+              };
+              return (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-orange-50 text-orange-600">
+                      <BarChart3 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">
+                        {t('admin.subscriptions.analytics.total', 'Tổng giao dịch')}
+                      </p>
+                      <p className="text-lg font-semibold text-gray-900">{summary.totalSubscriptions}</p>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+                      <Wallet className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">
+                        {t('admin.subscriptions.analytics.revenue', 'Tổng doanh thu')}
+                      </p>
+                      <p className="text-lg font-semibold text-gray-900">{formatCurrency(summary.totalRevenue || 0)}</p>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-green-50 text-green-600">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">{t('admin.subscriptions.status.active', 'ACTIVE')}</p>
+                      <p className="text-lg font-semibold text-gray-900">{summary.status.active}</p>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-red-50 text-red-600">
+                      <XCircle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">{t('admin.subscriptions.status.cancelled', 'CANCELLED')}</p>
+                      <p className="text-lg font-semibold text-gray-900">{summary.status.cancelled}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Filters Card */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Filter className="w-5 h-5" />
+            <div>
+              <CardTitle className="text-base">{t('admin.subscriptions.filters.title') || 'Filters'}</CardTitle>
+              <CardDescription className="text-sm">
+                {t('admin.subscriptions.filters.description') || 'Filter subscriptions'}
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="md:col-span-2">
+              <Label className="mb-2 block text-sm font-medium">
+                {t('admin.subscriptions.filters.search', 'Search (owner, email, package)')}
+              </Label>
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={t('admin.subscriptions.filters.search_placeholder', 'Type to search...')}
+              />
+            </div>
+            <div>
               <Label className="mb-2 block text-sm font-medium">
                 {t('admin.subscriptions.filter.status') || 'Status'}
               </Label>
@@ -325,9 +428,6 @@ const AdminSubscriptionsPage: React.FC = () => {
                         </div>
                       </TableHead>
                       <TableHead className="font-semibold">{t('admin.subscriptions.table.header.status')}</TableHead>
-                      <TableHead className="font-semibold text-right">
-                        {t('admin.subscriptions.table.header.actions')}
-                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -366,25 +466,6 @@ const AdminSubscriptionsPage: React.FC = () => {
                           </div>
                         </TableCell>
                         <TableCell>{statusBadge(s.status)}</TableCell>
-                        <TableCell className="text-right">
-                          {s.status === 'ACTIVE' && (
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleCancelClick(s)}
-                              disabled={cancelling}
-                              className="gap-2 hover:bg-red-700"
-                            >
-                              <X className="w-4 h-4" />
-                              {t('admin.subscriptions.button.cancel')}
-                            </Button>
-                          )}
-                          {s.status !== 'ACTIVE' && (
-                            <span className="text-sm text-gray-400 italic">
-                              {t('admin.subscriptions.table.no_action') || 'No action'}
-                            </span>
-                          )}
-                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -440,109 +521,6 @@ const AdminSubscriptionsPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Cancel Subscription Dialog */}
-      <Dialog open={cancelDialogOpen} onOpenChange={handleCancelDialogClose}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
-              </div>
-              <div className="flex-1">
-                <DialogTitle className="text-xl font-semibold text-gray-900">
-                  {t('admin.subscriptions.cancel_dialog.title') || 'Cancel Subscription'}
-                </DialogTitle>
-                <DialogDescription className="text-sm text-gray-600 mt-2">
-                  {t('admin.subscriptions.cancel_dialog.description', {
-                    owner: subscriptionToCancel ? getOwnerName(subscriptionToCancel) : ''
-                  }) || 'Are you sure you want to cancel this subscription? This action cannot be undone.'}
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
-          {subscriptionToCancel && (
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2 border border-gray-200">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">{t('admin.subscriptions.cancel_dialog.owner') || 'Owner'}:</span>
-                <span className="font-medium text-gray-900">{getOwnerName(subscriptionToCancel)}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">{t('admin.subscriptions.cancel_dialog.package') || 'Package'}:</span>
-                <span className="font-medium text-gray-900">{getPackageName(subscriptionToCancel)}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">{t('admin.subscriptions.cancel_dialog.amount') || 'Amount'}:</span>
-                <span className="font-semibold text-green-700">{formatCurrency(subscriptionToCancel.amount || 0)}</span>
-              </div>
-            </div>
-          )}
-
-          <div className="py-4 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="cancel-reason" className="text-sm font-medium">
-                {t('admin.subscriptions.cancel_dialog.reason_label') || 'Cancellation Reason'}{' '}
-                <span className="text-gray-500 font-normal">
-                  ({t('admin.subscriptions.cancel_dialog.optional') || 'Optional'})
-                </span>
-              </Label>
-              <Textarea
-                id="cancel-reason"
-                placeholder={
-                  t('admin.subscriptions.cancel_dialog.reason_placeholder') || 'Enter cancellation reason (optional)'
-                }
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                maxLength={500}
-                rows={4}
-                disabled={cancelling}
-                className="resize-none"
-              />
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-500">
-                  {t('admin.subscriptions.cancel_dialog.warning') ||
-                    'This action will immediately cancel the subscription and the owner will lose access to premium features.'}
-                </p>
-                <p className="text-xs text-gray-400">
-                  {cancelReason.length}/500 {t('admin.subscriptions.cancel_dialog.characters') || 'characters'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="flex gap-3 sm:gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCancelDialogClose}
-              disabled={cancelling}
-              className="flex-1 sm:flex-none"
-            >
-              {t('admin.subscriptions.cancel_dialog.button_cancel') || 'Cancel'}
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleCancelConfirm}
-              disabled={cancelling}
-              className="flex-1 sm:flex-none gap-2"
-            >
-              {cancelling ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {t('admin.subscriptions.cancel_dialog.cancelling') || 'Cancelling...'}
-                </>
-              ) : (
-                <>
-                  <X className="w-4 h-4" />
-                  {t('admin.subscriptions.cancel_dialog.button_confirm') || 'Confirm Cancel'}
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

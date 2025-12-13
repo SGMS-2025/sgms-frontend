@@ -9,20 +9,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
-import { DollarSign, MapPin, Plus, HelpCircle } from 'lucide-react';
 import { ExpenseList, type ExpenseListRef } from '@/components/expenses/ExpenseList';
 import { ExpenseModal } from '@/components/expenses/ExpenseModal';
 import { ExpenseForm } from '@/components/expenses/ExpenseForm';
 import { useExpenseOperations } from '@/hooks/useExpenses';
-import { useBranch } from '@/contexts/BranchContext';
 import { useExpensesTour } from '@/hooks/useExpensesTour';
 import type { Expense, ExpenseDisplay, CreateExpenseRequest, UpdateExpenseRequest } from '@/types/api/Expenses';
 
 export default function ExpensesPage() {
   const { t } = useTranslation();
-  const { currentBranch } = useBranch();
 
   // State management
   const [selectedExpense, setSelectedExpense] = useState<ExpenseDisplay | null>(null);
@@ -105,6 +101,7 @@ export default function ExpensesPage() {
       // Refetch the expense list after delete
       if (expenseListRef.current) {
         await expenseListRef.current.refetch();
+        await expenseListRef.current.refetchStats();
       }
     }
 
@@ -125,6 +122,7 @@ export default function ExpensesPage() {
         // Refetch the expense list after update
         if (expenseListRef.current) {
           await expenseListRef.current.refetch();
+          await expenseListRef.current.refetchStats();
         }
         // Close form only on success
         setIsFormOpen(false);
@@ -137,6 +135,7 @@ export default function ExpensesPage() {
         // Refetch the expense list after create
         if (expenseListRef.current) {
           await expenseListRef.current.refetch();
+          await expenseListRef.current.refetchStats();
         }
         // Close form only on success
         setIsFormOpen(false);
@@ -159,64 +158,13 @@ export default function ExpensesPage() {
 
   return (
     <div className="container mx-auto px-4 py-6">
-      {/* Header Section */}
-      <div className="space-y-4 mb-6">
-        {/* First Orange Pill */}
-        <div>
-          <span className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-orange-500">
-            <DollarSign className="h-3.5 w-3.5" />
-            {t('expenses.badge', 'EXPENSE MANAGEMENT')}
-          </span>
-        </div>
-
-        {/* Main Title */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex-1">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
-              {t('expenses.title', 'Quản lý chi phí')}
-            </h1>
-            <p className="text-sm sm:text-base text-gray-600 mt-1">
-              {t('expenses.subtitle', 'Theo dõi và quản lý các chi phí của phòng gym')}
-            </p>
-          </div>
-          <div className="flex-shrink-0 flex gap-2">
-            <Button
-              onClick={handleCreateExpense}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-              data-tour="create-expense-button"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              {t('expenses.create_new', 'Tạo chi phí mới')}
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="border-gray-300 hover:bg-gray-50"
-              onClick={startExpensesTour}
-              title={t('expenses.tour.button', 'Hướng dẫn')}
-            >
-              <HelpCircle className="w-4 h-4 text-gray-500 hover:text-orange-500" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Second Orange Pill - Branch Filter */}
-        {currentBranch && (
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-orange-500">
-              <MapPin className="h-3.5 w-3.5" />
-              {t('expenses.branch_filter', 'FILTERING BY BRANCH')}: {currentBranch.branchName}
-            </span>
-          </div>
-        )}
-      </div>
-
       <ExpenseList
         ref={expenseListRef}
         onExpenseSelect={handleViewExpense}
         onExpenseEdit={handleEditExpense}
         onExpenseDelete={handleDeleteExpense}
         onCreateExpense={handleCreateExpense}
+        onStartTour={startExpensesTour}
       />
 
       {/* Expense Form Modal */}

@@ -7,7 +7,8 @@ import type {
   ExpenseListParams,
   ExpenseListResponse,
   CreateExpenseRequest,
-  UpdateExpenseRequest
+  UpdateExpenseRequest,
+  ExpenseStats
 } from '@/types/api/Expenses';
 
 interface UseExpensesParams extends ExpenseListParams {
@@ -253,6 +254,59 @@ export const useExpenseDetails = (expenseId: string | null): UseExpenseDetailsRe
 
   return {
     expense,
+    loading,
+    error,
+    refetch
+  };
+};
+
+interface UseExpenseStatsReturn {
+  stats: ExpenseStats | null;
+  loading: boolean;
+  error: string | null;
+  refetch: (filters?: ExpenseListParams) => Promise<void>;
+}
+
+/**
+ * Fetch aggregated expense statistics with optional filters
+ */
+export const useExpenseStats = (): UseExpenseStatsReturn => {
+  const { t } = useTranslation();
+  const [stats, setStats] = useState<ExpenseStats | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refetch = useCallback(
+    async (filters: ExpenseListParams = {}) => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await expensesApi.getExpenseStats(filters);
+
+        if (response.success) {
+          // Some backends wrap stats inside data.stats; fallback to raw data
+          const payload = (response.data as unknown as { stats?: ExpenseStats }).stats || response.data;
+          setStats(payload as ExpenseStats);
+        } else {
+          setError(response.message);
+          console.error('❌ Expense stats error:', response.message);
+          toast.error(t('expenses.stats_error', 'Không thể tải thống kê chi phí'));
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        setError(message);
+        console.error('❌ Expense stats exception:', err);
+        toast.error(t('expenses.stats_error', 'Không thể tải thống kê chi phí'));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [t]
+  );
+
+  return {
+    stats,
     loading,
     error,
     refetch

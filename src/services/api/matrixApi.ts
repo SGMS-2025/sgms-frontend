@@ -3,9 +3,9 @@ import type { MatrixResponse, MatrixQueryParams } from '@/types/api/Matrix';
 
 export const matrixApi = {
   /**
-   * Get complete matrix view for a branch
+   * Get complete matrix view for a branch (public endpoint, no auth required)
    */
-  getMatrixForBranch: async (params: MatrixQueryParams): Promise<MatrixResponse> => {
+  getMatrixForBranch: async (params: MatrixQueryParams, usePublic = false): Promise<MatrixResponse> => {
     // Validate branchId
     if (!params.branchId) {
       throw new Error('branchId is required');
@@ -22,7 +22,8 @@ export const matrixApi = {
       searchParams.append('type', params.type);
     }
 
-    const response = await api.get<MatrixResponse>(`/matrix?${searchParams.toString()}`);
+    const endpoint = usePublic ? '/matrix/public' : '/matrix';
+    const response = await api.get<MatrixResponse>(`${endpoint}?${searchParams.toString()}`);
     return response.data;
   },
 

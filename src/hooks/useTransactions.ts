@@ -20,6 +20,10 @@ export interface UseTransactionsResult {
   refetch: () => Promise<void>;
 }
 
+export interface UseTransactionsOptions {
+  useSelfEndpoint?: boolean;
+}
+
 const DEFAULT_STATUS: TransactionStatus | 'ALL' = 'ALL';
 
 const calculateSummary = (items: Transaction[]): TransactionSummary => {
@@ -72,7 +76,10 @@ const calculateSummary = (items: Transaction[]): TransactionSummary => {
   );
 };
 
-export const useTransactions = (initialQuery: TransactionListParams = {}): UseTransactionsResult => {
+export const useTransactions = (
+  initialQuery: TransactionListParams = {},
+  options: UseTransactionsOptions = {}
+): UseTransactionsResult => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +94,7 @@ export const useTransactions = (initialQuery: TransactionListParams = {}): UseTr
     ...initialQuery
   });
   const activeRequestRef = useRef(0);
+  const { useSelfEndpoint = false } = options;
 
   const fetchTransactions = useCallback(async () => {
     const requestId = ++activeRequestRef.current;
@@ -94,7 +102,9 @@ export const useTransactions = (initialQuery: TransactionListParams = {}): UseTr
     setError(null);
 
     try {
-      const response = await transactionApi.getTransactions(query);
+      const response = useSelfEndpoint
+        ? await transactionApi.getMyTransactions(query)
+        : await transactionApi.getTransactions(query);
 
       // Only update state if this is the latest request to avoid stale data overriding filtered results
       if (requestId !== activeRequestRef.current) {
@@ -125,7 +135,7 @@ export const useTransactions = (initialQuery: TransactionListParams = {}): UseTr
         setLoading(false);
       }
     }
-  }, [query]);
+  }, [query, useSelfEndpoint]);
 
   useEffect(() => {
     fetchTransactions();

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { IdCard, TrendingUp, Settings, FileText, BookOpen } from 'lucide-react';
+import { IdCard, TrendingUp, Settings, FileText, BookOpen, LayoutDashboard, CreditCard } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -26,11 +26,25 @@ export const CustomerSidebar: React.FC = () => {
 
   const mainNavItems: SidebarItem[] = [
     {
+      icon: <LayoutDashboard className="w-5 h-5 stroke-[1.75]" />,
+      label: t('customer.sidebar.dashboard', 'Dashboard'),
+      href: '/customer',
+      isActive: location.pathname === '/customer' || location.pathname === '/customer/',
+      onClick: () => handleNavigation('/customer')
+    },
+    {
       icon: <TrendingUp className="w-5 h-5 stroke-[1.75]" />,
       label: t('customer.sidebar.progress', 'Progress'),
       href: '/customer/progress',
       isActive: location.pathname.startsWith('/customer/progress'),
       onClick: () => handleNavigation('/customer/progress')
+    },
+    {
+      icon: <CreditCard className="w-5 h-5 stroke-[1.75]" />,
+      label: t('customer.sidebar.payments', 'Payments'),
+      href: '/customer/payments',
+      isActive: location.pathname.startsWith('/customer/payments'),
+      onClick: () => handleNavigation('/customer/payments')
     },
     {
       icon: <IdCard className="w-5 h-5 stroke-[1.75]" />,

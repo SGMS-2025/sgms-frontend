@@ -41,7 +41,7 @@ export const useLogin = () => {
       const userRole = response.data.user.role;
 
       if (userRole === 'OWNER') {
-        navigate('/manage/staff');
+        navigate('/manage/owner');
       } else if (userRole === 'CUSTOMER') {
         navigate('/'); // Landing page for customer
       } else if (userRole === 'STAFF') {

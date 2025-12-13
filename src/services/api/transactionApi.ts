@@ -64,27 +64,40 @@ const fallbackPagination = (items: Transaction[], params: TransactionListParams)
   };
 };
 
+const parseTransactionResponse = (
+  raw: RawTransactionResponse,
+  params: TransactionListParams
+): ApiResponse<TransactionListData> => {
+  const items = raw.data ?? [];
+  const pagination = raw.pagination ?? fallbackPagination(items, params);
+  const summary = raw.meta?.summary;
+
+  return {
+    success: raw.success,
+    message: raw.message,
+    data: {
+      items,
+      pagination,
+      summary
+    },
+    requestId: raw.requestId ?? '',
+    timestamp: raw.timestamp ?? new Date().toISOString()
+  };
+};
+
+const fetchTransactions = async (url: string, params: TransactionListParams = {}) => {
+  const response = await api.get(url, {
+    params: normalizeParams(params)
+  });
+
+  return parseTransactionResponse(response.data as RawTransactionResponse, params);
+};
+
 export const transactionApi = {
   getTransactions: async (params: TransactionListParams = {}): Promise<ApiResponse<TransactionListData>> => {
-    const response = await api.get('/transactions', {
-      params: normalizeParams(params)
-    });
-
-    const raw = response.data as RawTransactionResponse;
-    const items = raw.data ?? [];
-    const pagination = raw.pagination ?? fallbackPagination(items, params);
-    const summary = raw.meta?.summary;
-
-    return {
-      success: raw.success,
-      message: raw.message,
-      data: {
-        items,
-        pagination,
-        summary
-      },
-      requestId: raw.requestId ?? '',
-      timestamp: raw.timestamp ?? new Date().toISOString()
-    };
+    return fetchTransactions('/transactions', params);
+  },
+  getMyTransactions: async (params: TransactionListParams = {}): Promise<ApiResponse<TransactionListData>> => {
+    return fetchTransactions('/transactions/me', params);
   }
 };

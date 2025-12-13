@@ -31,15 +31,15 @@ export function ChangePasswordForm() {
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const passwordChecks = useMemo(
     () => [
-      { label: 'Tối thiểu 12 ký tự', passed: formData.newPassword.length >= 12 },
+      { label: t('auth.password_check_min_length'), passed: formData.newPassword.length >= 12 },
       {
-        label: 'Có chữ hoa và chữ thường',
+        label: t('auth.password_check_uppercase_lowercase'),
         passed: /[a-z]/.test(formData.newPassword) && /[A-Z]/.test(formData.newPassword)
       },
-      { label: 'Chứa số', passed: /\d/.test(formData.newPassword) },
-      { label: 'Có ký tự đặc biệt', passed: /[^A-Za-z0-9]/.test(formData.newPassword) }
+      { label: t('auth.password_check_number'), passed: /\d/.test(formData.newPassword) },
+      { label: t('auth.password_check_special'), passed: /[^A-Za-z0-9]/.test(formData.newPassword) }
     ],
-    [formData.newPassword]
+    [formData.newPassword, t]
   );
   const passedChecks = passwordChecks.filter((item) => item.passed).length;
   const hasMismatch = formData.confirmNewPassword.length > 0 && formData.confirmNewPassword !== formData.newPassword;
@@ -178,24 +178,14 @@ export function ChangePasswordForm() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4 sm:p-5 space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <PasswordInput
-              value={formData.currentPassword}
-              onChange={(value) => handleInputChange('currentPassword', value)}
-              label={t('auth.current_password')}
-              placeholder={t('auth.placeholder_current_password')}
-              showValidationErrors={false}
-              required={true}
-            />
-            <div className="space-y-1 text-sm text-gray-600 rounded-xl border border-gray-100 bg-gray-50/80 p-3">
-              <div className="flex items-center gap-2 text-gray-800 font-semibold">
-                <AlertCircle className="w-4 h-4 text-orange-500" />
-                {t('auth.quick_tips')}
-              </div>
-              <p>{t('auth.tip_no_share')}</p>
-              <p>{t('auth.tip_change_on_strange_device')}</p>
-            </div>
-          </div>
+          <PasswordInput
+            value={formData.currentPassword}
+            onChange={(value) => handleInputChange('currentPassword', value)}
+            label={t('auth.current_password')}
+            placeholder={t('auth.placeholder_current_password')}
+            showValidationErrors={false}
+            required={true}
+          />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <PasswordInput

@@ -37,6 +37,7 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({ title }) => {
       profile: t('sidebar.profile'),
       membership: t('sidebar.membership'),
       schedule: t('sidebar.schedule'),
+      payments: t('customer.sidebar.payments', 'Payments'),
       progress: t('sidebar.progress'),
       contracts: t('sidebar.contracts'),
       security: t('sidebar.security')
