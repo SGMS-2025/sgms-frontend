@@ -6366,7 +6366,8 @@
       "protein_label": "Protein (g)",
       "carbs_label": "Carbs (g) ",
       "fat_label": "Fat (g)",
-      "ingredients_label": "Ingredients (comma)"
+      "ingredients_label": "Ingredients (enter)",
+      "ingredients_placeholder": "One ingredient per line"
     },
     "validation": {
       "name_required": "Name is required",

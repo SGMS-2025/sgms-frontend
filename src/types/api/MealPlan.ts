@@ -3,13 +3,18 @@ import type { BackendPaginationResponse } from '@/types/api/TrainingProgress';
 
 export type MealPlanStatus = 'SUGGESTED' | 'EDITED' | 'FINAL' | 'ARCHIVED' | 'DELETED';
 
+export interface Ingredient {
+  name: string;
+  quantity_g?: number;
+}
+
 export interface MealItem {
   name: string;
   calories?: number;
   protein?: number;
   carbs?: number;
   fat?: number;
-  ingredients?: string[];
+  ingredients?: Ingredient[] | string[];
 }
 
 export interface Meal {
