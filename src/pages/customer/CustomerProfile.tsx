@@ -24,11 +24,15 @@ import {
   ArrowRight,
   ShieldCheck,
   Link2,
-  Check
+  AlertTriangle,
+  Plus,
+  X,
+  Save
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { userApi } from '@/services/api/userApi';
 import { authApi } from '@/services/api/authApi';
+import { customerApi } from '@/services/api/customerApi';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import type { UpdateProfileData, User as ApiUser, ProfileUserData } from '@/types/api/User';
@@ -83,6 +87,17 @@ const CustomerProfile: React.FC = () => {
     bio: '',
     avatar: ''
   });
+
+  // Customer medical data
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [allergies, setAllergies] = useState<string[]>([]);
+  const [medicalConditions, setMedicalConditions] = useState<string[]>([]);
+  const [originalAllergies, setOriginalAllergies] = useState<string[]>([]);
+  const [originalMedicalConditions, setOriginalMedicalConditions] = useState<string[]>([]);
+  const [isEditingMedical, setIsEditingMedical] = useState(false);
+  const [newAllergy, setNewAllergy] = useState('');
+  const [newMedicalCondition, setNewMedicalCondition] = useState('');
+  const [isSavingMedical, setIsSavingMedical] = useState(false);
 
   const profileFields = [
     { key: 'fullName', label: t('customer.profile.full_name'), value: formData.fullName },
@@ -152,6 +167,42 @@ const CustomerProfile: React.FC = () => {
       setIsLoading(false);
     }
   }, [state.user?._id, state.isAuthenticated, state.user]);
+
+  // Load customer data (allergies and medicalConditions)
+  useEffect(() => {
+    const fetchCustomerData = async () => {
+      if (!state.isAuthenticated || !state.user?._id) {
+        return;
+      }
+
+      // Only fetch if user is a customer
+      if (state.user?.role !== 'CUSTOMER') {
+        return;
+      }
+
+      try {
+        // Use self-service endpoint to get customer's own info
+        const response = await customerApi.getMyCustomerInfo();
+
+        if (response.success && response.data) {
+          setCustomerId(response.data._id || response.data.id);
+          const customerAllergies = response.data.allergies || [];
+          const customerMedicalConditions = response.data.medicalConditions || [];
+          setAllergies(customerAllergies);
+          setMedicalConditions(customerMedicalConditions);
+          setOriginalAllergies(customerAllergies);
+          setOriginalMedicalConditions(customerMedicalConditions);
+        }
+      } catch (error) {
+        console.error('Failed to fetch customer data:', error);
+        // Silently fail - medical info section will just be empty
+      }
+    };
+
+    if (state.user?._id) {
+      fetchCustomerData();
+    }
+  }, [state.user?._id, state.isAuthenticated, state.user?.role]);
 
   // Handle input change with validation
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -376,6 +427,68 @@ const CustomerProfile: React.FC = () => {
       toast.error(t('error.common'));
       setIsLinkingZalo(false);
     }
+  };
+
+  // Medical information handlers
+  const handleAddAllergy = () => {
+    if (newAllergy.trim() && !allergies.includes(newAllergy.trim())) {
+      setAllergies([...allergies, newAllergy.trim()]);
+      setNewAllergy('');
+    }
+  };
+
+  const handleRemoveAllergy = (index: number) => {
+    setAllergies(allergies.filter((_, i) => i !== index));
+  };
+
+  const handleAddMedicalCondition = () => {
+    if (newMedicalCondition.trim() && !medicalConditions.includes(newMedicalCondition.trim())) {
+      setMedicalConditions([...medicalConditions, newMedicalCondition.trim()]);
+      setNewMedicalCondition('');
+    }
+  };
+
+  const handleRemoveMedicalCondition = (index: number) => {
+    setMedicalConditions(medicalConditions.filter((_, i) => i !== index));
+  };
+
+  const handleSaveMedicalInfo = async () => {
+    setIsSavingMedical(true);
+    try {
+      // Use self-service endpoint for customer to update their own medical info
+      const response = await customerApi.updateMyCustomerInfo({
+        allergies,
+        medicalConditions
+      });
+
+      if (response.success && response.data) {
+        // Update state with response data
+        setAllergies(response.data.allergies || []);
+        setMedicalConditions(response.data.medicalConditions || []);
+        setOriginalAllergies(response.data.allergies || []);
+        setOriginalMedicalConditions(response.data.medicalConditions || []);
+        if (response.data._id || response.data.id) {
+          setCustomerId(response.data._id || response.data.id);
+        }
+      }
+
+      toast.success(t('customer.profile.medical_info_saved') || 'Đã lưu thông tin y tế thành công');
+      setIsEditingMedical(false);
+    } catch (error) {
+      console.error('Failed to save medical info:', error);
+      toast.error(t('customer.profile.medical_info_save_error') || 'Không thể lưu thông tin y tế. Vui lòng thử lại.');
+    } finally {
+      setIsSavingMedical(false);
+    }
+  };
+
+  const handleCancelMedicalEdit = () => {
+    // Reset to original values
+    setAllergies(originalAllergies);
+    setMedicalConditions(originalMedicalConditions);
+    setNewAllergy('');
+    setNewMedicalCondition('');
+    setIsEditingMedical(false);
   };
 
   // Loading screen component
@@ -696,6 +809,17 @@ const CustomerProfile: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap gap-3 justify-end">
+              {!hasZaloLinked && (
+                <Button
+                  variant="outline"
+                  onClick={handleLinkZalo}
+                  disabled={isLinkingZalo}
+                  className="bg-white/10 text-white border-white/30 hover:bg-white/20 px-4 py-2 h-auto rounded-lg font-semibold backdrop-blur"
+                >
+                  <Link2 className="w-4 h-4 mr-2" />
+                  {isLinkingZalo ? t('auth.sending') : t('customer.profile.link_zalo')}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={() => setActiveTab('security')}
@@ -814,99 +938,202 @@ const CustomerProfile: React.FC = () => {
             </CardContent>
           </Card>
 
+          {/* Medical Information Card */}
           <Card className="border border-gray-100 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base text-gray-900 flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-orange-500" />
-                {t('customer.profile.profile_progress')}
-              </CardTitle>
-              <p className="text-sm text-gray-600">{t('customer.profile.profile_progress_description')}</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base text-gray-900 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-orange-500" />
+                    {t('customer.profile.medical_info')}
+                  </CardTitle>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {t('customer.profile.medical_info_description') || 'Quản lý thông tin dị ứng và bệnh nền của bạn'}
+                  </p>
+                </div>
+                {!isEditingMedical && (
+                  <Button variant="outline" size="sm" onClick={() => setIsEditingMedical(true)} className="h-8 text-xs">
+                    <Edit3 className="w-3 h-3 mr-1" />
+                    {t('customer.profile.edit')}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">{t('customer.profile.completion_level')}</span>
-                <span className="text-gray-900 font-semibold">{profileCompletion}%</span>
-              </div>
-              <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-500 transition-all"
-                  style={{ width: `${profileCompletion}%` }}
-                />
-              </div>
-              {missingFields.length > 0 ? (
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-600">{t('customer.profile.missing_items')}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {missingFields.map((field) => (
-                      <Badge
-                        key={field.key}
-                        variant="secondary"
-                        className="bg-orange-50 text-orange-700 border-orange-100"
-                      >
-                        {field.label}
-                      </Badge>
-                    ))}
+              {isEditingMedical ? (
+                <>
+                  {/* Allergies - Edit Mode */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-orange-500" />
+                      {t('customer.profile.allergies')}
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={newAllergy}
+                        onChange={(e) => setNewAllergy(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddAllergy();
+                          }
+                        }}
+                        placeholder={t('customer.profile.add_allergy_placeholder')}
+                        className="h-9 text-sm"
+                      />
+                      <Button type="button" size="sm" onClick={handleAddAllergy} className="h-9 px-3">
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    {allergies.length > 0 ? (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {allergies.map((allergy, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-700 border-orange-200"
+                          >
+                            {allergy}
+                            <button
+                              onClick={() => handleRemoveAllergy(index)}
+                              className="ml-1 hover:bg-orange-100 rounded-full p-0.5"
+                              disabled={isSavingMedical}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 italic mt-2">{t('customer.profile.no_allergies')}</p>
+                    )}
                   </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-sm text-green-600 font-medium">
-                  <CheckCircle className="w-4 h-4" />
-                  {t('customer.profile.profile_complete')}
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
-          <Card className="border border-gray-100 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base text-gray-900 flex items-center gap-2">
-                <Link2 className="w-4 h-4 text-orange-500" />
-                {t('customer.profile.zalo_account')}
-              </CardTitle>
-              <p className="text-sm text-gray-600">{t('customer.profile.zalo_account_description')}</p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-3 space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-700">{t('customer.profile.status')}</span>
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
-                        hasZaloLinked
-                          ? 'bg-green-50 text-green-700 border border-green-100'
-                          : 'bg-orange-50 text-orange-700 border border-orange-100'
-                      }`}
+                  {/* Medical Conditions - Edit Mode */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-orange-500" />
+                      {t('customer.profile.medical_conditions')}
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={newMedicalCondition}
+                        onChange={(e) => setNewMedicalCondition(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddMedicalCondition();
+                          }
+                        }}
+                        placeholder={t('customer.profile.add_medical_condition_placeholder')}
+                        className="h-9 text-sm"
+                      />
+                      <Button type="button" size="sm" onClick={handleAddMedicalCondition} className="h-9 px-3">
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    {medicalConditions.length > 0 ? (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {medicalConditions.map((condition, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="flex items-center gap-1 px-2 py-1 bg-orange-50 text-orange-700 border-orange-200"
+                          >
+                            {condition}
+                            <button
+                              onClick={() => handleRemoveMedicalCondition(index)}
+                              className="ml-1 hover:bg-orange-100 rounded-full p-0.5"
+                              disabled={isSavingMedical}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 italic mt-2">{t('customer.profile.no_medical_conditions')}</p>
+                    )}
+                  </div>
+
+                  {/* Save/Cancel Buttons */}
+                  <div className="pt-2 border-t border-gray-200 flex gap-2">
+                    <Button
+                      onClick={handleSaveMedicalInfo}
+                      disabled={isSavingMedical || !customerId}
+                      className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
                     >
-                      {hasZaloLinked ? (
+                      {isSavingMedical ? (
                         <>
-                          <Check className="w-4 h-4" /> {t('customer.profile.linked')}
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          {t('customer.profile.saving')}
                         </>
                       ) : (
                         <>
-                          <Link2 className="w-4 h-4" /> {t('customer.profile.not_linked')}
+                          <Save className="w-4 h-4 mr-2" />
+                          {t('customer.profile.save')}
                         </>
                       )}
-                    </span>
+                    </Button>
+                    <Button
+                      onClick={handleCancelMedicalEdit}
+                      variant="outline"
+                      disabled={isSavingMedical}
+                      className="flex-1"
+                    >
+                      {t('customer.profile.cancel')}
+                    </Button>
                   </div>
-                  <div className="text-sm text-gray-700 rounded-md bg-white border border-dashed border-gray-200 px-3 py-2 flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-gray-500" />
-                    <span className="truncate">{userData.email || t('customer.profile.email')}</span>
+                </>
+              ) : (
+                <>
+                  {/* Allergies - View Mode */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-orange-500" />
+                      {t('customer.profile.allergies')}
+                    </Label>
+                    {allergies.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {allergies.map((allergy, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="px-2 py-1 bg-orange-50 text-orange-700 border-orange-200"
+                          >
+                            {allergy}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">{t('customer.profile.no_allergies')}</p>
+                    )}
                   </div>
-                  <p className="text-xs text-gray-500">{t('customer.profile.zalo_connect_description')}</p>
-                </div>
-                <Button
-                  variant={hasZaloLinked ? 'secondary' : 'default'}
-                  className={`w-full justify-center ${hasZaloLinked ? 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-100' : 'bg-orange-500 hover:bg-orange-600 text-white'}`}
-                  onClick={handleLinkZalo}
-                  disabled={hasZaloLinked || isLinkingZalo}
-                >
-                  {hasZaloLinked
-                    ? t('customer.profile.linked')
-                    : isLinkingZalo
-                      ? t('auth.sending')
-                      : t('customer.profile.link_zalo')}
-                </Button>
-              </div>
+
+                  {/* Medical Conditions - View Mode */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-orange-500" />
+                      {t('customer.profile.medical_conditions')}
+                    </Label>
+                    {medicalConditions.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {medicalConditions.map((condition, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="px-2 py-1 bg-orange-50 text-orange-700 border-orange-200"
+                          >
+                            {condition}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">{t('customer.profile.no_medical_conditions')}</p>
+                    )}
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>

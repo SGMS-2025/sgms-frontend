@@ -10,7 +10,7 @@ import { useScrollToTop } from '@/hooks/useScrollToTop';
 import { GymHeroSection } from '@/components/gyms/GymHeroSection';
 import { GymBasicInfo } from '@/components/gyms/GymBasicInfo';
 import { GymGallery } from '@/components/gyms/GymGallery';
-import { GymServices } from '@/components/gyms/GymServices';
+import { ServicePackageComparison } from '@/components/gyms/ServicePackageComparison';
 import { GymTrainers } from '@/components/gyms/GymTrainers';
 import { GymReviews } from '@/components/gyms/GymReviews';
 import { MapPin, Users, Dumbbell, Star, AlertCircle } from 'lucide-react';
@@ -30,43 +30,6 @@ import { useCustomerMembershipContract } from '@/hooks/useCustomerMembershipCont
 import { useSocket } from '@/hooks/useSocket';
 import { membershipApi } from '@/services/api/membershipApi';
 import type { MembershipPlan, PayOSPaymentInfo } from '@/types/api/Membership';
-
-// Mock data for features not yet available from API
-const mockServicePackages = [
-  {
-    name: 'CƠ BẢN',
-    price: '399.000 VND',
-    period: '/tháng',
-    features: [
-      'Tự động thanh toán hàng tháng',
-      'Tập luyện tại toàn hệ thống The New Gym trên toàn quốc',
-      'Miễn phí kiểm tra sức khỏe và sai lệch tư thế, và nhiều hơn nữa!'
-    ],
-    isPopular: false
-  },
-  {
-    name: 'PREMIUM',
-    price: '299.000 VND',
-    period: '/tháng',
-    features: [
-      'Tự động thanh toán hàng tháng',
-      'Gói thành viên premium với đầy đủ tiện ích',
-      'Hướng dẫn cá nhân từ huấn luyện viên chuyên nghiệp'
-    ],
-    isPopular: true
-  },
-  {
-    name: 'NÂNG CAO',
-    price: '499.000 VND',
-    period: '/tháng',
-    features: [
-      'Tự động thanh toán hàng tháng',
-      'Truy cập không giới hạn tất cả thiết bị',
-      '1-on-1 personal training sessions'
-    ],
-    isPopular: false
-  }
-];
 
 const mockTrainers = [
   {
@@ -104,23 +67,6 @@ const mockTrainers = [
     specialties: 'Chuyên môn: Cardio, giảm cân, tăng cường sức khỏe tim mạch.',
     rating: 4.8,
     image: 'https://images.unsplash.com/photo-1544741256-7ad5ac882d5d?w=300'
-  }
-];
-
-const mockPromotionalOffers = [
-  {
-    title: 'Đăng ký nhóm giảm 20%',
-    location: 'Phòng tập VLOGAWORLD',
-    time: '10:00 đến 15:00',
-    price: '399.000 VND/tháng',
-    image: 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=300'
-  },
-  {
-    title: 'Ưu đãi thành viên mới',
-    location: 'Phòng tập VLOGAWORLD',
-    time: '16:00 đến 20:00',
-    price: '299.000 VND/tháng',
-    image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=300'
   }
 ];
 
@@ -427,8 +373,20 @@ const GymDetailPage: React.FC = () => {
           </TabsContent>
 
           {/* Services Tab */}
-          <TabsContent value="services">
-            <GymServices servicePackages={mockServicePackages} promotionalOffers={mockPromotionalOffers} />
+          <TabsContent value="services" className="space-y-8">
+            {/* PT Packages */}
+            <div>
+              <h2 className="text-2xl font-bold text-gym-orange mb-4">{t('pt_service.title')}</h2>
+              <p className="text-gray-600 mb-4">Quản lý gói PT cho chi nhánh: {branch.branchName}</p>
+              <ServicePackageComparison branchId={branch._id} serviceType="PT" branchName={branch.branchName} />
+            </div>
+
+            {/* Class Packages */}
+            <div>
+              <h2 className="text-2xl font-bold text-gym-orange mb-4">{t('class_service.title')}</h2>
+              <p className="text-gray-600 mb-4">Quản lý gói lớp học cho chi nhánh: {branch.branchName}</p>
+              <ServicePackageComparison branchId={branch._id} serviceType="CLASS" branchName={branch.branchName} />
+            </div>
           </TabsContent>
 
           {/* Trainers Tab */}

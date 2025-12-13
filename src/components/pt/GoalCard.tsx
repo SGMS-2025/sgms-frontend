@@ -71,7 +71,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
     const progress: Record<string, MetricProgress> = {};
 
     // Weight - lower is better
-    if (goal.targets.weight !== undefined && currentProgress.weight !== undefined) {
+    if (goal.targets.weight != null && currentProgress.weight != null) {
       const { percentage } = calculateProgress(currentProgress.weight, goal.targets.weight, false);
       progress.weight = {
         current: currentProgress.weight,
@@ -85,7 +85,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
     }
 
     // Body Fat - lower is better
-    if (goal.targets.bodyFatPercentage !== undefined && currentProgress.bodyFatPercentage !== undefined) {
+    if (goal.targets.bodyFatPercentage != null && currentProgress.bodyFatPercentage != null) {
       const { percentage } = calculateProgress(
         currentProgress.bodyFatPercentage,
         goal.targets.bodyFatPercentage,
@@ -103,7 +103,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
     }
 
     // Muscle Mass - higher is better
-    if (goal.targets.muscleMassPercentage !== undefined && currentProgress.muscleMassPercentage !== undefined) {
+    if (goal.targets.muscleMassPercentage != null && currentProgress.muscleMassPercentage != null) {
       const { percentage } = calculateProgress(
         currentProgress.muscleMassPercentage,
         goal.targets.muscleMassPercentage,
@@ -121,7 +121,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
     }
 
     // Strength - higher is better
-    if (goal.targets.strength !== undefined && currentProgress.strength !== undefined) {
+    if (goal.targets.strength != null && currentProgress.strength != null) {
       const { percentage } = calculateProgress(currentProgress.strength, goal.targets.strength, true);
       progress.strength = {
         current: currentProgress.strength,
@@ -135,7 +135,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
     }
 
     // BMI - depends on target (usually lower is better)
-    if (goal.targets.bmi !== undefined && currentProgress.bmi !== undefined) {
+    if (goal.targets.bmi != null && currentProgress.bmi != null) {
       const { percentage } = calculateProgress(currentProgress.bmi, goal.targets.bmi, false);
       progress.bmi = {
         current: currentProgress.bmi,
@@ -160,7 +160,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
     circumferenceMetrics.forEach(({ key, label, unit, isHigherBetter = true }) => {
       const targetKey = key as keyof typeof goal.targets;
       const progressKey = key as keyof typeof currentProgress;
-      if (goal.targets[targetKey] !== undefined && currentProgress[progressKey] !== undefined) {
+      if (goal.targets[targetKey] != null && currentProgress[progressKey] != null) {
         const { percentage } = calculateProgress(
           currentProgress[progressKey] as number,
           goal.targets[targetKey] as number,
@@ -179,7 +179,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
     });
 
     // Body Water - higher is better
-    if (goal.targets.bodyWaterPercentage !== undefined && currentProgress.bodyWaterPercentage !== undefined) {
+    if (goal.targets.bodyWaterPercentage != null && currentProgress.bodyWaterPercentage != null) {
       const { percentage } = calculateProgress(
         currentProgress.bodyWaterPercentage,
         goal.targets.bodyWaterPercentage,
@@ -197,7 +197,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
     }
 
     // Metabolic Age - lower is better
-    if (goal.targets.metabolicAge !== undefined && currentProgress.metabolicAge !== undefined) {
+    if (goal.targets.metabolicAge != null && currentProgress.metabolicAge != null) {
       const { percentage } = calculateProgress(currentProgress.metabolicAge, goal.targets.metabolicAge, false);
       progress.metabolicAge = {
         current: currentProgress.metabolicAge,
@@ -369,13 +369,15 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
                       />
                     </div>
                     <span className="text-xs font-bold text-gray-800 sm:min-w-[70px] sm:text-right break-words">
-                      {metric.current.toFixed(1)}
-                      {metric.unit} / {metric.target.toFixed(1)}
+                      {metric.current != null ? metric.current.toFixed(1) : 'N/A'}
+                      {metric.unit} / {metric.target != null ? metric.target.toFixed(1) : 'N/A'}
                       {metric.unit}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500">{metric.percentage.toFixed(0)}%</span>
+                    <span className="text-xs text-gray-500">
+                      {metric.percentage != null ? metric.percentage.toFixed(0) : '0'}%
+                    </span>
                     {metric.direction === 'up' ? (
                       <TrendingUp className="h-3 w-3 text-green-500 flex-shrink-0" />
                     ) : (
@@ -418,11 +420,13 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
                         <TrendingDown className="h-4 w-4 text-blue-500 flex-shrink-0" />
                       )}
                       <span className="text-sm font-bold text-gray-800 break-words">
-                        {metric.current.toFixed(1)}
-                        {metric.unit} / {metric.target.toFixed(1)}
+                        {metric.current != null ? metric.current.toFixed(1) : 'N/A'}
+                        {metric.unit} / {metric.target != null ? metric.target.toFixed(1) : 'N/A'}
                         {metric.unit}
                       </span>
-                      <span className="text-xs text-gray-500">({metric.percentage.toFixed(0)}%)</span>
+                      <span className="text-xs text-gray-500">
+                        ({metric.percentage != null ? metric.percentage.toFixed(0) : '0'}%)
+                      </span>
                     </div>
                   </div>
                   <Progress

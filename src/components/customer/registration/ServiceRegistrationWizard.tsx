@@ -45,8 +45,17 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
   const currentUser = useUser();
 
   // Form data
-  const { formData, setFormData, priceCalculation, handlePackageChange, handlePromotionChange } =
-    useServiceRegistration(currentBranch?._id || '');
+  const {
+    formData,
+    setFormData,
+    priceCalculation,
+    handlePackageChange,
+    handlePromotionChange,
+    selectedPackage: _selectedPackage,
+    setSelectedPackage,
+    selectedPromotion: _selectedPromotion,
+    setSelectedPromotion
+  } = useServiceRegistration(currentBranch?._id || '');
 
   // Fetch data
   const { packages, promotions, trainers } = useFetchRegistrationData({
@@ -291,26 +300,70 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
     wizard.goToNext();
   };
 
+  // Reset form data to initial state
+  const resetFormData = React.useCallback(() => {
+    setFormData({
+      servicePackageId: '',
+      customMonths: undefined,
+      startDate: new Date().toISOString().split('T')[0],
+      branchId: currentBranch?._id || '',
+      discountCampaignId: undefined,
+      paymentMethod: 'CASH' as 'CASH' | 'BANK_TRANSFER' | 'QR_BANK',
+      referrerStaffId: undefined,
+      notes: ''
+    });
+    setSelectedPackage(null);
+    setSelectedPromotion(null);
+  }, [currentBranch?._id, setFormData, setSelectedPackage, setSelectedPromotion]);
+
   // Handle final success
   const handleSuccess = () => {
     wizard.reset();
     setContractResponse(null);
     setContractDocument(null);
+    setPayOSData(null);
+    setBankQRContractId(null);
+    resetFormData();
     onSuccess?.();
     onClose();
   };
 
   // Reset wizard when dialog closes
+  const prevIsOpenRef = React.useRef<boolean>(false);
   useEffect(() => {
-    if (!isOpen) {
-      wizard.reset();
-      setContractResponse(null);
-      setContractDocument(null);
-      setIsCreatingContract(false);
-      setPayOSData(null);
-      setBankQRContractId(null);
+    // When closing: reset all state if safe to reset
+    if (!isOpen && prevIsOpenRef.current) {
+      const safeToReset =
+        formData.paymentMethod !== 'QR_BANK' ||
+        (wizard.currentStep === 'form' && !bankQRContractId && !contractResponse?.data?._id);
+      if (safeToReset) {
+        wizard.reset();
+        setContractResponse(null);
+        setContractDocument(null);
+        setIsCreatingContract(false);
+        setPayOSData(null);
+        setBankQRContractId(null);
+        resetFormData();
+      }
     }
-  }, [isOpen, wizard]);
+
+    // When opening: reset form data if no QR contract exists (fresh start)
+    if (isOpen && !prevIsOpenRef.current) {
+      const hasQRContract = bankQRContractId || contractResponse?.data?._id;
+      // Only reset if no QR contract exists (fresh registration)
+      if (!hasQRContract) {
+        resetFormData();
+        wizard.reset();
+        setContractResponse(null);
+        setContractDocument(null);
+        setIsCreatingContract(false);
+        setPayOSData(null);
+        setBankQRContractId(null);
+      }
+    }
+
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen, wizard, formData.paymentMethod, bankQRContractId, contractResponse, resetFormData]);
 
   // Trigger payment creation when entering payment step (only for BANK_TRANSFER)
   useEffect(() => {
@@ -339,6 +392,7 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
             handlePackageChange={handlePackageChange}
             handlePromotionChange={handlePromotionChange}
             packageType={packageType}
+            branchId={currentBranch?._id}
           />
         );
 

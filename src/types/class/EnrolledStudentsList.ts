@@ -8,7 +8,8 @@
  */
 export interface EnrolledStudentsListProps {
   classId: string;
-  onRemoveStudent?: (enrollmentId: string) => void;
+  onRemoveStudent?: (enrollmentId: string, studentName?: string) => void;
+  onActivateStudent?: (enrollmentId: string, studentName?: string) => void;
   showHeader?: boolean;
   compact?: boolean;
 }

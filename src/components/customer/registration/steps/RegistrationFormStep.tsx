@@ -31,6 +31,7 @@ interface RegistrationFormStepProps {
   handlePackageChange: (packageId: string, packages: ServicePackage[]) => void;
   handlePromotionChange: (promotionId: string | undefined, promotions: DiscountCampaign[]) => void;
   packageType: 'PT' | 'CLASS';
+  branchId?: string;
 }
 
 export const RegistrationFormStep: React.FC<RegistrationFormStepProps> = ({
@@ -42,7 +43,8 @@ export const RegistrationFormStep: React.FC<RegistrationFormStepProps> = ({
   priceCalculation,
   handlePackageChange,
   handlePromotionChange,
-  packageType
+  packageType,
+  branchId
 }) => {
   const { t } = useTranslation();
   const [trainerPopoverOpen, setTrainerPopoverOpen] = useState(false);
@@ -256,6 +258,7 @@ export const RegistrationFormStep: React.FC<RegistrationFormStepProps> = ({
             <PaymentMethodSelector
               value={formData.paymentMethod}
               onChange={(value) => setFormData((prev) => ({ ...prev, paymentMethod: value }))}
+              branchId={branchId}
             />
           </div>
         </div>

@@ -121,12 +121,33 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
           throw new Error(t('classDetailModal.errors.noRecords'));
         }
 
-        setAttendanceData(data);
+        // Get active enrollment IDs from classData to filter attendance records
+        // This ensures we only show ACTIVE students even if backend returns all records
+        const activeEnrollmentIds = new Set(
+          classData?.enrolledStudents
+            ?.filter((e: EnrolledStudent) => e.status === 'ACTIVE')
+            .map((e: EnrolledStudent) => e._id || e.enrollmentId)
+            .filter(Boolean) || []
+        );
 
-        // Initialize attendance records from backend data
+        // Filter attendance records to only include ACTIVE enrollments
+        const filteredRecords = data.records.filter((record: Record<string, unknown>) => {
+          const enrollmentId = record.enrollmentId as string;
+          return activeEnrollmentIds.has(enrollmentId);
+        });
+
+        // Update data with filtered records
+        const filteredData = {
+          ...data,
+          records: filteredRecords
+        };
+
+        setAttendanceData(filteredData);
+
+        // Initialize attendance records from filtered backend data
         const records: Record<string, 'PRESENT' | 'ABSENT'> = {};
-        if (Array.isArray(data.records)) {
-          (data.records as Array<Record<string, unknown>>).forEach((record: Record<string, unknown>) => {
+        if (Array.isArray(filteredRecords)) {
+          filteredRecords.forEach((record: Record<string, unknown>) => {
             if (record.enrollmentId) {
               records[record.enrollmentId as string] = (record.status as 'PRESENT' | 'ABSENT') || 'ABSENT';
             }
@@ -143,11 +164,9 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
     };
 
     loadAttendance();
-  }, [_isOpen, classId, activeTab, _selectedDate]);
+  }, [_isOpen, classId, activeTab, _selectedDate, classData]);
 
   if (!_isOpen || !classId) return null;
-
-  const enrolledCount = classData?.enrolledStudents?.filter((e: EnrolledStudent) => e.status === 'ACTIVE').length || 0;
 
   return (
     <Dialog open={_isOpen} onOpenChange={onClose}>
@@ -193,9 +212,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="overview">{t('classDetailModal.tabs.overview')}</TabsTrigger>
-              <TabsTrigger value="students">
-                {t('classDetailModal.tabs.students')} ({enrolledCount})
-              </TabsTrigger>
+              <TabsTrigger value="students">{t('classDetailModal.tabs.students')}</TabsTrigger>
               <TabsTrigger value="attendance">
                 <ClipboardCheck className="h-4 w-4 mr-1" />
                 {t('classDetailModal.tabs.attendance')}
@@ -337,7 +354,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                 <div className="flex items-center gap-2 mb-4">
                   <Users className="h-5 w-5 text-blue-600" />
                   <h3 className="font-medium text-sm text-gray-700">
-                    {t('classDetailModal.students.enrolledMembers')} ({enrolledCount})
+                    {t('classDetailModal.students.enrolledMembers')}
                   </h3>
                 </div>
 
@@ -410,17 +427,17 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
             </TabsContent>
 
             {/* Attendance Tab */}
-            <TabsContent value="attendance" className="flex-1 mt-4 flex flex-col">
+            <TabsContent value="attendance" className="flex-1 mt-4 flex flex-col min-h-0">
               {loadingAttendance ? (
                 <div className="flex items-center justify-center py-12 flex-1">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
                   <span className="ml-3 text-sm text-gray-600">{t('classDetailModal.attendance.loadingData')}</span>
                 </div>
               ) : (
-                <div className="space-y-4 flex-1 flex flex-col">
+                <div className="space-y-4 flex-1 flex flex-col min-h-0 overflow-y-auto">
                   {/* Statistics */}
                   {attendanceData && (
-                    <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="bg-gray-50 rounded-lg p-4 flex-shrink-0">
                       <div className="grid grid-cols-3 gap-4">
                         <div className="bg-blue-50 p-3 rounded-lg text-center">
                           <p className="text-2xl font-bold text-blue-800">{attendanceData.records?.length || 0}</p>
@@ -444,7 +461,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
 
                   {/* Quick Actions */}
                   {attendanceData && attendanceData.records.length > 0 && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-shrink-0">
                       <Button
                         variant="outline"
                         size="sm"
@@ -481,14 +498,14 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                   )}
 
                   {/* Student List */}
-                  <div className="space-y-3 flex-1">
-                    <h3 className="font-medium text-sm text-gray-700 flex items-center gap-2">
+                  <div className="space-y-3 flex-1 min-h-0 overflow-y-auto">
+                    <h3 className="font-medium text-sm text-gray-700 flex items-center gap-2 flex-shrink-0">
                       <ClipboardCheck className="h-4 w-4" />
                       {t('classDetailModal.attendance.attendanceList')}
                     </h3>
 
                     {attendanceData && attendanceData.records.length > 0 ? (
-                      <div className="space-y-2 pr-2">
+                      <div className="space-y-2 pr-2 flex-1">
                         {attendanceData.records.map((record) => {
                           const enrollmentId = record.enrollmentId;
                           const status = attendanceRecords[enrollmentId] || record.status;

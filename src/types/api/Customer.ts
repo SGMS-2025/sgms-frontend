@@ -467,6 +467,8 @@ export interface PTCustomer {
   phone: string;
   email?: string;
   avatar?: string;
+  allergies?: string[];
+  medicalConditions?: string[];
   contractType?: ContractType; // 'PT_PACKAGE' | 'MEMBERSHIP_KPI'
   package: {
     contractId: string;
