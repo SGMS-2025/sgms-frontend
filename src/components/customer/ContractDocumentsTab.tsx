@@ -712,10 +712,10 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                           onClick={() => handleRefreshDocument(contract._id)}
                           disabled={contract.status === 'deleted'}
                           className="rounded-full"
-                          title="Refresh document status from SignNow"
+                          title={t('customer_detail.contracts.refresh_status')}
                         >
                           <RefreshCw className="mr-1 h-3 w-3" />
-                          Refresh
+                          {t('customer_detail.contracts.refresh')}
                         </Button>
                       </>
                     )}
