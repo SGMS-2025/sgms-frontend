@@ -8,6 +8,9 @@ import { ptAvailabilityRequestApi } from '@/services/api/ptAvailabilityRequestAp
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import type { PTAvailabilitySlot, PTAvailabilityRequest } from '@/types/api/PTAvailabilityRequest';
 import { useIsMobile } from '@/hooks/use-mobile';
+import type { BranchWorkingConfig } from '@/types/api/BranchWorkingConfig';
+import type { Class, DayName } from '@/types/Class';
+import { classApi } from '@/services/api/classApi';
 
 interface ScheduleGridSelectorProps {
   selectedSlots: PTAvailabilitySlot[];
@@ -16,15 +19,17 @@ interface ScheduleGridSelectorProps {
   endDate?: Date;
   timeSlots?: string[]; // Array of time strings like ['06:00', '06:30', ...]
   slotDuration?: number; // Duration in minutes, default 30
-  minTime?: string; // Default '06:00'
-  maxTime?: string; // Default '22:00'
+  minTime?: string; // Fallback if no branchConfig
+  maxTime?: string; // Fallback if no branchConfig
   className?: string;
   staffId?: string; // Staff ID to fetch existing requests
   readOnly?: boolean; // If true, slots cannot be modified
   workingDays?: number[]; // Array of working days (0=Sunday, 1=Monday, ..., 6=Saturday). If not provided, all days are allowed.
+  branchConfig?: BranchWorkingConfig; // Branch working config for default shifts
 }
 
 // Generate time slots array
+// Include the end time cell if it aligns with slot boundaries
 const generateTimeSlots = (minTime: string, maxTime: string, duration: number): string[] => {
   const slots: string[] = [];
   const [minHour, minMinute] = minTime.split(':').map(Number);
@@ -33,10 +38,24 @@ const generateTimeSlots = (minTime: string, maxTime: string, duration: number): 
   const minTotalMinutes = minHour * 60 + minMinute;
   const maxTotalMinutes = maxHour * 60 + maxMinute;
 
+  // Generate slots from minTime to maxTime
   for (let minutes = minTotalMinutes; minutes < maxTotalMinutes; minutes += duration) {
     const hour = Math.floor(minutes / 60);
     const minute = minutes % 60;
     slots.push(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
+  }
+
+  // Include the end time cell if it aligns with slot boundaries
+  // Example: if maxTime is 10:00 and duration is 30, include 10:00
+  // Example: if maxTime is 23:00 and duration is 30, include 23:00
+  if (maxTotalMinutes % duration === 0 && maxTotalMinutes > minTotalMinutes) {
+    const endHour = Math.floor(maxTotalMinutes / 60);
+    const endMinute = maxTotalMinutes % 60;
+    const endTimeStr = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
+    // Only add if not already in slots (avoid duplicates)
+    if (!slots.includes(endTimeStr)) {
+      slots.push(endTimeStr);
+    }
   }
 
   return slots;
@@ -95,21 +114,27 @@ const isSlotSelected = (
     const slotEndMinutes = timeToMinutes(slot.endTime);
     const timeSlotMinutes = timeToMinutes(timeSlot);
 
+    // Calculate timeSlot end time for overlap checking
+    const timeSlotEndMinutes = timeSlotMinutes + slotDuration;
+
     // Calculate slot duration in minutes
     const slotDurationMinutes = slotEndMinutes - slotStartMinutes;
 
-    // If slot duration equals slotDuration (30 min), it's a single cell slot
-    // Only highlight the start cell for single cell slots
-    if (slotDurationMinutes === slotDuration) {
-      // For single cell slots, only highlight if timeSlot matches startTime exactly
-      // This prevents highlighting 2 cells when clicking 1 cell
-      return timeSlotMinutes === slotStartMinutes;
-    } else {
-      // For merged slots (duration > slotDuration), highlight all cells in range
-      // Include the end cell by checking if timeSlot is within [startTime, endTime]
-      // Use <= for slotEndMinutes to include the last cell (e.g., 09:30 for slot 07:30-09:30)
-      return timeSlotMinutes >= slotStartMinutes && timeSlotMinutes <= slotEndMinutes;
-    }
+    // Unified logic: highlight all cells that are part of the slot
+    // For single cell slots (30 min): only highlight the start cell
+    // For merged slots (>30 min): highlight all cells including the end cell
+    // Example: slot 13:00-13:30 (30 min) should highlight only 13:00
+    // Example: slot 7:30-8:00 (30 min) should highlight only 7:30
+    // Example: slot 7:30-9:00 (90 min) should highlight cells 7:30, 8:00, 8:30, and 9:00
+    // Example: slot 19:30-20:30 (60 min) should highlight cells 19:30, 20:00, and 20:30
+
+    // Check if cell overlaps with slot (cell starts before slot ends AND cell ends after slot starts)
+    const overlaps = timeSlotMinutes < slotEndMinutes && timeSlotEndMinutes > slotStartMinutes;
+
+    // Include cell that starts exactly at slot end ONLY if slot duration > slotDuration (merged slot)
+    // For single cell slots (30 min), don't include the end cell
+    const isEndCell = slotDurationMinutes > slotDuration && timeSlotMinutes === slotEndMinutes;
+    return overlaps || isEndCell;
   });
 };
 
@@ -199,6 +224,112 @@ const isSlotInWorkingDay = (date: Date, workingDays?: number[]): boolean => {
   return workingDays.includes(dayOfWeek);
 };
 
+// Helper to convert time string to minutes
+const timeToMinutes = (time: string): number => {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+// Check if a time slot is within any default shift
+const isTimeSlotInDefaultShifts = (
+  timeSlot: string,
+  defaultShifts?: Array<{ startTime: string; endTime: string }>
+): boolean => {
+  if (!defaultShifts || defaultShifts.length === 0) {
+    return true; // If no config, allow all slots
+  }
+
+  const slotMinutes = timeToMinutes(timeSlot);
+
+  return defaultShifts.some((shift) => {
+    const shiftStart = timeToMinutes(shift.startTime);
+    const shiftEnd = timeToMinutes(shift.endTime);
+    // Check if slot is within shift range (slot is start of a 30-min period)
+    return slotMinutes >= shiftStart && slotMinutes < shiftEnd;
+  });
+};
+
+// Check if a slot overlaps with a class schedule
+interface ClassOverlapResult {
+  isOverlapping: boolean;
+  classInfo?: Class;
+}
+
+const isSlotOverlappingWithClass = (
+  date: Date,
+  timeSlot: string,
+  classes: Class[],
+  slotDuration: number = 30
+): ClassOverlapResult => {
+  const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+  // Map dayOfWeek to DayName format (MONDAY, TUESDAY, etc.)
+  const dayNameMap: Record<number, DayName> = {
+    0: 'SUNDAY',
+    1: 'MONDAY',
+    2: 'TUESDAY',
+    3: 'WEDNESDAY',
+    4: 'THURSDAY',
+    5: 'FRIDAY',
+    6: 'SATURDAY'
+  };
+  const dayName = dayNameMap[dayOfWeek];
+
+  const slotStart = timeToMinutes(timeSlot);
+  const slotEnd = slotStart + slotDuration;
+
+  for (const cls of classes) {
+    if (!cls.schedulePattern || cls.status !== 'ACTIVE') continue;
+
+    // Check if class runs on this day
+    const classDays = cls.schedulePattern.daysOfWeek || [];
+    if (!classDays.includes(dayName)) continue;
+
+    const classStart = timeToMinutes(cls.schedulePattern.startTime);
+    const classEnd = timeToMinutes(cls.schedulePattern.endTime);
+
+    // Check if slot overlaps with class time
+    const overlaps = slotStart < classEnd && slotEnd > classStart;
+    const isEndCell = slotStart === classEnd;
+    if (overlaps || isEndCell) {
+      return { isOverlapping: true, classInfo: cls };
+    }
+  }
+
+  return { isOverlapping: false };
+};
+
+// Check if a slot is in a pending request
+// Similar to isSlotSelected, we need to include the end cell
+const isSlotInPendingRequest = (
+  date: Date,
+  timeSlot: string,
+  pendingRequests: PTAvailabilityRequest[],
+  slotDuration: number = 30
+): boolean => {
+  const dateStr = normalizeDateToString(date);
+
+  const slotStart = timeToMinutes(timeSlot);
+  const slotEnd = slotStart + slotDuration;
+
+  return pendingRequests.some((request) => {
+    if (request.status !== 'PENDING_APPROVAL' || !request.slots) return false;
+
+    return request.slots.some((slot) => {
+      const slotDateStr = normalizeDateToString(slot.date);
+      if (slotDateStr !== dateStr) return false;
+
+      const requestStart = timeToMinutes(slot.startTime);
+      const requestEnd = timeToMinutes(slot.endTime);
+
+      // Check if slot overlaps with pending request slot
+      const overlaps = slotStart < requestEnd && slotEnd > requestStart;
+      const isEndCell = slotStart === requestEnd;
+      return overlaps || isEndCell;
+    });
+  });
+};
+
 export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
   selectedSlots,
   onSlotsChange,
@@ -210,7 +341,8 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
   className,
   staffId,
   readOnly = false,
-  workingDays
+  workingDays,
+  branchConfig
 }) => {
   const { t } = useTranslation();
   const { currentStaff } = useCurrentUserStaff();
@@ -222,7 +354,10 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
 
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startDate || today);
   const [existingRequests, setExistingRequests] = useState<PTAvailabilityRequest[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<PTAvailabilityRequest[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [_loadingExisting, setLoadingExisting] = useState(false);
+  const [_loadingClasses, setLoadingClasses] = useState(false);
 
   // Swipe gesture state
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -289,7 +424,7 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
     }
   }, [allAvailableDates.length, isMobile]);
 
-  // Fetch existing requests
+  // Fetch existing requests (APPROVED and PENDING_APPROVAL)
   useEffect(() => {
     const fetchExistingRequests = async () => {
       const targetStaffId = staffId || currentStaff?._id;
@@ -300,17 +435,29 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
         const weekStart = currentWeekStart;
         const weekEnd = addDays(weekStart, 6);
 
-        // Use getRequests with staffId filter instead of getRequestsByStaff
-        const response = await ptAvailabilityRequestApi.getRequests({
+        // Fetch APPROVED requests
+        const approvedResponse = await ptAvailabilityRequestApi.getRequests({
           staffId: targetStaffId,
           startDate: format(weekStart, 'yyyy-MM-dd'),
           endDate: format(weekEnd, 'yyyy-MM-dd'),
-          status: 'APPROVED', // Only show approved requests
+          status: 'APPROVED',
           limit: 100
         });
 
-        if (response.success) {
-          setExistingRequests(response.data.data);
+        // Fetch PENDING_APPROVAL requests
+        const pendingResponse = await ptAvailabilityRequestApi.getRequests({
+          staffId: targetStaffId,
+          startDate: format(weekStart, 'yyyy-MM-dd'),
+          endDate: format(weekEnd, 'yyyy-MM-dd'),
+          status: 'PENDING_APPROVAL',
+          limit: 100
+        });
+
+        if (approvedResponse.success) {
+          setExistingRequests(approvedResponse.data.data);
+        }
+        if (pendingResponse.success) {
+          setPendingRequests(pendingResponse.data.data);
         }
       } catch (error) {
         console.error('Failed to fetch existing requests:', error);
@@ -321,6 +468,32 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
 
     fetchExistingRequests();
   }, [currentWeekStart, staffId, currentStaff?._id]);
+
+  // Fetch classes for PT
+  useEffect(() => {
+    const fetchClasses = async () => {
+      const targetStaffId = staffId || currentStaff?._id;
+      if (!targetStaffId) {
+        setClasses([]);
+        return;
+      }
+
+      setLoadingClasses(true);
+      try {
+        const classesData = await classApi.getClassesByTrainer(targetStaffId);
+        // Filter only ACTIVE classes
+        const activeClasses = (classesData || []).filter((cls) => cls.status === 'ACTIVE');
+        setClasses(activeClasses);
+      } catch (error) {
+        console.error('Failed to fetch classes:', error);
+        setClasses([]);
+      } finally {
+        setLoadingClasses(false);
+      }
+    };
+
+    fetchClasses();
+  }, [staffId, currentStaff?._id]);
 
   // Extract existing slots from approved requests
   const existingSlots = useMemo(() => {
@@ -376,11 +549,35 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
     return slots;
   }, [existingRequests, currentWeekStart]);
 
-  // Generate time slots if not provided
+  // Generate time slots based on branchConfig.defaultShifts or fallback to minTime/maxTime
   const generatedTimeSlots = useMemo(() => {
     if (timeSlots) return timeSlots;
+
+    // If branchConfig has defaultShifts, generate slots only within those shifts
+    if (branchConfig?.defaultShifts && branchConfig.defaultShifts.length > 0) {
+      const allSlots: string[] = [];
+      const slotSet = new Set<string>();
+
+      // Generate slots for each default shift
+      branchConfig.defaultShifts.forEach((shift) => {
+        const shiftSlots = generateTimeSlots(shift.startTime, shift.endTime, slotDuration);
+        shiftSlots.forEach((slot) => {
+          if (!slotSet.has(slot)) {
+            slotSet.add(slot);
+            allSlots.push(slot);
+          }
+        });
+      });
+
+      // Sort slots by time
+      return allSlots.sort((a, b) => {
+        return timeToMinutes(a) - timeToMinutes(b);
+      });
+    }
+
+    // Fallback to original logic with minTime/maxTime
     return generateTimeSlots(minTime, maxTime, slotDuration);
-  }, [timeSlots, minTime, maxTime, slotDuration]);
+  }, [timeSlots, minTime, maxTime, slotDuration, branchConfig?.defaultShifts]);
 
   // Handle slot click - toggle selection
   const handleSlotClick = (date: Date, timeSlot: string) => {
@@ -389,8 +586,19 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
       return;
     }
 
-    // Don't allow selecting existing slots
+    // Don't allow selecting existing slots, classes, or pending requests
     if (isSlotExisting(date, timeSlot, existingSlots, slotDuration)) {
+      return;
+    }
+
+    // Check for class overlap
+    const classOverlap = isSlotOverlappingWithClass(date, timeSlot, classes, slotDuration);
+    if (classOverlap.isOverlapping) {
+      return;
+    }
+
+    // Check for pending request
+    if (isSlotInPendingRequest(date, timeSlot, pendingRequests, slotDuration)) {
       return;
     }
 
@@ -626,81 +834,141 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
             })}
 
             {/* Time Slots and Grid Cells */}
-            {generatedTimeSlots.map((timeSlot, timeIndex) => (
-              <React.Fragment key={timeIndex}>
-                {/* Time Label */}
-                <div className="bg-gray-50 border-r border-b border-gray-200 p-2 text-xs font-medium text-gray-600 flex items-center justify-center">
-                  {timeSlot}
-                </div>
+            {generatedTimeSlots.map((timeSlot, timeIndex) => {
+              // Check if this time slot should be visible based on defaultShifts
+              const isInDefaultShift = isTimeSlotInDefaultShifts(timeSlot, branchConfig?.defaultShifts);
 
-                {/* Date Cells */}
-                {dates.map((date, dateIndex) => {
-                  const isSelected = isSlotSelected(date, timeSlot, selectedSlots, slotDuration);
-                  const isExisting = isSlotExisting(date, timeSlot, existingSlots, slotDuration);
-                  const isToday = isSameDay(date, new Date());
-                  const isPast = isSlotInPast(date, timeSlot);
-                  const isWorkingDay = isSlotInWorkingDay(date, workingDays);
+              return (
+                <React.Fragment key={timeIndex}>
+                  {/* Time Label - Hide if not in default shift */}
+                  {isInDefaultShift ? (
+                    <div className="bg-gray-50 border-r border-b border-gray-200 p-2 text-xs font-medium text-gray-600 flex items-center justify-center">
+                      {timeSlot}
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 border-r border-b border-gray-200 p-2" />
+                  )}
 
-                  // Get day name for tooltip
-                  const dayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-                  const dayName = dayNames[date.getDay()];
+                  {/* Date Cells */}
+                  {dates.map((date, dateIndex) => {
+                    if (!isInDefaultShift) {
+                      // Hide cells that are not in default shifts
+                      return (
+                        <div
+                          key={`${dateIndex}-${timeIndex}`}
+                          className="border-r border-b border-gray-200 bg-gray-50 opacity-30"
+                          style={{ minHeight: '40px' }}
+                        />
+                      );
+                    }
 
-                  return (
-                    <button
-                      key={`${dateIndex}-${timeIndex}`}
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (!isExisting && !readOnly && !isPast && isWorkingDay) {
-                          handleSlotClick(date, timeSlot);
+                    const isSelected = isSlotSelected(date, timeSlot, selectedSlots, slotDuration);
+                    const isExisting = isSlotExisting(date, timeSlot, existingSlots, slotDuration);
+                    const isToday = isSameDay(date, new Date());
+                    const isPast = isSlotInPast(date, timeSlot);
+                    const isWorkingDay = isSlotInWorkingDay(date, workingDays);
+
+                    // Check for class overlap
+                    const classOverlap = isSlotOverlappingWithClass(date, timeSlot, classes, slotDuration);
+                    const hasClass = classOverlap.isOverlapping;
+
+                    // Check for pending request
+                    const hasPendingRequest = isSlotInPendingRequest(date, timeSlot, pendingRequests, slotDuration);
+
+                    // Get day name for tooltip
+                    const dayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+                    const dayName = dayNames[date.getDay()];
+
+                    return (
+                      <button
+                        key={`${dateIndex}-${timeIndex}`}
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (!isExisting && !readOnly && !isPast && isWorkingDay && !hasClass && !hasPendingRequest) {
+                            handleSlotClick(date, timeSlot);
+                          }
+                        }}
+                        disabled={isExisting || readOnly || isPast || !isWorkingDay || hasClass || hasPendingRequest}
+                        className={cn(
+                          'border-r border-b border-gray-200 transition-all duration-150',
+                          !readOnly &&
+                            !isPast &&
+                            isWorkingDay &&
+                            !hasClass &&
+                            !hasPendingRequest &&
+                            'hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset cursor-pointer',
+                          readOnly && 'cursor-default',
+                          // Priority: hasPendingRequest should override isSelected
+                          hasPendingRequest && 'bg-amber-100 border-amber-300 cursor-not-allowed opacity-75',
+                          isSelected && !hasPendingRequest && 'bg-green-100 border-green-300',
+                          isExisting &&
+                            !hasPendingRequest &&
+                            !isSelected &&
+                            'bg-purple-100 border-purple-300 cursor-not-allowed opacity-75',
+                          hasClass &&
+                            !hasPendingRequest &&
+                            !isSelected &&
+                            !isExisting &&
+                            'bg-blue-100 border-blue-300 cursor-not-allowed opacity-75',
+                          isPast && 'bg-gray-100 cursor-not-allowed opacity-50',
+                          !isWorkingDay && 'bg-gray-100 cursor-not-allowed opacity-40',
+                          isToday &&
+                            !isSelected &&
+                            !isExisting &&
+                            !hasClass &&
+                            !hasPendingRequest &&
+                            !isPast &&
+                            isWorkingDay &&
+                            'bg-blue-50/30'
+                        )}
+                        style={{ minHeight: '40px' }}
+                        title={
+                          !isWorkingDay
+                            ? t(
+                                'pt_availability.slot_outside_working_days',
+                                `Không thể tạo lịch vào ${dayName}. Chi nhánh đóng cửa vào ngày này.`
+                              ).replace('{dayName}', dayName)
+                            : isPast
+                              ? t('pt_availability.slot_in_past', 'Khung giờ trong quá khứ')
+                              : isExisting
+                                ? t('pt_availability.slot_already_registered', 'Đã đăng ký trước đó')
+                                : hasClass
+                                  ? t('pt_availability.slot_has_class', 'PT đã có lớp học trong khung giờ này')
+                                  : hasPendingRequest
+                                    ? t('pt_availability.slot_pending_request', 'Đã có yêu cầu đang chờ duyệt')
+                                    : readOnly
+                                      ? ''
+                                      : ''
                         }
-                      }}
-                      disabled={isExisting || readOnly || isPast || !isWorkingDay}
-                      className={cn(
-                        'border-r border-b border-gray-200 transition-all duration-150',
-                        !readOnly &&
-                          !isPast &&
-                          isWorkingDay &&
-                          'hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset cursor-pointer',
-                        readOnly && 'cursor-default',
-                        isSelected && 'bg-green-100 border-green-300',
-                        isExisting && 'bg-purple-100 border-purple-300 cursor-not-allowed opacity-75',
-                        isPast && 'bg-gray-100 cursor-not-allowed opacity-50',
-                        !isWorkingDay && 'bg-gray-100 cursor-not-allowed opacity-40',
-                        isToday && !isSelected && !isExisting && !isPast && isWorkingDay && 'bg-blue-50/30'
-                      )}
-                      style={{ minHeight: '40px' }}
-                      title={
-                        !isWorkingDay
-                          ? t(
-                              'pt_availability.slot_outside_working_days',
-                              `Không thể tạo lịch vào ${dayName}. Chi nhánh đóng cửa vào ngày này.`
-                            ).replace('{dayName}', dayName)
-                          : isPast
-                            ? t('pt_availability.slot_in_past', 'Khung giờ trong quá khứ')
-                            : isExisting
-                              ? t('pt_availability.slot_already_registered', 'Đã đăng ký trước đó')
-                              : readOnly
-                                ? ''
-                                : ''
-                      }
-                    >
-                      {isSelected && (
-                        <div className="flex items-center justify-center h-full">
-                          <Check className="w-5 h-5 text-green-600" />
-                        </div>
-                      )}
-                      {isExisting && !isSelected && (
-                        <div className="flex items-center justify-center h-full">
-                          <Circle className="w-4 h-4 text-purple-600 fill-purple-600" />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </React.Fragment>
-            ))}
+                      >
+                        {isSelected && (
+                          <div className="flex items-center justify-center h-full">
+                            <Check className="w-5 h-5 text-green-600" />
+                          </div>
+                        )}
+                        {isExisting && !isSelected && (
+                          <div className="flex items-center justify-center h-full">
+                            <Circle className="w-4 h-4 text-purple-600 fill-purple-600" />
+                          </div>
+                        )}
+                        {hasClass && !isSelected && !isExisting && (
+                          <div className="flex items-center justify-center h-full">
+                            <Circle className="w-4 h-4 text-blue-600 fill-blue-600" />
+                          </div>
+                        )}
+                        {hasPendingRequest && !isSelected && !isExisting && !hasClass && (
+                          <div className="flex items-center justify-center h-full">
+                            <Circle className="w-4 h-4 text-amber-600 fill-amber-600" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -714,6 +982,14 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
         <div className="flex items-center gap-2">
           <Circle className="w-4 h-4 text-purple-600 fill-purple-600" />
           <span className="text-gray-600">{t('pt_availability.existing_slot', 'Đã đăng ký trước đó')}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Circle className="w-4 h-4 text-blue-600 fill-blue-600" />
+          <span className="text-gray-600">{t('pt_availability.class_slot', 'Lớp học')}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Circle className="w-4 h-4 text-amber-600 fill-amber-600" />
+          <span className="text-gray-600">{t('pt_availability.pending_request', 'Yêu cầu chờ duyệt')}</span>
         </div>
       </div>
     </div>

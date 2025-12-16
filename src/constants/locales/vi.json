@@ -6343,6 +6343,8 @@
     "setup_schedule": "Thiết lập lịch",
     "slots_selected": "khung giờ đã chọn",
     "slot_already_registered": "Đã đăng ký trước đó",
+    "slot_pending": "Đang chờ phê duyệt",
+    "slot_class": "Có lớp học",
     "status": {
       "pending": "Chờ Duyệt",
       "approved": "Đã Duyệt",
@@ -6350,6 +6352,8 @@
       "selected": "Đã chọn"
     },
     "existing_slot": "Đã đăng ký trước đó",
+    "class_slot": "Lớp học",
+    "pending_request": "Yêu cầu chờ duyệt",
     "slot_in_past": "Khung giờ trong quá khứ",
     "slot_outside_working_days": "Không thể tạo lịch vào {dayName}. Chi nhánh đóng cửa vào ngày này.",
     "validation": {
@@ -6357,7 +6361,8 @@
       "time_format": "Định dạng thời gian không hợp lệ (HH:mm)",
       "at_least_one_slot": "Vui lòng chọn ít nhất một khung giờ",
       "end_time_after_start": "Thời gian kết thúc phải sau thời gian bắt đầu",
-      "slot_in_past": "Không thể chọn khung giờ trong quá khứ"
+      "slot_in_past": "Không thể chọn khung giờ trong quá khứ",
+      "customer_required": "Vui lòng chọn ít nhất một khách hàng"
     },
     "staff_or_branch_missing": "Thông tin nhân viên hoặc chi nhánh bị thiếu",
     "create_request": "Tạo Yêu Cầu Lịch Kèm 1vs1",
