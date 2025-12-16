@@ -46,7 +46,7 @@ interface PurchaseSubscriptionModalProps {
   onSuccess?: () => void;
 }
 
-type PaymentMethod = 'CASH' | 'BANK_TRANSFER' | 'CREDIT_CARD' | 'PAYOS';
+type PaymentMethod = 'BANK_TRANSFER';
 type FlowStep = 'details' | 'bank-qr' | 'bank-wait' | 'bank-success' | 'template' | 'send-contract';
 type RemotePaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED' | 'EXPIRED';
 
@@ -76,28 +76,14 @@ export const PurchaseSubscriptionModal = ({
 
   const paymentMethods = [
     {
-      value: 'CASH' as PaymentMethod,
-      label: t('subscription.modal.payment.cash'),
-      description: t('subscription.modal.payment.cashDesc'),
-      icon: DollarSign,
-      available: true
-    },
-    {
       value: 'BANK_TRANSFER' as PaymentMethod,
       label: t('subscription.modal.payment.bankTransfer'),
       description: t('subscription.modal.payment.bankTransferDesc'),
       icon: Building2,
       available: true
-    },
-    {
-      value: 'CREDIT_CARD' as PaymentMethod,
-      label: t('subscription.modal.payment.creditCard'),
-      description: t('subscription.modal.payment.creditCardDesc'),
-      icon: CreditCard,
-      available: false
     }
   ];
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('BANK_TRANSFER');
   const [months, setMonths] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState<FlowStep>('details');
@@ -117,7 +103,7 @@ export const PurchaseSubscriptionModal = ({
   useEffect(() => {
     if (!open) {
       setMonths(1);
-      setPaymentMethod('CASH');
+      setPaymentMethod('BANK_TRANSFER');
       setPaymentTransaction(null);
       setPaymentStatus('pending');
       setTimeRemaining(0);

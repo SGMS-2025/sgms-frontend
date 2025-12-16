@@ -1,5 +1,30 @@
 import type { Branch, BranchDisplay } from '@/types/api/Branch';
 
+// Normalize facilities to a clean string array (handles JSON string or mixed types)
+export const normalizeFacilities = (facilities?: unknown): string[] => {
+  let list: unknown = facilities;
+
+  if (typeof list === 'string') {
+    const trimmed = list.trim();
+    if (!trimmed) {
+      list = [];
+    } else {
+      try {
+        const parsed = JSON.parse(trimmed);
+        list = Array.isArray(parsed) ? parsed : [trimmed];
+      } catch (_err) {
+        list = [trimmed];
+      }
+    }
+  }
+
+  if (Array.isArray(list)) {
+    return list.filter((f) => typeof f === 'string' && f.trim()).map((f) => (f as string).trim());
+  }
+
+  return [];
+};
+
 export const convertBranchToDisplay = (branch: Branch): BranchDisplay => {
   // Parse openingHours properly
   let parsedOpeningHours = { open: '06:00', close: '21:00' };
@@ -22,6 +47,7 @@ export const convertBranchToDisplay = (branch: Branch): BranchDisplay => {
     ...branch,
     status: branch.isActive ? 'ACTIVE' : 'INACTIVE',
     openingHours: parsedOpeningHours,
+    facilities: normalizeFacilities(branch.facilities),
     // Handle managerId - backend returns array, frontend now supports array
     managerId: Array.isArray(branch.managerId)
       ? branch.managerId.length > 0

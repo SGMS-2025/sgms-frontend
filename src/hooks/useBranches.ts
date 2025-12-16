@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { branchApi } from '@/services/api/branchApi';
-import { convertBranchToDisplay } from '@/utils/branchUtils';
+import { convertBranchToDisplay, normalizeFacilities } from '@/utils/branchUtils';
 import type {
   Branch,
   BranchListParams,
@@ -36,20 +36,24 @@ export const useBranches = (params?: BranchListParams): UseBranchesResult => {
   const convertToGymCards = (branches: Branch[]): GymCardData[] => {
     const colors: Array<'orange' | 'green' | 'purple'> = ['orange', 'green', 'purple'];
 
-    return branches.map((branch, index) => ({
-      id: branch._id,
-      name: branch.branchName,
-      description: branch.description ?? 'Phòng tập chuyên nghiệp với dịch vụ tốt nhất',
-      image: branch.coverImage ?? 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800', // Ô lớn: coverImage
-      logo: branch.images[0] ?? 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=100', // Ô nhỏ: images[0]
-      features: branch.facilities.slice(0, 4), // Limit to 4 features for UI
-      address: branch.location,
-      hours: branch.openingHours,
-      rating: branch.rating,
-      totalReviews: branch.totalReviews,
-      color: colors[index % colors.length],
-      tag: 'Gym'
-    }));
+    return branches.map((branch, index) => {
+      const facilities = normalizeFacilities(branch.facilities);
+
+      return {
+        id: branch._id,
+        name: branch.branchName,
+        description: branch.description ?? 'Phòng tập chuyên nghiệp với dịch vụ tốt nhất',
+        image: branch.coverImage ?? 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800', // Ô lớn: coverImage
+        logo: branch.images[0] ?? 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=100', // Ô nhỏ: images[0]
+        features: facilities.slice(0, 4), // Limit to 4 features for UI
+        address: branch.location,
+        hours: branch.openingHours,
+        rating: branch.rating,
+        totalReviews: branch.totalReviews,
+        color: colors[index % colors.length],
+        tag: 'Gym'
+      };
+    });
   };
 
   const fetchBranches = useCallback(async () => {

@@ -85,9 +85,10 @@ export interface CustomerDisplay {
     startDate: string;
     endDate?: string;
     activationDate?: string;
-    status?: string;
+    status?: string; // Trạng thái gói (ACTIVE, PENDING_ACTIVATION, ...)
     totalAmount?: number;
     paidAmount?: number;
+    paymentStatus?: string; // Trạng thái thanh toán (PENDING, PAID, ...)
     discountCampaignId?: {
       _id: string;
       name: string;

@@ -367,6 +367,7 @@ const CustomerDetailPage: React.FC = () => {
     _id?: string;
     packageType?: string;
     status?: string;
+    paymentStatus?: string;
     servicePackageId?: { name?: string };
     paidAmount?: number;
     total?: number;
@@ -454,6 +455,21 @@ const CustomerDetailPage: React.FC = () => {
     isActiveMembership && membershipContract?.status
       ? getMembershipStatusLabel(membershipContract.status)
       : t('customer_detail.no_package');
+  const membershipPaymentStatusDisplay =
+    membershipContract?.paymentStatus ||
+    (membershipContract?.paidAmount && membershipContract?.totalAmount
+      ? membershipContract.paidAmount >= (membershipContract.totalAmount || 0)
+        ? 'PAID'
+        : 'PENDING'
+      : undefined);
+
+  const getPaymentStatusDisplay = (paymentStatus?: string, paidAmount?: number, total?: number) => {
+    if (paymentStatus) return paymentStatus;
+    if (paidAmount !== undefined && total !== undefined) {
+      return paidAmount >= total ? 'PAID' : 'PENDING';
+    }
+    return t('customer_detail.no_package');
+  };
   const branchDisplay = branchNames ?? t('customer_detail.no_branch');
 
   const getGenderLabel = (gender?: string) => {
@@ -520,28 +536,69 @@ const CustomerDetailPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
-              <span className="text-xs uppercase tracking-wide text-white/70">
-                {t('customer_detail.header.membership')}
-              </span>
-              <p className="mt-1 text-sm font-semibold">
-                {isActiveMembership ? membershipPlanName : t('customer_detail.not_registered')}
-              </p>
+          {hasMembership ? (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
+                  <span className="text-xs uppercase tracking-wide text-white/70">
+                    {t('customer_detail.header.membership')}
+                  </span>
+                  <p className="mt-1 text-sm font-semibold">{membershipPlanName}</p>
+                </div>
+                <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
+                  <span className="text-xs uppercase tracking-wide text-white/70">
+                    {t('customer_detail.header.join_date')}
+                  </span>
+                  <p className="mt-1 text-sm font-semibold">{formatDate(membershipJoinDate, locale)}</p>
+                </div>
+                <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
+                  <span className="text-xs uppercase tracking-wide text-white/70">
+                    {t('customer_detail.header.expiry_date')}
+                  </span>
+                  <p className="mt-1 text-sm font-semibold">{formatDate(membershipExpiryDate, locale)}</p>
+                </div>
+                <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
+                  <span className="text-xs uppercase tracking-wide text-white/70">
+                    {t('customer_detail.membership_card.status')}
+                  </span>
+                  <p className="mt-1 text-sm font-semibold">{membershipStatusDisplay}</p>
+                </div>
+                <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
+                  <span className="text-xs uppercase tracking-wide text-white/70">
+                    {t('customer_detail.membership_card.payment_status', { defaultValue: 'Payment Status' })}
+                  </span>
+                  <p className="mt-1 text-sm font-semibold">
+                    {membershipPaymentStatusDisplay || t('customer_detail.unknown_status')}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 flex justify-end gap-2">
+                <Button
+                  type="button"
+                  onClick={() => setShowCancelMembership(true)}
+                  size="sm"
+                  variant="destructive"
+                  className="rounded-full px-4"
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  {t('customer_detail.cancel_package')}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setShowMembershipModal(true)}
+                className="rounded-full border-white/40 bg-white/10 text-xs font-medium text-white hover:bg-white/20"
+              >
+                <CreditCard className="mr-2 h-3.5 w-3.5" />
+                {t('customer_detail.register_membership')}
+              </Button>
             </div>
-            <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
-              <span className="text-xs uppercase tracking-wide text-white/70">
-                {t('customer_detail.header.join_date')}
-              </span>
-              <p className="mt-1 text-sm font-semibold">{formatDate(membershipJoinDate, locale)}</p>
-            </div>
-            <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
-              <span className="text-xs uppercase tracking-wide text-white/70">
-                {t('customer_detail.header.expiry_date')}
-              </span>
-              <p className="mt-1 text-sm font-semibold">{formatDate(membershipExpiryDate, locale)}</p>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -642,72 +699,8 @@ const CustomerDetailPage: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Service & Membership Cards - 3 Columns */}
-            <div className="grid gap-6 lg:grid-cols-3">
-              {/* Membership Card */}
-              <Card className="flex h-full flex-col rounded-3xl border border-border bg-card shadow-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <CreditCard className="h-5 w-5 text-primary" />
-                    {t('customer_detail.membership_card.title')}
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">{t('customer_detail.membership_card.description')}</p>
-                </CardHeader>
-                <CardContent className="flex flex-1 flex-col space-y-4">
-                  <div className="grid flex-1 gap-4 sm:grid-cols-2">
-                    <InfoField
-                      label={t('customer_detail.membership_card.package_name')}
-                      value={hasMembership ? membershipPlanName : t('customer_detail.not_registered')}
-                    />
-                    <InfoField
-                      label={t('customer_detail.membership_card.status')}
-                      value={hasMembership ? membershipStatusDisplay : t('customer_detail.no_package')}
-                    />
-                    <InfoField
-                      label={t('customer_detail.membership_card.join_date')}
-                      value={hasMembership ? formatDate(membershipJoinDate, locale) : '—'}
-                    />
-                    <InfoField
-                      label={t('customer_detail.membership_card.expiry_date')}
-                      value={hasMembership ? formatDate(membershipExpiryDate, locale) : '—'}
-                    />
-                  </div>
-
-                  {hasMembership ? (
-                    <div className="mt-auto flex gap-2">
-                      <Button
-                        type="button"
-                        onClick={() => setShowExtendMembership(true)}
-                        className="flex-1 rounded-full"
-                        variant="default"
-                      >
-                        <Calendar className="h-4 w-4 mr-2" />
-                        {t('customer_detail.extend')}
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={() => setShowCancelMembership(true)}
-                        className="flex-1 rounded-full"
-                        variant="destructive"
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        {t('customer_detail.cancel_package')}
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      type="button"
-                      onClick={() => setShowMembershipModal(true)}
-                      className="mt-auto w-full rounded-full"
-                      variant="outline"
-                    >
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      {t('customer_detail.register_membership')}
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-
+            {/* Service Cards - PT & Class */}
+            <div className="grid gap-6 lg:grid-cols-2">
               {/* PT Service Card */}
               <Card className="flex h-full flex-col rounded-3xl border border-border bg-card shadow-sm">
                 <CardHeader className="pb-3">
@@ -727,6 +720,20 @@ const CustomerDetailPage: React.FC = () => {
                       label={t('customer_detail.pt_card.status')}
                       value={
                         hasPTPackage ? getMembershipStatusLabel(ptContract?.status) : t('customer_detail.no_package')
+                      }
+                    />
+                    <InfoField
+                      label={t('customer_detail.membership_card.payment_status', {
+                        defaultValue: 'Payment Status'
+                      })}
+                      value={
+                        hasPTPackage
+                          ? getPaymentStatusDisplay(
+                              ptContract?.paymentStatus,
+                              ptContract?.paidAmount,
+                              ptContract?.total
+                            )
+                          : t('customer_detail.no_package')
                       }
                     />
                     <InfoField
@@ -794,6 +801,20 @@ const CustomerDetailPage: React.FC = () => {
                       value={
                         hasClassPackage
                           ? getMembershipStatusLabel(classContract?.status)
+                          : t('customer_detail.no_package')
+                      }
+                    />
+                    <InfoField
+                      label={t('customer_detail.membership_card.payment_status', {
+                        defaultValue: 'Payment Status'
+                      })}
+                      value={
+                        hasClassPackage
+                          ? getPaymentStatusDisplay(
+                              classContract?.paymentStatus,
+                              classContract?.paidAmount,
+                              classContract?.total
+                            )
                           : t('customer_detail.no_package')
                       }
                     />

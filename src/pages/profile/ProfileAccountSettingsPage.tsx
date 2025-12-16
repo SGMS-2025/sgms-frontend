@@ -61,6 +61,13 @@ const ProfileAccountSettingsPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeNav, setActiveNav] = useState<'edit-profile' | 'security' | 'contracts'>('edit-profile');
 
+  // Reset activeNav if contracts tab is not available and user tries to access it
+  useEffect(() => {
+    if (activeNav === 'contracts' && currentUser?.role === 'STAFF') {
+      setActiveNav('edit-profile');
+    }
+  }, [activeNav, currentUser?.role]);
+
   // Contracts state
   const [contracts, setContracts] = useState<ContractDocument[]>([]);
   const [loadingContracts, setLoadingContracts] = useState(false);
@@ -210,10 +217,11 @@ const ProfileAccountSettingsPage: React.FC = () => {
   }, [currentUser?._id, t]);
 
   useEffect(() => {
-    if (activeNav === 'contracts') {
+    // Only fetch contracts for OWNER and CUSTOMER roles
+    if (activeNav === 'contracts' && (currentUser?.role === 'OWNER' || currentUser?.role === 'CUSTOMER')) {
       fetchContracts();
     }
-  }, [activeNav, fetchContracts]);
+  }, [activeNav, fetchContracts, currentUser?.role]);
 
   // Handle view contract
   const handleViewContract = async (contract: ContractDocument) => {
@@ -302,10 +310,13 @@ const ProfileAccountSettingsPage: React.FC = () => {
     );
   }
 
+  // Filter out contracts tab for STAFF (PT) users - only show for OWNER and CUSTOMER
   const navItems: { key: 'edit-profile' | 'security' | 'contracts'; label: string }[] = [
     { key: 'edit-profile', label: t('settings.nav.edit_profile') },
     { key: 'security', label: t('settings.nav.security') },
-    { key: 'contracts', label: t('settings.nav.contracts') }
+    ...(currentUser?.role === 'OWNER' || currentUser?.role === 'CUSTOMER'
+      ? [{ key: 'contracts' as const, label: t('settings.nav.contracts') }]
+      : [])
   ];
 
   const handleNavClick = (key: 'edit-profile' | 'security' | 'contracts') => {
@@ -642,7 +653,7 @@ const ProfileAccountSettingsPage: React.FC = () => {
                   </div>
                 )}
 
-                {activeNav === 'contracts' && (
+                {activeNav === 'contracts' && (currentUser?.role === 'OWNER' || currentUser?.role === 'CUSTOMER') && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between mb-2">
                       <div>

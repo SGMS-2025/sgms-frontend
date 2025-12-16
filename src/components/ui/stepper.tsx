@@ -23,7 +23,6 @@ export function Stepper({ steps, currentStep, completedSteps = [], className }: 
         {steps.map((step, index) => {
           const isCompleted = completedSteps.includes(index) || index < currentStep;
           const isCurrent = index === currentStep;
-          const isOptional = step.optional;
 
           return (
             <React.Fragment key={step.id}>
@@ -57,7 +56,7 @@ export function Stepper({ steps, currentStep, completedSteps = [], className }: 
                     {step.title}
                   </p>
                   {step.description && <p className="text-xs text-gray-500 mt-1">{step.description}</p>}
-                  {isOptional && <span className="text-xs text-gray-400 block mt-1">(Tùy chọn)</span>}
+                  {/* Optional flag retained for layout if needed, but no extra label to avoid duplicate text */}
                 </div>
               </div>
 
