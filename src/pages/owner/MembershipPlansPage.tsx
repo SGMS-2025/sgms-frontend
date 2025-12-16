@@ -87,7 +87,7 @@ export default function MembershipPlansPage() {
   });
 
   // Computed values
-  const plans = plansData || [];
+  const plans = useMemo(() => plansData || [], [plansData]);
   const branchMap = useMemo(() => {
     const map: Record<string, MembershipPlanBranchInfo> = {};
     plans.forEach((plan: MembershipPlan) => {
@@ -344,20 +344,7 @@ export default function MembershipPlansPage() {
         updatePayload.revertBranchIds = data.revertBranchIds;
       }
 
-      const resourceBranchIds = plan.branchId?.map((b) => b._id) || [];
-      const response = await membershipApi.updateMembershipPlan(
-        plan._id,
-        {
-          name: data.name.trim(),
-          description: data.description.trim() || undefined,
-          price: Number(data.price),
-          currency: data.currency.trim().toUpperCase(),
-          durationInMonths: Number(data.durationInMonths),
-          benefits: parseBenefits(data.benefits),
-          isActive: data.isActive
-        },
-        resourceBranchIds
-      );
+      const response = await membershipApi.updateMembershipPlan(plan._id, updatePayload);
 
       if (response.success) {
         await refetch();

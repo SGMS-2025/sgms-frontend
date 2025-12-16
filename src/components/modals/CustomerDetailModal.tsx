@@ -37,6 +37,8 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ isOpen
   const membershipContract = customer.latestMembershipContract;
   const membershipJoinDate = membershipContract?.startDate || customer.joinDate;
   const membershipExpiryDate = membershipContract?.endDate || customer.expiryDate;
+  const membershipPackageStatus = membershipContract?.status;
+  const membershipPaymentStatus = membershipContract?.paymentStatus;
 
   // Format currency
   const formatCurrency = (value: string | number): string => {
@@ -143,6 +145,23 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({ isOpen
                       <span>
                         {t('customer_detail.expiry_date')}: {membershipExpiryDate || t('customer_detail.not_available')}
                       </span>
+                    </div>
+                    {/* Membership package status + payment status */}
+                    <div className="flex flex-col gap-1 text-gray-600">
+                      <div className="flex items-center gap-2">
+                        <Star className="w-4 h-4 text-orange-500" />
+                        <span>
+                          {t('customer_detail.package_status', { defaultValue: 'Trạng thái gói' })}:{' '}
+                          {membershipPackageStatus || t('customer_detail.unknown_status')}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="w-4 h-4 text-green-500" />
+                        <span>
+                          {t('customer_detail.payment_status', { defaultValue: 'Trạng thái thanh toán' })}:{' '}
+                          {membershipPaymentStatus || t('customer_detail.unknown_status')}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
