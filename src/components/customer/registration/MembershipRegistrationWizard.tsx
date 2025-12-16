@@ -117,11 +117,25 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
 
   // If we already have a QR contract, ensure paymentMethod stays QR_BANK so steps include payment
   useEffect(() => {
-    const existingContractId = bankQRContractId || getContractId(contractResponse) || undefined;
-    if (existingContractId && formData.paymentMethod !== 'QR_BANK') {
+    const contractId = getContractId(contractResponse) || undefined;
+    const contractPaymentMethod = getContractPaymentMethod(contractResponse);
+    const hasQrBankContract =
+      (!!bankQRContractId && bankQRContractId === contractId) ||
+      contractPaymentMethod === 'QR_BANK' ||
+      contractPaymentMethodRef.current === 'QR_BANK';
+
+    // Only coerce the payment method to QR_BANK when we truly have a QR contract
+    if (hasQrBankContract && formData.paymentMethod !== 'QR_BANK') {
       setFormData((prev) => ({ ...prev, paymentMethod: 'QR_BANK' }));
     }
-  }, [bankQRContractId, contractResponse, formData.paymentMethod, setFormData, getContractId]);
+  }, [
+    bankQRContractId,
+    contractResponse,
+    formData.paymentMethod,
+    setFormData,
+    getContractId,
+    getContractPaymentMethod
+  ]);
 
   // Reset contract/payment state when payment method changes to avoid reusing old contracts
   useEffect(() => {
@@ -309,7 +323,7 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
       toast.error(t('membership_registration.error_register'));
       return null;
     }
-  }, [customerId, formData, t]);
+  }, [customerId, formData, getContractPaymentMethod, t]);
 
   // Handle step navigation
   const handleNext = () => {
@@ -518,7 +532,16 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
     if (paymentStepIndex !== -1 && wizard.stepIndex < paymentStepIndex) {
       wizard.goToStep('payment');
     }
-  }, [isOpen, formData.paymentMethod, bankQRContractId, contractResponse, wizard, wizard.steps, wizard.stepIndex]);
+  }, [
+    isOpen,
+    formData.paymentMethod,
+    bankQRContractId,
+    contractResponse,
+    wizard,
+    wizard.steps,
+    wizard.stepIndex,
+    getContractId
+  ]);
 
   // Notify parent when entering/leaving QR payment step (to allow parent to skip refresh)
   useEffect(() => {

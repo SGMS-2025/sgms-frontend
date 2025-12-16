@@ -64,13 +64,26 @@ export interface CreateMembershipPlanRequest {
 }
 
 export interface UpdateMembershipPlanRequest {
+  updateScope?: 'template' | 'branches';
+  data?: {
+    name?: string;
+    description?: string;
+    price?: number;
+    currency?: string;
+    durationInMonths?: number;
+    benefits?: string[];
+    isActive?: boolean;
+  };
+  branchId?: string[];
+  targetBranchIds?: string[];
+  revertBranchIds?: string[];
+  // Legacy format support - will be wrapped in data field
   name?: string;
   description?: string;
   price?: number;
   currency?: string;
   durationInMonths?: number;
   benefits?: string[];
-  branchId?: string[];
   isActive?: boolean;
 }
 

@@ -147,8 +147,52 @@ export const membershipApi = {
     data: UpdateMembershipPlanRequest,
     branchIds?: string[]
   ): Promise<{ success: boolean; data: MembershipPlan; message?: string }> => {
-    const payload = branchIds ? { ...data, branchIds } : data;
-    const response = await api.put(`/membership-plans/${id}`, payload);
+    // If updateScope is already provided, use the data as-is (for branches update)
+    if (data.updateScope) {
+      const payload = branchIds ? { ...data, branchId: branchIds } : data;
+      const response = await api.patch(`/membership-plans/${id}`, payload);
+      return response.data;
+    }
+
+    // Otherwise, wrap in template update format (legacy support)
+    const { name, description, price, currency, durationInMonths, benefits, isActive, ...rest } = data;
+
+    const payload: {
+      updateScope: 'template';
+      data?: Record<string, unknown>;
+      branchId?: string[];
+    } = {
+      updateScope: 'template'
+    };
+
+    // Wrap legacy fields in data object
+    if (
+      name ||
+      description ||
+      price !== undefined ||
+      currency ||
+      durationInMonths !== undefined ||
+      benefits ||
+      isActive !== undefined
+    ) {
+      payload.data = {};
+      if (name !== undefined) payload.data.name = name;
+      if (description !== undefined) payload.data.description = description;
+      if (price !== undefined) payload.data.price = price;
+      if (currency !== undefined) payload.data.currency = currency;
+      if (durationInMonths !== undefined) payload.data.durationInMonths = durationInMonths;
+      if (benefits !== undefined) payload.data.benefits = benefits;
+      if (isActive !== undefined) payload.data.isActive = isActive;
+    }
+
+    // Add branchId if provided
+    if (branchIds && branchIds.length > 0) {
+      payload.branchId = branchIds;
+    } else if (rest.branchId) {
+      payload.branchId = rest.branchId;
+    }
+
+    const response = await api.patch(`/membership-plans/${id}`, payload);
     return response.data;
   },
 
