@@ -67,21 +67,40 @@ export const ClassCalendarTab: React.FC<ClassCalendarTabProps> = ({ branchId, da
   }
 
   const classesInSlot = filteredClasses.filter((cls) => {
-    // 1. Check day of week matches
+    // 1. Kiểm tra day of week khớp
     if (!cls.schedulePattern?.daysOfWeek?.includes(dayName as any)) {
       return false;
     }
 
-    // 2. Check time overlap (NOT exact match)
-    // This allows showing all classes that occur during the shift period
+    // 2. Kiểm tra date có nằm trong khoảng startDate và endDate của lớp học
+    if (cls.startDate && cls.endDate) {
+      // Chuyển đổi date hiện tại về dạng Date object và chỉ lấy phần ngày (bỏ giờ)
+      const currentDate = new Date(date);
+      currentDate.setHours(0, 0, 0, 0);
+
+      // Chuyển đổi startDate và endDate về dạng Date object
+      const classStartDate = new Date(cls.startDate);
+      classStartDate.setHours(0, 0, 0, 0);
+
+      const classEndDate = new Date(cls.endDate);
+      classEndDate.setHours(23, 59, 59, 999); // Đặt về cuối ngày để bao gồm cả ngày kết thúc
+
+      // Kiểm tra xem ngày hiện tại có nằm trong khoảng startDate và endDate không
+      if (currentDate < classStartDate || currentDate > classEndDate) {
+        return false;
+      }
+    }
+
+    // 3. Kiểm tra time overlap (NOT exact match)
+    // Cho phép hiển thị tất cả các lớp học diễn ra trong khoảng thời gian của shift
     const classStartMin = timeToMinutes(cls.schedulePattern.startTime);
     const classEndMin = timeToMinutes(cls.schedulePattern.endTime);
     const slotStartMin = timeToMinutes(timeSlot.startTime);
     const slotEndMin = timeToMinutes(timeSlot.endTime);
 
-    // Two time ranges overlap if:
-    // - Class starts before slot ends AND
-    // - Class ends after slot starts
+    // Hai khoảng thời gian chồng chéo nếu:
+    // - Lớp học bắt đầu trước khi shift kết thúc VÀ
+    // - Lớp học kết thúc sau khi shift bắt đầu
     const hasTimeOverlap = classStartMin < slotEndMin && classEndMin > slotStartMin;
 
     return hasTimeOverlap;

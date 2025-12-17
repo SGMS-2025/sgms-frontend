@@ -262,6 +262,8 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
         // Use currentValues instead of data parameter
         const updatePayload = {
           ...currentValues,
+          // Convert capacity to number if present
+          capacity: currentValues.capacity ? Number(currentValues.capacity) : undefined,
           schedulePattern: currentValues.schedulePattern
             ? {
                 daysOfWeek: [...(currentValues.schedulePattern.daysOfWeek || [])],
@@ -274,7 +276,12 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
 
         await updateClass(classId, updatePayload);
       } else {
-        await createClass(currentValues);
+        // Convert capacity to number for create
+        const createPayload = {
+          ...currentValues,
+          capacity: Number(currentValues.capacity) || 20
+        };
+        await createClass(createPayload);
       }
     } catch (error) {
       // Handle all errors inline - no toast notifications
@@ -653,7 +660,19 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
                     name="capacity"
                     control={control}
                     render={({ field }) => (
-                      <Input {...field} type="number" min="1" max="100" placeholder="20" className="mt-1" />
+                      <Input
+                        {...field}
+                        type="number"
+                        min="1"
+                        max="200"
+                        placeholder="20"
+                        className="mt-1"
+                        value={field.value ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value === '' ? '' : Number(e.target.value);
+                          field.onChange(value);
+                        }}
+                      />
                     )}
                   />
                   {errors.capacity && (

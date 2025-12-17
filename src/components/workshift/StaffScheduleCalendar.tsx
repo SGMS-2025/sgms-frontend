@@ -1882,6 +1882,7 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
                           filterStartTime={selectedShiftData.slot.startTime}
                           filterEndTime={selectedShiftData.slot.endTime}
                           filterDayOfWeek={getDayOfWeekName(selectedShiftData.date)}
+                          filterDate={selectedShiftData.date}
                           onClassClick={(classId) => {
                             setSelectedClassId(classId);
                             setShowClassDetail(true);

@@ -12,6 +12,7 @@ import { cn } from '@/utils/utils';
 import { usePTAvailabilityRequestOperations } from '@/hooks/usePTAvailabilityRequest';
 import { useUser } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
+import { useBranchWorkingConfig } from '@/hooks/useBranchWorkingConfig';
 import type {
   PTAvailabilityRequestDetailModalProps,
   PTAvailabilityServiceContract
@@ -34,6 +35,35 @@ const PTAvailabilityRequestDetailModal: React.FC<PTAvailabilityRequestDetailModa
   const [rejectionReason, setRejectionReason] = useState('');
   const [showApproveForm, setShowApproveForm] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
+
+  // Get branch config for default shifts
+  const branchId: string | undefined =
+    typeof request?.branchId === 'string' ? request.branchId : request?.branchId?._id;
+  const { config: branchConfig } = useBranchWorkingConfig(branchId);
+
+  // Calculate working days from branch config
+  const workingDays = useMemo(() => {
+    if (!branchConfig) {
+      // If no config, allow all days (fallback)
+      return [0, 1, 2, 3, 4, 5, 6];
+    }
+
+    // Check if there's a role config for PT
+    if (request?.staffId?.jobTitle === 'Personal Trainer') {
+      const ptRoleConfig = branchConfig.roleConfigs?.find((config) => config.role === 'PT');
+      if (ptRoleConfig && ptRoleConfig.workingDays && ptRoleConfig.workingDays.length > 0) {
+        return ptRoleConfig.workingDays;
+      }
+    }
+
+    // Fallback to defaultWorkingDays
+    if (branchConfig.defaultWorkingDays && branchConfig.defaultWorkingDays.length > 0) {
+      return branchConfig.defaultWorkingDays;
+    }
+
+    // Final fallback: all days
+    return [0, 1, 2, 3, 4, 5, 6];
+  }, [branchConfig, request?.staffId?.jobTitle]);
 
   // Calculate startDate for ScheduleGridSelector (earliest date in slots)
   // Must be called before early return to follow Rules of Hooks
@@ -288,6 +318,8 @@ const PTAvailabilityRequestDetailModal: React.FC<PTAvailabilityRequestDetailModa
                     maxTime="22:00"
                     staffId={request.staffId._id}
                     startDate={gridStartDate}
+                    workingDays={workingDays}
+                    branchConfig={branchConfig || undefined}
                   />
                 </CardContent>
               </Card>

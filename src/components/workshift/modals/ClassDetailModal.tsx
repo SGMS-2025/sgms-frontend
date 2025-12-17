@@ -468,7 +468,15 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                         onClick={() => {
                           const allPresent: Record<string, 'PRESENT' | 'ABSENT'> = {};
                           attendanceData!.records.forEach((record: Record<string, unknown>) => {
-                            allPresent[record.enrollmentId as string] = 'PRESENT';
+                            const contractId = (record.contractId as Record<string, unknown>) || {};
+                            const sessionsRemaining = (contractId.sessionsRemaining as number) || 0;
+                            const sessionCount = (contractId.sessionCount as number) || 0;
+                            // Only mark present if has sessions remaining
+                            if (sessionCount === 0 || sessionsRemaining > 0) {
+                              allPresent[record.enrollmentId as string] = 'PRESENT';
+                            } else {
+                              allPresent[record.enrollmentId as string] = 'ABSENT';
+                            }
                           });
                           setAttendanceRecords(allPresent);
                         }}
@@ -513,15 +521,45 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                           const userId = customerId?.userId as Record<string, unknown> | undefined;
                           const fullName = userId?.fullName as string | undefined;
                           const phoneNumber = userId?.phoneNumber as string | undefined;
+                          const contractId = record.contractId as Record<string, unknown> | undefined;
+                          const sessionsRemaining = (contractId?.sessionsRemaining as number) || 0;
+                          const sessionCount = (contractId?.sessionCount as number) || 0;
+                          const hasNoSessions = sessionCount > 0 && sessionsRemaining <= 0;
 
                           return (
                             <div
                               key={enrollmentId}
-                              className="bg-white border rounded-lg p-4 flex items-center justify-between hover:shadow-md transition-shadow"
+                              className={`bg-white border rounded-lg p-4 flex items-center justify-between hover:shadow-md transition-shadow ${
+                                hasNoSessions ? 'opacity-60 border-red-200 bg-red-50' : ''
+                              }`}
                             >
                               <div className="flex-1">
                                 <p className="font-medium text-sm">{fullName || 'N/A'}</p>
                                 <p className="text-xs text-gray-600">{phoneNumber || 'N/A'}</p>
+                                {sessionCount > 0 && (
+                                  <p className="text-xs mt-1">
+                                    <span
+                                      className={
+                                        sessionsRemaining <= 0 ? 'text-red-600 font-semibold' : 'text-gray-500'
+                                      }
+                                    >
+                                      {sessionsRemaining <= 0
+                                        ? t('classDetailModal.attendance.noSessionsRemaining', 'Hết buổi tập')
+                                        : t('classDetailModal.attendance.sessionsRemaining', {
+                                            count: sessionsRemaining,
+                                            defaultValue: `${sessionsRemaining} buổi còn lại`
+                                          })}
+                                    </span>
+                                  </p>
+                                )}
+                                {hasNoSessions && (
+                                  <p className="text-xs text-red-600 mt-1 font-medium">
+                                    {t(
+                                      'classDetailModal.attendance.cannotMarkAttendance',
+                                      'Không thể điểm danh - đã hết buổi tập'
+                                    )}
+                                  </p>
+                                )}
                               </div>
                               <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-2">
@@ -544,7 +582,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                                       [enrollmentId]: checked ? 'PRESENT' : 'ABSENT'
                                     }));
                                   }}
-                                  disabled={isPastDate}
+                                  disabled={isPastDate || hasNoSessions}
                                 />
                               </div>
                             </div>
@@ -615,10 +653,52 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                               icon: null
                             });
                           } catch (err) {
-                            const message =
-                              err instanceof Error ? err.message : t('classDetailModal.attendance.saveError');
                             console.error('[ClassDetailModal] Save error:', err);
-                            toast.error(message);
+
+                            // Check for specific error messages
+                            let errorMessage = t('classDetailModal.attendance.saveError');
+                            if (err instanceof Error) {
+                              errorMessage = err.message;
+                              // Check if it's a "no sessions remaining" error
+                              if (
+                                err.message.includes('no sessions remaining') ||
+                                err.message.includes('hết buổi') ||
+                                err.message.includes('Sessions exhausted')
+                              ) {
+                                errorMessage = t(
+                                  'classDetailModal.attendance.noSessionsError',
+                                  'Một hoặc nhiều học viên đã hết buổi tập. Vui lòng kiểm tra lại danh sách.'
+                                );
+                              }
+                            } else if (err && typeof err === 'object' && 'response' in err) {
+                              const axiosError = err as { response?: { data?: { message?: string } } };
+                              const apiMessage = axiosError.response?.data?.message;
+                              if (apiMessage) {
+                                errorMessage = apiMessage;
+                                if (apiMessage.includes('no sessions remaining') || apiMessage.includes('hết buổi')) {
+                                  errorMessage = t(
+                                    'classDetailModal.attendance.noSessionsError',
+                                    'Một hoặc nhiều học viên đã hết buổi tập. Vui lòng kiểm tra lại danh sách.'
+                                  );
+                                }
+                              }
+                            }
+
+                            toast.error(errorMessage);
+
+                            // Refresh attendance data to get updated session counts
+                            if (classId) {
+                              try {
+                                const refreshed = await classAttendanceApi.getOrCreateAttendance(
+                                  classId,
+                                  attendanceDate,
+                                  1
+                                );
+                                setAttendanceData(refreshed);
+                              } catch (refreshErr) {
+                                console.error('[ClassDetailModal] Failed to refresh attendance:', refreshErr);
+                              }
+                            }
                           } finally {
                             setSavingAttendance(false);
                           }

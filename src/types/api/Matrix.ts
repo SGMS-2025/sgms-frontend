@@ -27,6 +27,7 @@ export interface MatrixResponse {
       type?: 'PT' | 'CLASS' | 'GENERAL';
       status: 'ACTIVE' | 'INACTIVE';
       defaultDurationMonths: number;
+      sessionCount?: number;
     }[];
     items: MatrixItem[];
     effectiveDate: string;
@@ -220,6 +221,7 @@ export interface MatrixDisplayData {
     name: string;
     price?: number;
     durationInMonths?: number;
+    sessionCount?: number;
     status?: 'active' | 'inactive';
   }[];
   features: {

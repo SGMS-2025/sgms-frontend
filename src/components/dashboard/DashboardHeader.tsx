@@ -109,7 +109,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, hideBra
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={8} className="w-96 p-0 z-[120]">
+            <DropdownMenuContent align="end" sideOffset={8} alignOffset={-100} className="w-96 p-0 z-[120] !right-0">
               <NotificationDropdown showBadge={false} />
             </DropdownMenuContent>
           </DropdownMenu>
