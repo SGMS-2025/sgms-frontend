@@ -29,6 +29,7 @@ interface ClassesListTabProps {
   filterStartTime?: string; // Filter by shift start time (HH:MM)
   filterEndTime?: string; // Filter by shift end time (HH:MM)
   filterDayOfWeek?: string; // Filter by day of week (MONDAY, TUESDAY, etc.)
+  filterDate?: Date; // Filter by date to check against class startDate and endDate
   onClassClick?: (classId: string) => void; // Callback when class is clicked
   onScheduleClick?: (scheduleId: string) => void; // Callback when schedule is clicked
 }
@@ -58,6 +59,7 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
   filterStartTime,
   filterEndTime,
   filterDayOfWeek,
+  filterDate,
   onClassClick,
   onScheduleClick
 }) => {
@@ -75,24 +77,43 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
     }
 
     return classes.filter((cls) => {
-      // Check if class has schedule pattern
+      // Kiểm tra xem lớp học có schedule pattern không
       if (!cls.schedulePattern) return false;
 
-      // Check if day matches
+      // Kiểm tra xem day có khớp không
       if (!cls.schedulePattern.daysOfWeek?.includes(filterDayOfWeek as DayName)) {
         return false;
       }
 
-      // Check if time overlaps
+      // Kiểm tra date có nằm trong khoảng startDate và endDate của lớp học
+      if (filterDate && cls.startDate && cls.endDate) {
+        // Chuyển đổi filterDate về dạng Date object và chỉ lấy phần ngày (bỏ giờ)
+        const currentDate = new Date(filterDate);
+        currentDate.setHours(0, 0, 0, 0);
+
+        // Chuyển đổi startDate và endDate về dạng Date object
+        const classStartDate = new Date(cls.startDate);
+        classStartDate.setHours(0, 0, 0, 0);
+
+        const classEndDate = new Date(cls.endDate);
+        classEndDate.setHours(23, 59, 59, 999); // Đặt về cuối ngày để bao gồm cả ngày kết thúc
+
+        // Kiểm tra xem ngày hiện tại có nằm trong khoảng startDate và endDate không
+        if (currentDate < classStartDate || currentDate > classEndDate) {
+          return false;
+        }
+      }
+
+      // Kiểm tra time overlap
       const classStart = cls.schedulePattern.startTime;
       const classEnd = cls.schedulePattern.endTime;
 
-      // Simple overlap check: class starts before shift ends AND class ends after shift starts
+      // Kiểm tra chồng chéo đơn giản: lớp học bắt đầu trước khi shift kết thúc VÀ lớp học kết thúc sau khi shift bắt đầu
       const startMatch = classStart <= filterEndTime && classEnd >= filterStartTime;
 
       return startMatch;
     });
-  }, [classes, filterStartTime, filterEndTime, filterDayOfWeek]);
+  }, [classes, filterStartTime, filterEndTime, filterDayOfWeek, filterDate]);
 
   // Filter schedules by time if provided
   const filteredSchedules = React.useMemo(() => {

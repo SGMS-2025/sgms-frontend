@@ -151,7 +151,7 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
     return days;
   }, [currentMonth]);
 
-  // Find classes that match shift time
+  // Tìm các lớp học khớp với shift time
   const getClassesForShift = (shift: WorkShift | VirtualWorkShift) => {
     if (!classes) return [];
 
@@ -160,13 +160,36 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
     const dayOfWeek = shift.dayOfTheWeek;
 
     return classes.filter((cls) => {
+      // Kiểm tra xem lớp học có schedule pattern không
       if (!cls.schedulePattern) return false;
+
+      // Kiểm tra xem day có khớp không
       if (!cls.schedulePattern.daysOfWeek?.includes(dayOfWeek)) return false;
 
+      // Kiểm tra date có nằm trong khoảng startDate và endDate của lớp học
+      if (cls.startDate && cls.endDate) {
+        // Lấy ngày từ shift.startTime (ISO string) - chỉ lấy phần ngày
+        const shiftDate = new Date(shift.startTime);
+        shiftDate.setHours(0, 0, 0, 0);
+
+        // Chuyển đổi startDate và endDate về dạng Date object
+        const classStartDate = new Date(cls.startDate);
+        classStartDate.setHours(0, 0, 0, 0);
+
+        const classEndDate = new Date(cls.endDate);
+        classEndDate.setHours(23, 59, 59, 999); // Đặt về cuối ngày để bao gồm cả ngày kết thúc
+
+        // Kiểm tra xem ngày của shift có nằm trong khoảng startDate và endDate không
+        if (shiftDate < classStartDate || shiftDate > classEndDate) {
+          return false;
+        }
+      }
+
+      // Kiểm tra time overlap
       const classStart = cls.schedulePattern.startTime;
       const classEnd = cls.schedulePattern.endTime;
 
-      // Check if times overlap
+      // Kiểm tra chồng chéo: lớp học bắt đầu trước khi shift kết thúc VÀ lớp học kết thúc sau khi shift bắt đầu
       return classStart <= shiftEnd && classEnd >= shiftStart;
     });
   };
