@@ -265,32 +265,64 @@ export default function TrainingProgressDetailPage() {
     loadCustomerStats();
   }, [customerId, getCustomerStats]);
 
-  // Check URL params to auto-open add progress form
+  // Check URL params to auto-open add progress form - Run ONCE on mount only
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const shouldAdd = searchParams.get('add') === 'true';
-    const contractIdFromUrl = searchParams.get('contractId');
+    const params = new URLSearchParams(location.search);
+    const shouldAdd = params.get('add') === 'true';
+    if (!shouldAdd) return undefined;
 
-    if (shouldAdd && !isAddFormOpen && !customerLoading) {
-      // Update serviceContractId if provided in URL
-      if (contractIdFromUrl && contractIdFromUrl !== customer.serviceContractId) {
-        setCustomer((prev) => ({
-          ...prev,
-          serviceContractId: contractIdFromUrl
-        }));
+    // Use sessionStorage to persist across StrictMode remounts
+    const storageKey = `addProgress_${customerId}_${Date.now()}`;
+    const existingKey = sessionStorage.getItem(`addProgress_${customerId}`);
+    if (existingKey) return undefined;
+
+    sessionStorage.setItem(`addProgress_${customerId}`, storageKey);
+
+    const contractIdFromUrl = params.get('contractId');
+
+    // Wait for customer data to load before opening modal
+    const openModal = () => {
+      if (contractIdFromUrl) {
+        setCustomer((prev) =>
+          prev.serviceContractId !== contractIdFromUrl ? { ...prev, serviceContractId: contractIdFromUrl } : prev
+        );
       }
 
-      // Open add form
       setIsAddFormOpen(true);
 
-      // Clean up URL params after opening form
-      const newSearchParams = new URLSearchParams(location.search);
-      newSearchParams.delete('add');
-      newSearchParams.delete('contractId');
-      const newSearch = newSearchParams.toString();
+      // Clean up URL params
+      params.delete('add');
+      params.delete('contractId');
+      const newSearch = params.toString();
       navigate({ pathname: location.pathname, search: newSearch ? `?${newSearch}` : '' }, { replace: true });
+    };
+
+    // If customer is still loading, wait a bit
+    let timer: NodeJS.Timeout | undefined;
+
+    if (customerLoading) {
+      timer = setTimeout(openModal, 300);
+    } else {
+      openModal();
     }
-  }, [location.search, isAddFormOpen, customerLoading, customer.serviceContractId, navigate, location.pathname]);
+
+    // Always return cleanup function
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - run ONCE on mount only
+
+  // Cleanup sessionStorage when component unmounts
+  useEffect(() => {
+    return () => {
+      if (customerId) {
+        sessionStorage.removeItem(`addProgress_${customerId}`);
+      }
+    };
+  }, [customerId]);
 
   const handleCreateMealPlan = async (payload: MealPlanFormValues) => {
     if (!customerId || !activeGoal?.id) {

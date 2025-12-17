@@ -64,30 +64,7 @@ export const usePTSchedules = (staffId?: string | null, options: UsePTSchedulesO
 
       if (response.success) {
         // Response structure from PaginationHelper:
-        // { success: true, data: { data: [...], pagination: {...} }, message: "..." }
-        // NOT { success: true, data: { schedules: [...], pagination: {...} } }
         const schedulesData = response.data.data || response.data.schedules || [];
-
-        // Debug log to check response structure
-        console.log('[usePTSchedules] Fetching schedules:', {
-          staffId,
-          params,
-          responseSuccess: response.success,
-          responseDataKeys: Object.keys(response.data || {}),
-          hasDataData: !!response.data.data,
-          hasDataSchedules: !!response.data.schedules,
-          dataDataLength: response.data.data?.length,
-          dataSchedulesLength: response.data.schedules?.length,
-          schedulesCount: schedulesData.length,
-          schedules: schedulesData.slice(0, 3).map((s: Schedule) => ({
-            id: s._id,
-            name: s.name,
-            type: s.type,
-            status: s.status,
-            scheduleDate: s.scheduleDate,
-            ptId: s.ptId?._id || (typeof s.ptId === 'object' && s.ptId?._id) || s.ptId
-          }))
-        });
 
         setSchedules(schedulesData);
       } else {
