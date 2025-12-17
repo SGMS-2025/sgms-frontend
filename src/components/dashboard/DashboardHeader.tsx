@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, hideBra
   const navigate = useNavigate();
   const { unreadCount } = useSocketNotifications();
   const { currentBranch, branches, switchBranch } = useBranch();
+  const [notificationOpen, setNotificationOpen] = useState(false);
 
   const computedTitle = React.useMemo(() => {
     if (title) return title;
@@ -91,7 +92,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, hideBra
         {/* Right side - Icons and User Profile */}
         <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
           {/* Notifications */}
-          <DropdownMenu>
+          <DropdownMenu open={notificationOpen} onOpenChange={setNotificationOpen}>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
@@ -110,7 +111,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, hideBra
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" sideOffset={8} alignOffset={-100} className="w-96 p-0 z-[120] !right-0">
-              <NotificationDropdown showBadge={false} />
+              <NotificationDropdown showBadge={false} onClose={() => setNotificationOpen(false)} />
             </DropdownMenuContent>
           </DropdownMenu>
 
