@@ -51,7 +51,6 @@ export function AddServiceDialog({
     onSubmit({
       name: form.name.trim(),
       price: form.price ? parsePriceInput(form.price) : undefined,
-      durationInMonths: form.duration ? Number(form.duration) : undefined,
       sessionCount: form.sessionCount ? Number(form.sessionCount) : undefined,
       // PT 1-1: min and max participants are always 1
       // CLASS: use form values or defaults
@@ -131,14 +130,12 @@ export function AddServiceDialog({
           serviceType={serviceType}
           name={form.name}
           price={form.price}
-          duration={form.duration}
           sessionCount={form.sessionCount}
           minParticipants={form.minParticipants}
           maxParticipants={form.maxParticipants}
           errors={form.errors}
           onNameChange={form.handleNameChange}
           onPriceChange={form.handlePriceChange}
-          onDurationChange={form.handleDurationChange}
           onSessionCountChange={form.handleSessionCountChange}
           onMinParticipantsChange={form.handleMinParticipantsChange}
           onMaxParticipantsChange={form.handleMaxParticipantsChange}

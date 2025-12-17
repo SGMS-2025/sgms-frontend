@@ -10,7 +10,6 @@ interface ServiceFormFieldsProps {
   // Form values
   name: string;
   price: string;
-  duration: string;
   sessionCount: string;
   minParticipants: string;
   maxParticipants: string;
@@ -19,7 +18,6 @@ interface ServiceFormFieldsProps {
   // Handlers
   onNameChange: (value: string) => void;
   onPriceChange: (value: string) => void;
-  onDurationChange: (value: string) => void;
   onSessionCountChange: (value: string) => void;
   onMinParticipantsChange: (value: string) => void;
   onMaxParticipantsChange: (value: string) => void;
@@ -33,14 +31,12 @@ export const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({
   serviceType,
   name,
   price,
-  duration,
   sessionCount,
   minParticipants,
   maxParticipants,
   errors,
   onNameChange,
   onPriceChange,
-  onDurationChange,
   onSessionCountChange,
   onMinParticipantsChange,
   onMaxParticipantsChange,
@@ -66,45 +62,22 @@ export const ServiceFormFields: React.FC<ServiceFormFieldsProps> = ({
         />
         {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
       </div>
-      <div className="grid gap-2 grid-cols-2 items-start">
-        <div className="grid gap-2">
-          <Label htmlFor="price">
-            {t(`${translationKey}.price`)} <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="price"
-            type="text"
-            inputMode="numeric"
-            value={price}
-            onChange={(e) => onPriceChange(e.target.value)}
-            onBlur={() => onBlur('price')}
-            placeholder={t(`${translationKey}.price_placeholder`)}
-            disabled={disabled}
-            className={errors.price ? 'border-red-500' : ''}
-          />
-          <div className="min-h-[1.25rem]">
-            {errors.price && <p className="text-sm text-red-500">{errors.price}</p>}
-          </div>
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="duration">
-            {t(`${translationKey}.duration_months`)} <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="duration"
-            type="number"
-            min="1"
-            value={duration}
-            onChange={(e) => onDurationChange(e.target.value)}
-            onBlur={() => onBlur('duration')}
-            placeholder={t(`${translationKey}.duration_placeholder`)}
-            disabled={disabled}
-            className={errors.duration ? 'border-red-500' : ''}
-          />
-          <div className="min-h-[1.25rem]">
-            {errors.duration && <p className="text-sm text-red-500">{errors.duration}</p>}
-          </div>
-        </div>
+      <div className="grid gap-2">
+        <Label htmlFor="price">
+          {t(`${translationKey}.price`)} <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          id="price"
+          type="text"
+          inputMode="numeric"
+          value={price}
+          onChange={(e) => onPriceChange(e.target.value)}
+          onBlur={() => onBlur('price')}
+          placeholder={t(`${translationKey}.price_placeholder`)}
+          disabled={disabled}
+          className={errors.price ? 'border-red-500' : ''}
+        />
+        <div className="min-h-[1.25rem]">{errors.price && <p className="text-sm text-red-500">{errors.price}</p>}</div>
       </div>
       <div className="grid gap-2">
         <Label htmlFor="sessionCount">
