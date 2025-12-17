@@ -83,7 +83,7 @@ const createPTAvailabilityRequestSchema = (t: (key: string) => string) =>
           path: ['slots']
         }
       ),
-    serviceContractIds: z.array(z.string()).optional(),
+    serviceContractIds: z.array(z.string()).min(1, t('pt_availability.validation.customer_required')),
     notes: z.string().max(500).optional()
   });
 
@@ -150,7 +150,7 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
     });
   };
 
-  const { register, handleSubmit, setValue, watch, reset } = useForm<CreatePTAvailabilityRequestFormData>({
+  const { register, handleSubmit, setValue, watch, reset, formState } = useForm<CreatePTAvailabilityRequestFormData>({
     resolver: zodResolver(createPTAvailabilityRequestSchema(t)),
     defaultValues: {
       slots: prefillData?.slots || [],
@@ -305,6 +305,8 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
   };
 
   // Convert form slots to grid format (ensure date is in YYYY-MM-DD format)
+  // Don't merge slots here - let users see individual selected cells
+  // Merge will happen only when submitting the form
   const gridSlots = useMemo(() => {
     return watchedSlots.map((slot) => ({
       ...slot,
@@ -420,14 +422,17 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
                 <div>
                   <Label className="text-base font-semibold text-gray-900 flex items-center gap-2">
                     <User className="w-5 h-5 text-orange-500" />
-                    {t('pt_availability.select_customers', 'Chọn Khách Hàng')} ({t('common.optional', 'Tùy chọn')})
+                    {t('pt_availability.select_customers', 'Chọn Khách Hàng')} <span className="text-red-500">*</span>
                   </Label>
                   <p className="text-sm text-gray-600 mt-1">
-                    {t(
-                      'pt_availability.select_customers_description',
-                      'Chọn khách hàng để liên kết với lịch kèm này. Nếu không chọn, lịch sẽ dành cho tất cả khách hàng.'
-                    )}
+                    {t('pt_availability.select_customers_description', 'Chọn khách hàng để liên kết với lịch kèm này.')}
                   </p>
+                  {formState.errors.serviceContractIds && (
+                    <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {formState.errors.serviceContractIds.message}
+                    </p>
+                  )}
                 </div>
 
                 {/* Search */}
@@ -567,6 +572,7 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
                   maxTime="22:00"
                   staffId={currentStaff?._id}
                   workingDays={workingDays}
+                  branchConfig={branchConfig || undefined}
                 />
               </div>
 

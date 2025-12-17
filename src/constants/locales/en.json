@@ -6343,6 +6343,8 @@
     "setup_schedule": "Set up schedule",
     "slots_selected": "slots selected",
     "slot_already_registered": "Previously registered",
+    "slot_pending": "Pending approval",
+    "slot_class": "Has class",
     "status": {
       "pending": "Pending Approval",
       "approved": "Approved",
@@ -6350,6 +6352,8 @@
       "selected": "Selected"
     },
     "existing_slot": "Previously registered",
+    "class_slot": "Class",
+    "pending_request": "Pending request",
     "slot_in_past": "Time slot in the past",
     "slot_outside_working_days": "Cannot create schedule on {dayName}. Branch is closed on this day.",
     "validation": {
@@ -6357,7 +6361,8 @@
       "time_format": "Invalid time format (HH:mm)",
       "at_least_one_slot": "Please select at least one time slot",
       "end_time_after_start": "End time must be after start time",
-      "slot_in_past": "Cannot select time slots in the past"
+      "slot_in_past": "Cannot select time slots in the past",
+      "customer_required": "Please select at least one customer"
     },
     "staff_or_branch_missing": "Staff or branch information is missing",
     "create_request": "Create PT 1vs1 Schedule Request",

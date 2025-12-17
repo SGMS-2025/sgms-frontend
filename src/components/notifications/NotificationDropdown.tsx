@@ -198,7 +198,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       </div>
 
       {/* Notifications List - Scrollable Area */}
-      <div className="max-h-80 overflow-y-auto">
+      <div className="max-h-[550px] overflow-y-auto">
         {notifications.length === 0 ? (
           <div className="p-6 text-center text-gray-500">
             <Bell className="h-8 w-8 mx-auto mb-3 opacity-50" />
