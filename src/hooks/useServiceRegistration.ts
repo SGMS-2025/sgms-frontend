@@ -4,7 +4,6 @@ import type { DiscountCampaign } from '@/types/api/Discount';
 
 export interface ServiceRegistrationFormData {
   servicePackageId: string;
-  customMonths?: number;
   startDate: string;
   branchId: string;
   discountCampaignId?: string;
@@ -41,7 +40,6 @@ export const useServiceRegistration = (
 ): UseServiceRegistrationReturn => {
   const [formData, setFormData] = useState<ServiceRegistrationFormData>({
     servicePackageId: '',
-    customMonths: undefined,
     startDate: new Date().toISOString().split('T')[0],
     branchId: initialBranchId,
     discountCampaignId: undefined,
@@ -87,7 +85,6 @@ export const useServiceRegistration = (
     setFormData((prev) => ({
       ...prev,
       servicePackageId: packageId,
-      customMonths: pkg?.defaultDurationMonths,
       sessionCount: pkg?.sessionCount
     }));
   };

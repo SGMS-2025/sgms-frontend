@@ -304,7 +304,6 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
   const resetFormData = React.useCallback(() => {
     setFormData({
       servicePackageId: '',
-      customMonths: undefined,
       startDate: new Date().toISOString().split('T')[0],
       branchId: currentBranch?._id || '',
       discountCampaignId: undefined,

@@ -27,6 +27,7 @@ export const convertMatrixToLegacyFormat = (matrixData: MatrixResponse['data'] |
         type: pkg.type as 'PT' | 'CLASS' | undefined,
         price: undefined, // Will be updated from items if available
         durationInMonths: pkg.defaultDurationMonths,
+        sessionCount: pkg.sessionCount,
         status: pkg.status === 'ACTIVE' ? 'active' : 'inactive'
       });
     }
@@ -52,6 +53,7 @@ export const convertMatrixToLegacyFormat = (matrixData: MatrixResponse['data'] |
         type: pkg?.type as 'PT' | 'CLASS' | undefined,
         price: item.priceVND || undefined,
         durationInMonths: item.durationMonths,
+        sessionCount: pkg?.sessionCount,
         status: pkg?.status === 'ACTIVE' ? 'active' : 'inactive'
       });
     }

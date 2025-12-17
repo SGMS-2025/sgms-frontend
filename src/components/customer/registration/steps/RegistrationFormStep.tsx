@@ -92,8 +92,8 @@ export const RegistrationFormStep: React.FC<RegistrationFormStepProps> = ({
                     <SelectItem key={pkg._id} value={pkg._id}>
                       {packageType === 'PT' ? (
                         <>
-                          {pkg.name} - {formatCurrency(pkg.defaultPriceVND || 0)} ({pkg.defaultDurationMonths}{' '}
-                          {t('pt_registration.month')})
+                          {pkg.name} - {formatCurrency(pkg.defaultPriceVND || 0)} ({pkg.sessionCount || 0}{' '}
+                          {t('pt_registration.sessions')})
                         </>
                       ) : (
                         <div className="flex flex-col">
@@ -101,7 +101,7 @@ export const RegistrationFormStep: React.FC<RegistrationFormStepProps> = ({
                             {pkg.name} - {formatCurrency(pkg.defaultPriceVND || 0)}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            {pkg.defaultDurationMonths} {t('class_registration.month')} | {pkg.minParticipants}-
+                            {pkg.sessionCount || 0} {t('class_registration.sessions')} | {pkg.minParticipants}-
                             {pkg.maxParticipants || t('class_registration.many')} {t('class_registration.people')}
                           </span>
                         </div>
@@ -127,22 +127,6 @@ export const RegistrationFormStep: React.FC<RegistrationFormStepProps> = ({
                 />
               </div>
             )}
-
-            {/* Duration */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">
-                {t(`${packageType.toLowerCase()}_registration.duration_label`)}
-              </Label>
-              <Input
-                type="number"
-                min="1"
-                value={formData.customMonths || ''}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, customMonths: Number.parseInt(e.target.value, 10) || undefined }))
-                }
-                placeholder={t(`${packageType.toLowerCase()}_registration.duration_placeholder`)}
-              />
-            </div>
 
             {/* Trainer Selection - PT only */}
             {packageType === 'PT' && (

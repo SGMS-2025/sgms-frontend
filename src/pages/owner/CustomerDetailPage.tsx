@@ -4,7 +4,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
-  Calendar,
   CalendarCheck,
   CalendarDays,
   CreditCard,
@@ -373,6 +372,9 @@ const CustomerDetailPage: React.FC = () => {
     total?: number;
     startDate?: string;
     endDate?: string;
+    sessionCount?: number;
+    sessionsRemaining?: number;
+    sessionsUsed?: number;
   }
 
   const allServiceContracts: ServiceContractItem[] =
@@ -740,27 +742,24 @@ const CustomerDetailPage: React.FC = () => {
                       label={t('customer_detail.pt_card.start_date')}
                       value={hasPTPackage && ptContract?.startDate ? formatDate(ptContract.startDate, locale) : '—'}
                     />
-                    <InfoField
-                      label={t('customer_detail.pt_card.end_date')}
-                      value={hasPTPackage && ptContract?.endDate ? formatDate(ptContract.endDate, locale) : '—'}
-                    />
+                    {hasPTPackage ? (
+                      <InfoField
+                        label={t('customer_detail.pt_card.sessions_remaining', 'Buổi còn lại')}
+                        value={
+                          ptContract?.sessionsRemaining !== undefined && ptContract?.sessionCount !== undefined
+                            ? `${ptContract.sessionsRemaining} / ${ptContract.sessionCount}`
+                            : '—'
+                        }
+                      />
+                    ) : null}
                   </div>
 
                   {hasPTPackage ? (
                     <div className="mt-auto flex gap-2">
                       <Button
                         type="button"
-                        onClick={() => setShowExtendPT(true)}
-                        className="flex-1 rounded-full"
-                        variant="default"
-                      >
-                        <Calendar className="h-4 w-4 mr-2" />
-                        {t('customer_detail.extend')}
-                      </Button>
-                      <Button
-                        type="button"
                         onClick={() => setShowCancelPT(true)}
-                        className="flex-1 rounded-full"
+                        className="w-full rounded-full"
                         variant="destructive"
                       >
                         <XCircle className="h-4 w-4 mr-2" />
@@ -824,29 +823,24 @@ const CustomerDetailPage: React.FC = () => {
                         hasClassPackage && classContract?.startDate ? formatDate(classContract.startDate, locale) : '—'
                       }
                     />
-                    <InfoField
-                      label={t('customer_detail.class_card.end_date')}
-                      value={
-                        hasClassPackage && classContract?.endDate ? formatDate(classContract.endDate, locale) : '—'
-                      }
-                    />
+                    {hasClassPackage ? (
+                      <InfoField
+                        label={t('customer_detail.class_card.sessions_remaining', 'Buổi còn lại')}
+                        value={
+                          classContract?.sessionsRemaining !== undefined && classContract?.sessionCount !== undefined
+                            ? `${classContract.sessionsRemaining} / ${classContract.sessionCount}`
+                            : '—'
+                        }
+                      />
+                    ) : null}
                   </div>
 
                   {hasClassPackage ? (
                     <div className="mt-auto flex gap-2">
                       <Button
                         type="button"
-                        onClick={() => setShowExtendClass(true)}
-                        className="flex-1 rounded-full"
-                        variant="default"
-                      >
-                        <Calendar className="h-4 w-4 mr-2" />
-                        {t('customer_detail.extend')}
-                      </Button>
-                      <Button
-                        type="button"
                         onClick={() => setShowCancelClass(true)}
-                        className="flex-1 rounded-full"
+                        className="w-full rounded-full"
                         variant="destructive"
                       >
                         <XCircle className="h-4 w-4 mr-2" />

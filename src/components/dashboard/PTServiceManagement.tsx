@@ -302,19 +302,21 @@ export default function PTServiceManagement() {
                             )}
                           </div>
 
-                          {/* Price and Duration */}
+                          {/* Price and Sessions */}
                           <div className="flex flex-col items-center gap-1 text-xs text-orange-400">
                             {s.price && s.price > 0 ? (
                               <div className="font-medium text-green-600">{s.price.toLocaleString('vi-VN')}₫</div>
                             ) : (
                               <div className="text-orange-300 italic text-xs">{t('pt_service.no_price')}</div>
                             )}
-                            {s.durationInMonths && s.durationInMonths > 0 ? (
+                            {s.sessionCount && s.sessionCount > 0 ? (
                               <div className="text-blue-600">
-                                {s.durationInMonths} {t('pt_service.months')}
+                                {s.sessionCount} {t('pt_service.sessions', 'buổi')}
                               </div>
                             ) : (
-                              <div className="text-orange-300 italic text-xs">{t('pt_service.no_duration')}</div>
+                              <div className="text-orange-300 italic text-xs">
+                                {t('pt_service.no_sessions', 'Chưa có số buổi')}
+                              </div>
                             )}
                           </div>
                         </div>
