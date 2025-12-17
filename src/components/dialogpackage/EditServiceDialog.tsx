@@ -72,14 +72,12 @@ export function EditServiceDialog({
           serviceType={serviceType}
           name={form.name}
           price={form.price}
-          duration={form.duration}
           sessionCount={form.sessionCount}
           minParticipants={form.minParticipants}
           maxParticipants={form.maxParticipants}
           errors={form.errors}
           onNameChange={form.handleNameChange}
           onPriceChange={form.handlePriceChange}
-          onDurationChange={form.handleDurationChange}
           onSessionCountChange={form.handleSessionCountChange}
           onMinParticipantsChange={form.handleMinParticipantsChange}
           onMaxParticipantsChange={form.handleMaxParticipantsChange}
