@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Plus, ChevronDown, Clock, Settings } from 'lucide-react';
+import { Plus, ChevronDown, Settings } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { useWorkshiftPermissions } from '@/hooks/useWorkshiftPermissions';
 
@@ -19,7 +19,7 @@ interface CreateDropdownProps {
 }
 
 const CreateDropdown: React.FC<CreateDropdownProps> = ({
-  onCreateWorkShift,
+  onCreateWorkShift: _onCreateWorkShift,
   onBranchConfig,
   className,
   'data-tour': dataTour
@@ -27,11 +27,6 @@ const CreateDropdown: React.FC<CreateDropdownProps> = ({
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const { canCreateWorkshift } = useWorkshiftPermissions();
-
-  const handleCreateWorkShift = () => {
-    setIsOpen(false);
-    onCreateWorkShift();
-  };
 
   const handleBranchConfig = () => {
     setIsOpen(false);
@@ -59,10 +54,10 @@ const CreateDropdown: React.FC<CreateDropdownProps> = ({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
-        <DropdownMenuItem onClick={handleCreateWorkShift} className="cursor-pointer">
+        {/* <DropdownMenuItem onClick={handleCreateWorkShift} className="cursor-pointer">
           <Clock className="mr-2 h-4 w-4" />
           <span>{t('workshift.create_workshift')}</span>
-        </DropdownMenuItem>
+        </DropdownMenuItem> */}
         {/* Create Schedule option hidden - feature not needed */}
         {/* <DropdownMenuItem onClick={handleCreateSchedule} className="cursor-pointer">
           <Calendar className="mr-2 h-4 w-4" />
