@@ -8,7 +8,6 @@ import {
   Calendar,
   TrendingUp,
   DollarSign,
-  Award,
   User,
   BarChart3,
   Percent,
@@ -285,17 +284,6 @@ export const KPIDetailModal: React.FC<KPIDetailModalProps> = ({ kpiId, isOpen, o
                       </span>
                     </div>
                     <p className="text-lg font-semibold text-orange-600">{kpiConfig.commissionRate}%</p>
-                  </div>
-                )}
-
-                {/* Ranking */}
-                {achievement?.rankings?.branch && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Award className="w-5 h-5 text-yellow-500" />
-                      <span className="text-sm font-medium text-gray-700">{t('kpi.table.ranking', 'Xếp hạng')}</span>
-                    </div>
-                    <p className="text-lg font-semibold text-gray-900">#{achievement.rankings.branch}</p>
                   </div>
                 )}
               </div>

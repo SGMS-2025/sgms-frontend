@@ -43,6 +43,7 @@ function getNotificationTitleKey(type: string): string {
     'notification:servicecontract:assigned': 'notifications.service_contract.assigned.title',
     'notification:servicecontract:owner_update': 'notifications.service_contract.owner_update.title',
     'notification:servicecontract:manager_update': 'notifications.service_contract.manager_update.title',
+    'notification:servicecontract:sessions_running_low': 'notifications.service_contract.sessions_running_low.title',
 
     // Membership notifications
     MEMBERSHIP_CONTRACT_CREATED: 'notifications.membership.created.title',
@@ -100,6 +101,7 @@ function getNotificationMessageKey(type: string): string {
     'notification:servicecontract:assigned': 'notifications.service_contract.assigned.message',
     'notification:servicecontract:owner_update': 'notifications.service_contract.owner_update.message',
     'notification:servicecontract:manager_update': 'notifications.service_contract.manager_update.message',
+    'notification:servicecontract:sessions_running_low': 'notifications.service_contract.sessions_running_low.message',
 
     MEMBERSHIP_CONTRACT_CREATED: 'notifications.membership.created.message',
     MEMBERSHIP_CONTRACT_ACTIVATED: 'notifications.membership.activated.message',
@@ -188,6 +190,8 @@ export function translateNotificationTitle(notification: Notification, t: TFunct
               maximumFractionDigits: 0
             }).format((data.total as number) || (data.price as number))
           : ''),
+      sessionsRemaining: (data.sessionsRemaining as number) || 0,
+      sessionCount: (data.sessionCount as number) || 0,
 
       // KPI data (branchName already defined above, so only add period and rewardText)
       period: (data.period as string) || '',
@@ -277,6 +281,8 @@ export function translateNotificationMessage(notification: Notification, t: TFun
               maximumFractionDigits: 0
             }).format((data.total as number) || (data.price as number))
           : ''),
+      sessionsRemaining: (data.sessionsRemaining as number) || 0,
+      sessionCount: (data.sessionCount as number) || 0,
 
       // KPI data (branchName already defined above, so only add period and rewardText)
       period: (data.period as string) || '',

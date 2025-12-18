@@ -339,50 +339,32 @@ const BranchWorkingConfigModal: React.FC<BranchWorkingConfigModalProps> = ({ isO
                           </div>
                         </td>
                         <td className="align-middle px-4 py-1 text-center">
-                          <div className="flex flex-col items-center gap-1">
-                            <Input
-                              type="time"
-                              value={shift.startTime}
-                              onChange={(e) => handleShiftChange(idx, 'startTime', e.target.value)}
-                              className="w-[180px] text-center mx-auto block"
-                              id={`shift-start-time-${idx}`}
-                              placeholder={
-                                shift.type && shift.type !== 'CUSTOM' && DEFAULT_SHIFT_TIMES[shift.type]
-                                  ? DEFAULT_SHIFT_TIMES[shift.type].startTime
-                                  : undefined
-                              }
-                            />
-                            {shift.type &&
-                              shift.type !== 'CUSTOM' &&
-                              DEFAULT_SHIFT_TIMES[shift.type] &&
-                              !shift.startTime && (
-                                <span className="text-xs text-gray-400">
-                                  {DEFAULT_SHIFT_TIMES[shift.type].startTime}
-                                </span>
-                              )}
-                          </div>
+                          <Input
+                            type="time"
+                            value={shift.startTime}
+                            onChange={(e) => handleShiftChange(idx, 'startTime', e.target.value)}
+                            className="w-[180px] text-center mx-auto block"
+                            id={`shift-start-time-${idx}`}
+                            placeholder={
+                              shift.type && shift.type !== 'CUSTOM' && DEFAULT_SHIFT_TIMES[shift.type]
+                                ? DEFAULT_SHIFT_TIMES[shift.type].startTime
+                                : undefined
+                            }
+                          />
                         </td>
                         <td className="align-middle px-4 py-1 text-center">
-                          <div className="flex flex-col items-center gap-1">
-                            <Input
-                              type="time"
-                              value={shift.endTime}
-                              onChange={(e) => handleShiftChange(idx, 'endTime', e.target.value)}
-                              className="w-[180px] text-center mx-auto block"
-                              id={`shift-end-time-${idx}`}
-                              placeholder={
-                                shift.type && shift.type !== 'CUSTOM' && DEFAULT_SHIFT_TIMES[shift.type]
-                                  ? DEFAULT_SHIFT_TIMES[shift.type].endTime
-                                  : undefined
-                              }
-                            />
-                            {shift.type &&
-                              shift.type !== 'CUSTOM' &&
-                              DEFAULT_SHIFT_TIMES[shift.type] &&
-                              !shift.endTime && (
-                                <span className="text-xs text-gray-400">{DEFAULT_SHIFT_TIMES[shift.type].endTime}</span>
-                              )}
-                          </div>
+                          <Input
+                            type="time"
+                            value={shift.endTime}
+                            onChange={(e) => handleShiftChange(idx, 'endTime', e.target.value)}
+                            className="w-[180px] text-center mx-auto block"
+                            id={`shift-end-time-${idx}`}
+                            placeholder={
+                              shift.type && shift.type !== 'CUSTOM' && DEFAULT_SHIFT_TIMES[shift.type]
+                                ? DEFAULT_SHIFT_TIMES[shift.type].endTime
+                                : undefined
+                            }
+                          />
                         </td>
                         <td className="align-middle px-4 py-1 text-center">
                           <span className="font-semibold text-base">

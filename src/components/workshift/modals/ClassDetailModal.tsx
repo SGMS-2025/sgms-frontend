@@ -65,6 +65,16 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
     return checkDate < today;
   }, [attendanceDate]);
 
+  // Check if date is in the future (for blocking attendance marking)
+  const isFutureDate = React.useMemo(() => {
+    if (!attendanceDate) return false;
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const checkDate = new Date(attendanceDate);
+    checkDate.setUTCHours(0, 0, 0, 0);
+    return checkDate > today;
+  }, [attendanceDate]);
+
   // Fetch class detail
   useEffect(() => {
     if (!_isOpen || !classId) return;
@@ -113,6 +123,19 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
         const dateToUse = _selectedDate || new Date();
         const normalizedDate = new Date(dateToUse);
         normalizedDate.setUTCHours(0, 0, 0, 0);
+
+        // Kiểm tra nếu ngày là tương lai, không cho phép điểm danh
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+        if (normalizedDate > today) {
+          // Nếu là ngày tương lai, chỉ set date và không load attendance
+          setAttendanceDate(normalizedDate);
+          setAttendanceData(null);
+          setAttendanceRecords({});
+          setLoadingAttendance(false);
+          return;
+        }
+
         setAttendanceDate(normalizedDate);
 
         const data = await classAttendanceApi.getOrCreateAttendance(classId, normalizedDate, 1);
@@ -121,33 +144,53 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
           throw new Error(t('classDetailModal.errors.noRecords'));
         }
 
-        // Get active enrollment IDs from classData to filter attendance records
-        // This ensures we only show ACTIVE students even if backend returns all records
-        const activeEnrollmentIds = new Set(
-          classData?.enrolledStudents
-            ?.filter((e: EnrolledStudent) => e.status === 'ACTIVE')
-            .map((e: EnrolledStudent) => e._id || e.enrollmentId)
-            .filter(Boolean) || []
-        );
+        // QUAN TRỌNG: Logic hiển thị records
+        // - Nếu attendance đã được SUBMITTED hoặc LOCKED (đã lưu): LUÔN hiển thị TẤT CẢ records (giữ lịch sử)
+        // - Nếu attendance là DRAFT (chưa lưu): Chỉ hiển thị enrollment ACTIVE
+        //
+        // Lý do: Khi attendance đã được lưu, nó là lịch sử chính thức, cần giữ nguyên tất cả records
+        // kể cả khi enrollment/customer/contract đã bị xóa sau đó
 
-        // Filter attendance records to only include ACTIVE enrollments
-        const filteredRecords = data.records.filter((record: Record<string, unknown>) => {
-          const enrollmentId = record.enrollmentId as string;
-          return activeEnrollmentIds.has(enrollmentId);
-        });
+        // Backend có thể trả về recordStatus hoặc status, cần cast qua unknown trước
+        const recordStatus = (data as unknown as Record<string, unknown>).recordStatus as string | undefined;
+        const status = data.status || recordStatus;
+        const isSubmitted = status === 'SUBMITTED';
+        const isLocked = status === 'LOCKED';
+        const isSaved = isSubmitted || isLocked;
 
-        // Update data with filtered records
-        const filteredData = {
+        let recordsToDisplay = data.records || [];
+
+        // Nếu attendance đã được lưu (SUBMITTED hoặc LOCKED), luôn hiển thị tất cả records
+        // Nếu chưa lưu (DRAFT), chỉ hiển thị ACTIVE enrollments
+        if (!isSaved) {
+          // Filter attendance records to only include ACTIVE enrollments cho attendance chưa lưu
+          const activeEnrollmentIds = new Set(
+            classData?.enrolledStudents
+              ?.filter((e: EnrolledStudent) => e.status === 'ACTIVE')
+              .map((e: EnrolledStudent) => e._id || e.enrollmentId)
+              .filter(Boolean) || []
+          );
+
+          recordsToDisplay = (data.records || []).filter((record: Record<string, unknown>) => {
+            if (!record || !record.enrollmentId) return false;
+            const enrollmentId = record.enrollmentId as string;
+            return activeEnrollmentIds.has(enrollmentId);
+          });
+        }
+        // Nếu attendance đã được lưu: KHÔNG filter - giữ nguyên TẤT CẢ records từ backend
+
+        // Update data with records (filtered or not)
+        const finalData = {
           ...data,
-          records: filteredRecords
+          records: recordsToDisplay
         };
 
-        setAttendanceData(filteredData);
+        setAttendanceData(finalData);
 
-        // Initialize attendance records from filtered backend data
+        // Initialize attendance records from backend data
         const records: Record<string, 'PRESENT' | 'ABSENT'> = {};
-        if (Array.isArray(filteredRecords)) {
-          filteredRecords.forEach((record: Record<string, unknown>) => {
+        if (Array.isArray(recordsToDisplay)) {
+          recordsToDisplay.forEach((record: Record<string, unknown>) => {
             if (record.enrollmentId) {
               records[record.enrollmentId as string] = (record.status as 'PRESENT' | 'ABSENT') || 'ABSENT';
             }
@@ -156,8 +199,26 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
 
         setAttendanceRecords(records);
       } catch (err) {
-        const message = err instanceof Error ? err.message : t('classDetailModal.errors.loadAttendanceFailed');
-        toast.error(message);
+        // Xử lý error message từ backend và dịch nếu có translation key
+        let errorMessage = err instanceof Error ? err.message : t('classDetailModal.errors.loadAttendanceFailed');
+
+        // Kiểm tra nếu error message chứa key ATTENDANCE_CANNOT_MARK_FUTURE_DATE
+        if (
+          errorMessage.includes('ATTENDANCE_CANNOT_MARK_FUTURE_DATE') ||
+          errorMessage.includes('Không thể điểm danh cho ngày tương lai') ||
+          errorMessage.includes('Cannot mark attendance for a future date')
+        ) {
+          // Sử dụng translation key
+          errorMessage = t('error.ATTENDANCE_CANNOT_MARK_FUTURE_DATE');
+        } else {
+          // Thử dịch error message nếu có translation key
+          const errorKey = errorMessage.toUpperCase().replace(/\s+/g, '_');
+          const translated = t(`error.${errorKey}`, { defaultValue: errorMessage });
+          errorMessage = translated;
+        }
+
+        // Không hiển thị toast (theo yêu cầu người dùng)
+        // toast.error(errorMessage);
       } finally {
         setLoadingAttendance(false);
       }
@@ -481,7 +542,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                           setAttendanceRecords(allPresent);
                         }}
                         className="flex-1"
-                        disabled={isPastDate}
+                        disabled={isPastDate || isFutureDate}
                       >
                         <CheckCircle2 className="h-4 w-4 mr-1" />
                         {t('classDetailModal.attendance.markAllPresent')}
@@ -497,7 +558,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                           setAttendanceRecords(allAbsent);
                         }}
                         className="flex-1"
-                        disabled={isPastDate}
+                        disabled={isPastDate || isFutureDate}
                       >
                         <XCircle className="h-4 w-4 mr-1" />
                         {t('classDetailModal.attendance.markAllAbsent')}
@@ -544,20 +605,16 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                                       }
                                     >
                                       {sessionsRemaining <= 0
-                                        ? t('classDetailModal.attendance.noSessionsRemaining', 'Hết buổi tập')
+                                        ? t('classDetailModal.attendance.noSessionsRemaining')
                                         : t('classDetailModal.attendance.sessionsRemaining', {
-                                            count: sessionsRemaining,
-                                            defaultValue: `${sessionsRemaining} buổi còn lại`
+                                            count: sessionsRemaining
                                           })}
                                     </span>
                                   </p>
                                 )}
                                 {hasNoSessions && (
                                   <p className="text-xs text-red-600 mt-1 font-medium">
-                                    {t(
-                                      'classDetailModal.attendance.cannotMarkAttendance',
-                                      'Không thể điểm danh - đã hết buổi tập'
-                                    )}
+                                    {t('classDetailModal.attendance.cannotMarkAttendance')}
                                   </p>
                                 )}
                               </div>
@@ -582,7 +639,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                                       [enrollmentId]: checked ? 'PRESENT' : 'ABSENT'
                                     }));
                                   }}
-                                  disabled={isPastDate || hasNoSessions}
+                                  disabled={isPastDate || isFutureDate || hasNoSessions}
                                 />
                               </div>
                             </div>
@@ -597,8 +654,16 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                     )}
                   </div>
 
+                  {/* Future Date Warning */}
+                  {isFutureDate && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
+                      <XCircle className="h-4 w-4 text-red-600" />
+                      <p className="text-sm text-red-800">{t('classDetailModal.attendance.futureDateWarning')}</p>
+                    </div>
+                  )}
+
                   {/* Past Date Warning */}
-                  {isPastDate && (
+                  {isPastDate && !isFutureDate && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex items-center gap-2">
                       <XCircle className="h-4 w-4 text-yellow-600" />
                       <p className="text-sm text-yellow-800">{t('classDetailModal.attendance.pastDateWarning')}</p>
@@ -610,6 +675,17 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                     <div className="sticky bottom-0 bg-white pt-4 border-t -mx-6 px-6">
                       <Button
                         onClick={async () => {
+                          // Kiểm tra lại ngày trước khi lưu
+                          const today = new Date();
+                          today.setUTCHours(0, 0, 0, 0);
+                          const checkDate = new Date(attendanceDate);
+                          checkDate.setUTCHours(0, 0, 0, 0);
+
+                          if (checkDate > today) {
+                            // Không hiển thị toast, chỉ return
+                            return;
+                          }
+
                           setSavingAttendance(true);
                           try {
                             // Convert records to API format
@@ -704,7 +780,7 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
                           }
                         }}
                         className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-                        disabled={savingAttendance || isPastDate}
+                        disabled={savingAttendance || isPastDate || isFutureDate}
                       >
                         {savingAttendance ? (
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />

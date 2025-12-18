@@ -4,6 +4,7 @@ import { DayButton, DayPicker, getDefaultClassNames } from 'react-day-picker';
 
 import { cn } from '@/utils/utils';
 import { Button, buttonVariants } from '@/components/ui/button';
+import i18n from '@/configs/i18n';
 
 function Calendar({
   className,
@@ -18,6 +19,9 @@ function Calendar({
   buttonVariant?: React.ComponentProps<typeof Button>['variant'];
 }) {
   const defaultClassNames = getDefaultClassNames();
+  // Use app language (en/vi) to localize calendar month & weekday labels
+  const currentLang = i18n.language || 'en';
+  const localeForLabels = currentLang.startsWith('vi') ? 'vi-VN' : 'en-US';
 
   return (
     <DayPicker
@@ -30,7 +34,27 @@ function Calendar({
       )}
       captionLayout={captionLayout}
       formatters={{
-        formatMonthDropdown: (date) => date.toLocaleString('default', { month: 'short' }),
+        // Localize month name in dropdown based on current app language
+        formatMonthDropdown: (date) => {
+          const label = date.toLocaleString(localeForLabels, { month: 'short' });
+          return label.charAt(0).toUpperCase() + label.slice(1);
+        },
+        // Localize caption (month + year) based on current app language
+        formatCaption: (month) => {
+          const label = month.toLocaleDateString(localeForLabels, {
+            month: 'long',
+            year: 'numeric'
+          });
+          return label.charAt(0).toUpperCase() + label.slice(1);
+        },
+        // Localize weekday names as well
+        // For vi-VN, remove space so "Th 2" -> "Th2"
+        formatWeekdayName: (date) => {
+          const label = date.toLocaleDateString(localeForLabels, {
+            weekday: 'short'
+          });
+          return localeForLabels.startsWith('vi') ? label.replaceAll(/\s+/g, '') : label;
+        },
         ...formatters
       }}
       classNames={{

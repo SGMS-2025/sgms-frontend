@@ -214,7 +214,7 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
         name: cls.name,
         trainers: trainers + moreTrainers,
         time: timeRange,
-        customers: 'N/A', // Classes don't have individual customers
+        customers: String(totalEnrollment),
         capacity: `${totalEnrollment}/${cls.capacity}`,
         status: cls.status,
         data: cls
@@ -546,7 +546,7 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
                   <th className="text-left py-2 px-3">{t('classesListTab.table_header_name', 'Name')}</th>
                   <th className="text-left py-2 px-3">{t('classesListTab.table_header_trainers', 'Trainers')}</th>
                   <th className="text-left py-2 px-3">{t('classesListTab.table_header_time', 'Time')}</th>
-                  <th className="text-left py-2 px-3">{t('classesListTab.table_header_customers', 'Customers')}</th>
+                  <th className="text-center py-2 px-3">{t('classesListTab.table_header_customers', 'Customers')}</th>
                   <th className="text-center py-2 px-3">{t('classesListTab.table_header_capacity', 'Capacity')}</th>
                   <th className="text-center py-2 px-3">{t('classesListTab.table_header_type', 'Type')}</th>
                   <th className="text-center py-2 px-3">{t('classesListTab.table_header_status', 'Status')}</th>
@@ -580,7 +580,7 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
                         <span className="text-sm font-medium">{row.time}</span>
                       </div>
                     </td>
-                    <td className="py-3 px-3 text-gray-600">
+                    <td className="py-3 px-3 text-center text-gray-600">
                       <span className="text-sm">{row.customers}</span>
                     </td>
                     <td className="py-3 px-3 text-center">

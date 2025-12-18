@@ -34,6 +34,7 @@
   "error.RESCHEDULE_REQUEST_REASON_TOO_LONG": "Reason is too long for reschedule request",
   "error.RESCHEDULE_REQUEST_EXPIRY_INVALID": "Invalid expiry date for reschedule request",
   "error.RESCHEDULE_REQUEST_CONFLICT_DETECTED": "Schedule conflict detected for reschedule request",
+  "error.ATTENDANCE_CANNOT_MARK_FUTURE_DATE": "Cannot mark attendance for a future date. Can only mark attendance for the current date.",
   "auth.login_title": "LOGIN",
   "auth.login_prompt": "Log in now to continue your inspiring body transformation journey!",
   "auth.login_role": "Login role",
@@ -309,6 +310,8 @@
   "payment.summary_settled": "Settled",
   "payment.summary_pending": "Pending",
   "payment.summary_failed": "Failed",
+  "payment.view_transfer_image_button": "View transfer receipt image",
+  "payment.transfer_image_title": "Transfer receipt image",
   "dashboard.all_branches_customers": "Chain customers",
   "dashboard.all_branches_customers_desc": "Customers across every branch",
   "dashboard.all_locations": "All locations",
@@ -3082,6 +3085,8 @@
   "notifications.service_contract.owner_update.message": "A service contract has been updated",
   "notifications.service_contract.manager_update.title": "Service Contract Update",
   "notifications.service_contract.manager_update.message": "A service contract has been updated",
+  "notifications.service_contract.sessions_running_low.title": "Warning: Sessions Running Low",
+  "notifications.service_contract.sessions_running_low.message": "Your {{packageName}} package only has {{sessionsRemaining}} session(s) remaining. Please register for a new package to continue using the service.",
   "notifications.kpi.achieved.title": "🎉 KPI Target Achieved",
   "notifications.kpi.achieved.message": "Congratulations! You have achieved your KPI at {{branchName}} ({{period}}){{rewardText}}",
   "notifications.pt_progress_reminder.add_progress.title": "Reminder: Add Progress for Customer",
@@ -5441,14 +5446,26 @@
     "my_kpi": {
       "title": "My KPI",
       "period": "Period",
-      "branch": "Branch"
+      "branch": "Branch",
+      "page_title": "My KPI",
+      "page_subtitle": "Track your goals and performance for each KPI period."
+    },
+    "periods": "KPI Periods",
+    "periods_hint": "Select a period to view details",
+    "sort": {
+      "end_desc": "End date: newest",
+      "end_asc": "End date: oldest",
+      "start_desc": "Start date: newest"
     },
     "overall_achievement": "Overall Achievement",
     "achievement_rate": "Achievement",
     "target": "Target",
+    "no_target": "No target",
     "actual": "Actual",
     "progress": "Progress",
+    "remaining_to_target": "Remaining",
     "days_remaining": "{{days}} days remaining",
+    "period_ended": "Ended",
     "metrics": {
       "total_revenue": "Total Revenue",
       "new_members": "New Members",
@@ -5506,6 +5523,11 @@
     "no_kpi_message": "Get started by creating a new KPI for your staff",
     "no_kpi_assigned": "You have no KPI assigned",
     "staff_name": "Staff",
+    "actions": {
+      "view_detail": "View details"
+    },
+    "select_period": "Select a KPI period to view details",
+    "select_period_hint": "The list of KPI periods is on the left.",
     "table": {
       "staff_name": "Staff Name",
       "achievement": "Achievement",
@@ -6234,6 +6256,10 @@
       "attendanceList": "Attendance List",
       "noActiveStudents": "No active students to mark attendance",
       "pastDateWarning": "This date is in the past. Attendance cannot be modified.",
+      "futureDateWarning": "Cannot mark attendance for a future date. Can only mark attendance for the current date.",
+      "noSessionsRemaining": "Sessions ended",
+      "sessionsRemaining": "{{count}} session(s) remaining",
+      "cannotMarkAttendance": "Cannot mark attendance - sessions have ended",
       "saving": "Saving...",
       "saveAttendance": "Save Attendance",
       "saveSuccess": "Attendance saved successfully!",

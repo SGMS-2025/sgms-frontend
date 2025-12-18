@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { walletApi } from '@/services/api/walletApi';
+import { useUser } from '@/hooks/useAuth';
 import { WalletNotLinkedDialog } from './WalletNotLinkedDialog';
 
 interface PaymentMethodSelectorProps {
@@ -14,6 +15,7 @@ interface PaymentMethodSelectorProps {
 
 export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ value, onChange, branchId }) => {
   const { t } = useTranslation();
+  const currentUser = useUser();
   const [hasBankAccount, setHasBankAccount] = useState<boolean | null>(null);
   const [isWalletEnabled, setIsWalletEnabled] = useState<boolean | null>(null);
   const [showWalletDialog, setShowWalletDialog] = useState(false);
@@ -56,6 +58,12 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ va
   const checkWalletEnabled = async () => {
     if (!branchId) {
       setIsWalletEnabled(null);
+      return;
+    }
+
+    // Only OWNERs have permission to view wallets; avoid forbidden errors for STAFF / other roles
+    if (currentUser?.role !== 'OWNER') {
+      setIsWalletEnabled(true);
       return;
     }
 

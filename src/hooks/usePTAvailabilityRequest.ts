@@ -17,7 +17,7 @@ export const usePTAvailabilityRequestList = (
   initialParams: PTAvailabilityRequestListParams = {}
 ): UsePTAvailabilityRequestListReturn => {
   const [requests, setRequests] = useState<PTAvailabilityRequest[]>([]);
-  const [stats] = useState<PTAvailabilityRequestStats | null>(null);
+  const [stats, setStats] = useState<PTAvailabilityRequestStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<UsePTAvailabilityRequestListReturn['pagination']>(null);
@@ -30,18 +30,28 @@ export const usePTAvailabilityRequestList = (
 
     try {
       const requestParams = {
-        limit: 10,
-        ...params
+        ...params,
+        limit: params.limit ?? 10
       };
 
-      const response = await ptAvailabilityRequestApi.getRequests(requestParams);
+      const { page: _page, limit: _limit, ...statsParams } = params;
 
-      if (response.success) {
-        setRequests(response.data.data);
-        setPagination(response.data.pagination);
+      // Fetch requests and stats in parallel
+      const [requestsResponse, statsResponse] = await Promise.all([
+        ptAvailabilityRequestApi.getRequests(requestParams),
+        ptAvailabilityRequestApi.getStats(statsParams)
+      ]);
+
+      if (requestsResponse.success) {
+        setRequests(requestsResponse.data.data);
+        setPagination(requestsResponse.data.pagination);
       } else {
-        setError(response.message || 'Failed to fetch PT availability requests');
-        toast.error(response.message || t('pt_availability.fetch_error', 'Failed to fetch requests'));
+        setError(requestsResponse.message || 'Failed to fetch PT availability requests');
+        toast.error(requestsResponse.message || t('pt_availability.fetch_error', 'Failed to fetch requests'));
+      }
+
+      if (statsResponse.success) {
+        setStats(statsResponse.data);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';

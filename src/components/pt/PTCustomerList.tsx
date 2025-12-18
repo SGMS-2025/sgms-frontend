@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/customer-progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Search, Calendar, User, Users, Clock, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, User, Users, Clock, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PTCustomerDetailModal } from '@/components/modals/PTCustomerDetailModal';
 import { usePTCustomerList, usePTCustomerFilters, usePTCustomerUtils } from '@/hooks/usePTCustomer';
@@ -38,7 +38,7 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
   const { filters, filteredAndSortedCustomers, updateFilters } = usePTCustomerFilters(customerList);
 
   // Utility functions
-  const { getRemainingDays, formatDate, calculateProgress, getUrgencyLevel } = usePTCustomerUtils();
+  const { formatDate, calculateProgress, getUrgencyLevel } = usePTCustomerUtils();
 
   const getStatusBadge = (customer: PTCustomer) => {
     const urgency = getUrgencyLevel(customer);
@@ -260,8 +260,34 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <AnimatePresence mode="popLayout">
               {filteredAndSortedCustomers.map((customer, index) => {
-                const remainingDays = getRemainingDays(customer.package.endDate);
                 const urgency = getUrgencyLevel(customer);
+                const isKpi = customer.contractType === 'MEMBERSHIP_KPI';
+                const progress = calculateProgress(customer);
+
+                const getPaymentStatusBadge = () => (
+                  <Badge
+                    className={`${
+                      customer.package.paymentStatus === 'PAID'
+                        ? 'bg-green-100 text-green-700'
+                        : customer.package.paymentStatus === 'PENDING'
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-orange-100 text-orange-700'
+                    } border-0 font-medium`}
+                  >
+                    {customer.package.paymentStatus === 'PAID'
+                      ? t('pt_customer.payment.paid')
+                      : customer.package.paymentStatus === 'PENDING'
+                        ? t('pt_customer.payment.pending')
+                        : t('pt_customer.payment.partial')}
+                  </Badge>
+                );
+
+                const getProgressIndicatorClass = () => {
+                  if (urgency === 'expired') return 'bg-red-500';
+                  if (urgency === 'urgent') return 'bg-[#F05A29]';
+                  if (urgency === 'pending') return 'bg-gray-400';
+                  return 'bg-green-500';
+                };
 
                 return (
                   <motion.div
@@ -272,106 +298,85 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
                     transition={{ delay: index * 0.05 }}
                     whileHover={{ scale: 1.02 }}
                   >
-                    <Card className="p-6 rounded-[20px] shadow-sm hover:shadow-md transition-shadow bg-white border-gray-200">
-                      {/* Customer Info */}
-                      <div className="flex items-start gap-4 mb-4">
-                        <Avatar className="h-14 w-14 cursor-pointer" onClick={() => setSelectedCustomer(customer)}>
-                          <AvatarImage src={customer.avatar || '/placeholder.svg'} alt={customer.fullName} />
-                          <AvatarFallback className="bg-accent text-accent-foreground font-semibold">
-                            {customer.fullName.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedCustomer(customer)}>
-                          <h3 className="font-semibold text-lg text-foreground truncate">{customer.fullName}</h3>
-                          <p className="text-sm text-foreground">{customer.phone}</p>
+                    <Card className="h-full p-6 rounded-[20px] shadow-sm hover:shadow-md transition-shadow bg-white border-gray-200">
+                      <div className="flex h-full flex-col">
+                        {/* Customer Info */}
+                        <div className="flex items-start gap-4">
+                          <Avatar className="h-14 w-14 cursor-pointer" onClick={() => setSelectedCustomer(customer)}>
+                            <AvatarImage src={customer.avatar || '/placeholder.svg'} alt={customer.fullName} />
+                            <AvatarFallback className="bg-accent text-accent-foreground font-semibold">
+                              {customer.fullName.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setSelectedCustomer(customer)}>
+                            <h3 className="font-semibold text-lg text-foreground truncate">{customer.fullName}</h3>
+                            <p className="text-sm text-foreground">{customer.phone}</p>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Package & Status */}
-                      <div className="mb-4 cursor-pointer" onClick={() => setSelectedCustomer(customer)}>
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-foreground">{customer.package.name}</span>
-                            {customer.contractType === 'MEMBERSHIP_KPI' && (
-                              <Badge className="bg-blue-100 text-blue-700 border-0 text-xs font-medium">
-                                {t('pt_customer.kpi_badge')}
-                              </Badge>
+                        <div
+                          className="flex-1 pt-4 space-y-4 cursor-pointer"
+                          onClick={() => setSelectedCustomer(customer)}
+                        >
+                          {/* Package & Status */}
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-sm font-semibold text-foreground truncate">
+                                {customer.package.name}
+                              </span>
+                              {isKpi && (
+                                <Badge className="bg-blue-100 text-blue-700 border-0 text-xs font-medium">
+                                  {t('pt_customer.kpi_badge')}
+                                </Badge>
+                              )}
+                            </div>
+                            {getStatusBadge(customer)}
+                          </div>
+
+                          {/* Highlight Row */}
+                          <div className="rounded-xl border border-gray-200 bg-gray-50/80 px-3 py-2">
+                            {isKpi ? (
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="text-sm font-medium text-muted-foreground">
+                                  {t('pt_customer.payment_status')}
+                                </span>
+                                <div className="flex items-center gap-2">{getPaymentStatusBadge()}</div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between gap-3">
+                                <span
+                                  className={`text-sm font-semibold ${
+                                    urgency === 'urgent' ? 'text-[#F05A29]' : 'text-foreground'
+                                  }`}
+                                >
+                                  {t('pt_customer.sessions_remaining_count', {
+                                    count: customer.package.sessionsRemaining
+                                  })}
+                                </span>
+                              </div>
                             )}
                           </div>
-                          {getStatusBadge(customer)}
-                        </div>
-                        {urgency === 'urgent' && customer.contractType !== 'MEMBERSHIP_KPI' && (
-                          <div className="text-sm font-medium text-[#F05A29] mt-1">
-                            {customer.package.sessionsRemaining <= 3
-                              ? t('pt_customer.sessions_remaining_count', { count: customer.package.sessionsRemaining })
-                              : remainingDays > 0
-                                ? t('pt_customer.days_remaining', { count: remainingDays })
-                                : t('pt_customer.expires_today')}
-                          </div>
-                        )}
-                        {urgency === 'urgent' && customer.contractType === 'MEMBERSHIP_KPI' && remainingDays <= 7 && (
-                          <div className="text-sm font-medium text-[#F05A29] mt-1">
-                            {remainingDays > 0
-                              ? t('pt_customer.days_remaining', { count: remainingDays })
-                              : t('pt_customer.expires_today')}
-                          </div>
-                        )}
-                      </div>
 
-                      {/* Progress - Only show for PT_PACKAGE contracts */}
-                      {customer.contractType !== 'MEMBERSHIP_KPI' && (
-                        <div className="mb-4 cursor-pointer" onClick={() => setSelectedCustomer(customer)}>
-                          <div className="flex items-center justify-between mb-2 text-sm">
-                            <span className="text-foreground">
-                              {t('pt_customer.sessions_completed', {
-                                used: customer.package.sessionsUsed,
-                                total: customer.package.totalSessions
-                              })}
-                            </span>
-                            <span className="font-medium text-foreground">
-                              {Math.round(calculateProgress(customer))}%
-                            </span>
-                          </div>
-                          <Progress
-                            value={calculateProgress(customer)}
-                            className="h-2 w-full bg-gray-200"
-                            indicatorClassName="bg-orange-500"
-                          />
-                        </div>
-                      )}
-                      {/* Payment Status for MEMBERSHIP_KPI */}
-                      {customer.contractType === 'MEMBERSHIP_KPI' && (
-                        <div className="mb-4 cursor-pointer" onClick={() => setSelectedCustomer(customer)}>
-                          <div className="flex items-center justify-between mb-2 text-sm">
-                            <span className="text-foreground">{t('pt_customer.payment_status')}:</span>
-                            <Badge
-                              className={`${
-                                customer.package.paymentStatus === 'PAID'
-                                  ? 'bg-green-100 text-green-700'
-                                  : customer.package.paymentStatus === 'PENDING'
-                                    ? 'bg-yellow-100 text-yellow-700'
-                                    : 'bg-orange-100 text-orange-700'
-                              } border-0 font-medium`}
-                            >
-                              {customer.package.paymentStatus === 'PAID'
-                                ? t('pt_customer.payment.paid')
-                                : customer.package.paymentStatus === 'PENDING'
-                                  ? t('pt_customer.payment.pending')
-                                  : t('pt_customer.payment.partial')}
-                            </Badge>
+                          {/* Progress */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-foreground">
+                                {isKpi
+                                  ? `${formatDate(customer.package.startDate)} - ${formatDate(customer.package.endDate)}`
+                                  : t('pt_customer.sessions_completed', {
+                                      used: customer.package.sessionsUsed,
+                                      total: customer.package.totalSessions
+                                    })}
+                              </span>
+                              <span className="font-semibold text-foreground">{Math.round(progress)}%</span>
+                            </div>
+                            <Progress
+                              value={progress}
+                              className="h-2.5 w-full bg-gray-200"
+                              indicatorClassName={getProgressIndicatorClass()}
+                            />
                           </div>
                         </div>
-                      )}
-
-                      {/* Expiration Date */}
-                      <div
-                        className="flex items-center gap-2 text-sm text-foreground mb-4 cursor-pointer"
-                        onClick={() => setSelectedCustomer(customer)}
-                      >
-                        <Calendar className="h-4 w-4" />
-                        <span>
-                          {t('pt_customer.expires_on')}: {formatDate(customer.package.endDate)}
-                        </span>
                       </div>
                     </Card>
                   </motion.div>

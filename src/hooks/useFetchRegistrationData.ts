@@ -4,7 +4,7 @@ import { discountCampaignApi } from '@/services/api/discountApi';
 import { staffApi } from '@/services/api/staffApi';
 import type { ServicePackage, PackageType } from '@/types/api/Package';
 import type { DiscountCampaign } from '@/types/api/Discount';
-import type { Staff, StaffListResponse } from '@/types/api/Staff';
+import type { Staff } from '@/types/api/Staff';
 import type { ApiResponse } from '@/types/api/Api';
 
 export interface UseFetchRegistrationDataOptions {
@@ -62,9 +62,15 @@ export const useFetchRegistrationData = ({
 
       // Fetch trainers separately if needed (different return type)
       if (fetchTrainers) {
-        const trainersRes: ApiResponse<StaffListResponse> = await staffApi.getStaffList({ branchId });
+        // IMPORTANT: use branch-specific API with a high limit to fetch all active PTs in branch,
+        // not just the first paginated page from /staff
+        const trainersRes: ApiResponse<Staff[]> = await staffApi.getStaffListByBranch(branchId, {
+          limit: 500,
+          jobTitle: 'Personal Trainer'
+        });
         if (trainersRes.success && trainersRes.data) {
-          setTrainers(trainersRes.data.staffList.filter((staff: Staff) => staff.jobTitle === 'Personal Trainer'));
+          // Backend already filters by jobTitle; keep a defensive filter here
+          setTrainers(trainersRes.data.filter((staff: Staff) => staff.jobTitle === 'Personal Trainer'));
         }
       }
 
