@@ -170,6 +170,7 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
     data: Class | Schedule;
     customerId?: string;
     serviceContractId?: string;
+    scheduleDate?: string; // Ngày của schedule (cho PT 1-1)
   };
 
   const tableRows = useMemo<TableRow[]>(() => {
@@ -322,7 +323,8 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
         status: schedule.status,
         data: schedule,
         customerId,
-        serviceContractId
+        serviceContractId,
+        scheduleDate: schedule.scheduleDate // Lưu ngày của schedule để check progress theo ngày
       });
     });
 
@@ -342,34 +344,45 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
       if (pt1_1Rows.length === 0) return;
 
       const checkPromises = pt1_1Rows.map(async (row) => {
-        if (!row.customerId || !row.serviceContractId || !currentUser?._id) return;
+        if (!row.customerId || !row.serviceContractId || !currentUser?._id || !row.scheduleDate) return;
 
-        const key = `${row.customerId}-${row.serviceContractId}`;
+        // Key bao gồm cả ngày để check progress theo ngày cụ thể
+        const scheduleDate = new Date(row.scheduleDate);
+        const dateStr = scheduleDate.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+        const key = `${row.customerId}-${row.serviceContractId}-${dateStr}`;
+
         if (progressCheckMap[key] !== undefined) return; // Already checked
 
         setCheckingProgress((prev) => ({ ...prev, [key]: true }));
 
-        try {
-          // Check if progress exists for this customer and contract
-          const response = await trainingProgressApi.getTrainingProgressList({
-            customerId: row.customerId,
-            serviceContractId: row.serviceContractId,
-            trainerId: currentUser._id,
-            limit: 1
-          });
+        // Check if progress exists for this customer, contract và ngày cụ thể
+        // Sử dụng startDate và endDate để filter theo ngày của schedule
+        const scheduleDateObj = new Date(row.scheduleDate);
+        scheduleDateObj.setUTCHours(0, 0, 0, 0);
+        const startDate = scheduleDateObj.toISOString();
 
-          const hasProgress = response.success && response.data && response.data.progressRecords.length > 0;
-          setProgressCheckMap((prev) => ({ ...prev, [key]: hasProgress }));
-        } catch (error) {
-          console.error(`Error checking progress for ${key}:`, error);
-          setProgressCheckMap((prev) => ({ ...prev, [key]: false }));
-        } finally {
-          setCheckingProgress((prev) => {
-            const newState = { ...prev };
-            delete newState[key];
-            return newState;
-          });
-        }
+        const endDateObj = new Date(scheduleDateObj);
+        endDateObj.setUTCHours(23, 59, 59, 999);
+        const endDate = endDateObj.toISOString();
+
+        const response = await trainingProgressApi.getTrainingProgressList({
+          customerId: row.customerId,
+          serviceContractId: row.serviceContractId,
+          trainerId: currentUser._id,
+          startDate,
+          endDate,
+          limit: 1
+        });
+
+        // Check xem có progress nào trong ngày này không
+        const hasProgress = response.success && response.data && response.data.progressRecords.length > 0;
+        setProgressCheckMap((prev) => ({ ...prev, [key]: hasProgress }));
+
+        setCheckingProgress((prev) => {
+          const newState = { ...prev };
+          delete newState[key];
+          return newState;
+        });
       });
 
       await Promise.all(checkPromises);
@@ -617,12 +630,17 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
                       {row.type === 'PT_1_1' &&
                         row.customerId &&
                         row.serviceContractId &&
+                        row.scheduleDate &&
                         (() => {
-                          const key = `${row.customerId}-${row.serviceContractId}`;
+                          // Key bao gồm cả ngày để check progress theo ngày cụ thể
+                          const scheduleDate = new Date(row.scheduleDate);
+                          const dateStr = scheduleDate.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+                          const key = `${row.customerId}-${row.serviceContractId}-${dateStr}`;
                           const hasProgress = progressCheckMap[key];
                           const isChecking = checkingProgress[key];
 
-                          // Show button if no progress exists (or if still checking and no progress found yet)
+                          // Show button if no progress exists for this specific date
+                          // (or if still checking and no progress found yet)
                           if (hasProgress === false || (isChecking && hasProgress === undefined)) {
                             return (
                               <Button

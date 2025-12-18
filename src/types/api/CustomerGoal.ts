@@ -2,6 +2,7 @@
 
 export interface CustomerGoalTargets {
   weight?: number;
+  height?: number;
   bmi?: number;
   strength?: number;
   bodyFatPercentage?: number;
