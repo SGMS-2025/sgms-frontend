@@ -62,8 +62,8 @@ export const ptAvailabilityRequestApi = {
   },
 
   // Get PT availability request stats
-  getStats: async (): Promise<ApiResponse<PTAvailabilityRequestStats>> => {
-    const response = await api.get('/pt-availability-requests/stats');
+  getStats: async (params: PTAvailabilityRequestListParams = {}): Promise<ApiResponse<PTAvailabilityRequestStats>> => {
+    const response = await api.get('/pt-availability-requests/stats', { params });
     return response.data;
   }
 };
