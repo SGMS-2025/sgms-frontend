@@ -71,13 +71,17 @@ class ClassApi {
       // Check if response indicates an error (from interceptor)
       const responseData = response.data as unknown as Record<string, unknown>;
       if (responseData?.success === false) {
-        const errorMessage =
-          (responseData?.message as string) ||
-          ((responseData?.error as Record<string, unknown>)?.message as string) ||
-          'Failed to create class';
+        const errorMessage = (responseData?.message as string) || 'Failed to create class';
         const error = new Error(errorMessage);
         (error as unknown as Record<string, unknown>).status = responseData?.statusCode;
-        (error as unknown as Record<string, unknown>).data = response.data;
+        (error as unknown as Record<string, unknown>).response = {
+          data: {
+            error: {
+              message: errorMessage,
+              code: responseData?.code
+            }
+          }
+        };
         throw error;
       }
 
@@ -327,6 +331,10 @@ class ClassApi {
 
   private handleError(error: unknown): Error {
     if (error instanceof Error) {
+      // If error already has response data, preserve it
+      if ((error as unknown as Record<string, unknown>).response) {
+        return error;
+      }
       return error;
     }
 
@@ -335,13 +343,22 @@ class ClassApi {
       const response = (error as Record<string, unknown>).response as Record<string, unknown>;
       const { status, data } = response;
       const responseData = data as Record<string, unknown> | undefined;
-      const message =
-        (responseData?.message as string) ||
-        ((responseData?.error as Record<string, unknown>)?.message as string) ||
-        'Unknown error';
+      const errorData = responseData?.error as Record<string, unknown> | undefined;
+      const message = (responseData?.message as string) || (errorData?.message as string) || 'Unknown error';
 
       const errorObj = new Error(message);
-      Object.assign(errorObj, { status, data });
+      Object.assign(errorObj, {
+        status,
+        response: {
+          data: {
+            error: {
+              message: errorData?.message || message,
+              code: errorData?.code,
+              meta: errorData?.meta || {}
+            }
+          }
+        }
+      });
 
       return errorObj;
     } else if (error && typeof error === 'object' && 'request' in error && (error as Record<string, unknown>).request) {

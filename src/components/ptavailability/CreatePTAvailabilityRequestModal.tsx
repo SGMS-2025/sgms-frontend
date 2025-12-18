@@ -23,8 +23,11 @@ import { usePTCustomerList } from '@/hooks/usePTCustomer';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { serviceContractApi, type SchedulingCapacity } from '@/services/api/serviceContractApi';
 import type { CreatePTAvailabilityRequestModalProps } from '@/types/api/PTAvailabilityRequest';
 import type { PTCustomer } from '@/types/api/Customer';
+import type { TFunction } from 'i18next';
 
 // Validation schema
 const createPTAvailabilityRequestSchema = (t: (key: string) => string) =>
@@ -89,6 +92,115 @@ const createPTAvailabilityRequestSchema = (t: (key: string) => string) =>
 
 type CreatePTAvailabilityRequestFormData = z.infer<ReturnType<typeof createPTAvailabilityRequestSchema>>;
 
+// Component để hiển thị customer với scheduling capacity check
+const CustomerItem: React.FC<{
+  customer: PTCustomer;
+  isSelected: boolean;
+  onToggle: () => void;
+  capacity?: SchedulingCapacity | null; // Pass capacity from parent để tránh re-fetch
+  t: TFunction;
+}> = ({ customer, isSelected, onToggle, capacity, t }) => {
+  const isActive = customer.package.status === 'ACTIVE';
+  const loadingCapacity = false; // Capacity already loaded by parent
+
+  const canSelect = isActive && capacity?.canCreateSchedule !== false;
+  const tooltipMessage = !isActive
+    ? t('pt_availability.inactive_contract', 'Hợp đồng không hoạt động')
+    : capacity && !capacity.canCreateSchedule
+      ? capacity.message
+      : '';
+
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className={cn('p-4 hover:bg-gray-50 transition-colors', !canSelect && 'opacity-60 cursor-not-allowed')}>
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id={`customer-${customer._id}`}
+                checked={isSelected}
+                onCheckedChange={onToggle}
+                disabled={!canSelect}
+                className="mt-1"
+              />
+              <label
+                htmlFor={`customer-${customer._id}`}
+                className={cn('flex-1', canSelect ? 'cursor-pointer' : 'cursor-not-allowed')}
+              >
+                <div className="flex items-center gap-3">
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={customer.avatar} alt={customer.fullName} />
+                    <AvatarFallback className="bg-orange-100 text-orange-600">
+                      {customer.fullName.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium text-gray-900 truncate">{customer.fullName}</p>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'text-xs',
+                          isActive
+                            ? 'bg-green-50 text-green-700 border-green-300'
+                            : 'bg-gray-50 text-gray-600 border-gray-300'
+                        )}
+                      >
+                        {customer.package.status === 'ACTIVE'
+                          ? t('common.active', 'Hoạt động')
+                          : customer.package.status === 'PENDING_ACTIVATION'
+                            ? t('common.pending', 'Chờ kích hoạt')
+                            : t('common.expired', 'Hết hạn')}
+                      </Badge>
+                      {/* Scheduling capacity badge */}
+                      {isActive && customer.contractType === 'PT_PACKAGE' && !loadingCapacity && capacity && (
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            'text-xs',
+                            capacity.canCreateSchedule
+                              ? 'bg-blue-50 text-blue-700 border-blue-300'
+                              : 'bg-red-50 text-red-700 border-red-300'
+                          )}
+                        >
+                          {capacity.canCreateSchedule
+                            ? `${capacity.availableForScheduling} ${t('pt_availability.slots_available', 'slots')}`
+                            : t('pt_availability.no_slots', 'Hết slots')}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4 mt-1 text-xs text-gray-600">
+                      <span>{customer.phone}</span>
+                      {customer.email && <span>{customer.email}</span>}
+                    </div>
+                    <div className="flex items-center gap-4 mt-2">
+                      <div className="text-xs text-gray-600">
+                        <span className="font-medium">{customer.package.name}</span>
+                      </div>
+                      {customer.contractType === 'PT_PACKAGE' && (
+                        <div className="text-xs text-gray-500">
+                          {t('pt_availability.sessions_remaining', 'Còn lại')}:{' '}
+                          <span className="font-medium text-orange-600">{customer.package.sessionsRemaining}</span>/
+                          {customer.package.totalSessions}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </TooltipTrigger>
+        {tooltipMessage && (
+          <TooltipContent side="top" className="max-w-xs">
+            <p className="text-sm">{tooltipMessage}</p>
+          </TooltipContent>
+        )}
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
+
 export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequestModalProps> = ({
   isOpen,
   onClose,
@@ -126,17 +238,80 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
     limit: 100
   });
 
-  // Filter customers by search
+  // State to store scheduling capacities for all customers
+  const [capacities, setCapacities] = useState<Record<string, SchedulingCapacity>>({});
+
+  // Fetch capacities for all active PT customers
+  useEffect(() => {
+    const fetchCapacities = async () => {
+      const ptCustomers = customerList.filter((c) => c.package.status === 'ACTIVE' && c.contractType === 'PT_PACKAGE');
+
+      const capacityMap: Record<string, SchedulingCapacity> = {};
+
+      await Promise.all(
+        ptCustomers.map(async (customer) => {
+          try {
+            const capacity = await serviceContractApi.getSchedulingCapacity(customer.package.contractId);
+            capacityMap[customer.package.contractId] = capacity;
+          } catch (error) {
+            // Ignore errors for individual customers
+            console.error(`Failed to fetch capacity for ${customer._id}:`, error);
+          }
+        })
+      );
+
+      setCapacities(capacityMap);
+    };
+
+    if (customerList.length > 0) {
+      fetchCapacities();
+    }
+  }, [customerList]);
+
+  // Filter and sort customers by search
   const filteredCustomers = useMemo(() => {
-    if (!customerSearch.trim()) return customerList;
-    const searchLower = customerSearch.toLowerCase();
-    return customerList.filter(
-      (customer) =>
-        customer.fullName.toLowerCase().includes(searchLower) ||
-        customer.phone.includes(searchLower) ||
-        customer.email?.toLowerCase().includes(searchLower)
-    );
-  }, [customerList, customerSearch]);
+    let filtered = customerList;
+
+    // Apply search filter
+    if (customerSearch.trim()) {
+      const searchLower = customerSearch.toLowerCase();
+      filtered = customerList.filter(
+        (customer) =>
+          customer.fullName.toLowerCase().includes(searchLower) ||
+          customer.phone.includes(searchLower) ||
+          customer.email?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Sort: customers với slots available lên trên
+    return [...filtered].sort((a, b) => {
+      const aActive = a.package.status === 'ACTIVE';
+      const bActive = b.package.status === 'ACTIVE';
+
+      // Inactive xuống dưới cùng
+      if (aActive !== bActive) return aActive ? -1 : 1;
+
+      // Với active customers, check capacity
+      if (aActive && a.contractType === 'PT_PACKAGE' && b.contractType === 'PT_PACKAGE') {
+        const aCapacity = capacities[a.package.contractId];
+        const bCapacity = capacities[b.package.contractId];
+
+        const aCanCreate = aCapacity?.canCreateSchedule ?? true; // Default true nếu chưa load
+        const bCanCreate = bCapacity?.canCreateSchedule ?? true;
+
+        // Customers có thể tạo schedule lên trên
+        if (aCanCreate !== bCanCreate) return aCanCreate ? -1 : 1;
+
+        // Cùng trạng thái thì sort theo available slots (nhiều slots hơn lên trên)
+        if (aCapacity && bCapacity) {
+          return (bCapacity.availableForScheduling || 0) - (aCapacity.availableForScheduling || 0);
+        }
+      }
+
+      // Default: sort theo tên
+      return a.fullName.localeCompare(b.fullName);
+    });
+  }, [customerList, customerSearch, capacities]);
 
   // Handle contract selection - Single select only (one customer at a time)
   const handleContractToggle = (contractId: string) => {
@@ -469,73 +644,18 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
                         <div className="divide-y divide-gray-100">
                           {filteredCustomers.map((customer: PTCustomer) => {
                             const contractId = customer.package.contractId;
-                            // Single selection - check if this contract is selected
                             const isSelected = selectedContractId === contractId;
-                            const isActive = customer.package.status === 'ACTIVE';
+                            const capacity = capacities[contractId];
 
                             return (
-                              <div
+                              <CustomerItem
                                 key={customer._id}
-                                className={cn('p-4 hover:bg-gray-50 transition-colors', !isActive && 'opacity-60')}
-                              >
-                                <div className="flex items-start gap-3">
-                                  <Checkbox
-                                    id={`customer-${customer._id}`}
-                                    checked={isSelected}
-                                    onCheckedChange={() => handleContractToggle(contractId)}
-                                    disabled={!isActive}
-                                    className="mt-1"
-                                  />
-                                  <label htmlFor={`customer-${customer._id}`} className="flex-1 cursor-pointer">
-                                    <div className="flex items-center gap-3">
-                                      <Avatar className="w-10 h-10">
-                                        <AvatarImage src={customer.avatar} alt={customer.fullName} />
-                                        <AvatarFallback className="bg-orange-100 text-orange-600">
-                                          {customer.fullName.charAt(0).toUpperCase()}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                          <p className="font-medium text-gray-900 truncate">{customer.fullName}</p>
-                                          <Badge
-                                            variant="outline"
-                                            className={cn(
-                                              'text-xs',
-                                              isActive
-                                                ? 'bg-green-50 text-green-700 border-green-300'
-                                                : 'bg-gray-50 text-gray-600 border-gray-300'
-                                            )}
-                                          >
-                                            {customer.package.status === 'ACTIVE'
-                                              ? t('common.active', 'Hoạt động')
-                                              : customer.package.status === 'PENDING_ACTIVATION'
-                                                ? t('common.pending', 'Chờ kích hoạt')
-                                                : t('common.expired', 'Hết hạn')}
-                                          </Badge>
-                                        </div>
-                                        <div className="flex items-center gap-4 mt-1 text-xs text-gray-600">
-                                          <span>{customer.phone}</span>
-                                          {customer.email && <span>{customer.email}</span>}
-                                        </div>
-                                        <div className="flex items-center gap-4 mt-2">
-                                          <div className="text-xs text-gray-600">
-                                            <span className="font-medium">{customer.package.name}</span>
-                                          </div>
-                                          {customer.contractType === 'PT_PACKAGE' && (
-                                            <div className="text-xs text-gray-500">
-                                              {t('pt_availability.sessions_remaining', 'Còn lại')}:{' '}
-                                              <span className="font-medium text-orange-600">
-                                                {customer.package.sessionsRemaining}
-                                              </span>
-                                              /{customer.package.totalSessions}
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </label>
-                                </div>
-                              </div>
+                                customer={customer}
+                                isSelected={isSelected}
+                                onToggle={() => handleContractToggle(contractId)}
+                                capacity={capacity}
+                                t={t}
+                              />
                             );
                           })}
                         </div>
