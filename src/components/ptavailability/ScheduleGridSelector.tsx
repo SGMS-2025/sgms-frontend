@@ -45,17 +45,16 @@ const generateTimeSlots = (minTime: string, maxTime: string, duration: number): 
     slots.push(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
   }
 
-  // Include the end time cell if it aligns with slot boundaries
-  // Example: if maxTime is 10:00 and duration is 30, include 10:00
-  // Example: if maxTime is 23:00 and duration is 30, include 23:00
-  if (maxTotalMinutes % duration === 0 && maxTotalMinutes > minTotalMinutes) {
-    const endHour = Math.floor(maxTotalMinutes / 60);
-    const endMinute = maxTotalMinutes % 60;
-    const endTimeStr = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
-    // Only add if not already in slots (avoid duplicates)
-    if (!slots.includes(endTimeStr)) {
-      slots.push(endTimeStr);
-    }
+  // Always include the end time cell to show the complete shift range
+  // This ensures the last cell (e.g., 10:00 for 07:30-10:00 shift) is displayed
+  // so users can see the full time range and selected slots are properly highlighted
+  const endHour = Math.floor(maxTotalMinutes / 60);
+  const endMinute = maxTotalMinutes % 60;
+  const endTimeStr = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
+
+  // Only add if not already in slots (avoid duplicates)
+  if (!slots.includes(endTimeStr)) {
+    slots.push(endTimeStr);
   }
 
   return slots;
@@ -117,24 +116,13 @@ const isSlotSelected = (
     // Calculate timeSlot end time for overlap checking
     const timeSlotEndMinutes = timeSlotMinutes + slotDuration;
 
-    // Calculate slot duration in minutes
-    const slotDurationMinutes = slotEndMinutes - slotStartMinutes;
-
-    // Unified logic: highlight all cells that are part of the slot
-    // For single cell slots (30 min): only highlight the start cell
-    // For merged slots (>30 min): highlight all cells including the end cell
-    // Example: slot 13:00-13:30 (30 min) should highlight only 13:00
-    // Example: slot 7:30-8:00 (30 min) should highlight only 7:30
-    // Example: slot 7:30-9:00 (90 min) should highlight cells 7:30, 8:00, 8:30, and 9:00
-    // Example: slot 19:30-20:30 (60 min) should highlight cells 19:30, 20:00, and 20:30
-
-    // Check if cell overlaps with slot (cell starts before slot ends AND cell ends after slot starts)
-    const overlaps = timeSlotMinutes < slotEndMinutes && timeSlotEndMinutes > slotStartMinutes;
-
-    // Include cell that starts exactly at slot end ONLY if slot duration > slotDuration (merged slot)
-    // For single cell slots (30 min), don't include the end cell
-    const isEndCell = slotDurationMinutes > slotDuration && timeSlotMinutes === slotEndMinutes;
-    return overlaps || isEndCell;
+    // Logic đồng nhất: Cell được highlight nếu cell OVERLAP với slot
+    // Cell overlap với slot nếu: cellStart < slotEnd && cellEnd > slotStart
+    // Ví dụ: slot 06:00-07:00 (60 phút)
+    //   - Cell 06:00 (06:00-06:30): 06:00 < 07:00 && 06:30 > 06:00 → TRUE ✓ (highlight)
+    //   - Cell 06:30 (06:30-07:00): 06:30 < 07:00 && 07:00 > 06:00 → TRUE ✓ (highlight)
+    //   - Cell 07:00 (07:00-07:30): 07:00 < 07:00 && 07:30 > 06:00 → FALSE ✗ (không highlight)
+    return timeSlotMinutes < slotEndMinutes && timeSlotEndMinutes > slotStartMinutes;
   });
 };
 
@@ -167,11 +155,9 @@ const isSlotExisting = (
     const timeSlotMinutes = timeToMinutes(timeSlot);
     const timeSlotEndMinutes = timeSlotMinutes + slotDuration;
 
-    // Check if timeSlot overlaps with slot's time range
-    // timeSlot overlaps if:
-    // - timeSlot starts before or at slot ends AND timeSlot ends after slot starts
-    // Use <= for slotEndMinutes to include the cell where slot ends (e.g., 09:30 for slot 07:30-09:30)
-    return timeSlotMinutes <= slotEndMinutes && timeSlotEndMinutes > slotStartMinutes;
+    // Logic đồng nhất: Cell được highlight nếu cell OVERLAP với slot
+    // Cell overlap với slot nếu: cellStart < slotEnd && cellEnd > slotStart
+    return timeSlotMinutes < slotEndMinutes && timeSlotEndMinutes > slotStartMinutes;
   });
 };
 
@@ -244,8 +230,35 @@ const isTimeSlotInDefaultShifts = (
   return defaultShifts.some((shift) => {
     const shiftStart = timeToMinutes(shift.startTime);
     const shiftEnd = timeToMinutes(shift.endTime);
-    // Check if slot is within shift range (slot is start of a 30-min period)
-    return slotMinutes >= shiftStart && slotMinutes < shiftEnd;
+    // Include end time cell to show complete shift range
+    // This ensures cells like 10:00 (end of 07:30-10:00), 18:00 (end of 13:00-18:00 and start of 18:00-23:00),
+    // and 23:00 (end of 18:00-23:00) are displayed
+    return slotMinutes >= shiftStart && slotMinutes <= shiftEnd;
+  });
+};
+
+// Check if a time slot is a valid start time (can create a slot from this time)
+// End-only cells (like 10:00 at end of 04:00-10:00, 23:00 at end of 18:00-23:00) should not be clickable
+const isValidStartTime = (
+  timeSlot: string,
+  slotDuration: number,
+  defaultShifts?: Array<{ startTime: string; endTime: string }>
+): boolean => {
+  if (!defaultShifts || defaultShifts.length === 0) {
+    return true; // If no config, all slots are valid
+  }
+
+  const slotMinutes = timeToMinutes(timeSlot);
+  const slotEndMinutes = slotMinutes + slotDuration;
+
+  // Check if this time slot can be the start of a complete slot
+  // It's valid if slot + duration is within OR at the end of any shift
+  return defaultShifts.some((shift) => {
+    const shiftStart = timeToMinutes(shift.startTime);
+    const shiftEnd = timeToMinutes(shift.endTime);
+
+    // Valid if: slot starts within shift AND slot+duration doesn't exceed shift end
+    return slotMinutes >= shiftStart && slotEndMinutes <= shiftEnd;
   });
 };
 
@@ -289,9 +302,10 @@ const isSlotOverlappingWithClass = (
     const classEnd = timeToMinutes(cls.schedulePattern.endTime);
 
     // Check if slot overlaps with class time
+    // Logic đồng nhất: Cell conflict với class nếu cell OVERLAP với class
+    // Cell overlap với class nếu: cellStart < classEnd && cellEnd > classStart
     const overlaps = slotStart < classEnd && slotEnd > classStart;
-    const isEndCell = slotStart === classEnd;
-    if (overlaps || isEndCell) {
+    if (overlaps) {
       return { isOverlapping: true, classInfo: cls };
     }
   }
@@ -300,7 +314,6 @@ const isSlotOverlappingWithClass = (
 };
 
 // Check if a slot is in a pending request
-// Similar to isSlotSelected, we need to include the end cell
 const isSlotInPendingRequest = (
   date: Date,
   timeSlot: string,
@@ -323,9 +336,9 @@ const isSlotInPendingRequest = (
       const requestEnd = timeToMinutes(slot.endTime);
 
       // Check if slot overlaps with pending request slot
-      const overlaps = slotStart < requestEnd && slotEnd > requestStart;
-      const isEndCell = slotStart === requestEnd;
-      return overlaps || isEndCell;
+      // Logic đồng nhất: Cell được highlight nếu cell OVERLAP với pending request slot
+      // Cell overlap với request nếu: cellStart < requestEnd && cellEnd > requestStart
+      return slotStart < requestEnd && slotEnd > requestStart;
     });
   });
 };
@@ -366,13 +379,33 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
   // Mobile: Track current day index for showing 3 days at a time
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
 
+  // Sync currentWeekStart with startDate prop when it changes
+  useEffect(() => {
+    if (startDate) {
+      setCurrentWeekStart(startDate);
+    }
+  }, [startDate]);
+
   // Generate all available dates (7 days from currentWeekStart, filter out past dates and non-working days)
   const allAvailableDates = useMemo(() => {
     const start = currentWeekStart;
     const end = addDays(start, 6); // 7 days total
     const allDates = eachDayOfInterval({ start, end });
 
-    // Filter out past dates and non-working days
+    // In read-only mode, show all dates including past dates (for viewing existing requests)
+    if (readOnly) {
+      // Filter only non-working days if workingDays is provided
+      if (workingDays && workingDays.length > 0) {
+        return allDates.filter((date) => {
+          const dayOfWeek = date.getDay();
+          return workingDays.includes(dayOfWeek);
+        });
+      }
+      // If no workingDays restriction, show all 7 days
+      return allDates;
+    }
+
+    // In editable mode, filter out past dates and non-working days
     return allDates.filter((date) => {
       const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
@@ -391,7 +424,7 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
 
       return true;
     });
-  }, [currentWeekStart, today, workingDays]);
+  }, [currentWeekStart, today, workingDays, readOnly]);
 
   // On mobile: show only 3 days at a time, on desktop: show all days
   const dates = useMemo(() => {
@@ -586,6 +619,11 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
       return;
     }
 
+    // Don't allow clicking on end-only cells (e.g., 10:00 at end of 04:00-10:00 shift)
+    if (!isValidStartTime(timeSlot, slotDuration, branchConfig?.defaultShifts)) {
+      return;
+    }
+
     // Don't allow selecting existing slots, classes, or pending requests
     if (isSlotExisting(date, timeSlot, existingSlots, slotDuration)) {
       return;
@@ -700,7 +738,13 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
   const handlePreviousWeek = () => {
     setCurrentWeekStart((prev) => {
       const prevStart = subWeeks(prev, 1);
-      // Don't allow going before today
+
+      // In read-only mode, allow navigation to past weeks (to view old requests)
+      if (readOnly) {
+        return prevStart;
+      }
+
+      // In editable mode, don't allow going before today
       const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
       if (prevStart < todayOnly) {
         return todayOnly;
@@ -732,7 +776,7 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
     >
       {/* Header with Week Navigation */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-t-lg">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-semibold">
             {readOnly
               ? t('pt_availability.view_schedule', 'Xem lịch đăng ký')
@@ -742,6 +786,9 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
             {selectedSlots.length} {t('pt_availability.slots_selected', 'slots selected')}
           </div>
         </div>
+        <p className="text-xs text-blue-100 opacity-80 mb-3">
+          {t('pt_availability.cell_duration_note', 'Lưu ý: Mỗi ô đại diện cho 30 phút')}
+        </p>
 
         {/* Week Navigation - Hide on mobile, show on desktop */}
         {!isMobile && (
@@ -837,6 +884,8 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
             {generatedTimeSlots.map((timeSlot, timeIndex) => {
               // Check if this time slot should be visible based on defaultShifts
               const isInDefaultShift = isTimeSlotInDefaultShifts(timeSlot, branchConfig?.defaultShifts);
+              // Check if this is a valid start time (not an end-only cell)
+              const isValidStart = isValidStartTime(timeSlot, slotDuration, branchConfig?.defaultShifts);
 
               return (
                 <React.Fragment key={timeIndex}>
@@ -875,6 +924,9 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
                     // Check for pending request
                     const hasPendingRequest = isSlotInPendingRequest(date, timeSlot, pendingRequests, slotDuration);
 
+                    // Check if this is an end-only cell that cannot be clicked
+                    const isEndOnlyCell = !isValidStart;
+
                     // Get day name for tooltip
                     const dayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
                     const dayName = dayNames[date.getDay()];
@@ -886,11 +938,27 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          if (!isExisting && !readOnly && !isPast && isWorkingDay && !hasClass && !hasPendingRequest) {
+                          if (
+                            !isExisting &&
+                            !readOnly &&
+                            !isPast &&
+                            isWorkingDay &&
+                            !hasClass &&
+                            !hasPendingRequest &&
+                            !isEndOnlyCell
+                          ) {
                             handleSlotClick(date, timeSlot);
                           }
                         }}
-                        disabled={isExisting || readOnly || isPast || !isWorkingDay || hasClass || hasPendingRequest}
+                        disabled={
+                          isExisting ||
+                          readOnly ||
+                          isPast ||
+                          !isWorkingDay ||
+                          hasClass ||
+                          hasPendingRequest ||
+                          isEndOnlyCell
+                        }
                         className={cn(
                           'border-r border-b border-gray-200 transition-all duration-150',
                           !readOnly &&
@@ -898,8 +966,11 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
                             isWorkingDay &&
                             !hasClass &&
                             !hasPendingRequest &&
+                            !isEndOnlyCell &&
                             'hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset cursor-pointer',
                           readOnly && 'cursor-default',
+                          // End-only cells (like 10:00, 23:00) - shown for display but not clickable
+                          isEndOnlyCell && 'bg-gray-50 border-gray-300 cursor-not-allowed opacity-60',
                           // Priority: hasPendingRequest should override isSelected
                           hasPendingRequest && 'bg-amber-100 border-amber-300 cursor-not-allowed opacity-75',
                           isSelected && !hasPendingRequest && 'bg-green-100 border-green-300',
@@ -921,6 +992,7 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
                             !hasPendingRequest &&
                             !isPast &&
                             isWorkingDay &&
+                            !isEndOnlyCell &&
                             'bg-blue-50/30'
                         )}
                         style={{ minHeight: '40px' }}

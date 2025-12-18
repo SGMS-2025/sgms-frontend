@@ -6471,6 +6471,7 @@
     "conflict_warning": "Schedule Conflict Warning",
     "conflict_details": "Detected {{count}} schedule conflicts with existing work shifts, time-off requests, or class schedules",
     "time_slots_description": "Click on the grid cells to select the time slots you want to register for 1vs1 training",
+    "cell_duration_note": "Note: Each cell represents 30 minutes",
     "select_customers": "Select Customers",
     "select_customers_description": "Select customers to link with this training schedule. If not selected, the schedule will be available for all customers.",
     "search_customers": "Search customers...",

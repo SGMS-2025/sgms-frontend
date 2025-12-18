@@ -6471,6 +6471,7 @@
     "conflict_warning": "Cảnh báo xung đột lịch",
     "conflict_details": "Phát hiện {{count}} xung đột lịch với ca làm việc, nghỉ phép hoặc lịch lớp học hiện có",
     "time_slots_description": "Click vào các ô trong lưới để chọn khung giờ bạn muốn đăng ký kèm 1vs1",
+    "cell_duration_note": "Lưu ý: Mỗi ô đại diện cho 30 phút",
     "select_customers": "Chọn Khách Hàng",
     "select_customers_description": "Chọn khách hàng để liên kết với lịch kèm này. Nếu không chọn, lịch sẽ dành cho tất cả khách hàng.",
     "search_customers": "Tìm kiếm khách hàng...",
