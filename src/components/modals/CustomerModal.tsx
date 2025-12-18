@@ -475,7 +475,13 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                         : t('customer_modal.select_birth_date')}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-white border-gray-200 shadow-lg z-[9999]" align="start">
+                  <PopoverContent
+                    className="w-auto p-0 bg-white border border-gray-200 shadow-lg z-[9999]"
+                    align="start"
+                    side="bottom"
+                    sideOffset={8}
+                    collisionPadding={8}
+                  >
                     <Calendar
                       mode="single"
                       selected={dateOfBirth}

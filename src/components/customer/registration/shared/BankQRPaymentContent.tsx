@@ -2,14 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Copy, CheckCircle, AlertCircle, Loader2, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { walletApi } from '@/services/api/walletApi';
 import { membershipApi } from '@/services/api/membershipApi';
 import { serviceContractApi } from '@/services/api/serviceContractApi';
 import { formatCurrency } from '@/utils/currency';
 import { getBankName } from '@/constants/bankList';
+
+// Sanitize file names coming from the browser to avoid any chance of HTML/meta-characters
+// being interpreted in the DOM if they are ever rendered in a non-React context.
+const sanitizeFileName = (name: string): string => {
+  // Remove angle brackets and control characters
+  const withoutAngles = name.replace(/[<>]/g, '');
+  let sanitized = '';
+  for (const char of withoutAngles) {
+    const codePoint = char.codePointAt(0) ?? 0;
+    if (codePoint >= 0x20 && codePoint !== 0x7f) sanitized += char;
+  }
+  return sanitized;
+};
 
 interface BankAccount {
   _id?: string;
@@ -102,6 +117,9 @@ export const BankQRPaymentContent: React.FC<BankQRPaymentContentProps> = ({
       }
       setTransferReceiptFile(file);
       // Create preview URL
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
     }
@@ -162,7 +180,7 @@ export const BankQRPaymentContent: React.FC<BankQRPaymentContentProps> = ({
     };
 
     loadBankAccount();
-  }, [branchId]);
+  }, [branchId, t]);
 
   const handlePaymentSubmitted = async () => {
     const effectivePaymentMethod = contractPaymentMethod || formData?.paymentMethod;
@@ -266,7 +284,7 @@ export const BankQRPaymentContent: React.FC<BankQRPaymentContentProps> = ({
 
   if (loading) {
     return (
-      <Card className="rounded-3xl border border-border bg-card shadow-sm">
+      <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
           <p className="text-sm text-muted-foreground">{t('bank_qr_payment.loading')}</p>
@@ -277,217 +295,246 @@ export const BankQRPaymentContent: React.FC<BankQRPaymentContentProps> = ({
 
   if (!bankAccount || !bankAccount.qrCodeUrl) {
     return (
-      <Card className="rounded-3xl border border-border bg-card shadow-sm">
-        <CardHeader>
-          <CardTitle>{t('bank_qr_payment.unavailable_title')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">{t('bank_qr_payment.unavailable_message')}</p>
-          <p className="text-sm text-muted-foreground mt-2">{t('bank_qr_payment.unavailable_contact')}</p>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-lg font-semibold">{t('bank_qr_payment.title')}</h2>
+          </div>
+          <p className="text-sm text-muted-foreground">{t('bank_qr_payment.subtitle')}</p>
+        </div>
+
+        <Alert className="border-border bg-card">
+          <AlertCircle className="text-muted-foreground" />
+          <AlertTitle>{t('bank_qr_payment.unavailable_title')}</AlertTitle>
+          <AlertDescription>
+            <p>{t('bank_qr_payment.unavailable_message')}</p>
+            <p>{t('bank_qr_payment.unavailable_contact')}</p>
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
-  return (
-    <Card className="rounded-3xl border border-border bg-card shadow-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CheckCircle className="h-5 w-5 text-primary" />
-          {t('bank_qr_payment.title')}
-        </CardTitle>
-        <CardDescription>{t('bank_qr_payment.subtitle')}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Warning if requires approval */}
-        {requiresApproval && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-amber-900">{t('bank_qr_payment.requires_approval_title')}</p>
-                <p className="text-xs text-amber-700 mt-1">{t('bank_qr_payment.requires_approval_message')}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* QR Code */}
-        <div className="flex flex-col items-center space-y-4">
-          <div className="text-center">
-            <h3 className="text-lg font-semibold mb-2">{t('bank_qr_payment.scan_qr_title')}</h3>
-            <p className="text-sm text-gray-600">{t('bank_qr_payment.scan_qr_instruction')}</p>
-          </div>
-
-          <div className="border-4 border-gray-200 rounded-lg p-4 bg-white">
-            <img src={bankAccount.qrCodeUrl} alt="QR Code" className="w-64 h-64 object-contain" />
-          </div>
-        </div>
-
-        {/* Bank Account Information */}
-        <div className="space-y-3 p-4 border rounded-lg bg-gray-50">
-          <h3 className="font-semibold text-gray-800">{t('bank_qr_payment.account_info_title')}</h3>
-
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">{t('bank_qr_payment.bank_label')}</span>
-              <div className="flex items-center space-x-2">
-                <span className="font-medium">{getBankName(bankAccount.bankBin)}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => copyToClipboard(getBankName(bankAccount.bankBin), t('bank_qr_payment.copied'), t)}
-                  className="h-6 w-6"
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">{t('bank_qr_payment.account_number_label')}</span>
-              <div className="flex items-center space-x-2">
-                <span className="font-medium">{bankAccount.accountNumber}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => copyToClipboard(bankAccount.accountNumber, t('bank_qr_payment.copied'), t)}
-                  className="h-6 w-6"
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">{t('bank_qr_payment.account_name_label')}</span>
-              <div className="flex items-center space-x-2">
-                <span className="font-medium">{bankAccount.accountName}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => copyToClipboard(bankAccount.accountName, t('bank_qr_payment.copied'), t)}
-                  className="h-6 w-6"
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">{t('bank_qr_payment.amount_label')}</span>
-              <div className="flex items-center space-x-2">
-                <span className="font-bold text-lg text-blue-600">{formatCurrency(amount)}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => copyToClipboard(amount.toString(), t('bank_qr_payment.copied'), t)}
-                  className="h-6 w-6"
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-start">
-              <span className="text-sm text-gray-600">{t('bank_qr_payment.transfer_content_label')}</span>
-              <div className="flex items-center space-x-2">
-                <span className="font-medium text-right whitespace-pre-wrap break-words max-w-[220px]">
-                  {finalTransferContent}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => copyToClipboard(finalTransferContent, t('bank_qr_payment.copied'), t)}
-                  className="h-6 w-6"
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <p className="text-xs text-red-600 mt-3">{t('bank_qr_payment.transfer_warning')}</p>
-        </div>
-
-        {/* Transfer Receipt Upload */}
-        <div className="space-y-2 p-4 border rounded-lg bg-white">
-          <Label className="text-sm font-medium flex items-center gap-2">
-            <ImageIcon className="h-4 w-4" />
-            {t('bank_qr_payment.receipt_upload_title')}
-          </Label>
-          {!transferReceiptFile ? (
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
-              <input
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                onChange={handleFileChange}
-                className="hidden"
-                id="transfer-receipt-upload"
-              />
-              <label htmlFor="transfer-receipt-upload" className="cursor-pointer flex flex-col items-center gap-2">
-                <Upload className="h-8 w-8 text-gray-400" />
-                <span className="text-sm text-gray-600">{t('bank_qr_payment.receipt_upload_click')}</span>
-                <span className="text-xs text-gray-500">{t('bank_qr_payment.receipt_upload_formats')}</span>
-              </label>
-            </div>
-          ) : (
-            <div className="relative border rounded-lg p-4 bg-gray-50">
-              <div className="flex items-center gap-4">
-                {previewUrl && (
-                  <img src={previewUrl} alt="Transfer receipt preview" className="w-24 h-24 object-cover rounded-lg" />
-                )}
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{transferReceiptFile.name}</p>
-                  <p className="text-xs text-gray-500">{(transferReceiptFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                </div>
-                <Button type="button" variant="ghost" size="icon" onClick={handleRemoveFile} className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-          <p className="text-xs text-muted-foreground">{t('bank_qr_payment.receipt_upload_instruction')}</p>
-        </div>
-
-        {/* Payment Submitted Status */}
-        {paymentSubmitted && (
-          <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-green-900">{t('bank_qr_payment.submitted_title')}</p>
-                {requiresApproval && (
-                  <p className="text-xs text-green-700 mt-1">{t('bank_qr_payment.submitted_message')}</p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Action Button */}
-        {!paymentSubmitted && (
-          <div className="flex justify-center">
+  const InfoRow = ({
+    label,
+    value,
+    copyText,
+    valueClassName
+  }: {
+    label: string;
+    value: React.ReactNode;
+    copyText?: string;
+    valueClassName?: string;
+  }) => {
+    return (
+      <div className="grid grid-cols-12 items-start gap-3 py-2">
+        <div className="col-span-12 sm:col-span-5 text-sm text-muted-foreground">{label}</div>
+        <div className="col-span-12 sm:col-span-7 flex items-start justify-between gap-3">
+          <div className={`min-w-0 text-sm font-medium text-foreground ${valueClassName || ''}`}>{value}</div>
+          {copyText ? (
             <Button
-              onClick={handlePaymentSubmitted}
-              className="bg-blue-600 hover:bg-blue-700"
-              disabled={creatingContract}
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => copyToClipboard(copyText, t('bank_qr_payment.copied'), t)}
+              aria-label="Copy"
             >
-              {creatingContract ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('bank_qr_payment.creating_contract')}
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  {t('bank_qr_payment.confirm_button')}
-                </>
-              )}
+              <Copy className="h-4 w-4" />
             </Button>
+          ) : null}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">{t('bank_qr_payment.title')}</h2>
           </div>
+          <Badge variant="secondary" className="rounded-full">
+            QR Bank
+          </Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">{t('bank_qr_payment.subtitle')}</p>
+      </div>
+
+      {requiresApproval && (
+        <Alert className="border-amber-200/70 bg-amber-50 text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
+          <AlertCircle className="text-amber-700 dark:text-amber-300" />
+          <AlertTitle className="text-amber-950 dark:text-amber-100">
+            {t('bank_qr_payment.requires_approval_title')}
+          </AlertTitle>
+          <AlertDescription className="text-amber-800 dark:text-amber-200/90">
+            <p>{t('bank_qr_payment.requires_approval_message')}</p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid items-start gap-6 lg:grid-cols-12">
+        <Card className="h-fit lg:col-span-5">
+          <CardHeader className="border-b">
+            <CardTitle className="text-base">{t('bank_qr_payment.scan_qr_title')}</CardTitle>
+            <CardDescription>{t('bank_qr_payment.scan_qr_instruction')}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="mx-auto w-full max-w-[340px]">
+              <div className="rounded-2xl border bg-background p-4 shadow-sm">
+                <div className="aspect-square overflow-hidden rounded-xl bg-muted">
+                  <img src={bankAccount.qrCodeUrl} alt="QR Code" className="h-full w-full object-contain" />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="h-fit lg:col-span-7">
+          <CardHeader className="border-b">
+            <CardTitle className="text-base">{t('bank_qr_payment.account_info_title')}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <InfoRow
+              label={t('bank_qr_payment.bank_label')}
+              value={getBankName(bankAccount.bankBin)}
+              copyText={getBankName(bankAccount.bankBin)}
+            />
+            <Separator />
+            <InfoRow
+              label={t('bank_qr_payment.account_number_label')}
+              value={<span className="font-mono">{bankAccount.accountNumber}</span>}
+              copyText={bankAccount.accountNumber}
+            />
+            <Separator />
+            <InfoRow
+              label={t('bank_qr_payment.account_name_label')}
+              value={<span className="truncate">{bankAccount.accountName}</span>}
+              copyText={bankAccount.accountName}
+            />
+            <Separator />
+            <InfoRow
+              label={t('bank_qr_payment.amount_label')}
+              value={formatCurrency(amount)}
+              copyText={amount.toString()}
+              valueClassName="text-base font-semibold text-primary"
+            />
+            <Separator />
+            <InfoRow
+              label={t('bank_qr_payment.transfer_content_label')}
+              value={<span className="font-mono break-words">{finalTransferContent}</span>}
+              copyText={finalTransferContent}
+            />
+            <div className="mt-4">
+              <Alert className="border-red-200/70 bg-red-50 text-red-950 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-100">
+                <AlertCircle className="text-red-700 dark:text-red-300" />
+                <AlertDescription className="text-red-800 dark:text-red-200/90">
+                  <p>{t('bank_qr_payment.transfer_warning')}</p>
+                </AlertDescription>
+              </Alert>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-12 py-4">
+          <CardHeader className="border-b pb-4">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" />
+              {t('bank_qr_payment.receipt_upload_title')}
+            </CardTitle>
+            <CardDescription>{t('bank_qr_payment.receipt_upload_instruction')}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 pt-0">
+            {!transferReceiptFile ? (
+              <div className="mx-auto w-full max-w-[720px]">
+                <div className="h-[180px] rounded-xl border border-dashed bg-muted/20 px-5 py-4 text-center transition-colors hover:bg-muted/30 flex items-center justify-center">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="transfer-receipt-upload"
+                  />
+                  <label
+                    htmlFor="transfer-receipt-upload"
+                    className="cursor-pointer flex flex-col items-center gap-1.5"
+                  >
+                    <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-background border">
+                      <Upload className="h-4.5 w-4.5 text-muted-foreground" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">{t('bank_qr_payment.receipt_upload_click')}</p>
+                      <p className="text-xs text-muted-foreground">{t('bank_qr_payment.receipt_upload_formats')}</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            ) : (
+              <div className="mx-auto w-full max-w-[720px]">
+                <div className="rounded-xl border bg-muted/10 p-3">
+                  <div className="flex items-center gap-4">
+                    {previewUrl ? (
+                      <img
+                        src={previewUrl}
+                        alt="Transfer receipt preview"
+                        className="h-16 w-16 shrink-0 rounded-lg object-cover border"
+                      />
+                    ) : (
+                      <div className="h-16 w-16 shrink-0 rounded-lg bg-muted" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{sanitizeFileName(transferReceiptFile.name)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(transferReceiptFile.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                    <Button type="button" variant="ghost" size="icon" onClick={handleRemoveFile} className="h-9 w-9">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+
+          {!paymentSubmitted ? (
+            <CardFooter className="border-t pt-4">
+              <Button
+                onClick={handlePaymentSubmitted}
+                className="w-full max-w-[720px] mx-auto"
+                disabled={creatingContract}
+              >
+                {creatingContract ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t('bank_qr_payment.creating_contract')}
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    {t('bank_qr_payment.confirm_button')}
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          ) : null}
+        </Card>
+
+        {paymentSubmitted && (
+          <Alert className="lg:col-span-12 border-green-200/70 bg-green-50 text-green-950 dark:border-green-900/40 dark:bg-green-950/30 dark:text-green-100">
+            <CheckCircle className="text-green-700 dark:text-green-300" />
+            <AlertTitle className="text-green-950 dark:text-green-100">
+              {t('bank_qr_payment.submitted_title')}
+            </AlertTitle>
+            <AlertDescription className="text-green-800 dark:text-green-200/90">
+              {requiresApproval ? <p>{t('bank_qr_payment.submitted_message')}</p> : null}
+            </AlertDescription>
+          </Alert>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

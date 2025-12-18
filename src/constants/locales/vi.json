@@ -2660,6 +2660,8 @@
   "payment.order_code": "Mã đơn PayOS",
   "payment.transfer_content_warning": "⚠️ Vui lòng nhập chính xác nội dung chuyển khoản để hệ thống tự động xác nhận thanh toán",
   "payment.copied": "Đã sao chép",
+  "payment.view_transfer_image_button": "Xem ảnh chuyển khoản",
+  "payment.transfer_image_title": "Ảnh chuyển khoản",
   "customer_detail.loading": "Đang tải thông tin khách hàng...",
   "customer_detail.error.title": "Không thể tải thông tin khách hàng",
   "customer_detail.error.not_found": "Không tìm thấy khách hàng",
@@ -5444,14 +5446,26 @@
     "my_kpi": {
       "title": "KPI Của Tôi",
       "period": "Kỳ",
-      "branch": "Chi nhánh"
+      "branch": "Chi nhánh",
+      "page_title": "KPI cá nhân",
+      "page_subtitle": "Theo dõi mục tiêu và hiệu suất theo từng kỳ KPI."
+    },
+    "periods": "Kỳ KPI",
+    "periods_hint": "Chọn một kỳ để xem chi tiết",
+    "sort": {
+      "end_desc": "Kết thúc: mới nhất",
+      "end_asc": "Kết thúc: sớm nhất",
+      "start_desc": "Bắt đầu: mới nhất"
     },
     "overall_achievement": "Tổng Quan Hoàn Thành",
     "achievement_rate": "Hoàn thành",
     "target": "Mục tiêu",
+    "no_target": "Không có mục tiêu",
     "actual": "Thực tế",
     "progress": "Tiến độ",
+    "remaining_to_target": "Còn lại",
     "days_remaining": "Còn {{days}} ngày",
+    "period_ended": "Đã kết thúc",
     "metrics": {
       "total_revenue": "Tổng Doanh Thu",
       "new_members": "Khách Hàng Mới",
@@ -5509,6 +5523,11 @@
     "no_kpi_assigned": "Bạn chưa có KPI nào được gán",
     "all_staff": "Tất cả nhân viên",
     "staff_name": "Nhân viên",
+    "actions": {
+      "view_detail": "Xem chi tiết"
+    },
+    "select_period": "Chọn một kỳ KPI để xem chi tiết",
+    "select_period_hint": "Danh sách kỳ KPI nằm bên trái.",
     "table": {
       "staff_name": "Nhân viên",
       "achievement": "Hoàn thành",
