@@ -310,6 +310,8 @@
   "payment.summary_settled": "Settled",
   "payment.summary_pending": "Pending",
   "payment.summary_failed": "Failed",
+  "payment.view_transfer_image_button": "View transfer receipt image",
+  "payment.transfer_image_title": "Transfer receipt image",
   "dashboard.all_branches_customers": "Chain customers",
   "dashboard.all_branches_customers_desc": "Customers across every branch",
   "dashboard.all_locations": "All locations",
@@ -5444,14 +5446,26 @@
     "my_kpi": {
       "title": "My KPI",
       "period": "Period",
-      "branch": "Branch"
+      "branch": "Branch",
+      "page_title": "My KPI",
+      "page_subtitle": "Track your goals and performance for each KPI period."
+    },
+    "periods": "KPI Periods",
+    "periods_hint": "Select a period to view details",
+    "sort": {
+      "end_desc": "End date: newest",
+      "end_asc": "End date: oldest",
+      "start_desc": "Start date: newest"
     },
     "overall_achievement": "Overall Achievement",
     "achievement_rate": "Achievement",
     "target": "Target",
+    "no_target": "No target",
     "actual": "Actual",
     "progress": "Progress",
+    "remaining_to_target": "Remaining",
     "days_remaining": "{{days}} days remaining",
+    "period_ended": "Ended",
     "metrics": {
       "total_revenue": "Total Revenue",
       "new_members": "New Members",
@@ -5509,6 +5523,11 @@
     "no_kpi_message": "Get started by creating a new KPI for your staff",
     "no_kpi_assigned": "You have no KPI assigned",
     "staff_name": "Staff",
+    "actions": {
+      "view_detail": "View details"
+    },
+    "select_period": "Select a KPI period to view details",
+    "select_period_hint": "The list of KPI periods is on the left.",
     "table": {
       "staff_name": "Staff Name",
       "achievement": "Achievement",

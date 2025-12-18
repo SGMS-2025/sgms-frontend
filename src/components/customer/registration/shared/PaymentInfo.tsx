@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Copy, Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { Copy, Clock, CheckCircle, XCircle, RefreshCw, ExternalLink, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/currency';
 import { VIETQR_BANKS } from '@/constants/vietqrBanks';
@@ -224,212 +227,222 @@ export const PaymentInfo: React.FC<PaymentInfoProps> = ({
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const statusUi = useMemo(() => {
+    switch (paymentStatus) {
+      case 'PAID':
+        return {
+          icon: <CheckCircle className="text-green-700 dark:text-green-300" />,
+          className:
+            'border-green-200/70 bg-green-50 text-green-950 dark:border-green-900/40 dark:bg-green-950/30 dark:text-green-100',
+          title: t('payment.payment_successful')
+        };
+      case 'CANCELLED':
+        return {
+          icon: <XCircle className="text-red-700 dark:text-red-300" />,
+          className:
+            'border-red-200/70 bg-red-50 text-red-950 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-100',
+          title: t('payment.payment_cancelled')
+        };
+      case 'PROCESSING':
+        return {
+          icon: <RefreshCw className="animate-spin text-amber-700 dark:text-amber-300" />,
+          className:
+            'border-amber-200/70 bg-amber-50 text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100',
+          title: t('payment.processing')
+        };
+      case 'PENDING':
+      default:
+        return {
+          icon: <Clock className="text-blue-700 dark:text-blue-300" />,
+          className:
+            'border-blue-200/70 bg-blue-50 text-blue-950 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-100',
+          title: t('payment.waiting_for_payment')
+        };
+    }
+  }, [paymentStatus, t]);
+
+  const InfoRow = ({
+    label,
+    value,
+    copyText,
+    valueClassName
+  }: {
+    label: string;
+    value: React.ReactNode;
+    copyText?: string;
+    valueClassName?: string;
+  }) => {
+    return (
+      <div className="grid grid-cols-12 items-start gap-3 py-2">
+        <div className="col-span-12 sm:col-span-5 text-sm text-muted-foreground">{label}</div>
+        <div className="col-span-12 sm:col-span-7 flex items-start justify-between gap-3">
+          <div className={`min-w-0 text-sm font-medium text-foreground ${valueClassName || ''}`}>{value}</div>
+          {copyText ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => copyToClipboard(copyText, t('payment.copied'))}
+              aria-label="Copy"
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
-      {/* Payment Status */}
-      <div className="flex items-center justify-center space-x-3 p-4 rounded-lg bg-gray-50">
-        {paymentStatus === 'PENDING' && (
-          <>
-            <Clock className="h-5 w-5 text-blue-500" />
-            <span className="text-blue-600 font-medium">{t('payment.waiting_for_payment')}</span>
-          </>
-        )}
-        {paymentStatus === 'PROCESSING' && (
-          <>
-            <RefreshCw className="h-5 w-5 text-orange-500 animate-spin" />
-            <span className="text-orange-600 font-medium">{t('payment.processing')}</span>
-          </>
-        )}
-        {paymentStatus === 'PAID' && (
-          <>
-            <CheckCircle className="h-5 w-5 text-green-500" />
-            <span className="text-green-600 font-medium">{t('payment.payment_successful')}</span>
-          </>
-        )}
-        {paymentStatus === 'CANCELLED' && (
-          <>
-            <XCircle className="h-5 w-5 text-red-500" />
-            <span className="text-red-600 font-medium">{t('payment.payment_cancelled')}</span>
-          </>
-        )}
-      </div>
+      <Alert className={statusUi.className}>
+        {statusUi.icon}
+        <AlertTitle className="text-current">{statusUi.title}</AlertTitle>
+        <AlertDescription className="text-current/80">
+          {(paymentStatus === 'PENDING' || paymentStatus === 'PROCESSING') && timeRemaining !== undefined ? (
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              <span className="text-sm">
+                {t('payment.time_remaining')}: <span className="font-semibold">{formatTime(timeRemaining)}</span>
+              </span>
+            </div>
+          ) : null}
+        </AlertDescription>
+      </Alert>
 
-      {/* Timer */}
-      {(paymentStatus === 'PENDING' || paymentStatus === 'PROCESSING') && timeRemaining !== undefined && (
-        <div className="flex items-center justify-center space-x-2">
-          <Clock className="h-4 w-4 text-gray-500" />
-          <span className="text-sm text-gray-600">
-            {t('payment.time_remaining')}: <span className="font-bold text-blue-600">{formatTime(timeRemaining)}</span>
-          </span>
-        </div>
-      )}
-
-      {/* QR Code */}
       {(paymentStatus === 'PENDING' || paymentStatus === 'PROCESSING') && (
-        <div className="flex flex-col items-center space-y-4">
-          <div className="text-center">
-            <h3 className="text-lg font-semibold mb-2">{t('payment.scan_qr_code')}</h3>
-            <p className="text-sm text-gray-600">{t('payment.scan_qr_description')}</p>
-          </div>
-
-          <div className="border-4 border-gray-200 rounded-lg p-4 bg-white">
-            {qrImage ? (
-              <img src={qrImage} alt="QR Code" className="w-64 h-64 object-contain" />
-            ) : (
-              <div className="w-64 h-64 flex items-center justify-center">
-                <a
-                  href={paymentData.checkoutUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 underline text-center px-4"
-                >
-                  {t('payment.click_to_pay')}
-                </a>
-              </div>
-            )}
-          </div>
-
-          <a
-            href={paymentData.checkoutUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-800 underline text-sm"
-          >
-            {t('payment.open_payment_page')}
-          </a>
-        </div>
-      )}
-
-      {/* Bank Transfer Information */}
-      {(paymentStatus === 'PENDING' || paymentStatus === 'PROCESSING') && paymentData.accountNumber && (
-        <div className="space-y-3 p-4 border rounded-lg bg-gray-50">
-          <h3 className="font-semibold text-gray-800">{t('payment.bank_info')}</h3>
-
-          <div className="space-y-2">
-            {(bankInfo.name || bankInfo.shortName || bankInfo.bin) && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">{t('payment.bank_name')}:</span>
-                <div className="flex items-center space-x-2">
-                  <div className="flex flex-col items-end">
-                    <span className="font-medium">{bankInfo.name || bankInfo.shortName || bankInfo.bin}</span>
-                    {bankInfo.shortName && bankInfo.name && (
-                      <span className="text-xs text-gray-500">{bankInfo.shortName}</span>
-                    )}
-                    {bankInfo.bin && (bankInfo.name || bankInfo.shortName) && (
-                      <span className="text-xs text-gray-400">{bankInfo.bin}</span>
+        <div className="grid items-start gap-6 lg:grid-cols-12">
+          <Card className="h-fit lg:col-span-5">
+            <CardHeader className="border-b">
+              <CardTitle className="text-base">{t('payment.scan_qr_code')}</CardTitle>
+              <CardDescription>{t('payment.scan_qr_description')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="mx-auto w-full max-w-[340px]">
+                <div className="rounded-2xl border bg-background p-4 shadow-sm">
+                  <div className="aspect-square overflow-hidden rounded-xl bg-muted flex items-center justify-center">
+                    {qrImage ? (
+                      <img src={qrImage} alt="QR Code" className="h-full w-full object-contain" />
+                    ) : (
+                      <Button asChild variant="link" className="px-4 text-center">
+                        <a href={paymentData.checkoutUrl} target="_blank" rel="noopener noreferrer">
+                          {t('payment.click_to_pay')}
+                        </a>
+                      </Button>
                     )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() =>
-                      copyToClipboard(bankInfo.name || bankInfo.shortName || bankInfo.bin || '', t('payment.copied'))
-                    }
-                    className="h-6 w-6"
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
                 </div>
               </div>
-            )}
-
-            {!!paymentData.accountNumber && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">{t('payment.account_number')}:</span>
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium">{paymentData.accountNumber}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => copyToClipboard(paymentData.accountNumber || '', t('payment.copied'))}
-                    className="h-6 w-6"
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {!!paymentData.accountName && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">{t('payment.account_name')}:</span>
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium">{paymentData.accountName}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => copyToClipboard(paymentData.accountName || '', t('payment.copied'))}
-                    className="h-6 w-6"
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">{t('payment.amount')}:</span>
-              <div className="flex items-center space-x-2">
-                <span className="font-bold text-lg text-blue-600">{formatCurrency(paymentData.amount)}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => copyToClipboard(paymentData.amount.toString(), t('payment.copied'))}
-                  className="h-6 w-6"
-                >
-                  <Copy className="h-3 w-3" />
+            </CardContent>
+            <CardFooter className="border-t">
+              <div className="flex w-full flex-col gap-2">
+                <Button asChild variant="outline" className="w-full">
+                  <a href={paymentData.checkoutUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4" />
+                    {t('payment.open_payment_page')}
+                  </a>
                 </Button>
               </div>
-            </div>
+            </CardFooter>
+          </Card>
 
-            <div className="flex justify-between items-start">
-              <span className="text-sm text-gray-600">{t('payment.transfer_content')}:</span>
-              <div className="flex items-center space-x-2">
-                <span className="font-medium text-right whitespace-pre-wrap break-words max-w-[220px]">
-                  {transferContent}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => copyToClipboard(transferContent, t('payment.copied'))}
-                  className="h-6 w-6"
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
+          {paymentData.accountNumber ? (
+            <Card className="h-fit lg:col-span-7">
+              <CardHeader className="border-b">
+                <CardTitle className="text-base">{t('payment.bank_info')}</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {bankInfo.name || bankInfo.shortName || bankInfo.bin ? (
+                  <>
+                    <InfoRow
+                      label={`${t('payment.bank_name')}:`}
+                      value={
+                        <div className="min-w-0 text-right">
+                          <div className="truncate">{bankInfo.name || bankInfo.shortName || bankInfo.bin}</div>
+                          {bankInfo.shortName && bankInfo.name ? (
+                            <div className="text-xs text-muted-foreground">{bankInfo.shortName}</div>
+                          ) : null}
+                          {bankInfo.bin && (bankInfo.name || bankInfo.shortName) ? (
+                            <div className="text-xs text-muted-foreground">{bankInfo.bin}</div>
+                          ) : null}
+                        </div>
+                      }
+                      copyText={bankInfo.name || bankInfo.shortName || bankInfo.bin || ''}
+                    />
+                    <Separator />
+                  </>
+                ) : null}
 
-            {!!paymentData.orderCode && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">{t('payment.order_code')}:</span>
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium">{paymentData.orderCode}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => copyToClipboard(paymentData.orderCode.toString(), t('payment.copied'))}
-                    className="h-6 w-6"
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
+                <InfoRow
+                  label={`${t('payment.account_number')}:`}
+                  value={<span className="font-mono">{paymentData.accountNumber}</span>}
+                  copyText={paymentData.accountNumber}
+                />
+                <Separator />
+
+                {paymentData.accountName ? (
+                  <>
+                    <InfoRow
+                      label={`${t('payment.account_name')}:`}
+                      value={<span className="truncate">{paymentData.accountName}</span>}
+                      copyText={paymentData.accountName}
+                    />
+                    <Separator />
+                  </>
+                ) : null}
+
+                <InfoRow
+                  label={`${t('payment.amount')}:`}
+                  value={formatCurrency(paymentData.amount)}
+                  copyText={paymentData.amount.toString()}
+                  valueClassName="text-base font-semibold text-primary"
+                />
+                <Separator />
+
+                <InfoRow
+                  label={`${t('payment.transfer_content')}:`}
+                  value={<span className="font-mono break-words">{transferContent}</span>}
+                  copyText={transferContent}
+                />
+
+                {paymentData.orderCode ? (
+                  <>
+                    <Separator />
+                    <InfoRow
+                      label={`${t('payment.order_code')}:`}
+                      value={<span className="font-mono">{paymentData.orderCode}</span>}
+                      copyText={paymentData.orderCode.toString()}
+                    />
+                  </>
+                ) : null}
+
+                <div className="mt-4">
+                  <Alert className="border-red-200/70 bg-red-50 text-red-950 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-100">
+                    <AlertCircle className="text-red-700 dark:text-red-300" />
+                    <AlertDescription className="text-red-800 dark:text-red-200/90">
+                      <p>{t('payment.transfer_content_warning')}</p>
+                    </AlertDescription>
+                  </Alert>
                 </div>
-              </div>
-            )}
-          </div>
-
-          <p className="text-xs text-red-600 mt-3">{t('payment.transfer_content_warning')}</p>
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
       )}
 
-      {/* Refresh Action */}
-      {showActions && onRefresh && (paymentStatus === 'PENDING' || paymentStatus === 'PROCESSING') && (
+      {showActions && onRefresh && (paymentStatus === 'PENDING' || paymentStatus === 'PROCESSING') ? (
         <div className="flex justify-center">
           <Button variant="outline" onClick={onRefresh} disabled={isRefreshing}>
-            {isRefreshing && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
+            {isRefreshing ? (
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
             {t('payment.refresh_status')}
           </Button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

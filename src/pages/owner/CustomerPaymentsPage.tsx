@@ -559,13 +559,19 @@ const CustomerPaymentsPage: React.FC = () => {
                             <DialogTrigger asChild>
                               <Button variant="outline" size="sm" className="w-full justify-start gap-2 h-7 text-xs">
                                 <ImageIcon className="h-3 w-3" />
-                                <span>Xem ảnh chuyển khoản</span>
+                                <span>
+                                  {t('payment.view_transfer_image_button', {
+                                    defaultValue: 'Xem ảnh chuyển khoản'
+                                  })}
+                                </span>
                                 <ZoomIn className="h-3 w-3 ml-auto" />
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
                               <div className="space-y-4">
-                                <h3 className="text-lg font-semibold">Ảnh chuyển khoản</h3>
+                                <h3 className="text-lg font-semibold">
+                                  {t('payment.transfer_image_title', { defaultValue: 'Ảnh chuyển khoản' })}
+                                </h3>
                                 <div className="flex items-center justify-center bg-muted rounded-lg p-4">
                                   <img
                                     src={transaction.transferReceiptImage.url}
