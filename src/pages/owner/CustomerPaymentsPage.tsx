@@ -254,7 +254,6 @@ const CustomerPaymentsPage: React.FC = () => {
     goToPage,
     refetch
   } = useTransactions();
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   const branchNameById = useMemo(() => {
     return new Map(branches.map((branch) => [branch._id, branch.branchName]));
@@ -374,15 +373,10 @@ const CustomerPaymentsPage: React.FC = () => {
       startDate: startValue,
       endDate: endValue
     });
-
-    if (range.from && range.to) {
-      setDatePickerOpen(false);
-    }
   };
 
   const handleClearDateRange = () => {
     setQuery({ startDate: undefined, endDate: undefined });
-    setDatePickerOpen(false);
   };
 
   const branchId = currentBranch?._id;
@@ -773,7 +767,8 @@ const CustomerPaymentsPage: React.FC = () => {
               </SelectContent>
             </Select>
 
-            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+            {/* Date range filter - behavior similar to DiscountCampaignForm */}
+            <Popover modal={false}>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="justify-start text-left font-normal">
                   <CalendarIcon className="mr-2 h-4 w-4" />
