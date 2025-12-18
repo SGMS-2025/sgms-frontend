@@ -59,14 +59,15 @@ const PTAvailabilityRequestManagement: React.FC = () => {
         }
       : {};
 
-  const { requests, loading, error, pagination, refetch, updateFilters, goToPage } = usePTAvailabilityRequestList({
-    search: searchValue || undefined,
-    status: statusFilter !== 'ALL' ? statusFilter : undefined,
-    branchId: currentBranch?._id,
-    ...dateFilters,
-    page: 1,
-    limit: 12
-  });
+  const { requests, stats, loading, error, pagination, refetch, updateFilters, goToPage } =
+    usePTAvailabilityRequestList({
+      search: searchValue || undefined,
+      status: statusFilter !== 'ALL' ? statusFilter : undefined,
+      branchId: currentBranch?._id,
+      ...dateFilters,
+      page: 1,
+      limit: 6
+    });
 
   // Update filters when branch changes
   useEffect(() => {
@@ -169,14 +170,6 @@ const PTAvailabilityRequestManagement: React.FC = () => {
     refetch();
   };
 
-  // Calculate stats
-  const stats = {
-    total: requests.length,
-    pending: requests.filter((r) => r.status === 'PENDING_APPROVAL').length,
-    approved: requests.filter((r) => r.status === 'APPROVED').length,
-    rejected: requests.filter((r) => r.status === 'REJECTED').length
-  };
-
   // Only PT (STAFF with jobTitle "Personal Trainer") can create requests, not Managers
   const isPT = user?.role === 'STAFF' && currentStaff?.jobTitle === 'Personal Trainer';
   const canCreate = isPT;
@@ -223,7 +216,7 @@ const PTAvailabilityRequestManagement: React.FC = () => {
               {t('pt_availability.stats.total', 'Total Requests')}
             </div>
             <div className="mt-2 flex items-end justify-between">
-              <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
+              <div className="text-3xl font-bold text-gray-900">{stats?.totalRequests || 0}</div>
               <div className="rounded-full bg-white/70 p-2 text-orange-500">
                 <Target className="h-5 w-5" />
               </div>
@@ -240,7 +233,7 @@ const PTAvailabilityRequestManagement: React.FC = () => {
               {t('pt_availability.stats.pending', 'Pending')}
             </div>
             <div className="mt-2 flex items-end justify-between text-gray-900">
-              <span className="text-3xl font-semibold">{stats.pending}</span>
+              <span className="text-3xl font-semibold">{stats?.pendingRequests || 0}</span>
               <div className="rounded-full bg-white p-2 text-yellow-600">
                 <Clock className="h-5 w-5" />
               </div>
@@ -255,7 +248,7 @@ const PTAvailabilityRequestManagement: React.FC = () => {
               {t('pt_availability.stats.approved', 'Approved')}
             </div>
             <div className="mt-2 flex items-end justify-between text-gray-900">
-              <span className="text-3xl font-semibold">{stats.approved}</span>
+              <span className="text-3xl font-semibold">{stats?.approvedRequests || 0}</span>
               <div className="rounded-full bg-white p-2 text-green-600">
                 <CheckCircle2 className="h-5 w-5" />
               </div>
@@ -270,7 +263,7 @@ const PTAvailabilityRequestManagement: React.FC = () => {
               {t('pt_availability.stats.rejected', 'Rejected')}
             </div>
             <div className="mt-2 flex items-end justify-between text-gray-900">
-              <span className="text-3xl font-semibold">{stats.rejected}</span>
+              <span className="text-3xl font-semibold">{stats?.rejectedRequests || 0}</span>
               <div className="rounded-full bg-white p-2 text-red-600">
                 <XCircle className="h-5 w-5" />
               </div>
