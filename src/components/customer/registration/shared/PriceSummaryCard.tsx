@@ -36,7 +36,7 @@ export const PriceSummaryCard: React.FC<PriceSummaryCardProps> = ({ basePrice, d
     {
       label: t('shared_form.base_price'),
       value: formatCurrency(basePrice),
-      labelClassName: 'text-sm text-muted-foreground',
+      labelClassName: 'text-xs text-muted-foreground',
       valueClassName: 'text-sm font-semibold'
     },
     ...(discountAmount > 0
@@ -44,7 +44,7 @@ export const PriceSummaryCard: React.FC<PriceSummaryCardProps> = ({ basePrice, d
           {
             label: t('shared_form.discount'),
             value: `-${formatCurrency(discountAmount)}`,
-            labelClassName: 'text-sm',
+            labelClassName: 'text-xs',
             valueClassName: 'text-sm font-semibold',
             containerClassName: 'text-green-600'
           }
@@ -55,12 +55,12 @@ export const PriceSummaryCard: React.FC<PriceSummaryCardProps> = ({ basePrice, d
       value: formatCurrency(totalPrice),
       labelClassName: 'text-sm font-semibold',
       valueClassName: 'text-lg font-bold text-primary',
-      containerClassName: 'border-t border-border pt-3'
+      containerClassName: 'border-t border-border pt-2'
     }
   ];
 
   return (
-    <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+    <div className="rounded-2xl border border-border bg-muted/20 p-3 space-y-2">
       {rows.map((row, index) => (
         <PriceRow key={`${row.label}-${index}`} {...row} />
       ))}

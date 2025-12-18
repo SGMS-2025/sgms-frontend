@@ -102,6 +102,9 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
   const contractPaymentMethodRef = useRef<'CASH' | 'BANK_TRANSFER' | 'QR_BANK' | null>(null);
   const lastStepRef = useRef<MembershipWizardStep>('form');
 
+  // Ref to track if payment is being created to prevent duplicate calls
+  const isCreatingPaymentRef = useRef<boolean>(false);
+
   // Wizard state management
   // Keep a stable payment method if a contract was already created, so steps don't drop the payment step on re-render
   const effectivePaymentMethod =
@@ -277,6 +280,12 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
   // Handle PayOS payment creation
   const handlePayOSPayment = useCallback(
     async (contractId: string) => {
+      // Prevent duplicate calls
+      if (isCreatingPaymentRef.current || payOSData) {
+        return;
+      }
+
+      isCreatingPaymentRef.current = true;
       const paymentAmount = Math.max(priceCalculation.totalPrice, 1000);
 
       try {
@@ -295,9 +304,11 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
       } catch (error) {
         console.error('Error creating PayOS payment:', error);
         toast.error(t('membership_registration.warning_payos_failed'));
+      } finally {
+        isCreatingPaymentRef.current = false;
       }
     },
-    [customerId, formData.branchId, priceCalculation.totalPrice, t]
+    [customerId, formData.branchId, priceCalculation.totalPrice, t, payOSData]
   );
 
   // Handle payment success
@@ -306,24 +317,38 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
   }, [wizard]);
 
   // Create contract function for QR_BANK
-  const createContractForQRBank = useCallback(async (): Promise<MembershipContractResponse | null> => {
-    if (!formData.membershipPlanId) {
-      toast.error(t('membership_registration.error_select_plan'));
-      return null;
-    }
-
-    try {
-      const response = await membershipApi.createMembershipContract(customerId, formData);
-      if (response?.data) {
-        contractPaymentMethodRef.current = getContractPaymentMethod(response) || 'QR_BANK';
+  const createContractForQRBank = useCallback(
+    async (transferReceiptFile?: File | null): Promise<MembershipContractResponse | null> => {
+      if (!formData.membershipPlanId) {
+        toast.error(t('membership_registration.error_select_plan'));
+        return null;
       }
-      return response;
-    } catch (error) {
-      console.error('Error creating contract:', error);
-      toast.error(t('membership_registration.error_register'));
-      return null;
-    }
-  }, [customerId, formData, getContractPaymentMethod, t]);
+
+      if (!currentBranch?._id) {
+        toast.error(t('membership_registration.error_select_branch'));
+        return null;
+      }
+
+      // Ensure branchId is set
+      const submitData = {
+        ...formData,
+        branchId: formData.branchId || currentBranch._id
+      };
+
+      try {
+        const response = await membershipApi.createMembershipContract(customerId, submitData, transferReceiptFile);
+        if (response?.data) {
+          contractPaymentMethodRef.current = getContractPaymentMethod(response) || 'QR_BANK';
+        }
+        return response;
+      } catch (error) {
+        console.error('Error creating contract:', error);
+        toast.error(t('membership_registration.error_register'));
+        return null;
+      }
+    },
+    [customerId, formData, currentBranch?._id, getContractPaymentMethod, t]
+  );
 
   // Handle step navigation
   const handleNext = () => {
@@ -341,11 +366,16 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
 
       // For QR_BANK, always go to payment step; contract will be created when user confirms transfer
       if (formData.paymentMethod === 'QR_BANK') {
+        // Ensure branchId is set before going to payment step
+        if (currentBranch?._id && !formData.branchId) {
+          setFormData((prev) => ({ ...prev, branchId: currentBranch._id }));
+        }
         wizard.goToStep('payment');
         return;
       }
 
       // For BANK_TRANSFER, create contract and go to payment step
+      // Payment will be created by useEffect when entering payment step to avoid duplicate calls
       if (formData.paymentMethod === 'BANK_TRANSFER') {
         setIsCreatingContract(true);
         const submitData = {
@@ -353,15 +383,12 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
           branchId: currentBranch._id
         };
         membershipApi
-          .createMembershipContract(customerId, submitData)
+          .createMembershipContract(customerId, submitData, null)
           .then((response) => {
             if (response?.success && response?.data) {
               setContractResponse(response);
               contractPaymentMethodRef.current = getContractPaymentMethod(response) || formData.paymentMethod || null;
-              const contractId = getContractId(response);
-              if (contractId) {
-                handlePayOSPayment(contractId);
-              }
+              // Don't call handlePayOSPayment here - let useEffect handle it to avoid duplicate calls
               wizard.goToStep('payment');
             } else {
               toast.error(response?.message || t('membership_registration.error_register_failed'));
@@ -382,7 +409,7 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
         branchId: currentBranch._id
       };
       membershipApi
-        .createMembershipContract(customerId, submitData)
+        .createMembershipContract(customerId, submitData, null)
         .then((response) => {
           if (response?.success && response?.data) {
             setContractResponse(response);
@@ -441,6 +468,7 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
     contractPaymentMethodRef.current = null;
     previousPaymentMethodRef.current = undefined;
     lastStepRef.current = 'form';
+    isCreatingPaymentRef.current = false;
     setIsCreatingContract(false);
     resetFormData();
     onSuccess?.();
@@ -464,6 +492,7 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
         contractPaymentMethodRef.current = null;
         previousPaymentMethodRef.current = undefined;
         lastStepRef.current = 'form';
+        isCreatingPaymentRef.current = false;
         resetFormData();
       }
     }
@@ -482,6 +511,7 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
         contractPaymentMethodRef.current = null;
         previousPaymentMethodRef.current = undefined;
         lastStepRef.current = 'form';
+        isCreatingPaymentRef.current = false;
       }
     }
 
@@ -638,8 +668,8 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
               formData={formData}
               onCreateContract={
                 !contractId
-                  ? async () => {
-                      const response = await createContractForQRBank();
+                  ? async (transferReceiptFile?: File | null) => {
+                      const response = await createContractForQRBank(transferReceiptFile);
                       if (response?.success && response?.data) {
                         const newContractId = getContractId(response);
                         if (newContractId) {
@@ -700,17 +730,18 @@ export const MembershipRegistrationWizard: React.FC<MembershipRegistrationWizard
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t('membership_registration.title', 'Đăng ký Membership')}</DialogTitle>
         </DialogHeader>
 
         {/* Stepper */}
-        <div className="mb-6">
+        <div className="mb-5 max-w-3xl mx-auto">
           <Stepper
             steps={activeSteps}
             currentStep={wizard.stepIndex}
             completedSteps={Array.from({ length: wizard.stepIndex }, (_, i) => i)}
+            variant="compact"
           />
         </div>
 

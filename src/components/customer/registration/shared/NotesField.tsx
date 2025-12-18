@@ -7,9 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 interface NotesFieldProps {
   value: string;
   onChange: (value: string) => void;
+  rows?: number;
 }
 
-export const NotesField: React.FC<NotesFieldProps> = ({ value, onChange }) => {
+export const NotesField: React.FC<NotesFieldProps> = ({ value, onChange, rows = 3 }) => {
   const { t } = useTranslation();
   return (
     <div className="space-y-2">
@@ -20,7 +21,7 @@ export const NotesField: React.FC<NotesFieldProps> = ({ value, onChange }) => {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={t('shared_form.notes_placeholder')}
-        rows={3}
+        rows={rows}
       />
     </div>
   );

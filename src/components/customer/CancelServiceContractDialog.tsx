@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -17,6 +18,9 @@ interface CancelServiceContractDialogProps {
   paidAmount?: number;
   startDate?: string;
   endDate?: string;
+  sessionCount?: number;
+  sessionsUsed?: number;
+  sessionsRemaining?: number;
 }
 
 export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogProps> = ({
@@ -28,8 +32,12 @@ export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogPr
   serviceName,
   paidAmount = 0,
   startDate,
-  endDate
+  endDate,
+  sessionCount,
+  sessionsUsed,
+  sessionsRemaining
 }) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [formData, setFormData] = useState({
@@ -55,7 +63,7 @@ export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogPr
     const newErrors: Record<string, string> = {};
 
     if (!formData.cancelReason.trim()) {
-      newErrors.cancelReason = 'Vui lòng nhập lý do hủy gói';
+      newErrors.cancelReason = t('cancel_service.error.reason_required');
     }
 
     setErrors(newErrors);
@@ -83,15 +91,17 @@ export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogPr
     serviceContractApi
       .cancelServiceContract(contractId, formData)
       .then(() => {
-        toast.success(`Hủy gói ${contractType === 'PT' ? 'PT' : 'lớp học'} thành công!`);
+        const packageType =
+          contractType === 'PT' ? t('cancel_service.package_type.pt') : t('cancel_service.package_type.class');
+        toast.success(t('cancel_service.success', { packageType }));
 
         onSuccess();
         handleClose();
       })
       .catch((error) => {
         console.error('Error canceling service contract:', error);
-        toast.error('Không thể hủy gói dịch vụ', {
-          description: error instanceof Error ? error.message : 'Vui lòng thử lại sau'
+        toast.error(t('cancel_service.error.failed'), {
+          description: error instanceof Error ? error.message : t('cancel_service.error.try_again')
         });
       })
       .finally(() => {
@@ -116,37 +126,62 @@ export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogPr
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-red-500" />
-            Hủy gói {contractType === 'PT' ? 'PT 1-1' : 'lớp học'}
+            {t('cancel_service.title', {
+              packageType:
+                contractType === 'PT'
+                  ? t('cancel_service.package_type.pt_full')
+                  : t('cancel_service.package_type.class')
+            })}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Contract Information */}
           <div className="rounded-lg border p-4 bg-muted/50">
-            <h4 className="font-medium mb-3">Thông tin gói dịch vụ</h4>
+            <h4 className="font-medium mb-3">{t('cancel_service.contract_info')}</h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-muted-foreground">Tên gói:</span>
-                <span className="ml-2 font-medium">{serviceName || 'N/A'}</span>
+                <span className="text-muted-foreground">{t('cancel_service.package_name')}:</span>
+                <span className="ml-2 font-medium">{serviceName || t('cancel_service.not_available')}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Loại:</span>
-                <span className="ml-2 font-medium">{contractType === 'PT' ? 'Personal Training' : 'Lớp học nhóm'}</span>
+                <span className="text-muted-foreground">{t('cancel_service.package_type_label')}:</span>
+                <span className="ml-2 font-medium">
+                  {contractType === 'PT'
+                    ? t('cancel_service.package_type.personal_training')
+                    : t('cancel_service.package_type.group_class')}
+                </span>
               </div>
               {startDate && (
                 <div>
-                  <span className="text-muted-foreground">Ngày bắt đầu:</span>
-                  <span className="ml-2">{new Date(startDate).toLocaleDateString('vi-VN')}</span>
+                  <span className="text-muted-foreground">{t('cancel_service.start_date')}:</span>
+                  <span className="ml-2">{new Date(startDate).toLocaleDateString()}</span>
                 </div>
               )}
               {endDate && (
                 <div>
-                  <span className="text-muted-foreground">Ngày kết thúc:</span>
-                  <span className="ml-2">{new Date(endDate).toLocaleDateString('vi-VN')}</span>
+                  <span className="text-muted-foreground">{t('cancel_service.end_date')}:</span>
+                  <span className="ml-2">{new Date(endDate).toLocaleDateString()}</span>
+                </div>
+              )}
+              {sessionCount !== undefined && sessionsUsed !== undefined && (
+                <div>
+                  <span className="text-muted-foreground">{t('cancel_service.sessions_used')}:</span>
+                  <span className="ml-2 font-medium">
+                    {sessionsUsed} / {sessionCount} {t('cancel_service.sessions_unit')}
+                  </span>
+                </div>
+              )}
+              {sessionsRemaining !== undefined && sessionCount !== undefined && (
+                <div>
+                  <span className="text-muted-foreground">{t('cancel_service.sessions_remaining')}:</span>
+                  <span className="ml-2 font-medium">
+                    {sessionsRemaining} / {sessionCount} {t('cancel_service.sessions_unit')}
+                  </span>
                 </div>
               )}
               <div className="col-span-2">
-                <span className="text-muted-foreground">Đã thanh toán:</span>
+                <span className="text-muted-foreground">{t('cancel_service.paid_amount')}:</span>
                 <span className="ml-2 font-medium">{formatCurrency(paidAmount)}</span>
               </div>
             </div>
@@ -155,14 +190,14 @@ export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogPr
           {/* Cancel Reason */}
           <div className="space-y-2">
             <Label htmlFor="cancelReason">
-              Lý do hủy <span className="text-red-500">*</span>
+              {t('cancel_service.cancel_reason_label')} <span className="text-red-500">*</span>
             </Label>
             <Textarea
               id="cancelReason"
               rows={3}
               value={formData.cancelReason}
               onChange={(e) => handleInputChange('cancelReason', e.target.value)}
-              placeholder="Nhập lý do hủy gói dịch vụ..."
+              placeholder={t('cancel_service.cancel_reason_placeholder')}
               disabled={loading}
             />
             {errors.cancelReason && <p className="text-sm text-red-500">{errors.cancelReason}</p>}
@@ -171,11 +206,11 @@ export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogPr
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} disabled={loading}>
-            Hủy bỏ
+            {t('common.cancel')}
           </Button>
           <Button variant="destructive" onClick={handleSubmit} disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Xác nhận hủy gói
+            {t('cancel_service.confirm_cancel')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -186,24 +221,37 @@ export const CancelServiceContractDialog: React.FC<CancelServiceContractDialogPr
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-500" />
-              Xác nhận hủy gói
+              {t('cancel_service.confirm_title')}
             </DialogTitle>
           </DialogHeader>
 
           <div className="py-4">
             <p className="text-sm text-muted-foreground">
-              Bạn có chắc chắn muốn hủy gói <strong>{serviceName || 'này'}</strong> không? Hành động này không thể hoàn
-              tác.
+              {(() => {
+                const packageName = serviceName || t('cancel_service.this_package');
+                const message = t('cancel_service.confirm_message', { packageName });
+                const parts = message.split(`<strong>${packageName}</strong>`);
+                if (parts.length === 2) {
+                  return (
+                    <>
+                      {parts[0]}
+                      <strong>{packageName}</strong>
+                      {parts[1]}
+                    </>
+                  );
+                }
+                return message.replace(/<strong>(.*?)<\/strong>/g, '$1');
+              })()}
             </p>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowConfirmDialog(false)} disabled={loading}>
-              Hủy bỏ
+              {t('common.cancel')}
             </Button>
             <Button variant="destructive" onClick={handleConfirmCancel} disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Xác nhận
+              {t('common.confirm')}
             </Button>
           </DialogFooter>
         </DialogContent>

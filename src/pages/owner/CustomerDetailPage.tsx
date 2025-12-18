@@ -36,6 +36,7 @@ import { customerApi } from '@/services/api/customerApi';
 import { useBranch } from '@/contexts/BranchContext';
 import { socketService } from '@/services/socket/socketService';
 import { cn, debounce } from '@/utils/utils';
+import { canCancelMembership } from '@/utils/membership';
 import type { CustomerDisplay } from '@/types/api/Customer';
 import type { MembershipContract } from '@/types/api/Membership';
 import type { MembershipContractUpdateEvent } from '@/types/api/Socket';
@@ -581,6 +582,7 @@ const CustomerDetailPage: React.FC = () => {
                   size="sm"
                   variant="destructive"
                   className="rounded-full px-4"
+                  disabled={!membershipContract?.status || !canCancelMembership(membershipContract.status)}
                 >
                   <XCircle className="mr-2 h-4 w-4" />
                   {t('customer_detail.cancel_package')}
@@ -1008,7 +1010,9 @@ const CustomerDetailPage: React.FC = () => {
           serviceName={ptPackageName}
           paidAmount={ptContract.paidAmount || 0}
           startDate={ptContract.startDate}
-          endDate={ptContract.endDate}
+          sessionCount={ptContract.sessionCount}
+          sessionsUsed={ptContract.sessionsUsed}
+          sessionsRemaining={ptContract.sessionsRemaining}
         />
       )}
 
@@ -1022,7 +1026,9 @@ const CustomerDetailPage: React.FC = () => {
           serviceName={classPackageName}
           paidAmount={classContract.paidAmount || 0}
           startDate={classContract.startDate}
-          endDate={classContract.endDate}
+          sessionCount={classContract.sessionCount}
+          sessionsUsed={classContract.sessionsUsed}
+          sessionsRemaining={classContract.sessionsRemaining}
         />
       )}
 

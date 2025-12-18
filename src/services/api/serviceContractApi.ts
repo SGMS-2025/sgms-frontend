@@ -7,8 +7,39 @@ export const serviceContractApi = {
    */
   createServiceContract: async (
     customerId: string,
-    data: PTRegistrationFormData | ClassRegistrationFormData
+    data: PTRegistrationFormData | ClassRegistrationFormData,
+    transferReceiptFile?: File | null
   ): Promise<ServiceContractResponse> => {
+    // If transfer receipt file is provided, use FormData
+    if (transferReceiptFile) {
+      const formData = new FormData();
+      // Append all form fields
+      Object.entries(data).forEach(([key, value]) => {
+        // Skip undefined and null values, but allow empty strings
+        if (value !== undefined && value !== null) {
+          // For optional fields, only append if it has a value
+          if (key === 'discountCampaignId' || key === 'referrerStaffId' || key === 'primaryTrainerId') {
+            if (value) {
+              formData.append(key, value.toString());
+            }
+          } else if (Array.isArray(value)) {
+            // Handle array fields (e.g., branchId)
+            value.forEach((item) => formData.append(key, item.toString()));
+          } else {
+            // For required fields, always append
+            formData.append(key, value.toString());
+          }
+        }
+      });
+      // Append transfer receipt file
+      formData.append('transferReceipt', transferReceiptFile);
+
+      // Don't set Content-Type header - let axios set it automatically with boundary
+      const response = await api.post<ServiceContractResponse>(`/customers/${customerId}/service-contracts`, formData);
+      return response.data;
+    }
+
+    // Otherwise, use regular JSON request
     const response = await api.post<ServiceContractResponse>(`/customers/${customerId}/service-contracts`, data);
     return response.data;
   },
@@ -32,6 +63,14 @@ export const serviceContractApi = {
     }
   ): Promise<{ success: boolean; message?: string }> => {
     const response = await api.patch(`/service-contracts/${contractId}/cancel`, payload);
+    return response.data;
+  },
+
+  /**
+   * Confirm QR Bank payment for a service contract
+   */
+  confirmQRBankPayment: async (contractId: string): Promise<{ success: boolean; data?: unknown; message?: string }> => {
+    const response = await api.patch(`/service-contracts/${contractId}/confirm-payment`);
     return response.data;
   },
 
