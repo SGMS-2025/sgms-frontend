@@ -80,6 +80,8 @@ const customerSortConfig = {
   totalSpent: (item: CustomerDisplay) => item.totalSpent,
   status: (item: CustomerDisplay) => item.status,
   serviceName: (item: CustomerDisplay) => item.serviceName || '',
+  ptServiceName: (item: CustomerDisplay) => item.ptServiceName || '',
+  classServiceName: (item: CustomerDisplay) => item.classServiceName || '',
   contractStartDate: (item: CustomerDisplay) => item.contractStartDate || '',
   contractEndDate: (item: CustomerDisplay) => item.contractEndDate || '',
   referrerStaffName: (item: CustomerDisplay) => item.referrerStaffName || '',
@@ -104,7 +106,8 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
       name: true,
       phone: true,
       membershipType: true,
-      serviceName: true,
+      ptServiceName: true,
+      classServiceName: true,
       contractStartDate: false,
       contractEndDate: true,
       referrerStaffName: false,
@@ -190,6 +193,8 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
           (customer.membershipType?.toLowerCase() || '').includes(searchTerm) ||
           (customer.membershipStatus?.toLowerCase() || '').includes(searchTerm) ||
           (customer.serviceName?.toLowerCase() || '').includes(searchTerm) ||
+          (customer.ptServiceName?.toLowerCase() || '').includes(searchTerm) ||
+          (customer.classServiceName?.toLowerCase() || '').includes(searchTerm) ||
           (customer.referrerStaffName?.toLowerCase() || '').includes(searchTerm) ||
           (customer.branches || []).some((branch) => (branch.branchName?.toLowerCase() || '').includes(searchTerm))
         );
@@ -384,8 +389,11 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
         {filters.visibleColumns.membershipType && (
           <td className="px-4 py-3 text-sm text-gray-500">{customer.membershipType || '-'}</td>
         )}
-        {filters.visibleColumns.serviceName && (
-          <td className="px-4 py-3 text-sm text-gray-500">{customer.serviceName || '-'}</td>
+        {filters.visibleColumns.ptServiceName && (
+          <td className="px-4 py-3 text-sm text-gray-500">{customer.ptServiceName || '-'}</td>
+        )}
+        {filters.visibleColumns.classServiceName && (
+          <td className="px-4 py-3 text-sm text-gray-500">{customer.classServiceName || '-'}</td>
         )}
         {filters.visibleColumns.contractStartDate && (
           <td className="px-4 py-3 text-sm text-gray-600">{customer.contractStartDate || '-'}</td>
@@ -611,10 +619,17 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
                 </DropdownMenuCheckboxItem>
 
                 <DropdownMenuCheckboxItem
-                  checked={filters.visibleColumns.serviceName}
-                  onCheckedChange={() => toggleColumnVisibility('serviceName')}
+                  checked={filters.visibleColumns.ptServiceName}
+                  onCheckedChange={() => toggleColumnVisibility('ptServiceName')}
                 >
-                  {t('dashboard.pt_class')}
+                  {t('dashboard.pt')}
+                </DropdownMenuCheckboxItem>
+
+                <DropdownMenuCheckboxItem
+                  checked={filters.visibleColumns.classServiceName}
+                  onCheckedChange={() => toggleColumnVisibility('classServiceName')}
+                >
+                  {t('dashboard.class')}
                 </DropdownMenuCheckboxItem>
 
                 <DropdownMenuCheckboxItem
@@ -737,10 +752,19 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
                   getSortIcon={getSortIcon}
                 />
               )}
-              {filters.visibleColumns.serviceName && (
+              {filters.visibleColumns.ptServiceName && (
                 <SortableHeader
-                  field="serviceName"
-                  label={t('dashboard.pt_class')}
+                  field="ptServiceName"
+                  label={t('dashboard.pt')}
+                  sortState={sortState}
+                  onSort={handleSort}
+                  getSortIcon={getSortIcon}
+                />
+              )}
+              {filters.visibleColumns.classServiceName && (
+                <SortableHeader
+                  field="classServiceName"
+                  label={t('dashboard.class')}
                   sortState={sortState}
                   onSort={handleSort}
                   getSortIcon={getSortIcon}

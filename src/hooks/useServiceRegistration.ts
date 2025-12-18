@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import type { ServicePackage } from '@/types/api/Package';
 import type { DiscountCampaign } from '@/types/api/Discount';
 
@@ -66,17 +66,6 @@ export const useServiceRegistration = (
       totalPrice
     };
   }, [selectedPackage, selectedPromotion]);
-
-  // Automatically sync initialPaidAmount with totalPrice when totalPrice changes
-  // Only update when a package is selected to avoid setting 0 on initial load
-  useEffect(() => {
-    if (selectedPackage) {
-      setFormData((prev) => ({
-        ...prev,
-        initialPaidAmount: priceCalculation.totalPrice
-      }));
-    }
-  }, [priceCalculation.totalPrice, selectedPackage]);
 
   // Handle package selection
   const handlePackageChange = (packageId: string, packages: ServicePackage[]) => {

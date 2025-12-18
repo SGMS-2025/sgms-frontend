@@ -6,8 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { membershipApi } from '@/services/api/membershipApi';
-import { formatCurrency, getMembershipStatusLabel, getMembershipStatusColor } from '@/utils/membership';
+import {
+  formatCurrency,
+  getMembershipStatusLabel,
+  getMembershipStatusColor,
+  canCancelMembership
+} from '@/utils/membership';
 import type { MembershipContract, CancelMembershipPayload } from '@/types/api/Membership';
 
 interface CancelMembershipDialogProps {
@@ -61,6 +67,14 @@ export const CancelMembershipDialog: React.FC<CancelMembershipDialogProps> = ({
   };
 
   const handleSubmit = () => {
+    // Check if membership can be cancelled based on status
+    if (!canCancelMembership(contract.status)) {
+      toast.error(t('cancel_membership.error.failed'), {
+        description: t('cancel_membership.error.cannot_cancel_status', 'Cannot cancel membership in current status')
+      });
+      return;
+    }
+
     if (!validateForm()) {
       return;
     }
@@ -96,6 +110,17 @@ export const CancelMembershipDialog: React.FC<CancelMembershipDialogProps> = ({
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Warning if cannot cancel */}
+          {!canCancelMembership(contract.status) && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>{t('cancel_membership.error.cannot_cancel_title', 'Cannot Cancel')}</AlertTitle>
+              <AlertDescription>
+                {t('cancel_membership.error.cannot_cancel_status', 'Cannot cancel membership in current status')}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Contract Information */}
           <div className="rounded-lg border p-4 bg-gray-50">
             <h4 className="font-medium mb-3">{t('cancel_membership.contract_info')}</h4>
@@ -156,7 +181,11 @@ export const CancelMembershipDialog: React.FC<CancelMembershipDialogProps> = ({
           <Button variant="outline" onClick={onClose} disabled={loading}>
             {t('cancel_membership.cancel_button')}
           </Button>
-          <Button variant="destructive" onClick={handleSubmit} disabled={loading}>
+          <Button
+            variant="destructive"
+            onClick={handleSubmit}
+            disabled={loading || !canCancelMembership(contract.status)}
+          >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t('cancel_membership.confirm_button')}
           </Button>

@@ -15,7 +15,7 @@ export interface UseServiceRegistrationSubmitOptions {
 
 export interface UseServiceRegistrationSubmitReturn {
   loading: boolean;
-  handleSubmit: (formData: ServiceRegistrationFormData) => void;
+  handleSubmit: (formData: ServiceRegistrationFormData, transferReceiptFile?: File | null) => void;
 }
 
 export const useServiceRegistrationSubmit = ({
@@ -76,7 +76,7 @@ export const useServiceRegistrationSubmit = ({
     }
   };
 
-  const handleSubmit = (formData: ServiceRegistrationFormData) => {
+  const handleSubmit = (formData: ServiceRegistrationFormData, transferReceiptFile?: File | null) => {
     if (!formData.servicePackageId) {
       toast.error(
         t('service_registration.please_select_package', {
@@ -90,7 +90,7 @@ export const useServiceRegistrationSubmit = ({
     setLoading(true);
 
     serviceContractApi
-      .createServiceContract(customerId, formData)
+      .createServiceContract(customerId, formData, transferReceiptFile)
       .then((response) => handleContractCreated(response, formData))
       .catch(() => {
         toast.error(

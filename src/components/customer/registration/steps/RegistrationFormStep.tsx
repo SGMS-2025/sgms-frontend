@@ -67,15 +67,16 @@ export const RegistrationFormStep: React.FC<RegistrationFormStepProps> = ({
   const selectedTrainer = trainers.find((trainer) => trainer.userId._id === formData.primaryTrainerId);
 
   return (
-    <Card className="rounded-3xl border border-border bg-card shadow-sm">
-      <CardHeader className="pb-3">
+    <Card className="w-full rounded-2xl border border-border bg-card shadow-sm">
+      <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
           <Package className="h-5 w-5 text-primary" />
           {t(`${packageType.toLowerCase()}_registration.registration_info`)}
         </CardTitle>
         <CardDescription>{t(`${packageType.toLowerCase()}_registration.description`)}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+
+      <CardContent className="space-y-5">
         <div className="grid gap-6 xl:grid-cols-2">
           <div className="space-y-4">
             {/* Package Selection */}
@@ -84,7 +85,7 @@ export const RegistrationFormStep: React.FC<RegistrationFormStepProps> = ({
                 {t(`${packageType.toLowerCase()}_registration.package_label`)}
               </Label>
               <Select value={formData.servicePackageId} onValueChange={(value) => handlePackageChange(value, packages)}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder={t(`${packageType.toLowerCase()}_registration.package_placeholder`)} />
                 </SelectTrigger>
                 <SelectContent>
@@ -185,72 +186,108 @@ export const RegistrationFormStep: React.FC<RegistrationFormStepProps> = ({
             )}
 
             {/* Start Date */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">
-                <Calendar className="inline h-4 w-4" />{' '}
-                {t(`${packageType.toLowerCase()}_registration.start_date_label`)}
-              </Label>
-              <Popover open={startDateOpen} onOpenChange={setStartDateOpen} modal={false}>
-                <PopoverTrigger asChild>
-                  <Button type="button" variant="outline" className="w-full justify-between text-left font-normal">
-                    <span className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      {selectedStartDate
-                        ? format(selectedStartDate, 'dd/MM/yyyy', { locale: vi })
-                        : t('membership_registration.activation_date_placeholder', {
-                            defaultValue: 'Chọn ngày bắt đầu'
-                          })}
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
-                  align="start"
-                  side="bottom"
-                  sideOffset={8}
-                  collisionPadding={8}
-                >
-                  <CalendarComponent
-                    mode="single"
-                    selected={selectedStartDate}
-                    onSelect={handleStartDateChange}
-                    initialFocus
-                    locale={vi}
-                    className="bg-white"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+            {packageType !== 'PT' && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  {t(`${packageType.toLowerCase()}_registration.start_date_label`)}
+                </Label>
+                <Popover open={startDateOpen} onOpenChange={setStartDateOpen} modal={false}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" className="w-full justify-between text-left font-normal">
+                      <span className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        {selectedStartDate
+                          ? format(selectedStartDate, 'dd/MM/yyyy', { locale: vi })
+                          : t('membership_registration.activation_date_placeholder', {
+                              defaultValue: 'Chọn ngày bắt đầu'
+                            })}
+                      </span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
+                    align="start"
+                    side="bottom"
+                    sideOffset={8}
+                    collisionPadding={8}
+                  >
+                    <CalendarComponent
+                      mode="single"
+                      selected={selectedStartDate}
+                      onSelect={handleStartDateChange}
+                      initialFocus
+                      locale={vi}
+                      className="bg-white"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
-            {/* Promotion Selector */}
             <PromotionSelector
               promotions={promotions}
               selectedId={formData.discountCampaignId}
               onChange={(value) => handlePromotionChange(value === 'none' ? undefined : value, promotions)}
             />
 
-            {/* Price Summary */}
-            <PriceSummaryCard
-              basePrice={priceCalculation.basePrice}
-              discountAmount={priceCalculation.discountAmount}
-              totalPrice={priceCalculation.totalPrice}
-            />
-
-            {/* Payment Method */}
             <PaymentMethodSelector
               value={formData.paymentMethod}
               onChange={(value) => setFormData((prev) => ({ ...prev, paymentMethod: value }))}
               branchId={branchId}
             />
+
+            {/* Start Date - PT only (move to right for balance) */}
+            {packageType === 'PT' && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  {t(`${packageType.toLowerCase()}_registration.start_date_label`)}
+                </Label>
+                <Popover open={startDateOpen} onOpenChange={setStartDateOpen} modal={false}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" className="w-full justify-between text-left font-normal">
+                      <span className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        {selectedStartDate
+                          ? format(selectedStartDate, 'dd/MM/yyyy', { locale: vi })
+                          : t('membership_registration.activation_date_placeholder', {
+                              defaultValue: 'Chọn ngày bắt đầu'
+                            })}
+                      </span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
+                    align="start"
+                    side="bottom"
+                    sideOffset={8}
+                    collisionPadding={8}
+                  >
+                    <CalendarComponent
+                      mode="single"
+                      selected={selectedStartDate}
+                      onSelect={handleStartDateChange}
+                      initialFocus
+                      locale={vi}
+                      className="bg-white"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Notes */}
         <NotesField
           value={formData.notes || ''}
           onChange={(value) => setFormData((prev) => ({ ...prev, notes: value }))}
+        />
+
+        <PriceSummaryCard
+          basePrice={priceCalculation.basePrice}
+          discountAmount={priceCalculation.discountAmount}
+          totalPrice={priceCalculation.totalPrice}
         />
       </CardContent>
     </Card>

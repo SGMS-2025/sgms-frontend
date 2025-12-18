@@ -9,7 +9,8 @@ import type {
 
 interface UseCreatePublicMembershipContractResult {
   createContract: (
-    payload: CreatePublicMembershipContractPayload
+    payload: CreatePublicMembershipContractPayload,
+    transferReceiptFile?: File | null
   ) => Promise<CreatePublicMembershipContractResponse | null>;
   loading: boolean;
   error: string | null;
@@ -33,14 +34,17 @@ export const useCreatePublicMembershipContract = (): UseCreatePublicMembershipCo
   }, []);
 
   const createContract = useCallback(
-    async (payload: CreatePublicMembershipContractPayload): Promise<CreatePublicMembershipContractResponse | null> => {
+    async (
+      payload: CreatePublicMembershipContractPayload,
+      transferReceiptFile?: File | null
+    ): Promise<CreatePublicMembershipContractResponse | null> => {
       if (!isMountedRef.current) return null;
 
       setLoading(true);
       setError(null);
 
       try {
-        const response = await membershipApi.createPublicMembershipContract(payload);
+        const response = await membershipApi.createPublicMembershipContract(payload, transferReceiptFile);
 
         if (!isMountedRef.current) return null;
 

@@ -56,14 +56,6 @@ const CustomerPaymentHistory: React.FC<CustomerPaymentHistoryProps> = ({ data, l
     );
   }
 
-  // Debug: Log the entire payment data to see structure
-  console.log('Payment data:', data);
-  console.log('Transactions:', data.transactions);
-  if (data.transactions.length > 0) {
-    console.log('First transaction:', data.transactions[0]);
-    console.log('First transaction recordedBy:', data.transactions[0].recordedBy);
-  }
-
   return (
     <div className="space-y-6">
       {/* Payment Summary */}

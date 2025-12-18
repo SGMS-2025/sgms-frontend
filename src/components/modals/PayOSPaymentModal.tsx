@@ -62,6 +62,7 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
   const [latestStatus, setLatestStatus] = useState<'PENDING' | 'PROCESSING' | 'PAID' | 'CANCELLED'>('PENDING');
   const [hasShownPaidToast, setHasShownPaidToast] = useState(false);
   const paidNotifiedRef = React.useRef(false);
+  const cancelPaymentLinkRef = React.useRef<typeof cancelPaymentLink | null>(null);
   const bankInfo = useMemo(() => {
     const bin = paymentData.bin?.trim() || null;
     const entry = bin ? VIETQR_BANKS[bin] : undefined;
@@ -269,6 +270,11 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
     [cancelTriggered, paymentStatus, paymentData.orderCode, onClose, t]
   );
 
+  // Store cancelPaymentLink in ref to avoid dependency issues in useEffect
+  React.useEffect(() => {
+    cancelPaymentLinkRef.current = cancelPaymentLink;
+  }, [cancelPaymentLink]);
+
   useEffect(() => {
     setPaymentData(initialPaymentData);
     const initialStatus = (initialPaymentData?.payment as { status?: string } | undefined)?.status;
@@ -387,12 +393,16 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
       return;
     }
 
+    // Use ref to track if cancellation is already triggered to avoid duplicate calls
+    let isCancelling = false;
+
     const timer = setInterval(() => {
       setTimeRemaining((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          if (!cancelTriggered) {
-            void cancelPaymentLink('Expired due to timeout', { closeModal: false, showExpiryToast: true });
+          if (!cancelTriggered && !isCancelling && cancelPaymentLinkRef.current) {
+            isCancelling = true;
+            void cancelPaymentLinkRef.current('Expired due to timeout', { closeModal: false, showExpiryToast: true });
           }
           return 0;
         }
@@ -400,8 +410,10 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
       });
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [paymentStatus, cancelTriggered, cancelPaymentLink]);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [paymentStatus, cancelTriggered]); // Removed cancelPaymentLink from dependencies to prevent timer recreation
 
   // Format time remaining
   const formatTime = (seconds: number): string => {

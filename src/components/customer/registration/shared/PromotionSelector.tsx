@@ -16,7 +16,7 @@ export const PromotionSelector: React.FC<PromotionSelectorProps> = ({ promotions
     <div className="space-y-2">
       <Label className="text-sm font-medium">{t('shared_form.promotion_label')}</Label>
       <Select value={selectedId || 'none'} onValueChange={onChange}>
-        <SelectTrigger>
+        <SelectTrigger className="w-full">
           <SelectValue placeholder={t('shared_form.promotion_placeholder')} />
         </SelectTrigger>
         <SelectContent>

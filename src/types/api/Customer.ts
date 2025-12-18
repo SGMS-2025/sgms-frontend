@@ -20,6 +20,8 @@ export interface CustomerDisplay {
   }>;
   // New fields for contracts and transactions
   serviceName?: string; // Tên dịch vụ
+  ptServiceName?: string; // Tên gói PT (nếu có)
+  classServiceName?: string; // Tên gói Class (nếu có)
   contractStartDate?: string; // Ngày bắt đầu hợp đồng
   contractEndDate?: string; // Ngày hết hạn hợp đồng
   referrerStaffName?: string; // Tên nhân viên giới thiệu
@@ -110,7 +112,8 @@ export interface CustomerFilters {
     name: boolean;
     phone: boolean;
     membershipType: boolean;
-    serviceName: boolean;
+    ptServiceName: boolean;
+    classServiceName: boolean;
     contractStartDate: boolean;
     contractEndDate: boolean;
     referrerStaffName: boolean;
@@ -135,6 +138,8 @@ export type CustomerSortField =
   | 'totalSpent'
   | 'status'
   | 'serviceName'
+  | 'ptServiceName'
+  | 'classServiceName'
   | 'contractStartDate'
   | 'contractEndDate'
   | 'referrerStaffName'
@@ -419,6 +424,8 @@ export interface RawCustomerData {
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
   branches?: Array<{ _id: string; branchName: string }>;
   serviceName?: string;
+  ptServiceName?: string;
+  classServiceName?: string;
   contractStartDate?: string;
   contractEndDate?: string;
   referrerStaffName?: string;

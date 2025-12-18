@@ -558,6 +558,9 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
                       'Click vào các ô trong lưới để chọn khung giờ bạn muốn đăng ký kèm 1vs1'
                     )}
                   </p>
+                  <p className="text-xs text-gray-500 mt-1 italic">
+                    {t('pt_availability.cell_duration_note', 'Lưu ý: Mỗi ô đại diện cho 30 phút')}
+                  </p>
                 </div>
 
                 <ScheduleGridSelector

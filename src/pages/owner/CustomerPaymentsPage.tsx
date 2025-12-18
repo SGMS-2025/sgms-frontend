@@ -12,10 +12,11 @@ import {
   TrendingDown,
   Clock,
   XCircle,
-  Download,
   DollarSign,
   CheckCircle2,
-  HelpCircle
+  HelpCircle,
+  Image as ImageIcon,
+  ZoomIn
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { useBranch } from '@/contexts/BranchContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { usePaymentsTour } from '@/hooks/usePaymentsTour';
@@ -76,7 +78,8 @@ const getStatusLabels = (
 
 const getMethodLabels = (t: (key: string, options?: Record<string, unknown>) => string): Record<string, string> => ({
   CASH: t('payment.method.cash', { defaultValue: 'Tiền mặt' }),
-  BANK_TRANSFER: t('payment.method.bank_transfer', { defaultValue: 'Chuyển khoản' })
+  BANK_TRANSFER: t('payment.method.bank_transfer', { defaultValue: 'Chuyển khoản' }),
+  QR_BANK: t('payment.method.qr_bank', { defaultValue: 'QR Bank' })
 });
 
 const getSubjectLabels = (
@@ -552,10 +555,33 @@ const CustomerPaymentsPage: React.FC = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col">
+                      <div className="flex flex-col gap-1">
                         <code className="text-xs font-mono">{reference || '-'}</code>
                         {transaction.note && (
                           <span className="text-xs text-muted-foreground italic">{transaction.note}</span>
+                        )}
+                        {transaction.method === 'QR_BANK' && transaction.transferReceiptImage?.url && (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="w-full justify-start gap-2 h-7 text-xs">
+                                <ImageIcon className="h-3 w-3" />
+                                <span>Xem ảnh chuyển khoản</span>
+                                <ZoomIn className="h-3 w-3 ml-auto" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+                              <div className="space-y-4">
+                                <h3 className="text-lg font-semibold">Ảnh chuyển khoản</h3>
+                                <div className="flex items-center justify-center bg-muted rounded-lg p-4">
+                                  <img
+                                    src={transaction.transferReceiptImage.url}
+                                    alt="Transfer receipt"
+                                    className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+                                  />
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
                         )}
                       </div>
                     </TableCell>
@@ -645,10 +671,6 @@ const CustomerPaymentsPage: React.FC = () => {
           <Button variant="outline" size="sm" onClick={refetch}>
             <RotateCcw className="mr-2 h-4 w-4" />
             {t('common.refresh', { defaultValue: 'Làm mới' })}
-          </Button>
-          <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
-            <Download className="mr-2 h-4 w-4" />
-            {t('payment.export_data', { defaultValue: 'Xuất dữ liệu' })}
           </Button>
           <Button
             variant="outline"

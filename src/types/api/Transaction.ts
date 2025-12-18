@@ -1,7 +1,7 @@
 import type { BaseEntity, PaginationParams, PaginationResponse, SortOrder } from '@/types/common/BaseTypes';
 
 export type TransactionStatus = 'PENDING' | 'SETTLED' | 'FAILED' | 'VOID';
-export type TransactionMethod = 'CASH' | 'BANK_TRANSFER';
+export type TransactionMethod = 'CASH' | 'BANK_TRANSFER' | 'QR_BANK';
 export type TransactionSubjectType = 'MEMBERSHIP' | 'SERVICE';
 export type TransactionType = 'RECEIPT' | 'ADJUSTMENT' | 'EXPENSE' | 'REFUND';
 
@@ -60,6 +60,10 @@ export interface Transaction extends BaseEntity {
   note?: string | null;
   recordedBy?: TransactionRecordedBy | string | null;
   meta?: Record<string, unknown> | null;
+  transferReceiptImage?: {
+    url?: string | null;
+    publicId?: string | null;
+  } | null;
 }
 
 export interface TransactionListParams extends PaginationParams {

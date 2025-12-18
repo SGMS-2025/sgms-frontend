@@ -5,84 +5,31 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, MapPin, User, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import ActionDropdown, { createActionItems } from '@/components/common/ActionDropdown';
-import usePermissionChecks from '@/hooks/usePermissionChecks';
-import { useUser } from '@/hooks/useAuth';
-import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { cn } from '@/utils/utils';
 import type { PTAvailabilityRequestCardProps } from '@/types/api/PTAvailabilityRequest';
 
 const PTAvailabilityRequestCard: React.FC<PTAvailabilityRequestCardProps> = ({
   request,
   onEdit,
-  onDelete,
   onView,
-  onApprove,
-  onReject,
-  showActions = true,
-  userRole,
-  currentUserId
+  showActions = true
 }) => {
   const { t } = useTranslation();
-  const user = useUser();
-  const { currentStaff } = useCurrentUserStaff();
-
-  // Get user role from props or from user hook
-  const currentUserRole = userRole || user?.role;
-
-  // Use permission checks hook
-  const permissions = usePermissionChecks({
-    userRole: currentUserRole,
-    currentUserId: currentUserId,
-    requesterId: request.staffId._id,
-    status: request.status,
-    isFinalStatus: request.status === 'REJECTED' || request.status === 'APPROVED'
-  });
 
   // Action handlers
   const handleEdit = () => onEdit?.(request._id);
-  const handleDelete = () => onDelete?.(request._id);
   const handleView = () => onView?.(request._id);
-  const handleApprove = () => onApprove?.(request._id);
-  const handleReject = () => onReject?.(request._id, '');
-
-  // Hide approve/reject for PT (STAFF role with Personal Trainer jobTitle) - only Owner/Manager can approve/reject
-  const isPT =
-    (currentUserRole === 'STAFF' || currentUserRole === 'staff') && currentStaff?.jobTitle === 'Personal Trainer';
-
-  // Check if user is Manager (STAFF with jobTitle "Manager") or Owner
-  const isManager =
-    currentUserRole === 'OWNER' ||
-    currentUserRole === 'owner' ||
-    (currentUserRole === 'STAFF' && currentStaff?.jobTitle === 'Manager');
-
-  // Check if user is the requester
-  const isRequester = (() => {
-    if (typeof request.staffId === 'string') {
-      return false; // Can't check if not populated
-    }
-    if (request.staffId?.userId) {
-      if (typeof request.staffId.userId === 'object') {
-        return request.staffId.userId._id === currentUserId;
-      }
-      return request.staffId.userId === currentUserId;
-    }
-    return false;
-  })();
-
-  // Delete permission: Owner, Manager, or requester (PT) can delete
-  // PT can only delete their own requests, Manager/Owner can delete any request
-  const canDelete = isManager || isRequester;
 
   // Create action items
   const actionItems = createActionItems({
     onView: handleView,
     onEdit: handleEdit,
-    onDelete: canDelete ? handleDelete : undefined,
-    onApprove: handleApprove,
-    onReject: handleReject,
+    onDelete: undefined, // No delete function - use Reject instead
+    onApprove: undefined, // Approve/Reject only available in detail modal
+    onReject: undefined, // Approve/Reject only available in detail modal
     canEdit: false, // PT availability requests cannot be edited after creation
-    canApprove: !isPT && permissions.canApprovePTAvailability, // Hide for PT, show for Owner/Manager
-    canReject: !isPT && permissions.canRejectPTAvailability, // Hide for PT, show for Owner/Manager
+    canApprove: false, // Approve/Reject only in detail modal for better UX
+    canReject: false, // Approve/Reject only in detail modal for better UX
     canCancel: false,
     t
   });

@@ -142,9 +142,18 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
   // Bank QR payment state
   const [bankQRContractId, setBankQRContractId] = React.useState<string | null>(null);
 
+  // Ref to track if payment is being created to prevent duplicate calls
+  const isCreatingPaymentRef = React.useRef<boolean>(false);
+
   // Handle PayOS payment creation
   const handlePayOSPayment = React.useCallback(
     async (contractId: string) => {
+      // Prevent duplicate calls
+      if (isCreatingPaymentRef.current || payOSData) {
+        return;
+      }
+
+      isCreatingPaymentRef.current = true;
       const { paymentApi } = await import('@/services/api/paymentApi');
       const paymentAmount = Math.max(priceCalculation.totalPrice, 1000);
 
@@ -166,9 +175,11 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
         toast.error(
           t('payos_payment.registration_success_payos_failed', 'Đăng ký thành công nhưng không thể tạo link thanh toán')
         );
+      } finally {
+        isCreatingPaymentRef.current = false;
       }
     },
-    [customerId, formData.branchId, priceCalculation.totalPrice, packageType, t]
+    [customerId, formData.branchId, priceCalculation.totalPrice, packageType, t, payOSData]
   );
 
   // Handle payment success
@@ -177,22 +188,25 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
   }, [wizard, t]);
 
   // Create contract function for QR_BANK (returns Promise)
-  const createContractForQRBank = React.useCallback(async (): Promise<ServiceContractResponse | null> => {
-    if (!formData.servicePackageId) {
-      toast.error(t('service_registration.please_select_package', 'Vui lòng chọn gói dịch vụ'));
-      return null;
-    }
+  const createContractForQRBank = React.useCallback(
+    async (transferReceiptFile?: File | null): Promise<ServiceContractResponse | null> => {
+      if (!formData.servicePackageId) {
+        toast.error(t('service_registration.please_select_package', 'Vui lòng chọn gói dịch vụ'));
+        return null;
+      }
 
-    try {
-      const { serviceContractApi } = await import('@/services/api/serviceContractApi');
-      const response = await serviceContractApi.createServiceContract(customerId, formData);
-      return response;
-    } catch (error) {
-      console.error('Error creating contract:', error);
-      toast.error(t('service_registration.registration_error', 'Có lỗi xảy ra khi đăng ký dịch vụ'));
-      return null;
-    }
-  }, [customerId, formData, t]);
+      try {
+        const { serviceContractApi } = await import('@/services/api/serviceContractApi');
+        const response = await serviceContractApi.createServiceContract(customerId, formData, transferReceiptFile);
+        return response;
+      } catch (error) {
+        console.error('Error creating contract:', error);
+        toast.error(t('service_registration.registration_error', 'Có lỗi xảy ra khi đăng ký dịch vụ'));
+        return null;
+      }
+    },
+    [customerId, formData, t]
+  );
 
   // Submit handler
   const { loading: submitLoading, handleSubmit: handleFormSubmit } = useServiceRegistrationSubmit({
@@ -202,12 +216,9 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
       if (response?.success && response?.data) {
         setContractResponse(response);
 
-        // If BANK_TRANSFER, go to payment step to show PayOS QR code
+        // If BANK_TRANSFER, payment will be handled by onPaymentRequired callback
+        // Don't call handlePayOSPayment here to avoid duplicate calls
         if (formData.paymentMethod === 'BANK_TRANSFER') {
-          const contractId = response.data._id;
-          if (contractId) {
-            handlePayOSPayment(contractId);
-          }
           wizard.goToStep('payment');
         } else if (formData.paymentMethod === 'QR_BANK') {
           // If QR_BANK, go to payment step to show Bank QR content
@@ -268,7 +279,7 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
 
       // For other payment methods, create contract immediately
       setIsCreatingContract(true);
-      handleFormSubmit(formData);
+      handleFormSubmit(formData, null);
     } else if (wizard.currentStep === 'payment') {
       // Payment is handled by PayOSPaymentModal, auto-advance on success
       // User can manually proceed if needed
@@ -322,6 +333,7 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
     setContractDocument(null);
     setPayOSData(null);
     setBankQRContractId(null);
+    isCreatingPaymentRef.current = false;
     resetFormData();
     onSuccess?.();
     onClose();
@@ -342,6 +354,7 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
         setIsCreatingContract(false);
         setPayOSData(null);
         setBankQRContractId(null);
+        isCreatingPaymentRef.current = false;
         resetFormData();
       }
     }
@@ -358,6 +371,7 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
         setIsCreatingContract(false);
         setPayOSData(null);
         setBankQRContractId(null);
+        isCreatingPaymentRef.current = false;
       }
     }
 
@@ -365,6 +379,8 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
   }, [isOpen, wizard, formData.paymentMethod, bankQRContractId, contractResponse, resetFormData]);
 
   // Trigger payment creation when entering payment step (only for BANK_TRANSFER)
+  // Note: This is a fallback in case onPaymentRequired didn't create the payment link
+  // But we check payOSData to avoid duplicate calls
   useEffect(() => {
     if (
       wizard.currentStep === 'payment' &&
@@ -372,6 +388,8 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
       contractResponse?.data?._id &&
       !payOSData
     ) {
+      // Only create payment if it hasn't been created yet
+      // This prevents duplicate payment link creation
       handlePayOSPayment(contractResponse.data._id);
     }
   }, [wizard.currentStep, contractResponse?.data?._id, payOSData, handlePayOSPayment, formData.paymentMethod]);
@@ -399,10 +417,10 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
         // If QR_BANK, show QR content directly in the step
         if (formData.paymentMethod === 'QR_BANK') {
           // Create contract callback
-          const handleCreateContract = async (): Promise<string | null> => {
+          const handleCreateContract = async (transferReceiptFile?: File | null): Promise<string | null> => {
             try {
               setIsCreatingContract(true);
-              const response = await createContractForQRBank();
+              const response = await createContractForQRBank(transferReceiptFile);
               if (response?.success && response?.data?._id) {
                 const newContractId = response.data._id;
                 setContractResponse(response);
@@ -490,17 +508,18 @@ export const ServiceRegistrationWizard: React.FC<ServiceRegistrationWizardProps>
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t(`${packageType.toLowerCase()}_registration.title`, `Đăng ký ${packageType}`)}</DialogTitle>
         </DialogHeader>
 
         {/* Stepper */}
-        <div className="mb-6">
+        <div className="mb-5 max-w-3xl mx-auto">
           <Stepper
             steps={activeSteps}
             currentStep={wizard.stepIndex}
             completedSteps={Array.from({ length: wizard.stepIndex }, (_, i) => i)}
+            variant={packageType === 'PT' || packageType === 'CLASS' ? 'compact' : 'default'}
           />
         </div>
 

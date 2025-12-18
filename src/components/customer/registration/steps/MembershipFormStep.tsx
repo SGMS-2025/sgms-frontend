@@ -71,15 +71,15 @@ export const MembershipFormStep: React.FC<MembershipFormStepProps> = ({
   };
 
   return (
-    <Card className="rounded-3xl border border-border bg-card shadow-sm">
-      <CardHeader className="pb-3">
+    <Card className="w-full rounded-2xl border border-border bg-card shadow-sm">
+      <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
           <CreditCard className="h-5 w-5 text-primary" />
           {t('membership_registration.registration_info')}
         </CardTitle>
         <CardDescription>{t('membership_registration.description')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-5">
         <div className="grid gap-6 xl:grid-cols-2">
           <div className="space-y-4">
             <div className="space-y-2">
@@ -90,7 +90,7 @@ export const MembershipFormStep: React.FC<MembershipFormStepProps> = ({
                   handlePlanChange(value);
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder={t('membership_registration.plan_placeholder')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -110,7 +110,7 @@ export const MembershipFormStep: React.FC<MembershipFormStepProps> = ({
               </Select>
               {selectedPlan?.description && <p className="text-xs text-muted-foreground">{selectedPlan.description}</p>}
               {selectedPlan?.benefits && selectedPlan.benefits.length > 0 && (
-                <div className="rounded-xl border border-border bg-muted/30 p-3">
+                <div className="rounded-2xl border border-border bg-muted/20 p-3">
                   <p className="text-xs font-semibold mb-2">{t('membership_registration.benefits_label')}</p>
                   <ul className="text-xs space-y-1 list-disc list-inside text-muted-foreground">
                     {selectedPlan.benefits.map((benefit, idx) => (
@@ -183,7 +183,7 @@ export const MembershipFormStep: React.FC<MembershipFormStepProps> = ({
                   }
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder={t('membership_registration.promotion_placeholder')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -200,7 +200,7 @@ export const MembershipFormStep: React.FC<MembershipFormStepProps> = ({
             {/* Staff/PT Selector */}
             <div className="space-y-2">
               <Label className="text-sm font-medium flex items-center gap-2">
-                <User className="h-4 w-4" /> PT/Staff hỗ trợ (tùy chọn)
+                <User className="h-4 w-4" /> {t('membership_registration.referrer_staff_label')}
               </Label>
               <Select
                 value={formData.referrerStaffId || 'none'}
@@ -213,11 +213,11 @@ export const MembershipFormStep: React.FC<MembershipFormStepProps> = ({
                 }}
                 disabled={loadingStaff}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn PT/Staff" />
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t('membership_registration.referrer_staff_placeholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Không có</SelectItem>
+                  <SelectItem value="none">{t('membership_registration.referrer_staff_none')}</SelectItem>
                   {staffList
                     .filter((staff) => staff.userId?._id)
                     .map((staff) => (
@@ -228,28 +228,26 @@ export const MembershipFormStep: React.FC<MembershipFormStepProps> = ({
                 </SelectContent>
               </Select>
               {currentStaff && currentStaff.jobTitle === 'Personal Trainer' && (
-                <p className="text-xs text-blue-600">Đã tự động chọn bạn (PT): {currentStaff.userId?.fullName}</p>
+                <p className="text-xs text-blue-600">
+                  {t('membership_registration.referrer_staff_auto_selected', {
+                    name: currentStaff.userId?.fullName
+                  })}
+                </p>
               )}
               {currentStaff && currentStaff.jobTitle !== 'Personal Trainer' && (
                 <p className="text-xs text-muted-foreground">
-                  Bạn đang đăng nhập với tư cách: {currentStaff.jobTitle}. Vui lòng chọn PT để attribute KPI.
+                  {t('membership_registration.referrer_staff_not_pt', {
+                    jobTitle: currentStaff.jobTitle
+                  })}
                 </p>
               )}
-              <p className="text-xs text-muted-foreground">
-                Chọn PT/Staff hỗ trợ khách hàng mua để họ nhận được hoa hồng
-              </p>
+              <p className="text-xs text-muted-foreground">{t('membership_registration.referrer_staff_helper')}</p>
             </div>
 
             <PaymentMethodSelector
               value={formData.paymentMethod}
               onChange={(value) => setFormData((prev) => ({ ...prev, paymentMethod: value }))}
               branchId={branchId}
-            />
-
-            <PriceSummaryCard
-              basePrice={priceCalculation.basePrice}
-              discountAmount={priceCalculation.discountAmount}
-              totalPrice={priceCalculation.totalPrice}
             />
 
             {selectedPlan && (
@@ -266,6 +264,12 @@ export const MembershipFormStep: React.FC<MembershipFormStepProps> = ({
         <NotesField
           value={formData.notes || ''}
           onChange={(value) => setFormData((prev) => ({ ...prev, notes: value }))}
+        />
+
+        <PriceSummaryCard
+          basePrice={priceCalculation.basePrice}
+          discountAmount={priceCalculation.discountAmount}
+          totalPrice={priceCalculation.totalPrice}
         />
       </CardContent>
     </Card>
