@@ -45,5 +45,13 @@ export const walletApi = {
   deleteBankAccount: async (branchId: string) => {
     const res = await api.delete(`/wallets/${branchId}/bank-account`);
     return res.data?.data;
+  },
+  toggleWallet: async (branchId: string, enabled: boolean) => {
+    const res = await api.patch(`/wallets/${branchId}/toggle`, { enabled });
+    return res.data?.data;
+  },
+  getWalletByBranchId: async (branchId: string) => {
+    const wallets = await walletApi.getWallets();
+    return wallets?.find((w: { branchId: string }) => w.branchId === branchId) || null;
   }
 };

@@ -56,10 +56,6 @@ const mapToPaymentStatus = (status: string): PaymentStatus => {
 };
 
 const PaymentTransactionRow: React.FC<PaymentTransactionRowProps> = ({ transaction }) => {
-  // Debug: Log transaction data to see what's available
-  console.log('Transaction data:', transaction);
-  console.log('RecordedBy:', transaction.recordedBy);
-
   return (
     <TableRow className="border-b border-border/50 last:border-b-0">
       <TableCell className="text-sm font-medium text-foreground">{formatDateTime(transaction.occurredAt)}</TableCell>

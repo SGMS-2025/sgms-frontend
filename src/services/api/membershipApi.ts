@@ -29,8 +29,48 @@ export const membershipApi = {
    */
   createMembershipContract: async (
     customerId: string,
-    data: MembershipRegistrationFormData
+    data: MembershipRegistrationFormData,
+    transferReceiptFile?: File | null
   ): Promise<MembershipContractResponse> => {
+    // If transfer receipt file is provided, use FormData
+    if (transferReceiptFile) {
+      const formData = new FormData();
+
+      // Required fields - append with validation
+      if (!data.membershipPlanId || !data.branchId || !data.startDate) {
+        console.error('Missing required fields:', {
+          membershipPlanId: data.membershipPlanId,
+          branchId: data.branchId,
+          startDate: data.startDate
+        });
+        throw new Error('Missing required fields: membershipPlanId, branchId, or startDate');
+      }
+
+      formData.append('membershipPlanId', String(data.membershipPlanId));
+      formData.append('branchId', String(data.branchId));
+      formData.append('startDate', String(data.startDate));
+      formData.append('paymentMethod', String(data.paymentMethod || 'CASH'));
+
+      // Optional fields - only append if they have values
+      if (data.cardCode) formData.append('cardCode', String(data.cardCode));
+      if (data.discountCampaignId) formData.append('discountCampaignId', String(data.discountCampaignId));
+      if (data.referrerStaffId) formData.append('referrerStaffId', String(data.referrerStaffId));
+      if (data.notes) formData.append('notes', String(data.notes));
+
+      // Append transfer receipt file - ensure it's a File object
+      if (transferReceiptFile instanceof File) {
+        formData.append('transferReceipt', transferReceiptFile, transferReceiptFile.name);
+      } else {
+        // If it's a Blob or other type, append as-is
+        formData.append('transferReceipt', transferReceiptFile);
+      }
+
+      // Don't set Content-Type header - let axios set it automatically with boundary
+      const response = await api.post(`/customers/${customerId}/memberships`, formData);
+      return response.data;
+    }
+
+    // Otherwise, use regular JSON request
     const response = await api.post(`/customers/${customerId}/memberships`, data);
     return response.data;
   },
@@ -113,8 +153,36 @@ export const membershipApi = {
    * Create membership contract from public flow (customer self-service)
    */
   createPublicMembershipContract: async (
-    payload: CreatePublicMembershipContractPayload
+    payload: CreatePublicMembershipContractPayload,
+    transferReceiptFile?: File | null
   ): Promise<{ success: boolean; data: CreatePublicMembershipContractResponse; message?: string }> => {
+    // If transfer receipt file is provided, use FormData
+    if (transferReceiptFile) {
+      const formData = new FormData();
+      // Append all form fields
+      Object.entries(payload).forEach(([key, value]) => {
+        // Skip undefined and null values, but allow empty strings
+        if (value !== undefined && value !== null) {
+          // For optional fields like discountCampaignId, only append if it has a value
+          if (key === 'discountCampaignId' || key === 'referrerStaffId') {
+            if (value) {
+              formData.append(key, value.toString());
+            }
+          } else {
+            // For required fields, always append
+            formData.append(key, value.toString());
+          }
+        }
+      });
+      // Append transfer receipt file
+      formData.append('transferReceipt', transferReceiptFile);
+
+      // Don't set Content-Type header - let axios set it automatically with boundary
+      const response = await api.post('/membership-contracts/public', formData);
+      return response.data;
+    }
+
+    // Otherwise, use regular JSON request
     const response = await api.post('/membership-contracts/public', payload);
     return response.data;
   },

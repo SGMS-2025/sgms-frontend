@@ -55,6 +55,8 @@ export const useCustomerList = (options: UseCustomerListOptions = {}): UseCustom
         branches: (customer.branches || []) as Array<{ _id: string; branchName: string }>,
         // New fields from backend
         serviceName: customer.serviceName as string,
+        ptServiceName: customer.ptServiceName as string,
+        classServiceName: customer.classServiceName as string,
         contractStartDate: customer.contractStartDate as string,
         contractEndDate: customer.contractEndDate as string,
         referrerStaffName: customer.referrerStaffName as string,

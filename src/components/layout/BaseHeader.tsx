@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -30,16 +31,24 @@ interface HeaderProps {
   readonly showLandingToggle?: boolean; // Show toggle between customer/owner landing
 }
 
-const defaultMenuItems: HeaderMenuItem[] = [
-  { id: 'hero', label: 'Trang chủ', href: '#', icon: <Home className="w-4 h-4" /> },
-  { id: 'offers', label: 'Ưu đãi', href: '#offers', icon: <Gift className="w-4 h-4" /> },
-  { id: 'gyms', label: 'Phòng tập', href: '#gyms', icon: <Dumbbell className="w-4 h-4" /> },
-  { id: 'trainers', label: 'HLV', href: '#trainers', icon: <Users className="w-4 h-4" /> },
-  { id: 'reviews', label: 'Đánh giá', href: '#reviews', icon: <Star className="w-4 h-4" /> }
-];
-
 export function Header({ menuItems, customActions, showLandingToggle = true }: HeaderProps) {
-  const navigationItems = useMemo(() => (menuItems?.length ? menuItems : defaultMenuItems), [menuItems]);
+  const { t } = useTranslation();
+
+  const defaultMenuItems: HeaderMenuItem[] = useMemo(
+    () => [
+      { id: 'hero', label: t('navbar.home'), href: '#', icon: <Home className="w-4 h-4" /> },
+      { id: 'offers', label: t('navbar.offers'), href: '#offers', icon: <Gift className="w-4 h-4" /> },
+      { id: 'gyms', label: t('navbar.gyms'), href: '#gyms', icon: <Dumbbell className="w-4 h-4" /> },
+      { id: 'trainers', label: t('navbar.trainers'), href: '#trainers', icon: <Users className="w-4 h-4" /> },
+      { id: 'reviews', label: t('navbar.reviews'), href: '#reviews', icon: <Star className="w-4 h-4" /> }
+    ],
+    [t]
+  );
+
+  const navigationItems = useMemo(
+    () => (menuItems?.length ? menuItems : defaultMenuItems),
+    [menuItems, defaultMenuItems]
+  );
   const flattenedNavigationItems = useMemo(() => {
     const items: HeaderMenuItem[] = [];
     navigationItems.forEach((item) => {
@@ -84,9 +93,7 @@ export function Header({ menuItems, customActions, showLandingToggle = true }: H
     handleLandingNavigation(targetPath, closeMenu);
   };
 
-  const landingToggleLabel = isCustomerLandingPage
-    ? 'Chuyển sang trang dành cho chủ phòng'
-    : 'Quay lại trang dành cho khách hàng';
+  const landingToggleLabel = isCustomerLandingPage ? t('navbar.switch_to_owner') : t('navbar.back_to_customer');
 
   const landingToggleIcon = isCustomerLandingPage ? (
     <Building2 className="w-4 h-4" />
@@ -94,7 +101,7 @@ export function Header({ menuItems, customActions, showLandingToggle = true }: H
     <Sparkles className="w-4 h-4" />
   );
 
-  const landingToggleMobileText = isCustomerLandingPage ? 'Xem trang Chủ phòng' : 'Xem trang Khách hàng';
+  const landingToggleMobileText = isCustomerLandingPage ? t('navbar.view_owner_page') : t('navbar.view_customer_page');
 
   // Helper functions for class names
   const getHeaderClasses = () => {
@@ -316,11 +323,11 @@ export function Header({ menuItems, customActions, showLandingToggle = true }: H
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-1 cursor-pointer hover:text-orange-200 transition-colors text-sm">
                 <Bell className="w-3.5 h-3.5" />
-                <span>Thông báo</span>
+                <span>{t('navbar.notifications')}</span>
               </div>
               <div className="flex items-center space-x-1 cursor-pointer hover:text-orange-200 transition-colors text-sm">
                 <HelpCircle className="w-3.5 h-3.5" />
-                <span>Hỗ trợ</span>
+                <span>{t('navbar.support')}</span>
               </div>
               {/* Language Switcher */}
               <LanguageSwitcher variant="notification" />
@@ -340,7 +347,7 @@ export function Header({ menuItems, customActions, showLandingToggle = true }: H
               navigate('/');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            aria-label="Quay về trang khách hàng"
+            aria-label={t('navbar.back_to_customer_page')}
           >
             <div className="transition-transform duration-300 hover:rotate-12">
               <img src={logoImage} alt="Gym Smart Logo" className="w-10 h-10 sm:w-12 sm:h-12 object-contain" />
@@ -377,10 +384,10 @@ export function Header({ menuItems, customActions, showLandingToggle = true }: H
               <div className="hidden md:flex items-center space-x-2">
                 {customActions}
                 <Button variant="ghost" className={getSignUpButtonClasses()} onClick={() => navigate('/login')}>
-                  Đăng ký
+                  {t('navbar.register')}
                 </Button>
                 <Button className={getSignInButtonClasses()} onClick={() => navigate('/login')}>
-                  Đăng nhập
+                  {t('navbar.login')}
                 </Button>
                 {landingToggleButton}
               </div>
@@ -420,13 +427,13 @@ export function Header({ menuItems, customActions, showLandingToggle = true }: H
                     className="w-full text-orange-500 bg-orange-50 hover:bg-orange-100 text-sm rounded-xl py-3"
                     onClick={() => navigate('/login')}
                   >
-                    Đăng ký
+                    {t('navbar.register')}
                   </Button>
                   <Button
                     className="w-full bg-orange-500 hover:bg-orange-600 text-white text-sm rounded-xl py-3"
                     onClick={() => navigate('/login')}
                   >
-                    Đăng nhập
+                    {t('navbar.login')}
                   </Button>
                 </div>
               )}

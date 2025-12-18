@@ -54,6 +54,7 @@ type Wallet = {
   availableBalance: number;
   lockedBalance: number;
   currency?: string;
+  enabled?: boolean;
 };
 
 type Withdrawal = {
@@ -123,6 +124,7 @@ const WalletPage: React.FC = () => {
   const [savingBankAccount, setSavingBankAccount] = useState(false);
   const [linkedBankAccount, setLinkedBankAccount] = useState<BankAccount | null>(null);
   const [loadingBankAccount, setLoadingBankAccount] = useState(false);
+  const [togglingWallet, setTogglingWallet] = useState(false);
 
   // Helper function to get branch name from branchId
   const getBranchName = (branchId: string): string => {
@@ -505,6 +507,19 @@ const WalletPage: React.FC = () => {
     setBankLinkDialogOpen(true);
   };
 
+  const handleToggleWallet = async (wallet: Wallet, enabled: boolean) => {
+    try {
+      setTogglingWallet(true);
+      await walletApi.toggleWallet(wallet.branchId, enabled);
+      toast.success(enabled ? t('wallet.enabled_success') : t('wallet.disabled_success'));
+      await loadWallets();
+    } catch (_error) {
+      toast.error(t('wallet.toggle_failed'));
+    } finally {
+      setTogglingWallet(false);
+    }
+  };
+
   const withdrawalStatuses: Record<Withdrawal['status'], { label: string; className: string; dotClass: string }> = {
     PENDING_PAYOUT: {
       label: t('wallet.status.pending_payout'),
@@ -632,6 +647,52 @@ const WalletPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {selectedWallet && (
+          <Card className="border border-slate-200 shadow-sm rounded-2xl">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <p className="text-xs uppercase text-slate-500">{t('wallet.wallet_status')}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-slate-900">{getBranchName(selectedWallet.branchId)}</p>
+                    <Badge
+                      variant="outline"
+                      className={
+                        selectedWallet.enabled !== false
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                          : 'bg-slate-100 text-slate-600 border-slate-200'
+                      }
+                    >
+                      {selectedWallet.enabled !== false ? t('wallet.enabled') : t('wallet.disabled')}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-slate-500">
+                    {selectedWallet.enabled !== false ? t('wallet.wallet_enabled') : t('wallet.wallet_disabled')}
+                  </p>
+                </div>
+                <Button
+                  variant={selectedWallet.enabled !== false ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleToggleWallet(selectedWallet, !selectedWallet.enabled)}
+                  disabled={togglingWallet || !selectedWallet}
+                  className={selectedWallet.enabled !== false ? 'bg-amber-500 hover:bg-amber-600' : ''}
+                >
+                  {togglingWallet ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {t('wallet.toggling')}
+                    </>
+                  ) : selectedWallet.enabled !== false ? (
+                    t('wallet.disable')
+                  ) : (
+                    t('wallet.enable')
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="space-y-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

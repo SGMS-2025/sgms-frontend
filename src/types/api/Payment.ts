@@ -136,6 +136,10 @@ export interface CustomerPaymentHistoryTransaction {
     name: string;
     email: string;
   } | null;
+  transferReceiptImage?: {
+    url?: string | null;
+    publicId?: string | null;
+  } | null;
 }
 
 export interface CustomerPaymentHistoryPendingTransfer extends PendingTransferSummary {
