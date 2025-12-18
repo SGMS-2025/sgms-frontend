@@ -435,7 +435,7 @@ const CreateTimeOffModal: React.FC<CreateTimeOffModalProps> = ({
                 </CardContent>
               </Card>
 
-              {/* Date Selection */}
+              {/* Date Range Selection (Start & End in one control) */}
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -445,71 +445,68 @@ const CreateTimeOffModal: React.FC<CreateTimeOffModalProps> = ({
                 </CardHeader>
                 <CardContent className="space-y-2 pt-0">
                   <div className="space-y-1">
-                    <Label className="text-sm font-medium">{t('timeoff.start_date')} *</Label>
-                    <Popover>
+                    <Label className="text-sm font-medium">
+                      {t('timeoff.start_date')} - {t('timeoff.end_date')} *
+                    </Label>
+                    {/* One Popover + Calendar range for both start & end (uncontrolled like DiscountCampaignForm) */}
+                    <Popover modal={false}>
                       <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            'w-full justify-start text-left font-normal text-xs',
-                            !selectedStartDate && 'text-muted-foreground',
-                            errors.startDate && 'border-red-500'
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {selectedStartDate ? formatDate(selectedStartDate) : t('timeoff.select_start_date')}
-                        </Button>
+                        {(() => {
+                          let dateLabel: string;
+                          if (selectedStartDate && selectedEndDate) {
+                            dateLabel = `${formatDate(selectedStartDate)} → ${formatDate(selectedEndDate)}`;
+                          } else if (selectedStartDate) {
+                            dateLabel = `${formatDate(selectedStartDate)}`;
+                          } else {
+                            dateLabel = t('timeoff.select_date_range');
+                          }
+                          return (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className={cn(
+                                'w-full justify-start text-left font-normal text-xs',
+                                !selectedStartDate && 'text-muted-foreground',
+                                (errors.startDate || errors.endDate) && 'border-red-500'
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-3 w-3" />
+                              {dateLabel}
+                            </Button>
+                          );
+                        })()}
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
+                      <PopoverContent
+                        className="w-auto p-0 z-[9999]"
+                        align="start"
+                        side="bottom"
+                        sideOffset={8}
+                        collisionPadding={8}
+                      >
                         <Calendar
-                          mode="single"
-                          selected={selectedStartDate}
-                          onSelect={setSelectedStartDate}
+                          mode="range"
+                          selected={
+                            selectedStartDate || selectedEndDate
+                              ? { from: selectedStartDate, to: selectedEndDate || selectedStartDate }
+                              : undefined
+                          }
+                          onSelect={(range) => {
+                            if (!range) {
+                              setSelectedStartDate(undefined);
+                              setSelectedEndDate(undefined);
+                              return;
+                            }
+                            setSelectedStartDate(range.from || undefined);
+                            setSelectedEndDate(range.to || range.from || undefined);
+                          }}
                           disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                         />
                       </PopoverContent>
                     </Popover>
-                    {errors.startDate && (
+                    {(errors.startDate || errors.endDate) && (
                       <p className="text-xs text-red-600 flex items-center gap-1">
                         <AlertCircle className="h-3 w-3" />
-                        {errors.startDate.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium">{t('timeoff.end_date')} *</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            'w-full justify-start text-left font-normal text-xs',
-                            !selectedEndDate && 'text-muted-foreground',
-                            errors.endDate && 'border-red-500'
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-3 w-3" />
-                          {selectedEndDate ? formatDate(selectedEndDate) : t('timeoff.select_end_date')}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={selectedEndDate}
-                          onSelect={setSelectedEndDate}
-                          disabled={(date) => {
-                            const today = new Date(new Date().setHours(0, 0, 0, 0));
-                            const minDate = selectedStartDate || today;
-                            return date < minDate;
-                          }}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    {errors.endDate && (
-                      <p className="text-xs text-red-600 flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        {errors.endDate.message}
+                        {errors.startDate?.message || errors.endDate?.message}
                       </p>
                     )}
                   </div>

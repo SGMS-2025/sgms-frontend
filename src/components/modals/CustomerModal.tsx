@@ -459,7 +459,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-gray-700">{t('customer_modal.date_of_birth')}</Label>
-                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen} modal={false}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -475,7 +475,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                         : t('customer_modal.select_birth_date')}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-white border-gray-200 shadow-lg" align="start">
+                  <PopoverContent className="w-auto p-0 bg-white border-gray-200 shadow-lg z-[9999]" align="start">
                     <Calendar
                       mode="single"
                       selected={dateOfBirth}
