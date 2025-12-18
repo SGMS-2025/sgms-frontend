@@ -11,8 +11,13 @@ import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import { useTrainingProgress } from '@/hooks/useTrainingProgress';
 import { usePhotoManager } from '@/hooks/usePhotoManager';
+import { useCustomerGoal } from '@/hooks/useCustomerGoal';
 import { calculateBMI, formatDateForInput, convertBlobUrlsToFiles } from '@/utils/progressUtils';
 import { validateProgressForm, canSubmitForm, formatValidationErrors } from '@/utils/progressValidation';
+import { scheduleApi } from '@/services/api/scheduleApi';
+import { trainingProgressApi } from '@/services/api/trainingProgressApi';
+import type { Schedule } from '@/types/api/Schedule';
+import type { TrainingProgressAggregated } from '@/types/api/TrainingProgress';
 import { BMIDisplay } from './shared/BMIDisplay';
 import { CameraModal } from './shared/CameraModal';
 import { PhotoUploadSection } from './shared/PhotoUploadSection';
@@ -169,6 +174,12 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
   const { createProgress, createLoading, updateProgress, updateLoading, uploadPhotos, photoLoading } =
     useTrainingProgress();
 
+  // Get customerId for add mode to fetch active goal
+  const customerId = mode === 'add' ? props.customerId : undefined;
+
+  // Fetch active goal để lấy height (chỉ cho add mode)
+  const { activeGoal } = useCustomerGoal(customerId);
+
   // Get initial data for edit mode
   const initialData = mode === 'edit' ? props.initialData : undefined;
 
@@ -188,6 +199,10 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
+  // State để lưu danh sách schedules và existing progress dates (chỉ cho add mode)
+  const [ptScheduleDates, setPtScheduleDates] = useState<Set<string>>(new Set());
+  const [existingProgressDates, setExistingProgressDates] = useState<Set<string>>(new Set());
+
   const selectedDate = useMemo(() => {
     if (!formData.date) return undefined;
     const date = new Date(`${formData.date}T00:00:00`);
@@ -201,6 +216,88 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
       setShowBodyMeasurements(hasBodyMeasurements(initialData));
     }
   }, [mode, initialData]);
+
+  // Tự động điền height từ active goal (chỉ cho add mode)
+  useEffect(() => {
+    if (mode === 'add' && activeGoal?.targets?.height && (!formData.height || formData.height.trim() === '')) {
+      // Chỉ điền khi formData.height đang trống hoặc rỗng
+      setFormData((prev) => ({
+        ...prev,
+        height: activeGoal.targets.height!.toString()
+      }));
+    }
+  }, [mode, activeGoal, formData.height]);
+
+  // Fetch PT schedules và existing progress dates (chỉ cho add mode)
+  useEffect(() => {
+    if (mode !== 'add') return;
+
+    const customerId = mode === 'add' ? props.customerId : null;
+    const serviceContractId = mode === 'add' ? props.serviceContractId : null;
+    if (!customerId || !serviceContractId) return;
+
+    const fetchData = async () => {
+      // Fetch PT schedules của customer
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setMonth(startDate.getMonth() - 1); // Lấy 1 tháng trước
+      const endDate = new Date(today);
+      endDate.setMonth(endDate.getMonth() + 3); // Lấy 3 tháng sau
+
+      // Backend chỉ cho phép limit tối đa 100, nên fetch với limit=100
+      const schedulesResponse = await scheduleApi.getSchedules({
+        type: 'PERSONAL_TRAINING',
+        dateFrom: startDate.toISOString(),
+        dateTo: endDate.toISOString(),
+        limit: 100
+      });
+
+      // Lọc schedules của customer này
+      const allSchedules = (schedulesResponse.data?.data || schedulesResponse.data?.schedules || []) as Schedule[];
+      const customerSchedules = allSchedules.filter((schedule) => {
+        const contractIds = schedule.serviceContractIds as Array<{ _id: string }> | undefined;
+        return contractIds?.some((contract) => contract._id === serviceContractId);
+      });
+
+      // Tạo Set các ngày có lịch (chỉ lấy date, không lấy time)
+      const scheduleDates = new Set<string>();
+      customerSchedules.forEach((schedule) => {
+        const scheduleDate = schedule.scheduleDate as string;
+        if (scheduleDate) {
+          const date = new Date(scheduleDate);
+          const dateStr = format(date, 'yyyy-MM-dd');
+          scheduleDates.add(dateStr);
+        }
+      });
+      setPtScheduleDates(scheduleDates);
+
+      // Fetch existing progress để check duplicate dates
+      // Backend chỉ cho phép limit tối đa 100, nên fetch với limit=100
+      const progressResponse = await trainingProgressApi.getTrainingProgressList({
+        customerId,
+        serviceContractId,
+        limit: 100
+      });
+
+      const progressDates = new Set<string>();
+      const allProgress = (progressResponse.data?.progressRecords || []) as TrainingProgressAggregated[];
+      allProgress.forEach((progress) => {
+        const trackingDate = progress.trackingDate as string;
+        if (trackingDate) {
+          const date = new Date(trackingDate);
+          const dateStr = format(date, 'yyyy-MM-dd');
+          progressDates.add(dateStr);
+        }
+      });
+      setExistingProgressDates(progressDates);
+    };
+
+    fetchData();
+  }, [
+    mode,
+    mode === 'add' ? (props as AddModeProps).customerId : null,
+    mode === 'add' ? (props as AddModeProps).serviceContractId : null
+  ]);
 
   // Form field change handler
   const handleFieldChange = useCallback((field: keyof FormDataState, value: string | number[]) => {
@@ -220,149 +317,164 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
     if (isSubmitting) return;
     setIsSubmitting(true);
 
-    try {
-      // Validate form
-      const totalPhotos =
-        mode === 'edit'
-          ? (photoManager.existingPhotos?.length || 0) + photoManager.newPhotos.length
-          : photoManager.newPhotos.length;
+    // Validate form
+    const totalPhotos =
+      mode === 'edit'
+        ? (photoManager.existingPhotos?.length || 0) + photoManager.newPhotos.length
+        : photoManager.newPhotos.length;
 
-      const validation = validateProgressForm(formData, totalPhotos);
-      if (!validation.isValid) {
-        toast.error(formatValidationErrors(validation.errors));
+    const validation = validateProgressForm(formData, totalPhotos);
+    if (!validation.isValid) {
+      toast.error(formatValidationErrors(validation.errors));
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Parse common data
+    const exercisesArray = formData.exercises
+      .split(',')
+      .map((ex) => ex.trim())
+      .filter((ex) => ex.length > 0);
+
+    const weight = parseFloat(formData.weight);
+    const height = parseFloat(formData.height);
+    const bmi = calculateBMI(weight, height);
+
+    // =====================================================================
+    // ADD MODE
+    // =====================================================================
+    if (mode === 'add') {
+      const { customerId, serviceContractId, trainerId } = props;
+
+      // Validation: Kiểm tra ngày đã có progress chưa
+      if (existingProgressDates.has(formData.date)) {
+        toast.error(
+          t(
+            'progress_form.error.date_already_has_progress',
+            'Ngày này đã có training progress. Mỗi ngày chỉ được thêm 1 progress.'
+          )
+        );
+        setIsSubmitting(false);
         return;
       }
 
-      // Parse common data
-      const exercisesArray = formData.exercises
-        .split(',')
-        .map((ex) => ex.trim())
-        .filter((ex) => ex.length > 0);
-
-      const weight = parseFloat(formData.weight);
-      const height = parseFloat(formData.height);
-      const bmi = calculateBMI(weight, height);
-
-      // =====================================================================
-      // ADD MODE
-      // =====================================================================
-      if (mode === 'add') {
-        const { customerId, serviceContractId, trainerId } = props;
-
-        const progressData: CreateTrainingProgressRequest = {
-          customerId,
-          serviceContractId,
-          trainerId,
-          date: formData.date,
-          weight,
-          height,
-          strength: formData.strength[0],
-          notes: formData.notes || '',
-          exercises: exercisesArray,
-          photos: []
-        };
-
-        // Add body measurements
-        parseBodyMeasurements(formData, progressData);
-
-        // Step 1: Create progress
-        const createResponse = await createProgress(progressData);
-        if (!createResponse.success) {
-          toast.error(createResponse.message || t('toast.progress_save_failed'));
-          return;
-        }
-
-        const createdProgressId = createResponse.data._id;
-
-        // Step 2: Upload photos if any
-        let photoUploadSuccess = true;
-        if (photoManager.newPhotos.length > 0) {
-          try {
-            const files = await convertBlobUrlsToFiles(photoManager.newPhotos);
-            const uploadResponse = await uploadPhotos(createdProgressId, files);
-            if (!uploadResponse.success) {
-              photoUploadSuccess = false;
-              toast.warning(t('toast.progress_saved_but_photos_failed', 'Progress saved, but some photos failed'));
-            }
-          } catch {
-            photoUploadSuccess = false;
-            toast.warning(
-              t('toast.progress_saved_but_photos_error', 'Progress saved, but photos could not be uploaded')
-            );
-          }
-        }
-
-        // Step 3: Call parent onSubmit
-        const allPhotos = photoUploadSuccess ? photoManager.getAllPhotosAsUrls() : [];
-        onSubmit({
-          date: formData.date,
-          weight,
-          height,
-          bmi,
-          strength: formData.strength[0],
-          notes: formData.notes,
-          photos: allPhotos,
-          exercises: exercisesArray
-        });
-
-        // Step 4: Cleanup and reset
-        photoManager.cleanupNewPhotos();
-        toast.success(t('toast.progress_saved_success'));
-        resetForm();
+      // Validation: Kiểm tra ngày có trong lịch PT của customer không
+      if (!ptScheduleDates.has(formData.date)) {
+        toast.error(
+          t(
+            'progress_form.error.date_not_in_schedule',
+            'Ngày này không có trong lịch PT của customer. Chỉ có thể thêm progress cho các ngày có lịch.'
+          )
+        );
+        setIsSubmitting(false);
+        return;
       }
 
-      // =====================================================================
-      // EDIT MODE
-      // =====================================================================
-      if (mode === 'edit') {
-        const { progressId } = props;
+      const progressData: CreateTrainingProgressRequest = {
+        customerId,
+        serviceContractId,
+        trainerId,
+        date: formData.date,
+        weight,
+        height,
+        strength: formData.strength[0],
+        notes: formData.notes || '',
+        exercises: exercisesArray,
+        photos: []
+      };
 
-        const updateData: UpdateTrainingProgressRequest = {
-          date: formData.date,
-          weight,
-          height,
-          strength: formData.strength[0],
-          notes: formData.notes || '',
-          exercises: exercisesArray
-        };
+      // Add body measurements
+      parseBodyMeasurements(formData, progressData);
 
-        // Add body measurements
-        parseBodyMeasurements(formData, updateData);
-
-        // Step 1: Update progress
-        const response = await updateProgress(progressId, updateData);
-        if (!response.success) {
-          toast.error(response.message || t('toast.progress_update_failed'));
-          return;
-        }
-
-        // Step 2: Upload new photos if any
-        if (photoManager.newPhotos.length > 0) {
-          const files = await convertBlobUrlsToFiles(photoManager.newPhotos);
-          await uploadPhotos(progressId, files);
-        }
-
-        // Step 3: Call parent onSubmit
-        const allPhotos = photoManager.getAllPhotosAsUrls();
-        onSubmit({
-          date: formData.date,
-          weight,
-          height,
-          bmi,
-          strength: formData.strength[0],
-          notes: formData.notes,
-          photos: allPhotos,
-          exercises: exercisesArray
-        });
-
-        // Step 4: Cleanup
-        photoManager.cleanupNewPhotos();
-        toast.success(t('toast.progress_updated_success'));
+      // Step 1: Create progress
+      const createResponse = await createProgress(progressData);
+      if (!createResponse.success) {
+        toast.error(createResponse.message || t('toast.progress_save_failed'));
+        setIsSubmitting(false);
+        return;
       }
-    } catch (error) {
-      toast.error(t('toast.unexpected_error', 'An unexpected error occurred'));
-      throw error;
-    } finally {
+
+      const createdProgressId = createResponse.data._id;
+
+      // Step 2: Upload photos if any
+      let photoUploadSuccess = true;
+      if (photoManager.newPhotos.length > 0) {
+        const files = await convertBlobUrlsToFiles(photoManager.newPhotos);
+        const uploadResponse = await uploadPhotos(createdProgressId, files);
+        if (!uploadResponse.success) {
+          photoUploadSuccess = false;
+          toast.warning(t('toast.progress_saved_but_photos_failed', 'Progress saved, but some photos failed'));
+        }
+      }
+
+      // Step 3: Call parent onSubmit
+      const allPhotos = photoUploadSuccess ? photoManager.getAllPhotosAsUrls() : [];
+      onSubmit({
+        date: formData.date,
+        weight,
+        height,
+        bmi,
+        strength: formData.strength[0],
+        notes: formData.notes,
+        photos: allPhotos,
+        exercises: exercisesArray
+      });
+
+      // Step 4: Cleanup and reset
+      photoManager.cleanupNewPhotos();
+      toast.success(t('toast.progress_saved_success'));
+      resetForm();
+      setIsSubmitting(false);
+    }
+
+    // =====================================================================
+    // EDIT MODE
+    // =====================================================================
+    if (mode === 'edit') {
+      const { progressId } = props;
+
+      const updateData: UpdateTrainingProgressRequest = {
+        date: formData.date,
+        weight,
+        height,
+        strength: formData.strength[0],
+        notes: formData.notes || '',
+        exercises: exercisesArray
+      };
+
+      // Add body measurements
+      parseBodyMeasurements(formData, updateData);
+
+      // Step 1: Update progress
+      const response = await updateProgress(progressId, updateData);
+      if (!response.success) {
+        toast.error(response.message || t('toast.progress_update_failed'));
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Step 2: Upload new photos if any
+      if (photoManager.newPhotos.length > 0) {
+        const files = await convertBlobUrlsToFiles(photoManager.newPhotos);
+        await uploadPhotos(progressId, files);
+      }
+
+      // Step 3: Call parent onSubmit
+      const allPhotos = photoManager.getAllPhotosAsUrls();
+      onSubmit({
+        date: formData.date,
+        weight,
+        height,
+        bmi,
+        strength: formData.strength[0],
+        notes: formData.notes,
+        photos: allPhotos,
+        exercises: exercisesArray
+      });
+
+      // Step 4: Cleanup
+      photoManager.cleanupNewPhotos();
+      toast.success(t('toast.progress_updated_success'));
       setIsSubmitting(false);
     }
   };
@@ -379,16 +491,16 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
     mode === 'add'
       ? isSubmitting
         ? createLoading
-          ? 'Saving Progress...'
+          ? t('progress_form.saving_progress', 'Đang lưu tiến độ...')
           : photoLoading
-            ? 'Uploading Photos...'
-            : 'Processing...'
-        : 'Save Progress'
+            ? t('progress_form.uploading_photos', 'Đang tải ảnh lên...')
+            : t('progress_form.processing', 'Đang xử lý...')
+        : t('progress_form.save_progress', 'Lưu tiến độ')
       : isLoading
-        ? 'Updating...'
+        ? t('progress_form.updating', 'Đang cập nhật...')
         : photoLoading
-          ? 'Uploading photos...'
-          : 'Update Progress';
+          ? t('progress_form.uploading_photos', 'Đang tải ảnh lên...')
+          : t('progress_form.update_progress', 'Cập nhật tiến độ');
 
   // ============================================================================
   // RENDER
@@ -398,7 +510,7 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
       {/* Date, Weight and Height */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="date">Date</Label>
+          <Label htmlFor="date">{t('progress_form.date', 'Ngày')}</Label>
           <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen} modal={false}>
             <PopoverTrigger asChild>
               <Button type="button" variant="outline" className="w-full justify-between text-left font-normal">
@@ -422,9 +534,39 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
                 selected={selectedDate}
                 onSelect={(date) => {
                   if (date) {
-                    handleFieldChange('date', format(date, 'yyyy-MM-dd'));
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    // Chỉ cho phép chọn nếu ngày có trong lịch và chưa có progress
+                    if (mode === 'add') {
+                      if (existingProgressDates.has(dateStr)) {
+                        toast.error(
+                          t(
+                            'progress_form.error.date_already_has_progress',
+                            'Ngày này đã có training progress. Mỗi ngày chỉ được thêm 1 progress.'
+                          )
+                        );
+                        return;
+                      }
+                      if (!ptScheduleDates.has(dateStr)) {
+                        toast.error(
+                          t(
+                            'progress_form.error.date_not_in_schedule',
+                            'Ngày này không có trong lịch PT của customer. Chỉ có thể thêm progress cho các ngày có lịch.'
+                          )
+                        );
+                        return;
+                      }
+                    }
+                    handleFieldChange('date', dateStr);
                     setDatePickerOpen(false);
                   }
+                }}
+                disabled={(date) => {
+                  // Chỉ disable cho add mode
+                  if (mode !== 'add') return false;
+
+                  const dateStr = format(date, 'yyyy-MM-dd');
+                  // Disable nếu ngày đã có progress hoặc không có trong lịch
+                  return existingProgressDates.has(dateStr) || !ptScheduleDates.has(dateStr);
                 }}
                 initialFocus
                 locale={vi}
@@ -434,7 +576,7 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
           </Popover>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="weight">Weight (kg)</Label>
+          <Label htmlFor="weight">{t('progress_form.weight', 'Cân nặng (kg)')}</Label>
           <Input
             id="weight"
             type="number"
@@ -447,7 +589,7 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="height">Height (cm)</Label>
+          <Label htmlFor="height">{t('progress_form.height', 'Chiều cao (cm)')}</Label>
           <Input
             id="height"
             type="number"
@@ -608,7 +750,7 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
 
       {/* Strength Slider */}
       <div className="space-y-3">
-        <Label>Strength (0-100)</Label>
+        <Label>{t('progress_form.strength', 'Sức mạnh (0-100)')}</Label>
         <div className="px-2">
           <Slider
             value={formData.strength}
@@ -628,7 +770,7 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
 
       {/* Exercises */}
       <div className="space-y-2">
-        <Label htmlFor="exercises">Exercises (comma separated)</Label>
+        <Label htmlFor="exercises">{t('progress_form.exercises', 'Bài tập (phân cách bằng dấu phẩy)')}</Label>
         <Input
           id="exercises"
           placeholder="Squat, Bench Press, Deadlift"
@@ -640,10 +782,10 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
 
       {/* Notes */}
       <div className="space-y-2">
-        <Label htmlFor="notes">Training Notes</Label>
+        <Label htmlFor="notes">{t('progress_form.training_notes', 'Ghi chú tập luyện')}</Label>
         <Textarea
           id="notes"
-          placeholder="Describe the training session, improvements, challenges..."
+          placeholder={t('progress_form.training_notes_placeholder', 'Mô tả buổi tập, cải thiện, thách thức...')}
           value={formData.notes}
           onChange={(e) => handleFieldChange('notes', e.target.value)}
           className="min-h-24 resize-y"
@@ -694,7 +836,7 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
           disabled={isSubmitting || isLoading || photoLoading}
           className="flex-1"
         >
-          Cancel
+          {t('progress_form.cancel', 'Hủy')}
         </Button>
       </div>
     </form>
