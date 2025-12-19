@@ -157,22 +157,73 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-8 space-y-4"
+          className="mb-8"
         >
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            {/* Search bar - takes available space */}
+            <div className="relative flex-1 min-w-0 flex items-center">
+              <Search className="absolute left-3 h-5 w-5 text-muted-foreground z-10 pointer-events-none" />
               <Input
                 placeholder={t('pt_customer.search_placeholder')}
                 value={filters.searchTerm}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-10 h-12 rounded-[20px] border-gray-200 bg-white focus-visible:ring-[#F05A29] focus-visible:ring-offset-0"
+                className="pl-10 h-[48px] rounded-[20px] border-gray-200 bg-white focus-visible:ring-[#F05A29] focus-visible:ring-offset-0"
+                style={{ paddingTop: '12px', paddingBottom: '12px' }}
               />
             </div>
 
-            <div className="flex gap-3">
+            {/* Filter dropdowns - all same height and aligned */}
+            <div className="flex flex-wrap gap-3 lg:flex-nowrap lg:items-center">
+              <Select value={filters.statusFilter} onValueChange={handleStatusFilterChange}>
+                <SelectTrigger
+                  className="w-full lg:w-[160px] rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0"
+                  style={{ height: '48px', paddingTop: '12px', paddingBottom: '12px' }}
+                >
+                  <SelectValue placeholder={t('pt_customer.status')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">{t('pt_customer.filter.all_status')}</SelectItem>
+                  <SelectItem value="ACTIVE">{t('pt_customer.filter.active')}</SelectItem>
+                  <SelectItem value="PENDING_ACTIVATION">{t('pt_customer.filter.pending_activation')}</SelectItem>
+                  <SelectItem value="EXPIRED">{t('pt_customer.filter.expired')}</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filters.expirationFilter} onValueChange={handleExpirationFilterChange}>
+                <SelectTrigger
+                  className="w-full lg:w-[160px] rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0"
+                  style={{ height: '48px', paddingTop: '12px', paddingBottom: '12px' }}
+                >
+                  <SelectValue placeholder={t('pt_customer.expiration_filter')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">{t('pt_customer.filter.all_expiration')}</SelectItem>
+                  <SelectItem value="7">{t('pt_customer.filter.days_7')}</SelectItem>
+                  <SelectItem value="14">{t('pt_customer.filter.days_14')}</SelectItem>
+                  <SelectItem value="30">{t('pt_customer.filter.days_30')}</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filters.sessionsFilter} onValueChange={handleSessionsFilterChange}>
+                <SelectTrigger
+                  className="w-full lg:w-[160px] rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0"
+                  style={{ height: '48px', paddingTop: '12px', paddingBottom: '12px' }}
+                >
+                  <SelectValue placeholder={t('pt_customer.sessions_remaining')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">{t('pt_customer.filter.all_sessions')}</SelectItem>
+                  <SelectItem value="3">{t('pt_customer.filter.sessions_3')}</SelectItem>
+                  <SelectItem value="5">{t('pt_customer.filter.sessions_5')}</SelectItem>
+                  <SelectItem value="10">{t('pt_customer.filter.sessions_10')}</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Select value={filters.sortBy} onValueChange={handleSortChange}>
-                <SelectTrigger className="w-[200px] h-12 rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0">
+                <SelectTrigger
+                  className="w-full lg:w-[180px] rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0"
+                  style={{ height: '48px', paddingTop: '12px', paddingBottom: '12px' }}
+                >
                   <SelectValue placeholder={t('pt_customer.sort_by')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -181,44 +232,6 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Select value={filters.statusFilter} onValueChange={handleStatusFilterChange}>
-              <SelectTrigger className="w-[180px] h-11 rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0">
-                <SelectValue placeholder={t('pt_customer.status')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">{t('pt_customer.filter.all_status')}</SelectItem>
-                <SelectItem value="ACTIVE">{t('pt_customer.filter.active')}</SelectItem>
-                <SelectItem value="PENDING_ACTIVATION">{t('pt_customer.filter.pending_activation')}</SelectItem>
-                <SelectItem value="EXPIRED">{t('pt_customer.filter.expired')}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filters.expirationFilter} onValueChange={handleExpirationFilterChange}>
-              <SelectTrigger className="w-[200px] h-11 rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0">
-                <SelectValue placeholder={t('pt_customer.expiration_filter')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">{t('pt_customer.filter.all_expiration')}</SelectItem>
-                <SelectItem value="7">{t('pt_customer.filter.days_7')}</SelectItem>
-                <SelectItem value="14">{t('pt_customer.filter.days_14')}</SelectItem>
-                <SelectItem value="30">{t('pt_customer.filter.days_30')}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filters.sessionsFilter} onValueChange={handleSessionsFilterChange}>
-              <SelectTrigger className="w-[180px] h-11 rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0">
-                <SelectValue placeholder={t('pt_customer.sessions_remaining')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">{t('pt_customer.filter.all_sessions')}</SelectItem>
-                <SelectItem value="3">{t('pt_customer.filter.sessions_3')}</SelectItem>
-                <SelectItem value="5">{t('pt_customer.filter.sessions_5')}</SelectItem>
-                <SelectItem value="10">{t('pt_customer.filter.sessions_10')}</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </motion.div>
 
@@ -386,7 +399,7 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
           </div>
         )}
 
-        {/* Pagination */}
+        {/* Pagination - Show when there are multiple pages (more than 6 customers) */}
         {pagination && pagination.totalPages > 1 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -407,21 +420,87 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
 
             {/* Page Numbers - Hidden on mobile */}
             <div className="hidden md:flex items-center space-x-1">
-              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
-                <Button
-                  key={page}
-                  variant={page === pagination.page ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => goToPage(page)}
-                  className={`h-10 w-10 rounded-[20px] ${
-                    page === pagination.page
-                      ? 'bg-[#F05A29] text-white hover:bg-[#df4615]'
-                      : 'border-gray-200 bg-white hover:bg-gray-50'
-                  }`}
-                >
-                  {page}
-                </Button>
-              ))}
+              {(() => {
+                const currentPage = pagination.page;
+                const totalPages = pagination.totalPages;
+                const maxVisible = 5; // Show max 5 page numbers at once
+
+                // Calculate page range
+                let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+                const endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+                // Adjust start if we're near the end
+                if (endPage - startPage + 1 < maxVisible) {
+                  startPage = Math.max(1, endPage - maxVisible + 1);
+                }
+
+                const pages = [];
+
+                // First page + ellipsis
+                if (startPage > 1) {
+                  pages.push(
+                    <Button
+                      key={1}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => goToPage(1)}
+                      className="h-10 w-10 rounded-[20px] border-gray-200 bg-white hover:bg-gray-50"
+                    >
+                      1
+                    </Button>
+                  );
+                  if (startPage > 2) {
+                    pages.push(
+                      <span key="ellipsis1" className="px-2 text-muted-foreground">
+                        ...
+                      </span>
+                    );
+                  }
+                }
+
+                // Page numbers in range
+                for (let i = startPage; i <= endPage; i++) {
+                  pages.push(
+                    <Button
+                      key={i}
+                      variant={i === currentPage ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => goToPage(i)}
+                      className={`h-10 w-10 rounded-[20px] ${
+                        i === currentPage
+                          ? 'bg-[#F05A29] text-white hover:bg-[#df4615]'
+                          : 'border-gray-200 bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      {i}
+                    </Button>
+                  );
+                }
+
+                // Last page + ellipsis
+                if (endPage < totalPages) {
+                  if (endPage < totalPages - 1) {
+                    pages.push(
+                      <span key="ellipsis2" className="px-2 text-muted-foreground">
+                        ...
+                      </span>
+                    );
+                  }
+                  pages.push(
+                    <Button
+                      key={totalPages}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => goToPage(totalPages)}
+                      className="h-10 w-10 rounded-[20px] border-gray-200 bg-white hover:bg-gray-50"
+                    >
+                      {totalPages}
+                    </Button>
+                  );
+                }
+
+                return pages;
+              })()}
             </div>
 
             {/* Mobile Page Info */}
@@ -441,24 +520,6 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
               {t('common.next')}
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
-          </motion.div>
-        )}
-
-        {/* Pagination Info */}
-        {pagination && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-center mt-4"
-          >
-            <p className="text-sm text-muted-foreground">
-              {t('pt_customer.pagination_info', {
-                start: (pagination.page - 1) * pagination.limit + 1,
-                end: Math.min(pagination.page * pagination.limit, pagination.total),
-                total: pagination.total
-              })}
-            </p>
           </motion.div>
         )}
       </div>
