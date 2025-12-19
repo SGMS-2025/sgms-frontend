@@ -326,8 +326,6 @@ const PendingTransferCard: React.FC<{
         // Backend automatically cancels the membership/service contract when payment is cancelled
         // No need to call cancelMembership API from frontend - backend handles it in cancelPendingContractForTransaction
 
-        // Mark that we've shown the toast to prevent duplicate notifications from socket events
-        setHasShownCancelToast(true);
         toast.success(t('payment_history.success.payment_cancelled'));
         // Delay refetch to allow backend to update payment status, cancel contract, and socket event to process
         // This ensures the cancelled payment is filtered out from pending transfers and contract is updated

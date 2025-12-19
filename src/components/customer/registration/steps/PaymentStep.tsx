@@ -77,7 +77,6 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
       const isPaid = status === 'PAID';
       const isCancelled = status === 'CANCELLED';
       setHasShownPaidToast(isPaid);
-      setHasShownCancelledToast(isCancelled);
       paidNotifiedRef.current = isPaid;
       cancelledNotifiedRef.current = isCancelled;
     }
@@ -110,7 +109,6 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
         if (!cancelledNotifiedRef.current) {
           cancelledNotifiedRef.current = true;
           toast.error(t('payment.payment_cancelled'));
-          setHasShownCancelledToast(true);
         }
       }
     },
