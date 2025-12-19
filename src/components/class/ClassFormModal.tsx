@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import i18n from '@/configs/i18n';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, Clock, Users, BookOpen } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -13,6 +14,11 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { CalendarIcon } from 'lucide-react';
+import { cn } from '@/utils/utils';
 import { createClassSchema, updateClassSchema, DAY_LABELS, DAYS_OF_WEEK, type CreateClassDTO } from '@/types/Class';
 import type { Staff } from '@/types/api/Staff';
 import type { ServicePackage } from '@/types/api/Package';
@@ -48,6 +54,10 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
   const [trainers, setTrainers] = React.useState<Staff[]>([]);
   const [packages, setPackages] = React.useState<ServicePackage[]>([]);
   const [loadingData, setLoadingData] = React.useState(true);
+
+  // Date picker states
+  const [startDateOpen, setStartDateOpen] = React.useState(false);
+  const [endDateOpen, setEndDateOpen] = React.useState(false);
 
   // Form setup
   const schema = isEditMode ? updateClassSchema : createClassSchema;
@@ -89,13 +99,10 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
   React.useEffect(() => {
     const fetchData = async () => {
       setLoadingData(true);
-      // Fetch packages for the specific branch
-      // Only fetch if branchId is available
       if (formBranchId) {
         try {
           const packagesResp = await packageApi.getActivePackagesByBranch(formBranchId);
           if (packagesResp?.success && packagesResp.data) {
-            // Filter only CLASS type packages
             const classPackages = Array.isArray(packagesResp.data)
               ? packagesResp.data.filter((pkg) => pkg.type === 'CLASS')
               : [];
@@ -103,27 +110,22 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
           } else {
             setPackages([]);
           }
-        } catch (packageError) {
-          console.error('Failed to fetch packages:', packageError);
+        } catch {
           setPackages([]);
         }
       } else {
         setPackages([]);
       }
 
-      // Fetch trainers for the specific branch
-      // Only fetch if branchId is available
       if (formBranchId) {
         try {
           const trainersResp = await staffApi.getStaffListByBranch(formBranchId, { limit: 100 });
           if (trainersResp?.success && trainersResp.data) {
-            // getStaffListByBranch returns array directly, not wrapped in staffList
             setTrainers(Array.isArray(trainersResp.data) ? trainersResp.data : []);
           } else {
             setTrainers([]);
           }
-        } catch (trainerError) {
-          console.error('Failed to fetch trainers:', trainerError);
+        } catch {
           setTrainers([]);
         }
       } else {
@@ -145,7 +147,6 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
       tomorrow.setDate(tomorrow.getDate() + 1);
       const startDateStr = tomorrow.toISOString().split('T')[0];
 
-      // End date = start date + 3 months (default)
       const endDate = new Date(tomorrow);
       endDate.setMonth(endDate.getMonth() + 3);
       const endDateStr = endDate.toISOString().split('T')[0];
@@ -170,11 +171,9 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
         servicePackageId: pkgId,
         branchId: branchIdVal,
         trainerIds: classData.trainerIds.map((t) => {
-          // Handle both string and Staff object cases
           if (typeof t === 'string') {
             return t;
           }
-          // t is Staff object
           return (t as Staff)._id || (t as any)._id || '';
         }),
         schedulePattern: classData.schedulePattern,
@@ -206,7 +205,6 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
         scheduleGenerationWindow: 7
       });
 
-      // Set default dates
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const startDateStr = tomorrow.toISOString().split('T')[0];
@@ -252,17 +250,160 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
       .join(', ')} +${selected.length - 2}`;
   }, [selectedTrainers, trainers]);
 
-  // Form submit
+  const formatTrainerConflictError = (errorMessage: string): string => {
+    const safeTrim = (str: string | undefined, fallback: string = '') => (str || '').trim() || fallback;
+
+    if (!errorMessage.includes(':')) {
+      const translated = t(`error.${errorMessage}`, {});
+      return translated !== `error.${errorMessage}` ? translated : errorMessage;
+    }
+
+    const firstColonIndex = errorMessage.indexOf(':');
+    if (firstColonIndex === -1) {
+      const translated = t(`error.${errorMessage}`, {});
+      return translated !== `error.${errorMessage}` ? translated : errorMessage;
+    }
+
+    const errorCode = errorMessage.substring(0, firstColonIndex);
+    const cleanDetails = errorMessage.substring(firstColonIndex + 1).trim();
+
+    switch (errorCode) {
+      case 'TRAINER_TIME_CONFLICT_CLASS':
+        if (cleanDetails.includes('|')) {
+          const parts = cleanDetails.split('|');
+          if (parts.length < 5) {
+            return errorMessage;
+          }
+
+          const [trainerName, className, days, startTime, endTime] = parts;
+
+          return t('error.TRAINER_TIME_CONFLICT_CLASS', {
+            trainerName: safeTrim(trainerName, 'Unknown'),
+            className: safeTrim(className, ''),
+            days: safeTrim(days, ''),
+            startTime: safeTrim(startTime, ''),
+            endTime: safeTrim(endTime, '')
+          });
+        }
+        break;
+
+      case 'TRAINER_TIME_CONFLICT_PT_AVAILABILITY':
+        if (cleanDetails.includes('|')) {
+          try {
+            const parts = cleanDetails.split('|');
+
+            if (parts.length < 5) {
+              const timePattern = /\|(\d{2}:\d{2})\|(\d{2}:\d{2})$/;
+              const timeMatch = cleanDetails.match(timePattern);
+              if (timeMatch && parts.length >= 3) {
+                const endTime = timeMatch[2] || '';
+                const startTime = timeMatch[1] || '';
+                const withoutTimes = cleanDetails.replace(/\|\d{2}:\d{2}\|\d{2}:\d{2}$/, '');
+                const remainingParts = withoutTimes.split('|');
+                const trainerName = remainingParts[0] || '';
+                const date = remainingParts.slice(2).join(', ') || '';
+
+                const trimmedTrainerName = safeTrim(trainerName, 'Unknown');
+                const trimmedDate = safeTrim(date, '');
+                const trimmedStartTime = safeTrim(startTime, '');
+                const trimmedEndTime = safeTrim(endTime, '');
+
+                let result: string;
+                try {
+                  const translated = t('error.TRAINER_TIME_CONFLICT_PT_AVAILABILITY', {
+                    trainerName: trimmedTrainerName,
+                    date: trimmedDate,
+                    startTime: trimmedStartTime,
+                    endTime: trimmedEndTime
+                  });
+                  result = typeof translated === 'string' ? translated : '';
+                } catch {
+                  result = '';
+                }
+
+                if (!result || result === 'error.TRAINER_TIME_CONFLICT_PT_AVAILABILITY') {
+                  const fallbackMessage =
+                    i18n.language === 'vi'
+                      ? `${trimmedTrainerName} có yêu cầu lịch PT 1vs1 vào ${trimmedDate} từ ${trimmedStartTime} đến ${trimmedEndTime}`
+                      : `${trimmedTrainerName} has a PT 1vs1 availability request on ${trimmedDate} from ${trimmedStartTime} to ${trimmedEndTime}`;
+                  return fallbackMessage;
+                }
+
+                return result;
+              }
+
+              return errorMessage;
+            }
+
+            const [trainerName, , date, startTime, endTime] = parts;
+
+            const trimmedTrainerName = safeTrim(trainerName, 'Unknown');
+            const trimmedDate = safeTrim(date, '');
+            const trimmedStartTime = safeTrim(startTime, '');
+            const trimmedEndTime = safeTrim(endTime, '');
+
+            let result: string;
+            try {
+              const translated = t('error.TRAINER_TIME_CONFLICT_PT_AVAILABILITY', {
+                trainerName: trimmedTrainerName,
+                date: trimmedDate,
+                startTime: trimmedStartTime,
+                endTime: trimmedEndTime
+              });
+              result = typeof translated === 'string' ? translated : '';
+            } catch {
+              result = '';
+            }
+
+            if (!result || result === 'error.TRAINER_TIME_CONFLICT_PT_AVAILABILITY') {
+              const fallbackMessage =
+                i18n.language === 'vi'
+                  ? `${trimmedTrainerName} có yêu cầu lịch PT 1vs1 vào ${trimmedDate} từ ${trimmedStartTime} đến ${trimmedEndTime}`
+                  : `${trimmedTrainerName} has a PT 1vs1 availability request on ${trimmedDate} from ${trimmedStartTime} to ${trimmedEndTime}`;
+              return fallbackMessage;
+            }
+
+            return result;
+          } catch {
+            return errorMessage;
+          }
+        }
+        break;
+
+      case 'TRAINER_TIME_CONFLICT_PT_SCHEDULE':
+        if (cleanDetails.includes('|')) {
+          const parts = cleanDetails.split('|');
+          if (parts.length < 4) {
+            return errorMessage;
+          }
+
+          const [trainerName, date, startTime, endTime] = parts;
+
+          return t('error.TRAINER_TIME_CONFLICT_PT_SCHEDULE', {
+            trainerName: safeTrim(trainerName, 'Unknown'),
+            date: safeTrim(date, ''),
+            startTime: safeTrim(startTime, ''),
+            endTime: safeTrim(endTime, '')
+          });
+        }
+        break;
+
+      default: {
+        const translated = t(`error.${errorCode}`, {});
+        return translated !== `error.${errorCode}` ? translated : errorMessage;
+      }
+    }
+
+    return errorMessage;
+  };
+
   const onSubmit = async (_data: FormData) => {
-    // FIX: Get current form values directly to avoid stale data
     const currentValues = getValues();
 
     try {
       if (isEditMode && classId) {
-        // Use currentValues instead of data parameter
         const updatePayload = {
           ...currentValues,
-          // Convert capacity to number if present
           capacity: currentValues.capacity ? Number(currentValues.capacity) : undefined,
           schedulePattern: currentValues.schedulePattern
             ? {
@@ -276,7 +417,6 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
 
         await updateClass(classId, updatePayload);
       } else {
-        // Convert capacity to number for create
         const createPayload = {
           ...currentValues,
           capacity: Number(currentValues.capacity) || 20
@@ -284,78 +424,80 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
         await createClass(createPayload);
       }
     } catch (error) {
-      // Handle all errors inline - no toast notifications
       const errorMessage = error instanceof Error ? error.message : String(error);
+      const axiosError = error as any;
+      let finalErrorMessage = errorMessage;
 
-      // Check if error is related to trainer time conflict
+      if (errorMessage && errorMessage !== 'Unknown error' && errorMessage.includes('TRAINER_TIME_CONFLICT')) {
+        finalErrorMessage = errorMessage;
+      } else if (axiosError?.response?.data?.error?.message) {
+        finalErrorMessage = axiosError.response.data.error.message;
+      } else if ((error as any)?.response?.data?.error?.message) {
+        finalErrorMessage = (error as any).response.data.error.message;
+      } else if (axiosError?.response?.data?.message) {
+        finalErrorMessage = axiosError.response.data.message;
+      } else if (errorMessage && errorMessage !== 'Unknown error') {
+        finalErrorMessage = errorMessage;
+      }
+
+      const translatedMessage = formatTrainerConflictError(finalErrorMessage);
+
       const isTrainerConflict =
-        errorMessage.includes('Trainer has conflicting schedule') ||
-        errorMessage.includes('TRAINER_TIME_CONFLICT') ||
-        errorMessage.includes('already has a class');
+        finalErrorMessage.includes('TRAINER_TIME_CONFLICT') ||
+        translatedMessage.includes('có lịch') ||
+        translatedMessage.includes('đã có lớp') ||
+        translatedMessage.includes('has a class') ||
+        translatedMessage.includes('has a schedule');
 
       if (isTrainerConflict) {
-        // Format error message: remove prefix and keep only the useful part
-        let formattedMessage = errorMessage;
-        if (errorMessage.includes('Trainer has conflicting schedule at the same time: ')) {
-          formattedMessage = errorMessage.replace('Trainer has conflicting schedule at the same time: ', '');
-        } else if (errorMessage.includes('Trainer has conflicting schedule: ')) {
-          formattedMessage = errorMessage.replace('Trainer has conflicting schedule: ', '');
-        }
-
-        // Set error on trainerIds field for inline display
         setError('trainerIds', {
           type: 'server',
-          message: formattedMessage
+          message: translatedMessage
         });
       } else {
-        // For other errors, set as general form error
-        // Try to map to specific field if possible, otherwise show at top
-        if (errorMessage.toLowerCase().includes('service package')) {
+        if (translatedMessage.toLowerCase().includes('service package')) {
           setError('servicePackageId', {
             type: 'server',
-            message: errorMessage
+            message: translatedMessage
           });
-        } else if (errorMessage.toLowerCase().includes('name')) {
+        } else if (translatedMessage.toLowerCase().includes('name')) {
           setError('name', {
             type: 'server',
-            message: errorMessage
+            message: translatedMessage
           });
-        } else if (errorMessage.toLowerCase().includes('capacity')) {
+        } else if (translatedMessage.toLowerCase().includes('capacity')) {
           setError('capacity', {
             type: 'server',
-            message: errorMessage
+            message: translatedMessage
           });
         } else if (
-          errorMessage.toLowerCase().includes('date') ||
-          errorMessage.toLowerCase().includes('start') ||
-          errorMessage.toLowerCase().includes('end')
+          translatedMessage.toLowerCase().includes('date') ||
+          translatedMessage.toLowerCase().includes('start') ||
+          translatedMessage.toLowerCase().includes('end')
         ) {
-          if (errorMessage.toLowerCase().includes('start date')) {
+          if (translatedMessage.toLowerCase().includes('start date')) {
             setError('startDate', {
               type: 'server',
-              message: errorMessage
+              message: translatedMessage
             });
-          } else if (errorMessage.toLowerCase().includes('end date')) {
+          } else if (translatedMessage.toLowerCase().includes('end date')) {
             setError('endDate', {
               type: 'server',
-              message: errorMessage
+              message: translatedMessage
             });
           } else {
-            // General date error - show in validation summary
             setError('root', {
               type: 'server',
-              message: errorMessage
+              message: translatedMessage
             });
           }
         } else {
-          // General error - show in validation summary at top
           setError('root', {
             type: 'server',
-            message: errorMessage
+            message: translatedMessage
           });
         }
       }
-      // Don't re-throw - error is handled inline, prevent onSuccess from being called
     }
   };
 
@@ -550,21 +692,56 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
                 <Controller
                   name="startDate"
                   control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      type="date"
-                      className="mt-1"
-                      min={new Date().toISOString().split('T')[0]}
-                      value={
-                        typeof field.value === 'string'
-                          ? field.value
-                          : field.value instanceof Date
-                            ? field.value.toISOString().split('T')[0]
-                            : ''
-                      }
-                    />
-                  )}
+                  render={({ field }) => {
+                    const selectedDate = field.value
+                      ? typeof field.value === 'string'
+                        ? new Date(field.value + 'T00:00:00')
+                        : field.value
+                      : undefined;
+
+                    return (
+                      <Popover open={startDateOpen} onOpenChange={setStartDateOpen} modal={false}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={cn(
+                              'w-full mt-1 justify-start text-left font-normal',
+                              !selectedDate && 'text-muted-foreground',
+                              (errors as any).startDate && 'border-red-500'
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {selectedDate
+                              ? format(selectedDate, 'dd/MM/yyyy', { locale: vi })
+                              : t('class.form.placeholder_start_date', { defaultValue: 'Chọn ngày bắt đầu' })}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-auto p-0 z-[9999] bg-white border border-border shadow-lg"
+                          align="start"
+                          side="bottom"
+                          sideOffset={8}
+                          collisionPadding={8}
+                        >
+                          <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={(date) => {
+                              if (date) {
+                                const dateStr = format(date, 'yyyy-MM-dd');
+                                field.onChange(dateStr);
+                                setStartDateOpen(false);
+                              }
+                            }}
+                            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                            initialFocus
+                            locale={vi}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    );
+                  }}
                 />
                 {(errors as any).startDate && (
                   <p className="text-xs text-red-500 mt-1">
@@ -579,21 +756,61 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
                 <Controller
                   name="endDate"
                   control={control}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      type="date"
-                      className="mt-1"
-                      min={new Date().toISOString().split('T')[0]}
-                      value={
-                        typeof field.value === 'string'
-                          ? field.value
-                          : field.value instanceof Date
-                            ? field.value.toISOString().split('T')[0]
-                            : ''
-                      }
-                    />
-                  )}
+                  render={({ field }) => {
+                    const selectedDate = field.value
+                      ? typeof field.value === 'string'
+                        ? new Date(field.value + 'T00:00:00')
+                        : field.value
+                      : undefined;
+
+                    const startDateValue = watch('startDate');
+                    const minDate = startDateValue
+                      ? new Date(startDateValue + 'T00:00:00')
+                      : new Date(new Date().setHours(0, 0, 0, 0));
+
+                    return (
+                      <Popover open={endDateOpen} onOpenChange={setEndDateOpen} modal={false}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={cn(
+                              'w-full mt-1 justify-start text-left font-normal',
+                              !selectedDate && 'text-muted-foreground',
+                              (errors as any).endDate && 'border-red-500'
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {selectedDate
+                              ? format(selectedDate, 'dd/MM/yyyy', { locale: vi })
+                              : t('class.form.placeholder_end_date', { defaultValue: 'Chọn ngày kết thúc' })}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-auto p-0 z-[9999] bg-white border border-border shadow-lg"
+                          align="start"
+                          side="bottom"
+                          sideOffset={8}
+                          collisionPadding={8}
+                        >
+                          <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={(date) => {
+                              if (date) {
+                                const dateStr = format(date, 'yyyy-MM-dd');
+                                field.onChange(dateStr);
+                                setEndDateOpen(false);
+                              }
+                            }}
+                            disabled={(date) => date < minDate}
+                            initialFocus
+                            locale={vi}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    );
+                  }}
                 />
                 {(errors as any).endDate && (
                   <p className="text-xs text-red-500 mt-1">

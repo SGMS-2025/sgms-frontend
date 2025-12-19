@@ -1,6 +1,20 @@
 import { api } from './api';
 import type { PTRegistrationFormData, ClassRegistrationFormData, ServiceContractResponse } from '@/types/api/Package';
 
+export interface SchedulingCapacity {
+  contractId: string;
+  customerName: string;
+  packageName: string;
+  packageType: string;
+  sessionCount: number;
+  sessionsRemaining: number;
+  completedSessions: number;
+  existingSchedules: number;
+  availableForScheduling: number;
+  canCreateSchedule: boolean;
+  message: string;
+}
+
 export const serviceContractApi = {
   /**
    * Create service contract for a customer (PT or Class)
@@ -84,5 +98,14 @@ export const serviceContractApi = {
   ): Promise<{ success: boolean; message?: string }> => {
     const response = await api.patch(`/service-contracts/${contractId}/extend`, payload);
     return response.data;
+  },
+
+  /**
+   * Get scheduling capacity for a PT contract
+   * Returns information about available slots for creating schedules
+   */
+  getSchedulingCapacity: async (contractId: string): Promise<SchedulingCapacity> => {
+    const response = await api.get(`/service-contracts/${contractId}/scheduling-capacity`);
+    return response.data.data;
   }
 };
