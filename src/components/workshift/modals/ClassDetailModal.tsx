@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from 'i18next';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import {
   Calendar,
   Clock,
@@ -238,6 +238,9 @@ export const ClassDetailModal: React.FC<ClassDetailModalProps> = ({
             <BookOpen className="h-5 w-5 text-orange-500" />
             {classData?.name || t('classDetailModal.loading')}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {t('classDetailModal.description', 'Class details')}
+          </DialogDescription>
           <div className="flex items-center gap-2 mt-2">
             {classData?.status && (
               <Badge

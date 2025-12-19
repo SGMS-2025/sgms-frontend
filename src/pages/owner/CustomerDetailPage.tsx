@@ -176,12 +176,10 @@ const CustomerDetailPage: React.FC = () => {
         // Pass branchId if available (for PT/Staff role to check branch access)
         // If branchId is not available, backend will extract it from customer record
         const branchId = currentBranch?._id;
-        console.log('[CustomerDetailPage] Fetching customer detail:', { customerId: id, branchId });
         const response = await customerApi.getCustomerById(id, branchId);
 
         // Check if request was aborted
         if (abortControllerRef.current?.signal.aborted) {
-          console.log('[CustomerDetailPage] Request was aborted');
           return;
         }
 
@@ -201,7 +199,6 @@ const CustomerDetailPage: React.FC = () => {
       } catch (fetchError: unknown) {
         // Don't show error if request was aborted
         if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-          console.log('[CustomerDetailPage] Request aborted');
           return;
         }
 
@@ -228,9 +225,18 @@ const CustomerDetailPage: React.FC = () => {
 
   // Debounced version of fetchCustomerDetail (1 second delay)
   // This prevents multiple rapid API calls when socket events fire in quick succession
+  // Use useRef to maintain stable debounced function across renders
+  const fetchCustomerDetailRef = useRef(fetchCustomerDetail);
+
+  // Keep ref updated with latest function
+  useEffect(() => {
+    fetchCustomerDetailRef.current = fetchCustomerDetail;
+  }, [fetchCustomerDetail]);
+
+  // Create stable debounced function that always calls the latest fetchCustomerDetail
   const debouncedFetchCustomerDetail = useMemo(
-    () => debounce(() => fetchCustomerDetail({ silent: true }), 1000),
-    [fetchCustomerDetail]
+    () => debounce(() => fetchCustomerDetailRef.current({ silent: true }), 1000),
+    [] // Empty deps - function is stable and always calls latest ref value
   );
 
   useEffect(() => {
@@ -263,7 +269,6 @@ const CustomerDetailPage: React.FC = () => {
 
     // If branch changed (and we had a previous branch), redirect to customers list
     if (previousBranchId && currentBranchId && previousBranchId !== currentBranchId) {
-      console.log('[CustomerDetailPage] Branch changed, redirecting to customers list');
       navigate('/manage/customers');
       return;
     }
@@ -291,7 +296,6 @@ const CustomerDetailPage: React.FC = () => {
       }
 
       if (updateCustomerId === currentCustomerId || (!customer && id)) {
-        console.log('[CustomerDetailPage] Membership contract updated, refreshing data (debounced)');
         // Use debounced version to prevent rapid successive calls
         debouncedFetchCustomerDetail();
       }
@@ -305,10 +309,25 @@ const CustomerDetailPage: React.FC = () => {
     // Listen for membership contract update events from socket
     socketService.on('membership:contract:updated', handleMembershipContractUpdate);
 
+    // Listen for payment update events to refresh customer detail when payment status changes
+    const handlePaymentUpdate = (data: { customerId?: string | number; status?: string }) => {
+      const updateCustomerId = data.customerId?.toString();
+      const currentCustomerId = customer?.id?.toString();
+
+      // Only refresh if payment was cancelled and it's for this customer
+      if (data.status === 'CANCELLED' && updateCustomerId === currentCustomerId) {
+        // Use debounced version to prevent rapid successive calls
+        debouncedFetchCustomerDetail();
+      }
+    };
+
+    socketService.on('payment:updated', handlePaymentUpdate);
+
     return () => {
       socketService.off('membership:contract:updated', handleMembershipContractUpdate);
+      socketService.off('payment:updated', handlePaymentUpdate);
     };
-  }, [id, handleMembershipContractUpdate]); // Stable dependencies
+  }, [id, handleMembershipContractUpdate, debouncedFetchCustomerDetail, customer?.id]); // Stable dependencies
 
   const getStatusText = (status: string) => {
     switch (status) {
@@ -473,6 +492,12 @@ const CustomerDetailPage: React.FC = () => {
     }
     return t('customer_detail.no_package');
   };
+
+  // Don't show membership if payment status is PENDING (waiting for payment)
+  // Only show membership if it's active, paid, or activated
+  const shouldShowMembership =
+    hasMembership && membershipContract?.status !== 'PENDING_PAYMENT' && membershipPaymentStatusDisplay !== 'PENDING';
+
   const branchDisplay = branchNames ?? t('customer_detail.no_branch');
 
   const getGenderLabel = (gender?: string) => {
@@ -539,7 +564,7 @@ const CustomerDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {hasMembership ? (
+          {shouldShowMembership ? (
             <>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                 <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
@@ -878,7 +903,7 @@ const CustomerDetailPage: React.FC = () => {
                 <InfoField
                   label={t('customer_detail.payment_card.paid_membership')}
                   value={
-                    hasMembership && membershipContract
+                    shouldShowMembership && membershipContract
                       ? formatCurrency(membershipContract.paidAmount || membershipContract.totalAmount || 0, locale)
                       : notUpdatedText
                   }
@@ -936,7 +961,15 @@ const CustomerDetailPage: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="payment" className="pt-4">
-            {customer.id && <PaymentHistoryTab customerId={customer.id} />}
+            {customer.id && (
+              <PaymentHistoryTab
+                customerId={customer.id}
+                onPaymentActionComplete={() => {
+                  // Refresh customer detail when payment is cancelled/confirmed
+                  debouncedFetchCustomerDetail();
+                }}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="contracts" className="pt-4">
@@ -970,7 +1003,7 @@ const CustomerDetailPage: React.FC = () => {
       />
 
       {/* Cancel Dialogs */}
-      {membershipContract && (
+      {shouldShowMembership && membershipContract && (
         <CancelMembershipDialog
           isOpen={showCancelMembership}
           onClose={() => setShowCancelMembership(false)}
@@ -1033,7 +1066,7 @@ const CustomerDetailPage: React.FC = () => {
       )}
 
       {/* Extend Dialogs */}
-      {hasMembership && membershipContract && (
+      {shouldShowMembership && membershipContract && (
         <ExtendMembershipDialog
           isOpen={showExtendMembership}
           onClose={() => setShowExtendMembership(false)}

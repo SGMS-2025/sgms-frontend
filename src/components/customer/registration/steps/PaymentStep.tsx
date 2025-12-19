@@ -29,6 +29,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasShownPaidToast, setHasShownPaidToast] = useState(false);
   const paidNotifiedRef = React.useRef(false);
+  const cancelledNotifiedRef = React.useRef(false);
 
   // Helper function to handle status updates
   const handleStatusUpdate = useCallback(
@@ -72,10 +73,13 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
           : 'PENDING';
       setPaymentStatus(status);
       setTimeRemaining(900);
-      // Reset toast flag when payment data changes
+      // Reset toast flags when payment data changes
       const isPaid = status === 'PAID';
+      const isCancelled = status === 'CANCELLED';
       setHasShownPaidToast(isPaid);
+      setHasShownCancelledToast(isCancelled);
       paidNotifiedRef.current = isPaid;
+      cancelledNotifiedRef.current = isCancelled;
     }
   }, [paymentData]);
 
@@ -83,13 +87,12 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
   usePaymentSocket(
     paymentData?.orderCode || 0,
     (data: PaymentUpdateData) => {
-      console.log('[PaymentStep] Received payment update:', data);
       if (!data.status) {
         return;
       }
 
-      // Ignore duplicate status notifications (except first PAID)
-      if (data.status === paymentStatus && data.status !== 'PAID') {
+      // Ignore duplicate status notifications (except first PAID or CANCELLED)
+      if (data.status === paymentStatus && data.status !== 'PAID' && data.status !== 'CANCELLED') {
         return;
       }
 
@@ -103,7 +106,12 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
         }
         // Do not auto-advance; let user proceed manually to the next step
       } else if (data.status === 'CANCELLED') {
-        toast.error(t('payment.payment_cancelled'));
+        // Only show toast if we haven't shown it yet to prevent duplicates
+        if (!cancelledNotifiedRef.current) {
+          cancelledNotifiedRef.current = true;
+          toast.error(t('payment.payment_cancelled'));
+          setHasShownCancelledToast(true);
+        }
       }
     },
     {
@@ -139,8 +147,8 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
             handleStatusUpdate(remoteStatus, false);
           }
         })
-        .catch((error) => {
-          console.error('[PaymentStep] Polling error:', error);
+        .catch(() => {
+          // Silently handle polling errors
         });
     };
 
@@ -188,8 +196,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
           toast.warning(t('payment.status_unknown'));
         }
       })
-      .catch((error) => {
-        console.error('[PaymentStep] Manual refresh error:', error);
+      .catch(() => {
         toast.error(t('payment.status_refresh_failed'));
       })
       .finally(() => {

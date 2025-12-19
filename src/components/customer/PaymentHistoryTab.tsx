@@ -25,7 +25,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { cn } from '@/utils/utils';
 import { membershipApi } from '@/services/api/membershipApi';
 import { serviceContractApi } from '@/services/api/serviceContractApi';
@@ -34,6 +34,7 @@ import type { CustomerPaymentHistoryTransaction, CustomerPaymentHistoryPendingTr
 
 interface PaymentHistoryTabProps {
   customerId: string;
+  onPaymentActionComplete?: () => void;
 }
 
 const formatCurrency = (amount?: number | null) => {
@@ -63,9 +64,10 @@ const getMethodLabel = (method: string, t: (key: string) => string) => {
   const methodMap: Record<string, string> = {
     CASH: t('payment_history.method.cash'),
     BANK_TRANSFER: t('payment_history.method.bank_transfer'),
-    QR_BANK: t('payment_history.method.qr_bank'),
+    // QR_BANK and PAYOS are subtypes of BANK_TRANSFER, show as "Bank Transfer"
+    QR_BANK: t('payment_history.method.bank_transfer'),
+    PAYOS: t('payment_history.method.bank_transfer'),
     CARD: 'Card',
-    PAYOS: t('payment_history.method.payos'),
     SEPAY: 'SePay'
   };
   return methodMap[method] || method;
@@ -103,11 +105,16 @@ const getStatusBadgeProps = (status: string, t: (key: string) => string) => {
         className: 'bg-amber-500/10 text-amber-700 border-amber-200'
       };
     case 'FAILED':
-    case 'CANCELLED':
       return {
         icon: XCircle,
         label: t('payment_history.status.failed'),
         className: 'bg-red-500/10 text-red-700 border-red-200'
+      };
+    case 'CANCELLED':
+      return {
+        icon: XCircle,
+        label: t('payment_history.status.cancelled'),
+        className: 'bg-gray-500/10 text-gray-700 border-gray-200'
       };
     default:
       return {
@@ -237,6 +244,9 @@ const TransactionCard: React.FC<{ transaction: CustomerPaymentHistoryTransaction
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+                  <DialogDescription className="sr-only">
+                    {t('payment_history.transaction.receipt_image')}
+                  </DialogDescription>
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">{t('payment_history.transaction.receipt_image')}</h3>
                     <div className="flex items-center justify-center bg-muted rounded-lg p-4">
@@ -285,7 +295,6 @@ const PendingTransferCard: React.FC<{
       toast.success(t('payment_history.success.payment_confirmed'));
       onActionComplete?.();
     } catch (error: unknown) {
-      console.error('Error confirming payment:', error);
       const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
       toast.error(errorMessage || t('payment_history.error.confirm_failed'));
     } finally {
@@ -314,13 +323,21 @@ const PendingTransferCard: React.FC<{
 
       // Only show success if cancellation was actually successful
       if (response?.success) {
+        // Backend automatically cancels the membership/service contract when payment is cancelled
+        // No need to call cancelMembership API from frontend - backend handles it in cancelPendingContractForTransaction
+
+        // Mark that we've shown the toast to prevent duplicate notifications from socket events
+        setHasShownCancelToast(true);
         toast.success(t('payment_history.success.payment_cancelled'));
-        onActionComplete?.();
+        // Delay refetch to allow backend to update payment status, cancel contract, and socket event to process
+        // This ensures the cancelled payment is filtered out from pending transfers and contract is updated
+        setTimeout(() => {
+          onActionComplete?.();
+        }, 1000);
       } else {
         toast.error(response?.message || t('payment_history.error.cancel_failed'));
       }
     } catch (error: unknown) {
-      console.error('Error cancelling payment:', error);
       const err = error as { response?: { data?: { message?: string } }; message?: string };
       const errorMessage = err?.response?.data?.message || err?.message || t('payment_history.error.cancel_failed');
       toast.error(errorMessage);
@@ -455,6 +472,7 @@ const PendingTransferCard: React.FC<{
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-md">
+                  <DialogDescription className="sr-only">{t('payment_history.qr_code_title')}</DialogDescription>
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">{t('payment_history.qr_code_title')}</h3>
                     <div className="flex items-center justify-center bg-muted rounded-lg p-4">
@@ -506,15 +524,27 @@ const PendingTransferCard: React.FC<{
   );
 };
 
-export const PaymentHistoryTab: React.FC<PaymentHistoryTabProps> = ({ customerId }) => {
+export const PaymentHistoryTab: React.FC<PaymentHistoryTabProps> = ({ customerId, onPaymentActionComplete }) => {
   const { t } = useTranslation();
   const { data, loading, error, setQuery, refetch } = useCustomerPaymentHistory(customerId);
   const [filterMethod, setFilterMethod] = useState<string>('ALL');
   const [filterContractType, setFilterContractType] = useState<string>('ALL');
 
   const handleFilterChange = () => {
+    // Map filter method to backend query
+    // BANK_TRANSFER includes QR_BANK and PAYOS
+    let methodFilter: string | null = null;
+    if (filterMethod === 'ALL') {
+      methodFilter = null;
+    } else if (filterMethod === 'BANK_TRANSFER') {
+      // Backend will handle filtering for BANK_TRANSFER, QR_BANK, and PAYOS
+      methodFilter = 'BANK_TRANSFER';
+    } else {
+      methodFilter = filterMethod;
+    }
+
     setQuery({
-      method: filterMethod === 'ALL' ? null : filterMethod,
+      method: methodFilter,
       contractType: filterContractType === 'ALL' ? null : (filterContractType as 'MEMBERSHIP' | 'SERVICE'),
       page: 1
     });
@@ -615,7 +645,11 @@ export const PaymentHistoryTab: React.FC<PaymentHistoryTabProps> = ({ customerId
               <div>
                 <p className="text-xs text-muted-foreground">{t('payment_history.summary.bank_transfer_label')}</p>
                 <p className="text-lg font-bold text-foreground">
-                  {formatCurrency(summary.amountByMethod.BANK_TRANSFER || 0)}
+                  {formatCurrency(
+                    (summary.amountByMethod.BANK_TRANSFER || 0) +
+                      (summary.amountByMethod.QR_BANK || 0) +
+                      (summary.amountByMethod.PAYOS || 0)
+                  )}
                 </p>
               </div>
             </div>
@@ -634,7 +668,15 @@ export const PaymentHistoryTab: React.FC<PaymentHistoryTabProps> = ({ customerId
           </div>
           <div className="grid gap-4">
             {pendingTransfers.map((transfer) => (
-              <PendingTransferCard key={transfer.paymentTransactionId} transfer={transfer} onActionComplete={refetch} />
+              <PendingTransferCard
+                key={transfer.paymentTransactionId}
+                transfer={transfer}
+                onActionComplete={() => {
+                  refetch();
+                  // Also refresh customer detail to update membership status
+                  onPaymentActionComplete?.();
+                }}
+              />
             ))}
           </div>
         </div>
@@ -661,8 +703,6 @@ export const PaymentHistoryTab: React.FC<PaymentHistoryTabProps> = ({ customerId
             <SelectItem value="ALL">{t('payment_history.filter.all_methods_text')}</SelectItem>
             <SelectItem value="CASH">{t('payment_history.method.cash')}</SelectItem>
             <SelectItem value="BANK_TRANSFER">{t('payment_history.method.bank_transfer')}</SelectItem>
-            <SelectItem value="QR_BANK">{t('payment_history.filter.qr_bank')}</SelectItem>
-            <SelectItem value="PAYOS">{t('payment_history.filter.payos')}</SelectItem>
           </SelectContent>
         </Select>
 

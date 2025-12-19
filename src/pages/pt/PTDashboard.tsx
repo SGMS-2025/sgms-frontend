@@ -847,8 +847,8 @@ const PTDashboard: React.FC = () => {
                         </Badge>
                       </div>
                       <p className="text-xs text-gray-500">
-                        {customer.package.sessionsRemaining} {t('pt.dashboard.clients.sessions_left', 'sessions left')}{' '}
-                        • {t('pt.dashboard.clients.days_left', '{{count}} days left', { count: remainingDays })}
+                        {customer.package.sessionsRemaining} {t('pt.dashboard.clients.sessions_left', 'sessions')} •{' '}
+                        {t('pt.dashboard.clients.days_left', '{{count}} days left', { count: remainingDays })}
                       </p>
                       <Progress value={progress} className="h-2 mt-2" />
                     </div>
