@@ -19,14 +19,29 @@ export const usePTCustomerList = (options: UsePTCustomerListOptions): UsePTCusto
   });
 
   // Update params when options change (but preserve page changes from goToPage)
+  // Only update if values actually changed to prevent unnecessary re-renders
   useEffect(() => {
     setParams((prevParams) => {
+      // Check if any value actually changed
+      const hasChanged =
+        prevParams.trainerId !== options.trainerId ||
+        prevParams.limit !== options.limit ||
+        prevParams.branchId !== options.branchId ||
+        prevParams.status !== options.status ||
+        prevParams.packageType !== options.packageType;
+
+      // If nothing changed, return previous params to prevent unnecessary updates
+      if (!hasChanged) {
+        return prevParams;
+      }
+
       const newParams = {
         ...options,
         page: prevParams.page || options.page || 1 // Preserve current page if it exists
       };
       return newParams;
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.limit, options.branchId, options.status, options.packageType, options.trainerId]);
 
   const fetchCustomers = useCallback(async () => {
