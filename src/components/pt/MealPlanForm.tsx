@@ -1103,6 +1103,7 @@ export const MealPlanForm = ({ initialValues, loading, onSubmit, isAiGenerated =
                   // Get current items directly from form without watching
                   const currentDays = getDaysValue();
                   const items = currentDays[itemsModal.dayIdx]?.meals?.[itemsModal.mealIdx]?.items || [];
+
                   return items.map((_item, itemIdx) => {
                     const itemErrors = errors.days?.[itemsModal.dayIdx]?.meals?.[itemsModal.mealIdx]?.items?.[itemIdx];
                     const currentItem = items[itemIdx];
@@ -1114,6 +1115,64 @@ export const MealPlanForm = ({ initialValues, loading, onSubmit, isAiGenerated =
                     const currentAiId = (currentItem as { _aiId?: string })?._aiId;
                     const isItemFromAi =
                       isAiGenerated && currentAiId !== undefined && aiGeneratedItemIds.has(currentAiId);
+
+                    // Helper function to render number input field
+                    const renderNumberInput = (
+                      fieldName: 'calories' | 'protein' | 'carbs' | 'fat',
+                      labelKey: string,
+                      fieldPrefix: string
+                    ) => {
+                      const fieldKey = `${fieldPrefix}-${itemsModal.dayIdx}-${itemsModal.mealIdx}-${itemIdx}`;
+                      const errorField = itemErrors?.[fieldName];
+
+                      return (
+                        <div className="space-y-1">
+                          <Label>{t(labelKey)}</Label>
+                          <Controller
+                            name={`days.${itemsModal.dayIdx}.meals.${itemsModal.mealIdx}.items.${itemIdx}.${fieldName}`}
+                            control={control}
+                            render={({ field }) => {
+                              const defaultValue =
+                                field.value !== undefined && field.value !== null ? String(field.value) : '';
+
+                              return (
+                                <div>
+                                  <Input
+                                    key={`${fieldPrefix}-${itemKey}-${defaultValue}`}
+                                    type="number"
+                                    defaultValue={defaultValue}
+                                    onChange={(e) => {
+                                      localInputValuesRef.current[fieldKey] = e.target.value;
+                                    }}
+                                    onBlur={async (e) => {
+                                      const numValue =
+                                        e.target.value && e.target.value.trim() !== ''
+                                          ? Number(e.target.value)
+                                          : undefined;
+                                      field.onChange(numValue);
+                                      field.onBlur(); // Trigger validation
+                                      // Manually trigger validation to ensure it runs
+                                      await trigger(
+                                        `days.${itemsModal.dayIdx}.meals.${itemsModal.mealIdx}.items.${itemIdx}.${fieldName}`
+                                      );
+                                      delete localInputValuesRef.current[fieldKey];
+                                    }}
+                                    disabled={isItemFromAi}
+                                    className={cn(
+                                      errorField && 'border-red-500',
+                                      isItemFromAi && 'bg-gray-100 cursor-not-allowed'
+                                    )}
+                                  />
+                                  <div className="min-h-[16px]">
+                                    {errorField && <p className="text-xs text-red-600 mt-1">{errorField.message}</p>}
+                                  </div>
+                                </div>
+                              );
+                            }}
+                          />
+                        </div>
+                      );
+                    };
 
                     return (
                       <div key={itemKey} className="border rounded-md p-3">
@@ -1160,194 +1219,10 @@ export const MealPlanForm = ({ initialValues, loading, onSubmit, isAiGenerated =
                               }}
                             />
                           </div>
-                          <div className="space-y-1">
-                            <Label>{t('meal_plan.items_dialog.cal_label')}</Label>
-                            <Controller
-                              name={`days.${itemsModal.dayIdx}.meals.${itemsModal.mealIdx}.items.${itemIdx}.calories`}
-                              control={control}
-                              render={({ field }) => {
-                                const fieldKey = `cal-${itemsModal.dayIdx}-${itemsModal.mealIdx}-${itemIdx}`;
-                                const defaultValue =
-                                  field.value !== undefined && field.value !== null ? String(field.value) : '';
-                                // Use _itemId in key to force remount when item is recreated after deletion
-                                const itemKey = (currentItem as { _itemId?: string })?._itemId || `item-${itemIdx}`;
-
-                                return (
-                                  <div>
-                                    <Input
-                                      key={`cal-${itemKey}-${defaultValue}`}
-                                      type="number"
-                                      defaultValue={defaultValue}
-                                      onChange={(e) => {
-                                        // Only update ref, no state update = no re-render
-                                        localInputValuesRef.current[fieldKey] = e.target.value;
-                                      }}
-                                      onBlur={(e) => {
-                                        const numValue =
-                                          e.target.value && e.target.value.trim() !== ''
-                                            ? Number(e.target.value)
-                                            : undefined;
-                                        field.onChange(numValue);
-                                        // Clear from ref after sync
-                                        delete localInputValuesRef.current[fieldKey];
-                                      }}
-                                      disabled={isItemFromAi}
-                                      className={cn(
-                                        itemErrors?.calories && 'border-red-500',
-                                        isItemFromAi && 'bg-gray-100 cursor-not-allowed'
-                                      )}
-                                    />
-                                    <div className="min-h-[16px]">
-                                      {itemErrors?.calories && (
-                                        <p className="text-xs text-red-600 mt-1">{itemErrors.calories.message}</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              }}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label>{t('meal_plan.items_dialog.protein_label')}</Label>
-                            <Controller
-                              name={`days.${itemsModal.dayIdx}.meals.${itemsModal.mealIdx}.items.${itemIdx}.protein`}
-                              control={control}
-                              render={({ field }) => {
-                                const fieldKey = `protein-${itemsModal.dayIdx}-${itemsModal.mealIdx}-${itemIdx}`;
-                                const defaultValue =
-                                  field.value !== undefined && field.value !== null ? String(field.value) : '';
-                                // Use _itemId in key to force remount when item is recreated after deletion
-                                const itemKey = (currentItem as { _itemId?: string })?._itemId || `item-${itemIdx}`;
-
-                                return (
-                                  <div>
-                                    <Input
-                                      key={`protein-${itemKey}-${defaultValue}`}
-                                      type="number"
-                                      defaultValue={defaultValue}
-                                      onChange={(e) => {
-                                        // Only update ref, no state update = no re-render
-                                        localInputValuesRef.current[fieldKey] = e.target.value;
-                                      }}
-                                      onBlur={(e) => {
-                                        const numValue =
-                                          e.target.value && e.target.value.trim() !== ''
-                                            ? Number(e.target.value)
-                                            : undefined;
-                                        field.onChange(numValue);
-                                        // Clear from ref after sync
-                                        delete localInputValuesRef.current[fieldKey];
-                                      }}
-                                      disabled={isItemFromAi}
-                                      className={cn(
-                                        itemErrors?.protein && 'border-red-500',
-                                        isItemFromAi && 'bg-gray-100 cursor-not-allowed'
-                                      )}
-                                    />
-                                    <div className="min-h-[16px]">
-                                      {itemErrors?.protein && (
-                                        <p className="text-xs text-red-600 mt-1">{itemErrors.protein.message}</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              }}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label>{t('meal_plan.items_dialog.carbs_label')}</Label>
-                            <Controller
-                              name={`days.${itemsModal.dayIdx}.meals.${itemsModal.mealIdx}.items.${itemIdx}.carbs`}
-                              control={control}
-                              render={({ field }) => {
-                                const fieldKey = `carbs-${itemsModal.dayIdx}-${itemsModal.mealIdx}-${itemIdx}`;
-                                const defaultValue =
-                                  field.value !== undefined && field.value !== null ? String(field.value) : '';
-                                // Use _itemId in key to force remount when item is recreated after deletion
-                                const itemKey = (currentItem as { _itemId?: string })?._itemId || `item-${itemIdx}`;
-
-                                return (
-                                  <div>
-                                    <Input
-                                      key={`carbs-${itemKey}-${defaultValue}`}
-                                      type="number"
-                                      defaultValue={defaultValue}
-                                      onChange={(e) => {
-                                        // Only update ref, no state update = no re-render
-                                        localInputValuesRef.current[fieldKey] = e.target.value;
-                                      }}
-                                      onBlur={(e) => {
-                                        const numValue =
-                                          e.target.value && e.target.value.trim() !== ''
-                                            ? Number(e.target.value)
-                                            : undefined;
-                                        field.onChange(numValue);
-                                        // Clear from ref after sync
-                                        delete localInputValuesRef.current[fieldKey];
-                                      }}
-                                      disabled={isItemFromAi}
-                                      className={cn(
-                                        itemErrors?.carbs && 'border-red-500',
-                                        isItemFromAi && 'bg-gray-100 cursor-not-allowed'
-                                      )}
-                                    />
-                                    <div className="min-h-[16px]">
-                                      {itemErrors?.carbs && (
-                                        <p className="text-xs text-red-600 mt-1">{itemErrors.carbs.message}</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              }}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label>{t('meal_plan.items_dialog.fat_label')}</Label>
-                            <Controller
-                              name={`days.${itemsModal.dayIdx}.meals.${itemsModal.mealIdx}.items.${itemIdx}.fat`}
-                              control={control}
-                              render={({ field }) => {
-                                const fieldKey = `fat-${itemsModal.dayIdx}-${itemsModal.mealIdx}-${itemIdx}`;
-                                const defaultValue =
-                                  field.value !== undefined && field.value !== null ? String(field.value) : '';
-                                // Use _itemId in key to force remount when item is recreated after deletion
-                                const itemKey = (currentItem as { _itemId?: string })?._itemId || `item-${itemIdx}`;
-
-                                return (
-                                  <div>
-                                    <Input
-                                      key={`fat-${itemKey}-${defaultValue}`}
-                                      type="number"
-                                      defaultValue={defaultValue}
-                                      onChange={(e) => {
-                                        // Only update ref, no state update = no re-render
-                                        localInputValuesRef.current[fieldKey] = e.target.value;
-                                      }}
-                                      onBlur={(e) => {
-                                        const numValue =
-                                          e.target.value && e.target.value.trim() !== ''
-                                            ? Number(e.target.value)
-                                            : undefined;
-                                        field.onChange(numValue);
-                                        // Clear from ref after sync
-                                        delete localInputValuesRef.current[fieldKey];
-                                      }}
-                                      disabled={isItemFromAi}
-                                      className={cn(
-                                        itemErrors?.fat && 'border-red-500',
-                                        isItemFromAi && 'bg-gray-100 cursor-not-allowed'
-                                      )}
-                                    />
-                                    <div className="min-h-[16px]">
-                                      {itemErrors?.fat && (
-                                        <p className="text-xs text-red-600 mt-1">{itemErrors.fat.message}</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              }}
-                            />
-                          </div>
+                          {renderNumberInput('calories', 'meal_plan.items_dialog.cal_label', 'cal')}
+                          {renderNumberInput('protein', 'meal_plan.items_dialog.protein_label', 'protein')}
+                          {renderNumberInput('carbs', 'meal_plan.items_dialog.carbs_label', 'carbs')}
+                          {renderNumberInput('fat', 'meal_plan.items_dialog.fat_label', 'fat')}
                           <div className="md:col-span-2 space-y-1">
                             <Label>{t('meal_plan.items_dialog.ingredients_label')}</Label>
                             <Controller
