@@ -124,6 +124,7 @@ export default function TrainingProgressDetailPage() {
   const [mealPlanPage, setMealPlanPage] = useState(1);
   const mealPlanPageSize = 6;
   const generateCancelledRef = useRef(false);
+  const [isAiGeneratedMealPlan, setIsAiGeneratedMealPlan] = useState(false);
   const mealPlanModalTitle = useMemo(() => {
     if (mealPlanMode === 'create') return t('progress_detail.meal_plan.create_title');
     if (mealPlanMode === 'edit') return t('progress_detail.meal_plan.edit_title');
@@ -338,6 +339,7 @@ export default function TrainingProgressDetailPage() {
     if (res.success) {
       toast.success(t('progress_detail.meal_plan.toast.create_success'));
       setIsMealPlanModalOpen(false);
+      setIsAiGeneratedMealPlan(false); // Clear AI flag after save
       await refetchMealPlans();
       setMealPlanPage(1);
     } else {
@@ -363,6 +365,7 @@ export default function TrainingProgressDetailPage() {
         setSelectedMealPlanId(null);
         setSelectedMealPlan(null);
         setMealPlanMode('create');
+        setIsAiGeneratedMealPlan(false); // Clear AI flag after save
         await refetchMealPlans();
         setMealPlanPage(1);
       } else {
@@ -377,6 +380,7 @@ export default function TrainingProgressDetailPage() {
     setMealPlanMode('create');
     setSelectedMealPlan(null);
     setSelectedMealPlanId(null);
+    setIsAiGeneratedMealPlan(false); // Clear AI flag when creating manually
     setIsMealPlanModalOpen(true);
   };
 
@@ -405,8 +409,20 @@ export default function TrainingProgressDetailPage() {
         // Backend returns { backend_plan: {...} } directly
         const backendPlan = response.data.backend_plan || response.data;
 
-        // Map backend_plan to MealPlanFormValues format
-        // Note: backend_plan uses camelCase (customerId) but form expects same structure
+        // Add unique AI ID and item ID to each item for tracking
+        const daysWithAiIds = (backendPlan.days || []).map((day, dayIdx) => ({
+          ...day,
+          meals: (day.meals || []).map((meal, mealIdx) => ({
+            ...meal,
+            items: (meal.items || []).map((item, itemIdx) => ({
+              ...item,
+              _aiId: `ai-${dayIdx}-${mealIdx}-${itemIdx}-${Date.now()}-${Math.random()}`, // Unique ID for AI-generated items
+              _itemId: `item-${dayIdx}-${mealIdx}-${itemIdx}-${Date.now()}-${Math.random()}` // Unique ID for React key
+            }))
+          }))
+        }));
+
+        // Map backend_plan to MealPlanFormValues format. Note: backend_plan uses camelCase (customerId) but form expects same structure
         const formData: Partial<MealPlan> = {
           customerId,
           customerGoalId: activeGoal.id,
@@ -416,7 +432,7 @@ export default function TrainingProgressDetailPage() {
           targetCalories: backendPlan.targetCalories,
           notes: backendPlan.notes,
           status: (backendPlan.status as MealPlan['status']) || 'SUGGESTED',
-          days: backendPlan.days || []
+          days: daysWithAiIds
         };
 
         // Set as selected meal plan to populate form (cast to MealPlan for type compatibility)
@@ -432,6 +448,7 @@ export default function TrainingProgressDetailPage() {
         } as MealPlan);
         setMealPlanMode('create');
         setSelectedMealPlanId(null);
+        setIsAiGeneratedMealPlan(true); // Mark as AI generated
         setIsMealPlanModalOpen(true);
         toast.success(t('progress_detail.meal_plan.toast.generate_success'));
       } else {
@@ -475,6 +492,7 @@ export default function TrainingProgressDetailPage() {
       setSelectedMealPlan(res.data);
       setSelectedMealPlanId(id);
       setMealPlanMode('view');
+      setIsAiGeneratedMealPlan(false); // Clear AI flag when viewing (will be set again if editing)
       setIsMealPlanModalOpen(true);
     } else {
       toast.error(res.message || t('progress_detail.meal_plan.toast.fetch_fail'));
@@ -487,6 +505,7 @@ export default function TrainingProgressDetailPage() {
       setSelectedMealPlan(res.data);
       setSelectedMealPlanId(id);
       setMealPlanMode('edit');
+      setIsAiGeneratedMealPlan(false); // Clear AI flag when editing manually
       setIsMealPlanModalOpen(true);
     } else {
       toast.error(res.message || t('progress_detail.meal_plan.toast.fetch_fail'));
@@ -929,7 +948,16 @@ export default function TrainingProgressDetailPage() {
             </Card>
 
             {/* Meal Plan Modal */}
-            <Dialog open={isMealPlanModalOpen} onOpenChange={setIsMealPlanModalOpen}>
+            <Dialog
+              open={isMealPlanModalOpen}
+              onOpenChange={(open) => {
+                setIsMealPlanModalOpen(open);
+                if (!open) {
+                  // Clear AI flag when modal closes
+                  setIsAiGeneratedMealPlan(false);
+                }
+              }}
+            >
               <DialogContent className="max-w-4xl max-h-[85vh]">
                 <DialogHeader>
                   <DialogTitle>{mealPlanModalTitle}</DialogTitle>
@@ -953,6 +981,7 @@ export default function TrainingProgressDetailPage() {
                         days: selectedMealPlan?.days || []
                       }}
                       onSubmit={handleUpsertMealPlan}
+                      isAiGenerated={isAiGeneratedMealPlan}
                     />
                   )}
                 </div>
