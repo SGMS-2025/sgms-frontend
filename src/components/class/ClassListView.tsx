@@ -1,18 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Plus,
-  LayoutGrid,
-  List,
-  Edit2,
-  Users,
-  Trash2,
-  AlertCircle,
-  Search,
-  BookOpen,
-  MoreVertical
-} from 'lucide-react';
+import { Plus, LayoutGrid, List, Users, Trash2, AlertCircle, Search, BookOpen, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -50,7 +39,6 @@ import { HelpCircle } from 'lucide-react';
 import type { Class } from '@/types/Class';
 import type { ClassListViewProps } from '@/types/class/ClassListView';
 
-// Helper function to convert MongoDB Decimal to number
 const toNumber = (value: any): number => {
   if (typeof value === 'number') return value;
   if (typeof value === 'string') return parseFloat(value);
@@ -62,7 +50,6 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
   const { t } = useTranslation();
   const { currentBranch } = useBranch();
   const { startClassTour } = useClassTour();
-  // Use prop branchId if provided, otherwise use currentBranch from context
   const branchId = propBranchId || currentBranch?._id;
 
   const [search, setSearch] = useState('');
@@ -75,7 +62,6 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; classId?: string }>({ open: false });
   const [viewModal, setViewModal] = useState<{ open: boolean; classId?: string }>({ open: false });
 
-  // Generate time options (06:00 to 22:00)
   const timeOptions = React.useMemo(() => {
     const times: string[] = [];
     for (let hour = 6; hour <= 22; hour++) {
@@ -84,8 +70,6 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
     return times;
   }, []);
 
-  // Fetch classes - only fetch if branchId is available
-  // useMemo to prevent infinite loop when initialParams object changes
   const classListParams = React.useMemo(
     () => ({
       branchId: branchId || undefined,
@@ -93,29 +77,24 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
       search: search || undefined,
       startTime: startTimeFilter || undefined,
       endTime: endTimeFilter || undefined,
-      limit: 9 // Show 9 classes per page
+      limit: 9
     }),
     [branchId, statusFilter, search, startTimeFilter, endTimeFilter]
   );
 
   const { classes, loading, error, pagination, refetch, nextPage, prevPage, goToPage } = useClassList(classListParams);
 
-  // Sort functionality
   const { sortState, handleSort, getSortIcon } = useTableSort();
 
-  // Filter and sort classes
   const sortedClasses = useMemo(() => {
-    // Ensure classes is an array
     if (!Array.isArray(classes)) {
       return [];
     }
 
-    // First, filter by time if filters are set
     let filteredClasses = classes;
 
     if (startTimeFilter || endTimeFilter) {
       filteredClasses = classes.filter((cls) => {
-        // Skip if schedulePattern doesn't exist
         if (!cls.schedulePattern) {
           return false;
         }
@@ -123,17 +102,14 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
         const classStartTime = cls.schedulePattern.startTime || '';
         const classEndTime = cls.schedulePattern.endTime || '';
 
-        // Skip if times are empty
         if (!classStartTime || !classEndTime) {
           return false;
         }
 
-        // Filter by start time (exact match or greater than/equal)
         if (startTimeFilter && classStartTime < startTimeFilter) {
           return false;
         }
 
-        // Filter by end time (exact match or less than/equal)
         if (endTimeFilter && classEndTime > endTimeFilter) {
           return false;
         }
@@ -142,7 +118,6 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
       });
     }
 
-    // Then sort if sort state is set
     if (!sortState.field || !sortState.order) {
       return filteredClasses;
     }
@@ -157,7 +132,6 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
           return packageName.toLowerCase();
         }
         case 'schedule':
-          // Sort by first day of week
           return item.schedulePattern?.daysOfWeek?.[0]?.toLowerCase() || '';
         case 'capacity':
           return toNumber(item.capacity);
@@ -173,7 +147,6 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
     });
   }, [classes, sortState, startTimeFilter, endTimeFilter]);
 
-  // Delete operation
   const { deleteClass, loading: deleting } = useClass({
     onSuccess: () => {
       toast.success(t('class.list.delete_success'));
@@ -191,9 +164,6 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
     }
   };
 
-  // Debug logging removed for production
-
-  // Show message if no branch selected
   if (!branchId) {
     return (
       <div className="h-full flex items-center justify-center p-4">
@@ -482,10 +452,11 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setFormModal({ open: true, classId: cls._id })}>
+                          {/* Edit option hidden */}
+                          {/* <DropdownMenuItem onClick={() => setFormModal({ open: true, classId: cls._id })}>
                             <Edit2 className="w-4 h-4 mr-2" />
                             <span>{t('class.list.action_edit')}</span>
-                          </DropdownMenuItem>
+                          </DropdownMenuItem> */}
                           <DropdownMenuItem onClick={() => setEnrollModal({ open: true, classId: cls._id })}>
                             <Users className="w-4 h-4 mr-2" />
                             <span>{t('class.list.action_enroll')}</span>

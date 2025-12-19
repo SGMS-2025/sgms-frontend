@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Users, Clock, MapPin, Zap, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import { Users, Clock, MapPin, Zap, MoreVertical, Trash2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -15,7 +15,6 @@ import {
 import { DAY_LABELS } from '@/types/Class';
 import type { ClassInfoCardProps } from '@/types/class/ClassInfoCard';
 
-// Helper function to convert MongoDB Decimal to number
 const toNumber = (value: any): number => {
   if (typeof value === 'number') return value;
   if (typeof value === 'string') return parseFloat(value);
@@ -32,7 +31,6 @@ export const ClassInfoCard: React.FC<ClassInfoCardProps> = ({
   onDelete
 }) => {
   const { t } = useTranslation();
-  // Extract trainer names
   const trainerNames = classData.trainerIds
     .map((trainer: any) => {
       if (typeof trainer === 'object' && trainer.userId) {
@@ -40,13 +38,12 @@ export const ClassInfoCard: React.FC<ClassInfoCardProps> = ({
       }
       return 'Unknown';
     })
-    .slice(0, 2) // Show max 2 trainers
+    .slice(0, 2)
     .join(', ');
 
   const moreTrainers =
     classData.trainerIds.length > 2 ? t('class.card.more_trainers', { count: classData.trainerIds.length - 2 }) : '';
 
-  // Format schedule
   const scheduleDisplay = classData.schedulePattern.daysOfWeek
     .slice(0, 3)
     .map((day: any) => {
@@ -60,7 +57,6 @@ export const ClassInfoCard: React.FC<ClassInfoCardProps> = ({
       ? t('class.card.more_days', { count: classData.schedulePattern.daysOfWeek.length - 3 })
       : '';
 
-  // Capacity calculation
   const occupancyPercent = toNumber(classData.occupancyPercentage) || 0;
   const capacityColor =
     occupancyPercent >= 90 ? 'text-red-600' : occupancyPercent >= 70 ? 'text-yellow-600' : 'text-green-600';
@@ -109,7 +105,8 @@ export const ClassInfoCard: React.FC<ClassInfoCardProps> = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
-              {onEdit && (
+              {/* Edit option hidden */}
+              {/* {onEdit && (
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();
@@ -119,7 +116,7 @@ export const ClassInfoCard: React.FC<ClassInfoCardProps> = ({
                   <Edit2 className="w-4 h-4 mr-2" />
                   {t('class.card.action_edit')}
                 </DropdownMenuItem>
-              )}
+              )} */}
               {onEnroll && (
                 <DropdownMenuItem
                   onClick={(e) => {

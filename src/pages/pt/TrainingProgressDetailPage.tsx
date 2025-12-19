@@ -605,14 +605,6 @@ export default function TrainingProgressDetailPage() {
                   <div className="space-y-1">
                     <h1 className="text-2xl font-bold text-[#101D33]">{customer.name}</h1>
                     <p className="text-gray-600">{customer.package}</p>
-                    <Badge
-                      variant={customer.status === 'Active' ? 'default' : 'secondary'}
-                      className={customer.status === 'Active' ? 'bg-green-100 text-green-800' : ''}
-                    >
-                      {customer.status === 'Active'
-                        ? t('progress_detail.status.active')
-                        : t('progress_detail.status.inactive')}
-                    </Badge>
                   </div>
                 </div>
 

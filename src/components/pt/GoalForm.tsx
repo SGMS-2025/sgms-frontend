@@ -48,7 +48,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
     endDate: '',
     // Targets
     weight: '',
-    bmi: '',
+    height: '',
     strength: '',
     bodyFatPercentage: '',
     chest: '',
@@ -85,7 +85,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
         startDate: initialGoal.startDate ? new Date(initialGoal.startDate).toISOString().split('T')[0] : '',
         endDate: initialGoal.endDate ? new Date(initialGoal.endDate).toISOString().split('T')[0] : '',
         weight: initialGoal.targets?.weight?.toString() || '',
-        bmi: initialGoal.targets?.bmi?.toString() || '',
+        height: initialGoal.targets?.height?.toString() || '',
         strength: initialGoal.targets?.strength?.toString() || '',
         bodyFatPercentage: initialGoal.targets?.bodyFatPercentage?.toString() || '',
         chest: initialGoal.targets?.chest?.toString() || '',
@@ -100,7 +100,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
       setShowTargets(
         !!(
           initialGoal.targets?.weight ||
-          initialGoal.targets?.bmi ||
+          initialGoal.targets?.height ||
           initialGoal.targets?.strength ||
           initialGoal.targets?.bodyFatPercentage ||
           initialGoal.targets?.chest ||
@@ -137,13 +137,114 @@ export const GoalForm: React.FC<GoalFormProps> = ({
       return;
     }
 
+    // Validate targets values
+    // Validate weight: min 0, max 500
+    if (formData.weight && formData.weight.trim() !== '') {
+      const weightValue = parseFloat(formData.weight);
+      if (isNaN(weightValue) || weightValue < 0 || weightValue > 500) {
+        toast.error(t('goal_form.validation.weight_range', 'Cân nặng phải từ 0 đến 500 kg'));
+        return;
+      }
+    }
+
+    // Validate height: min 0, max 300
+    if (formData.height && formData.height.trim() !== '') {
+      const heightValue = parseFloat(formData.height);
+      if (isNaN(heightValue) || heightValue < 0 || heightValue > 300) {
+        toast.error(t('goal_form.validation.height_range', 'Chiều cao phải từ 0 đến 300 cm'));
+        return;
+      }
+    }
+
+    // Validate strength: min 0, max 100
+    if (formData.strength && formData.strength.trim() !== '') {
+      const strengthValue = parseFloat(formData.strength);
+      if (isNaN(strengthValue) || strengthValue < 0 || strengthValue > 100) {
+        toast.error(t('goal_form.validation.strength_range', 'Sức mạnh phải từ 0 đến 100'));
+        return;
+      }
+    }
+
+    // Validate body measurements: chest, waist, hips: min 0, max 300
+    if (formData.chest && formData.chest.trim() !== '') {
+      const chestValue = parseFloat(formData.chest);
+      if (isNaN(chestValue) || chestValue < 0 || chestValue > 300) {
+        toast.error(t('goal_form.validation.chest_range', 'Vòng ngực phải từ 0 đến 300 cm'));
+        return;
+      }
+    }
+    if (formData.waist && formData.waist.trim() !== '') {
+      const waistValue = parseFloat(formData.waist);
+      if (isNaN(waistValue) || waistValue < 0 || waistValue > 300) {
+        toast.error(t('goal_form.validation.waist_range', 'Vòng eo phải từ 0 đến 300 cm'));
+        return;
+      }
+    }
+    if (formData.hips && formData.hips.trim() !== '') {
+      const hipsValue = parseFloat(formData.hips);
+      if (isNaN(hipsValue) || hipsValue < 0 || hipsValue > 300) {
+        toast.error(t('goal_form.validation.hips_range', 'Vòng mông phải từ 0 đến 300 cm'));
+        return;
+      }
+    }
+
+    // Validate arms: min 0, max 100
+    if (formData.arms && formData.arms.trim() !== '') {
+      const armsValue = parseFloat(formData.arms);
+      if (isNaN(armsValue) || armsValue < 0 || armsValue > 100) {
+        toast.error(t('goal_form.validation.arms_range', 'Vòng tay phải từ 0 đến 100 cm'));
+        return;
+      }
+    }
+
+    // Validate thighs: min 0, max 150
+    if (formData.thighs && formData.thighs.trim() !== '') {
+      const thighsValue = parseFloat(formData.thighs);
+      if (isNaN(thighsValue) || thighsValue < 0 || thighsValue > 150) {
+        toast.error(t('goal_form.validation.thighs_range', 'Vòng đùi phải từ 0 đến 150 cm'));
+        return;
+      }
+    }
+
+    // Validate percentages: min 0, max 100
+    if (formData.bodyFatPercentage && formData.bodyFatPercentage.trim() !== '') {
+      const bodyFatValue = parseFloat(formData.bodyFatPercentage);
+      if (isNaN(bodyFatValue) || bodyFatValue < 0 || bodyFatValue > 100) {
+        toast.error(t('goal_form.validation.body_fat_range', 'Tỷ lệ mỡ cơ thể phải từ 0 đến 100%'));
+        return;
+      }
+    }
+    if (formData.muscleMassPercentage && formData.muscleMassPercentage.trim() !== '') {
+      const muscleMassValue = parseFloat(formData.muscleMassPercentage);
+      if (isNaN(muscleMassValue) || muscleMassValue < 0 || muscleMassValue > 100) {
+        toast.error(t('goal_form.validation.muscle_mass_range', 'Tỷ lệ cơ bắp phải từ 0 đến 100%'));
+        return;
+      }
+    }
+    if (formData.bodyWaterPercentage && formData.bodyWaterPercentage.trim() !== '') {
+      const bodyWaterValue = parseFloat(formData.bodyWaterPercentage);
+      if (isNaN(bodyWaterValue) || bodyWaterValue < 0 || bodyWaterValue > 100) {
+        toast.error(t('goal_form.validation.body_water_range', 'Tỷ lệ nước phải từ 0 đến 100%'));
+        return;
+      }
+    }
+
+    // Validate metabolic age: min 1, max 150
+    if (formData.metabolicAge && formData.metabolicAge.trim() !== '') {
+      const metabolicAgeValue = parseInt(formData.metabolicAge, 10);
+      if (isNaN(metabolicAgeValue) || metabolicAgeValue < 1 || metabolicAgeValue > 150) {
+        toast.error(t('goal_form.validation.metabolic_age_range', 'Tuổi trao đổi chất phải từ 1 đến 150'));
+        return;
+      }
+    }
+
     // Build targets object - only include non-empty values
     const targets: Record<string, number> = {};
     if (formData.weight && formData.weight.trim() !== '') {
       targets.weight = parseFloat(formData.weight);
     }
-    if (formData.bmi && formData.bmi.trim() !== '') {
-      targets.bmi = parseFloat(formData.bmi);
+    if (formData.height && formData.height.trim() !== '') {
+      targets.height = parseFloat(formData.height);
     }
     if (formData.strength && formData.strength.trim() !== '') {
       targets.strength = parseFloat(formData.strength);
@@ -347,21 +448,23 @@ export const GoalForm: React.FC<GoalFormProps> = ({
                   type="number"
                   step="0.1"
                   min="0"
+                  max="500"
                   placeholder="70"
                   value={formData.weight}
                   onChange={(e) => setFormData((prev) => ({ ...prev, weight: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="bmi">{t('goal_form.bmi', 'BMI')}</Label>
+                <Label htmlFor="height">{t('goal_form.height', 'Height (cm)')}</Label>
                 <Input
-                  id="bmi"
+                  id="height"
                   type="number"
-                  step="0.1"
+                  step="1"
                   min="0"
-                  placeholder="22"
-                  value={formData.bmi}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, bmi: e.target.value }))}
+                  max="300"
+                  placeholder="175"
+                  value={formData.height}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, height: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
@@ -388,6 +491,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
                   type="number"
                   step="0.1"
                   min="0"
+                  max="300"
                   placeholder="95"
                   value={formData.chest}
                   onChange={(e) => setFormData((prev) => ({ ...prev, chest: e.target.value }))}
@@ -400,6 +504,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
                   type="number"
                   step="0.1"
                   min="0"
+                  max="300"
                   placeholder="80"
                   value={formData.waist}
                   onChange={(e) => setFormData((prev) => ({ ...prev, waist: e.target.value }))}
@@ -412,6 +517,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
                   type="number"
                   step="0.1"
                   min="0"
+                  max="300"
                   placeholder="95"
                   value={formData.hips}
                   onChange={(e) => setFormData((prev) => ({ ...prev, hips: e.target.value }))}
@@ -427,6 +533,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
                   type="number"
                   step="0.1"
                   min="0"
+                  max="100"
                   placeholder="35"
                   value={formData.arms}
                   onChange={(e) => setFormData((prev) => ({ ...prev, arms: e.target.value }))}
@@ -439,6 +546,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
                   type="number"
                   step="0.1"
                   min="0"
+                  max="150"
                   placeholder="55"
                   value={formData.thighs}
                   onChange={(e) => setFormData((prev) => ({ ...prev, thighs: e.target.value }))}
