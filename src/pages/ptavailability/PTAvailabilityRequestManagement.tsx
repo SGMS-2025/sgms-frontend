@@ -21,6 +21,7 @@ import {
   List,
   Target
 } from 'lucide-react';
+import { PagePagination } from '@/components/ui/PagePagination';
 import { cn } from '@/utils/utils';
 import { format } from 'date-fns';
 import { usePTAvailabilityRequestList } from '@/hooks/usePTAvailabilityRequest';
@@ -464,25 +465,7 @@ const PTAvailabilityRequestManagement: React.FC = () => {
 
             {/* Pagination */}
             {pagination && pagination.totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => goToPage(pagination.page - 1)}
-                  disabled={!pagination.hasPrev || loading}
-                >
-                  {t('common.previous', 'Previous')}
-                </Button>
-                <span className="text-sm text-gray-600">
-                  {t('common.page', 'Page')} {pagination.page} / {pagination.totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  onClick={() => goToPage(pagination.page + 1)}
-                  disabled={!pagination.hasNext || loading}
-                >
-                  {t('common.next', 'Next')}
-                </Button>
-              </div>
+              <PagePagination pagination={pagination} goToPage={goToPage} loading={loading} />
             )}
           </>
         )}

@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Clock, User, AlertCircle, Loader2, CheckCircle2, Search } from 'lucide-react';
+import { Clock, User, AlertCircle, Loader2, CheckCircle2, Search, Calendar } from 'lucide-react';
 import { cn } from '@/utils/utils';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import { usePTAvailabilityRequestOperations } from '@/hooks/usePTAvailabilityRequest';
@@ -152,20 +152,21 @@ const CustomerItem: React.FC<{
                             ? t('common.pending', 'Chờ kích hoạt')
                             : t('common.expired', 'Hết hạn')}
                       </Badge>
-                      {/* Scheduling capacity badge */}
+                      {/* Booking badge */}
                       {isActive && customer.contractType === 'PT_PACKAGE' && !loadingCapacity && capacity && (
                         <Badge
                           variant="outline"
                           className={cn(
-                            'text-xs',
-                            capacity.canCreateSchedule
+                            'text-xs flex items-center gap-1',
+                            capacity.existingSchedules > 0
                               ? 'bg-blue-50 text-blue-700 border-blue-300'
-                              : 'bg-red-50 text-red-700 border-red-300'
+                              : 'bg-gray-50 text-gray-600 border-gray-300'
                           )}
                         >
-                          {capacity.canCreateSchedule
-                            ? `${capacity.availableForScheduling} ${t('pt_availability.slots_available', 'slots')}`
-                            : t('pt_availability.no_slots', 'Hết slots')}
+                          <Calendar className="w-3 h-3" />
+                          {capacity.existingSchedules > 0
+                            ? t('pt_availability.booked', 'Đã đặt: {{count}}', { count: capacity.existingSchedules })
+                            : t('pt_availability.not_booked', 'Chưa đặt')}
                         </Badge>
                       )}
                     </div>
@@ -173,15 +174,41 @@ const CustomerItem: React.FC<{
                       <span>{customer.phone}</span>
                       {customer.email && <span>{customer.email}</span>}
                     </div>
-                    <div className="flex items-center gap-4 mt-2">
+                    <div className="flex flex-col gap-1 mt-2">
                       <div className="text-xs text-gray-600">
                         <span className="font-medium">{customer.package.name}</span>
                       </div>
-                      {customer.contractType === 'PT_PACKAGE' && (
-                        <div className="text-xs text-gray-500">
-                          {t('pt_availability.sessions_remaining', 'Còn lại')}:{' '}
-                          <span className="font-medium text-orange-600">{customer.package.sessionsRemaining}</span>/
-                          {customer.package.totalSessions}
+                      {/* PT Package - Progress */}
+                      {customer.contractType === 'PT_PACKAGE' && capacity && (
+                        <div className="flex items-center gap-3 text-xs">
+                          <div className="text-gray-600">
+                            {t('pt_availability.sessions_progress', 'Đã tập: {{completed}} / {{total}} buổi', {
+                              completed: capacity.completedSessions || 0,
+                              total: capacity.sessionCount || customer.package.totalSessions || 0
+                            })}
+                          </div>
+                          <div className="text-orange-600 font-medium">
+                            {t('pt_availability.sessions_remaining_count', 'Còn: {{remaining}} buổi', {
+                              remaining: capacity.sessionsRemaining || customer.package.sessionsRemaining || 0
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {/* Fallback if no capacity data */}
+                      {customer.contractType === 'PT_PACKAGE' && !capacity && (
+                        <div className="flex items-center gap-3 text-xs">
+                          <div className="text-gray-600">
+                            {t('pt_availability.sessions_progress', 'Đã tập: {{completed}} / {{total}} buổi', {
+                              completed:
+                                (customer.package.totalSessions || 0) - (customer.package.sessionsRemaining || 0),
+                              total: customer.package.totalSessions || 0
+                            })}
+                          </div>
+                          <div className="text-orange-600 font-medium">
+                            {t('pt_availability.sessions_remaining_count', 'Còn: {{remaining}} buổi', {
+                              remaining: customer.package.sessionsRemaining || 0
+                            })}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -230,18 +257,25 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
   // API getCustomersByTrainer expects User._id, so use currentUser._id directly
   const trainerUserId = currentUser?._id || '';
 
-  const { customerList, loading: loadingCustomers } = usePTCustomerList({
-    trainerId: trainerUserId,
-    branchId: currentBranch?._id,
-    status: 'ACTIVE',
-    packageType: 'PT', // Explicitly set packageType to PT
-    limit: 100
-  });
+  // Memoize options to prevent unnecessary re-renders and API calls
+  const customerListOptions = useMemo(
+    () => ({
+      trainerId: trainerUserId,
+      branchId: currentBranch?._id,
+      status: 'ACTIVE' as const,
+      packageType: 'PT' as const,
+      limit: 100
+    }),
+    [trainerUserId, currentBranch?._id]
+  );
+
+  const { customerList, loading: loadingCustomers } = usePTCustomerList(customerListOptions);
 
   // State to store scheduling capacities for all customers
   const [capacities, setCapacities] = useState<Record<string, SchedulingCapacity>>({});
 
   // Fetch capacities for all active PT customers
+  // Refetch when modal opens to get latest booking data after approve/reject
   useEffect(() => {
     const fetchCapacities = async () => {
       const ptCustomers = customerList.filter((c) => c.package.status === 'ACTIVE' && c.contractType === 'PT_PACKAGE');
@@ -263,10 +297,11 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
       setCapacities(capacityMap);
     };
 
-    if (customerList.length > 0) {
+    // Only fetch when modal is open and we have customers
+    if (isOpen && customerList.length > 0) {
       fetchCapacities();
     }
-  }, [customerList]);
+  }, [customerList, isOpen]);
 
   // Filter and sort customers by search
   const filteredCustomers = useMemo(() => {

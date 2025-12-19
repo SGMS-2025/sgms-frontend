@@ -8,7 +8,8 @@ import { Progress } from '@/components/ui/customer-progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Search, User, Users, Clock, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, User, Users, Clock, AlertCircle } from 'lucide-react';
+import { PagePagination } from '@/components/ui/PagePagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PTCustomerDetailModal } from '@/components/modals/PTCustomerDetailModal';
 import { usePTCustomerList, usePTCustomerFilters, usePTCustomerUtils } from '@/hooks/usePTCustomer';
@@ -157,22 +158,73 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-8 space-y-4"
+          className="mb-8"
         >
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            {/* Search bar - takes available space */}
+            <div className="relative flex-1 min-w-0 flex items-center">
+              <Search className="absolute left-3 h-5 w-5 text-muted-foreground z-10 pointer-events-none" />
               <Input
                 placeholder={t('pt_customer.search_placeholder')}
                 value={filters.searchTerm}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-10 h-12 rounded-[20px] border-gray-200 bg-white focus-visible:ring-[#F05A29] focus-visible:ring-offset-0"
+                className="pl-10 h-[48px] rounded-[20px] border-gray-200 bg-white focus-visible:ring-[#F05A29] focus-visible:ring-offset-0"
+                style={{ paddingTop: '12px', paddingBottom: '12px' }}
               />
             </div>
 
-            <div className="flex gap-3">
+            {/* Filter dropdowns - all same height and aligned */}
+            <div className="flex flex-wrap gap-3 lg:flex-nowrap lg:items-center">
+              <Select value={filters.statusFilter} onValueChange={handleStatusFilterChange}>
+                <SelectTrigger
+                  className="w-full lg:w-[160px] rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0"
+                  style={{ height: '48px', paddingTop: '12px', paddingBottom: '12px' }}
+                >
+                  <SelectValue placeholder={t('pt_customer.status')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">{t('pt_customer.filter.all_status')}</SelectItem>
+                  <SelectItem value="ACTIVE">{t('pt_customer.filter.active')}</SelectItem>
+                  <SelectItem value="PENDING_ACTIVATION">{t('pt_customer.filter.pending_activation')}</SelectItem>
+                  <SelectItem value="EXPIRED">{t('pt_customer.filter.expired')}</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filters.expirationFilter} onValueChange={handleExpirationFilterChange}>
+                <SelectTrigger
+                  className="w-full lg:w-[160px] rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0"
+                  style={{ height: '48px', paddingTop: '12px', paddingBottom: '12px' }}
+                >
+                  <SelectValue placeholder={t('pt_customer.expiration_filter')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">{t('pt_customer.filter.all_expiration')}</SelectItem>
+                  <SelectItem value="7">{t('pt_customer.filter.days_7')}</SelectItem>
+                  <SelectItem value="14">{t('pt_customer.filter.days_14')}</SelectItem>
+                  <SelectItem value="30">{t('pt_customer.filter.days_30')}</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filters.sessionsFilter} onValueChange={handleSessionsFilterChange}>
+                <SelectTrigger
+                  className="w-full lg:w-[160px] rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0"
+                  style={{ height: '48px', paddingTop: '12px', paddingBottom: '12px' }}
+                >
+                  <SelectValue placeholder={t('pt_customer.sessions_remaining')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">{t('pt_customer.filter.all_sessions')}</SelectItem>
+                  <SelectItem value="3">{t('pt_customer.filter.sessions_3')}</SelectItem>
+                  <SelectItem value="5">{t('pt_customer.filter.sessions_5')}</SelectItem>
+                  <SelectItem value="10">{t('pt_customer.filter.sessions_10')}</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Select value={filters.sortBy} onValueChange={handleSortChange}>
-                <SelectTrigger className="w-[200px] h-12 rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0">
+                <SelectTrigger
+                  className="w-full lg:w-[180px] rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0"
+                  style={{ height: '48px', paddingTop: '12px', paddingBottom: '12px' }}
+                >
                   <SelectValue placeholder={t('pt_customer.sort_by')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -181,44 +233,6 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Select value={filters.statusFilter} onValueChange={handleStatusFilterChange}>
-              <SelectTrigger className="w-[180px] h-11 rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0">
-                <SelectValue placeholder={t('pt_customer.status')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">{t('pt_customer.filter.all_status')}</SelectItem>
-                <SelectItem value="ACTIVE">{t('pt_customer.filter.active')}</SelectItem>
-                <SelectItem value="PENDING_ACTIVATION">{t('pt_customer.filter.pending_activation')}</SelectItem>
-                <SelectItem value="EXPIRED">{t('pt_customer.filter.expired')}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filters.expirationFilter} onValueChange={handleExpirationFilterChange}>
-              <SelectTrigger className="w-[200px] h-11 rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0">
-                <SelectValue placeholder={t('pt_customer.expiration_filter')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">{t('pt_customer.filter.all_expiration')}</SelectItem>
-                <SelectItem value="7">{t('pt_customer.filter.days_7')}</SelectItem>
-                <SelectItem value="14">{t('pt_customer.filter.days_14')}</SelectItem>
-                <SelectItem value="30">{t('pt_customer.filter.days_30')}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filters.sessionsFilter} onValueChange={handleSessionsFilterChange}>
-              <SelectTrigger className="w-[180px] h-11 rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0">
-                <SelectValue placeholder={t('pt_customer.sessions_remaining')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">{t('pt_customer.filter.all_sessions')}</SelectItem>
-                <SelectItem value="3">{t('pt_customer.filter.sessions_3')}</SelectItem>
-                <SelectItem value="5">{t('pt_customer.filter.sessions_5')}</SelectItem>
-                <SelectItem value="10">{t('pt_customer.filter.sessions_10')}</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </motion.div>
 
@@ -386,79 +400,10 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
           </div>
         )}
 
-        {/* Pagination */}
+        {/* Pagination - Show when there are multiple pages (more than 6 customers) */}
         {pagination && pagination.totalPages > 1 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="flex items-center justify-center mt-8 space-x-2"
-          >
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => goToPage(pagination.page - 1)}
-              disabled={!pagination.hasPrev}
-              className="h-10 px-3 rounded-[20px] border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              {t('common.previous')}
-            </Button>
-
-            {/* Page Numbers - Hidden on mobile */}
-            <div className="hidden md:flex items-center space-x-1">
-              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
-                <Button
-                  key={page}
-                  variant={page === pagination.page ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => goToPage(page)}
-                  className={`h-10 w-10 rounded-[20px] ${
-                    page === pagination.page
-                      ? 'bg-[#F05A29] text-white hover:bg-[#df4615]'
-                      : 'border-gray-200 bg-white hover:bg-gray-50'
-                  }`}
-                >
-                  {page}
-                </Button>
-              ))}
-            </div>
-
-            {/* Mobile Page Info */}
-            <div className="md:hidden flex items-center px-3">
-              <span className="text-sm text-muted-foreground">
-                {pagination.page}/{pagination.totalPages}
-              </span>
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => goToPage(pagination.page + 1)}
-              disabled={!pagination.hasNext}
-              className="h-10 px-3 rounded-[20px] border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {t('common.next')}
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
-          </motion.div>
-        )}
-
-        {/* Pagination Info */}
-        {pagination && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-center mt-4"
-          >
-            <p className="text-sm text-muted-foreground">
-              {t('pt_customer.pagination_info', {
-                start: (pagination.page - 1) * pagination.limit + 1,
-                end: Math.min(pagination.page * pagination.limit, pagination.total),
-                total: pagination.total
-              })}
-            </p>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+            <PagePagination pagination={pagination} goToPage={goToPage} />
           </motion.div>
         )}
       </div>
