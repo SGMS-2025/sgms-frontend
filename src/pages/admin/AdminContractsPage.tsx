@@ -610,11 +610,15 @@ const AdminContractsPage: React.FC = () => {
                         <span>{formatFileSize(doc.fileSize)}</span>
                         {doc.tags && doc.tags.length > 0 && (
                           <div className="flex gap-1">
-                            {doc.tags.map((tag) => (
-                              <Badge key={tag} variant="outline" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
+                            {doc.tags.map((tag) => {
+                              const translationKey = `admin.contracts.tags.${tag}`;
+                              const translated = t(translationKey as never, tag);
+                              return (
+                                <Badge key={tag} variant="outline" className="text-xs">
+                                  {translated}
+                                </Badge>
+                              );
+                            })}
                           </div>
                         )}
                       </div>

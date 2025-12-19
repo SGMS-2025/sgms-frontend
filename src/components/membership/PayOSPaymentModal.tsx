@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2, Copy, ExternalLink, QrCode, Clock } from 'lucide-react';
@@ -32,6 +33,7 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
   error,
   onPaymentComplete
 }) => {
+  const { t } = useTranslation();
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<string>('PENDING');
   const [isPaymentCompleted, setIsPaymentCompleted] = useState(false);
@@ -276,7 +278,7 @@ export const PayOSPaymentModal: React.FC<PayOSPaymentModalProps> = ({
         <DialogContent className="max-w-2xl p-6">
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin" />
-            <span className="ml-2">Đang tạo liên kết thanh toán...</span>
+            <span className="ml-2">{t('payment.creating_payment_link')}</span>
           </div>
         </DialogContent>
       </Dialog>
