@@ -593,11 +593,15 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                         <div>
                           <p className="text-xs text-muted-foreground">{t('customer_detail.contracts.details.tags')}</p>
                           <div className="flex flex-wrap gap-1 mt-1">
-                            {contract.tags.map((tag) => (
-                              <Badge key={tag} variant="outline" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
+                            {contract.tags.map((tag) => {
+                              const translationKey = `admin.contracts.tags.${tag}`;
+                              const translated = t(translationKey as never, tag);
+                              return (
+                                <Badge key={tag} variant="outline" className="text-xs">
+                                  {translated}
+                                </Badge>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/utils/utils';
@@ -324,6 +324,11 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
       <DialogContent className="max-w-5xl overflow-y-auto max-h-[95vh] hide-scrollbar">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {isEditMode
+              ? t('customer_modal.edit_customer_description')
+              : t('customer_modal.create_customer_description')}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="p-6 space-y-8">

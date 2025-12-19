@@ -143,7 +143,6 @@ export const usePaymentSocket = (
         (typeof metaOrderCode === 'string' && Number(metaOrderCode) === orderCode);
 
       if (matchesOrder) {
-        console.log('[PaymentSocket] Payment update received:', data);
         onPaymentUpdate(data);
       }
     };

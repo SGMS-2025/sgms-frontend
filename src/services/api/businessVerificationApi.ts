@@ -43,11 +43,7 @@ export const businessVerificationApi = {
       });
     }
 
-    const response = await api.post(`${BASE_URL}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
+    const response = await api.post(`${BASE_URL}`, formData);
 
     return response.data;
   },
