@@ -2457,7 +2457,6 @@
   "shared_form.discount": "Discount:",
   "shared_form.total": "Total:",
   "shared_form.promotion_label": "Promotion",
-
   "wizard.step_form": "Registration Info",
   "wizard.step_form_desc": "Select package and fill information",
   "wizard.step_payment": "Payment",
@@ -6441,6 +6440,7 @@
     "current": "Current",
     "previous": "Previous",
     "first": "First record",
+    "goal": "Goal",
     "target": "Target",
     "weight": "Weight",
     "bmi": "BMI",

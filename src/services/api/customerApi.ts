@@ -137,6 +137,22 @@ export const customerApi = {
     return response.data;
   },
 
+  // Get statistics for trainer's customers
+  getTrainerCustomerStats: async (
+    trainerId: string,
+    params: { branchId?: string; packageType?: string } = {}
+  ): Promise<
+    ApiResponse<{
+      total: number;
+      active: number;
+      expiringSoon: number;
+      expired: number;
+    }>
+  > => {
+    const response = await api.get(`/customers/trainer/${trainerId}/stats`, { params });
+    return response.data;
+  },
+
   // Get current customer's own information (self-service)
   getMyCustomerInfo: async (): Promise<
     ApiResponse<{
