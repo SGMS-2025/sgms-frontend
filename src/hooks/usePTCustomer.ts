@@ -99,20 +99,35 @@ export const usePTCustomerList = (options: UsePTCustomerListOptions): UsePTCusto
     fetchCustomers();
   }, [fetchCustomers]);
 
-  // Calculate stats from customer list
-  const stats = useMemo((): PTCustomerStats => {
-    const total = customerList.length;
-    const active = customerList.filter((customer) => customer.package.status === 'ACTIVE').length;
-    const expiringSoon = customerList.filter((customer) => {
-      const endDate = new Date(customer.package.endDate);
-      const now = new Date();
-      const daysUntilExpiry = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      return customer.package.status === 'ACTIVE' && daysUntilExpiry <= 7 && daysUntilExpiry > 0;
-    }).length;
-    const expired = customerList.filter((customer) => customer.package.status === 'EXPIRED').length;
+  // Fetch stats
+  const [stats, setStats] = useState<PTCustomerStats>({
+    total: 0,
+    active: 0,
+    expiringSoon: 0,
+    expired: 0
+  });
 
-    return { total, active, expiringSoon, expired };
-  }, [customerList]);
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!params.trainerId) return;
+
+      try {
+        const response = await customerApi.getTrainerCustomerStats(params.trainerId, {
+          branchId: params.branchId,
+          packageType: params.packageType
+        });
+
+        if (response.success && response.data) {
+          setStats(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch customer stats:', error);
+        // Keep default stats on error
+      }
+    };
+
+    fetchStats();
+  }, [params.trainerId, params.branchId, params.packageType]);
 
   return {
     customerList,
@@ -193,16 +208,6 @@ export const usePTCustomerFilters = (customers: PTCustomer[]) => {
       }
 
       return matchesSearch && matchesStatus && matchesExpiration && matchesSessions;
-    });
-
-    // Sort customers
-    filtered.sort((a, b) => {
-      if (filters.sortBy === 'NEAREST_EXPIRATION') {
-        return new Date(a.package.endDate).getTime() - new Date(b.package.endDate).getTime();
-      } else if (filters.sortBy === 'NEWEST_CONTRACT') {
-        return new Date(b.package.startDate).getTime() - new Date(a.package.startDate).getTime();
-      }
-      return 0;
     });
 
     return filtered;

@@ -2448,7 +2448,6 @@
   "shared_form.discount": "Giảm giá:",
   "shared_form.total": "Tổng cộng:",
   "shared_form.promotion_label": "Khuyến mãi",
-
   "wizard.step_form": "Thông tin đăng ký",
   "wizard.step_form_desc": "Chọn gói và điền thông tin",
   "wizard.step_payment": "Thanh toán",
@@ -6441,6 +6440,7 @@
     "current": "Hiện tại",
     "previous": "Trước đó",
     "first": "Lần đầu",
+    "goal": "Mục tiêu",
     "target": "Mục tiêu",
     "weight": "Cân nặng",
     "bmi": "BMI",

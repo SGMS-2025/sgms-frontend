@@ -4,17 +4,20 @@ import { PolarAngleAxis, PolarGrid, Radar, RadarChart, ResponsiveContainer } fro
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { TrainingProgressDisplay } from '@/types/api/TrainingProgress';
+import type { CustomerGoalDisplay } from '@/types/api/CustomerGoal';
 
 interface RadarChartDataPoint {
   metric: string;
   current: number;
   previous: number;
+  goal: number;
   fullMark: number;
 }
 
 interface TrainingProgressRadarChartProps {
   currentData?: TrainingProgressDisplay | null;
   previousData?: TrainingProgressDisplay | null;
+  goalData?: CustomerGoalDisplay | null;
 }
 
 // Normalize values to a 0-100 scale for better radar chart visualization
@@ -63,7 +66,8 @@ const normalizeCircumference = (value: number, min: number, max: number): number
 
 export const TrainingProgressRadarChart: React.FC<TrainingProgressRadarChartProps> = ({
   currentData,
-  previousData
+  previousData,
+  goalData
 }) => {
   const { t } = useTranslation();
   const [chartView, setChartView] = React.useState<'basic' | 'measurements'>('basic');
@@ -79,40 +83,46 @@ export const TrainingProgressRadarChart: React.FC<TrainingProgressRadarChartProp
         metric: t('radar_chart.weight', 'Cân nặng'),
         current: current?.weight ? normalizeWeight(current.weight) : 0,
         previous: previous?.weight ? normalizeWeight(previous.weight) : 50,
+        goal: goalData?.targets?.weight ? normalizeWeight(goalData.targets.weight) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.bmi', 'BMI'),
         current: current?.bmi ? normalizeBMI(current.bmi) : 0,
         previous: previous?.bmi ? normalizeBMI(previous.bmi) : 100,
+        goal: goalData?.targets?.bmi ? normalizeBMI(goalData.targets.bmi) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.strength', 'Sức mạnh'),
         current: current?.strength ? normalizeStrength(current.strength) : 0,
         previous: previous?.strength ? normalizeStrength(previous.strength) : 50,
+        goal: goalData?.targets?.strength ? normalizeStrength(goalData.targets.strength) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.body_fat', 'Mỡ cơ thể'),
         current: current?.bodyFatPercentage ? normalizeBodyFat(current.bodyFatPercentage) : 50,
         previous: previous?.bodyFatPercentage ? normalizeBodyFat(previous.bodyFatPercentage) : 50,
+        goal: goalData?.targets?.bodyFatPercentage ? normalizeBodyFat(goalData.targets.bodyFatPercentage) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.muscle_mass', '% Cơ bắp'),
         current: current?.muscleMassPercentage ? normalizeMuscleMass(current.muscleMassPercentage) : 50,
         previous: previous?.muscleMassPercentage ? normalizeMuscleMass(previous.muscleMassPercentage) : 50,
+        goal: goalData?.targets?.muscleMassPercentage ? normalizeMuscleMass(goalData.targets.muscleMassPercentage) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.body_water', '% Nước'),
         current: current?.bodyWaterPercentage ? normalizeBodyWater(current.bodyWaterPercentage) : 50,
         previous: previous?.bodyWaterPercentage ? normalizeBodyWater(previous.bodyWaterPercentage) : 50,
+        goal: goalData?.targets?.bodyWaterPercentage ? normalizeBodyWater(goalData.targets.bodyWaterPercentage) : 0,
         fullMark: 100
       }
     ];
-  }, [currentData, previousData, t]);
+  }, [currentData, previousData, goalData, t]);
 
   // Body measurements chart data
   const measurementsChartData = React.useMemo((): RadarChartDataPoint[] => {
@@ -124,34 +134,39 @@ export const TrainingProgressRadarChart: React.FC<TrainingProgressRadarChartProp
         metric: t('radar_chart.chest', 'Ngực'),
         current: current?.chest ? normalizeCircumference(current.chest, 70, 130) : 0,
         previous: previous?.chest ? normalizeCircumference(previous.chest, 70, 130) : 50,
+        goal: goalData?.targets?.chest ? normalizeCircumference(goalData.targets.chest, 70, 130) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.waist', 'Eo'),
         current: current?.waist ? normalizeCircumference(current.waist, 50, 120) : 0,
         previous: previous?.waist ? normalizeCircumference(previous.waist, 50, 120) : 50,
+        goal: goalData?.targets?.waist ? normalizeCircumference(goalData.targets.waist, 50, 120) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.hips', 'Mông'),
         current: current?.hips ? normalizeCircumference(current.hips, 70, 130) : 0,
         previous: previous?.hips ? normalizeCircumference(previous.hips, 70, 130) : 50,
+        goal: goalData?.targets?.hips ? normalizeCircumference(goalData.targets.hips, 70, 130) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.arms', 'Tay'),
         current: current?.arms ? normalizeCircumference(current.arms, 20, 50) : 0,
         previous: previous?.arms ? normalizeCircumference(previous.arms, 20, 50) : 50,
+        goal: goalData?.targets?.arms ? normalizeCircumference(goalData.targets.arms, 20, 50) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.thighs', 'Đùi'),
         current: current?.thighs ? normalizeCircumference(current.thighs, 40, 80) : 0,
         previous: previous?.thighs ? normalizeCircumference(previous.thighs, 40, 80) : 50,
+        goal: goalData?.targets?.thighs ? normalizeCircumference(goalData.targets.thighs, 40, 80) : 0,
         fullMark: 100
       }
     ];
-  }, [currentData, previousData, t]);
+  }, [currentData, previousData, goalData, t]);
 
   const chartData = chartView === 'basic' ? basicChartData : measurementsChartData;
 
@@ -259,6 +274,15 @@ export const TrainingProgressRadarChart: React.FC<TrainingProgressRadarChartProp
                 fillOpacity={0.5}
                 strokeWidth={2}
               />
+              {goalData && (
+                <Radar
+                  name={t('radar_chart.goal', 'Mục tiêu')}
+                  dataKey="goal"
+                  stroke="#10B981"
+                  fill="none"
+                  strokeWidth={2}
+                />
+              )}
             </RadarChart>
           </ResponsiveContainer>
         </div>
@@ -269,6 +293,12 @@ export const TrainingProgressRadarChart: React.FC<TrainingProgressRadarChartProp
             <div className="h-2.5 w-2.5 rounded-full bg-[#F05A29]" />
             <span>{t('radar_chart.current', 'Hiện tại')}</span>
           </div>
+          {goalData && (
+            <div className="flex items-center gap-2">
+              <div className="h-2.5 w-2.5 rounded-full bg-[#10B981]" />
+              <span>{t('radar_chart.goal', 'Mục tiêu')}</span>
+            </div>
+          )}
           {hasBaseline && (
             <div className="flex items-center gap-2">
               <div className="h-2.5 w-2.5 rounded-full bg-[#3B82F6]" />

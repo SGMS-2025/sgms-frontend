@@ -85,74 +85,11 @@ import AdminBranchCustomersPage from '@/pages/admin/AdminBranchCustomersPage';
 import AdminContractsPage from '@/pages/admin/AdminContractsPage';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import OwnerSubscriptionGate from '@/components/guards/OwnerSubscriptionGate';
-import OwnerSubscriptionGateWithLayout from '@/components/guards/OwnerSubscriptionGateWithLayout';
 import KPIManagementPage from '@/pages/owner/KPIManagementPage';
 import { CommissionPolicyPage } from '@/pages/owner/CommissionPolicyPage';
 import MyKPIPage from '@/pages/pt/MyKPIPage';
 import ChatAiPage from '@/pages/pt/ChatAiPage';
 import ProfileAccountSettingsPage from '@/pages/profile/ProfileAccountSettingsPage';
-
-// WorkShift Calendar with Layout Component
-// Note: Layout is provided by OwnerSubscriptionGateWithLayout wrapper
-const WorkShiftCalendarPageWithLayout: React.FC = () => {
-  const { isAuthenticated, user, isLoading } = useAuthState();
-
-  // Show loading while authentication is being checked
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Đang tải...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Check if user has permission to access workshift calendar
-  if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Allow OWNER and STAFF roles
-  if (user.role !== 'OWNER' && user.role !== 'STAFF') {
-    return <Navigate to="/home" replace />;
-  }
-
-  // Just return the page content - layout is handled by OwnerSubscriptionGateWithLayout
-  return <WorkShiftCalendarPage />;
-};
-
-// Reschedule Management with Layout Component
-// Note: Layout is provided by OwnerSubscriptionGateWithLayout wrapper
-const RescheduleManagementPageWithLayout: React.FC = () => {
-  const { isAuthenticated, user, isLoading } = useAuthState();
-
-  // Show loading while authentication is being checked
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Đang tải...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Check if user has permission to access reschedule
-  if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Allow OWNER and STAFF roles
-  if (user.role !== 'OWNER' && user.role !== 'STAFF') {
-    return <Navigate to="/home" replace />;
-  }
-
-  // Just return the page content - layout is handled by OwnerSubscriptionGateWithLayout
-  return <RescheduleManagementPage />;
-};
 
 // Owner Only Route Component - only allows OWNER role
 const OwnerOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -411,22 +348,9 @@ const AppRoutes: React.FC = () => {
       {/* Business Verification Route - for owners to verify their business */}
       <Route path="/business-verification" element={<BusinessVerificationPage />} />
 
-      {/* Reschedule - render requirement inside owner layout when OWNER has no subscription */}
-      <Route element={<OwnerSubscriptionGateWithLayout />}>
-        <Route
-          path="/reschedule"
-          element={isAuthenticated ? <RescheduleManagementPageWithLayout /> : <Navigate to="/login" replace />}
-        />
-      </Route>
-
       {/* Gym Routes - Public routes */}
       <Route path="/gyms" element={<GymListPage />} />
       <Route path="/gym/:id" element={<GymDetailPage />} />
-
-      {/* Work Shift Calendar Route - render requirement inside owner layout when blocked */}
-      <Route element={<OwnerSubscriptionGateWithLayout />}>
-        <Route path="/manage/workshifts/calendar" element={<WorkShiftCalendarPageWithLayout />} />
-      </Route>
 
       {/* Management Routes - for OWNER role and STAFF with Manager job title */}
       <Route
@@ -491,6 +415,12 @@ const AppRoutes: React.FC = () => {
             <Route path="kpi" element={<KPIManagementPage />} />
             {/* Commission Policy Routes */}
             <Route path="commission-policies" element={<CommissionPolicyPage />} />
+
+            {/* Work Shift Calendar Route */}
+            <Route path="workshifts/calendar" element={<WorkShiftCalendarPage />} />
+
+            {/* Reschedule Management Route */}
+            <Route path="reschedule" element={<RescheduleManagementPage />} />
           </Route>
           {/* Subscription Management Route - OWNER only (accessible without active subscription) */}
           <Route
