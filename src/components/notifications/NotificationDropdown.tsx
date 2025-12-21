@@ -158,7 +158,7 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       const requestId =
         (notification.data as RescheduleNotificationData)?.rescheduleRequestId ||
         (notification.data as RescheduleNotificationData)?._id;
-      const url = requestId ? `/reschedule?requestId=${requestId}` : '/reschedule';
+      const url = requestId ? `/manage/reschedule?requestId=${requestId}` : '/manage/reschedule';
       navigate(url);
       if (onClose) onClose();
       return;

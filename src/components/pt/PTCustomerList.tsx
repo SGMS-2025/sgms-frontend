@@ -46,7 +46,7 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
 
     const variants = {
       active: { bg: 'bg-green-100', text: 'text-green-700', label: t('pt_customer.status_badge.active') },
-      urgent: { bg: 'bg-[#F05A29] bg-opacity-10', text: 'text-[#F05A29]', label: t('pt_customer.status_badge.urgent') },
+      urgent: { bg: 'bg-orange-100', text: 'text-orange-700', label: t('pt_customer.status_badge.urgent') },
       pending: { bg: 'bg-gray-100', text: 'text-gray-700', label: t('pt_customer.status_badge.pending') },
       expired: { bg: 'bg-red-100', text: 'text-red-700', label: t('pt_customer.status_badge.expired') }
     };
