@@ -1,6 +1,6 @@
 import React from 'react';
 import type { TFunction } from 'i18next';
-import { MessageSquare, Plus, Trash2, Loader2 } from 'lucide-react';
+import { MessageSquare, Plus, Trash2, Loader2, MoreVertical } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -20,6 +20,8 @@ export interface ChatSidebarProps {
   onNewChat: () => void;
   onRequestClear: (sessionId: string, e: React.MouseEvent) => void;
   resolveRoomTitle: (title?: string | null, sessionId?: string) => string | undefined | null;
+  isMobileSidebarOpen?: boolean;
+  onMobileToggle?: () => void;
 }
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({
@@ -32,7 +34,9 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onSelectRoom,
   onNewChat,
   onRequestClear,
-  resolveRoomTitle
+  resolveRoomTitle,
+  isMobileSidebarOpen: _isMobileSidebarOpen,
+  onMobileToggle
 }) => {
   const renderRoomContent = () => {
     if (roomsLoading) {
@@ -90,10 +94,15 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   };
 
   return (
-    <div className="w-60 flex-shrink-0 flex flex-col rounded-xl border bg-card text-card-foreground shadow-sm min-h-0">
-      <div className="border-b px-3 py-2">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-mb font-semibold flex-1 min-w-0 overflow-x-auto whitespace-nowrap pr-2">
+    <div className="w-full h-full lg:w-60 flex-shrink-0 flex flex-col rounded-xl border bg-card text-card-foreground shadow-lg lg:shadow-sm min-h-0">
+      <div className="border-b px-3 py-2 md:py-3">
+        <div className="flex items-center justify-between gap-2">
+          {onMobileToggle && (
+            <Button variant="ghost" size="icon" onClick={onMobileToggle} className="h-8 w-8" title="Close sidebar">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          )}
+          <h3 className="text-base md:text-lg font-semibold flex-1 min-w-0 overflow-x-auto whitespace-nowrap pr-2">
             {t('chat.conversations') || 'Conversations'}
           </h3>
           <Button
@@ -103,7 +112,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
               e.stopPropagation();
               onNewChat();
             }}
-            className="h-8 w-8 relative z-10"
+            className="h-8 w-8 md:h-9 md:w-9 relative z-10"
             title={t('chat.new_chat') || 'New Chat'}
           >
             <Plus className="h-4 w-4" />

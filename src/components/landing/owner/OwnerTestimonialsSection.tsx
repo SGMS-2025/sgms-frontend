@@ -2,10 +2,29 @@ import { Quote, Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import ScrollReveal from '@/components/common/ScrollReveal';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ownerTestimonials } from '@/constants/ownerLanding';
 
 const OwnerTestimonialsSection = () => {
   const { t } = useTranslation();
+
+  // Lấy dữ liệu testimonials từ translation keys
+  const ownerTestimonials = [
+    {
+      name: t('owner.testimonials.item_1.name'),
+      role: t('owner.testimonials.item_1.role'),
+      quote: t('owner.testimonials.item_1.quote'),
+      result: t('owner.testimonials.item_1.result'),
+      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?auto=format&fit=crop&w=80&h=80&q=80',
+      rating: 4.9
+    },
+    {
+      name: t('owner.testimonials.item_2.name'),
+      role: t('owner.testimonials.item_2.role'),
+      quote: t('owner.testimonials.item_2.quote'),
+      result: t('owner.testimonials.item_2.result'),
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=80&h=80&q=80',
+      rating: 5
+    }
+  ];
 
   return (
     <section

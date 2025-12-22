@@ -1,11 +1,35 @@
 import { useTranslation } from 'react-i18next';
 import ScrollReveal from '@/components/common/ScrollReveal';
 import { Badge } from '@/components/ui/badge';
-import { ownerTimeline } from '@/constants/ownerLanding';
 import { resolveIcon } from '@/utils/iconResolver';
 
 const OwnerTimelineSection = () => {
   const { t } = useTranslation();
+
+  // Lấy dữ liệu timeline từ translation keys
+  const ownerTimeline = [
+    {
+      title: t('owner.timeline.item_1.title'),
+      duration: t('owner.timeline.item_1.duration'),
+      description: t('owner.timeline.item_1.description'),
+      highlights: [t('owner.timeline.item_1.highlight_1'), t('owner.timeline.item_1.highlight_2')],
+      icon: 'Database'
+    },
+    {
+      title: t('owner.timeline.item_2.title'),
+      duration: t('owner.timeline.item_2.duration'),
+      description: t('owner.timeline.item_2.description'),
+      highlights: [t('owner.timeline.item_2.highlight_1'), t('owner.timeline.item_2.highlight_2')],
+      icon: 'Workflow'
+    },
+    {
+      title: t('owner.timeline.item_3.title'),
+      duration: t('owner.timeline.item_3.duration'),
+      description: t('owner.timeline.item_3.description'),
+      highlights: [t('owner.timeline.item_3.highlight_1'), t('owner.timeline.item_3.highlight_2')],
+      icon: 'Rocket'
+    }
+  ];
 
   return (
     <section id="owner-timeline" className="bg-white py-24">
@@ -37,7 +61,9 @@ const OwnerTimelineSection = () => {
                       <IconComponent className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-orange-500">Bước {index + 1}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-orange-500">
+                        {t('owner.timeline.step')} {index + 1}
+                      </p>
                       <p className="text-sm font-medium text-slate-500">{step.duration}</p>
                     </div>
                   </div>

@@ -2,10 +2,29 @@ import { useTranslation } from 'react-i18next';
 import ScrollReveal from '@/components/common/ScrollReveal';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { ownerFaqs } from '@/constants/ownerLanding';
 
 const OwnerFAQSection = () => {
   const { t } = useTranslation();
+
+  // Lấy dữ liệu FAQs từ translation keys
+  const ownerFaqs = [
+    {
+      question: t('owner.faq.item_1.question'),
+      answer: t('owner.faq.item_1.answer')
+    },
+    {
+      question: t('owner.faq.item_2.question'),
+      answer: t('owner.faq.item_2.answer')
+    },
+    {
+      question: t('owner.faq.item_3.question'),
+      answer: t('owner.faq.item_3.answer')
+    },
+    {
+      question: t('owner.faq.item_4.question'),
+      answer: t('owner.faq.item_4.answer')
+    }
+  ];
 
   return (
     <section id="owner-faq" className="bg-white py-24">

@@ -573,11 +573,11 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
             <Button
               variant="outline"
               size="icon"
-              className="h-11 w-11 rounded-full border-gray-300 bg-white hover:bg-gray-50"
+              className="h-9 w-9 md:h-11 md:w-11 rounded-full border-gray-300 bg-white hover:bg-gray-50"
               onClick={startCustomersTour}
               title={t('customer.tour.button', 'Hướng dẫn')}
             >
-              <HelpCircle className="h-4 w-4 text-gray-500 hover:text-orange-500" />
+              <HelpCircle className="h-3.5 w-3.5 md:h-4 md:w-4 text-gray-500 hover:text-orange-500" />
             </Button>
 
             {/* Column Selector */}
@@ -585,10 +585,11 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="h-11 rounded-full border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:border-orange-300 hover:text-orange-500"
+                  className="h-9 md:h-11 rounded-full border-gray-300 px-3 md:px-4 py-2 text-xs md:text-sm font-medium text-gray-700 hover:border-orange-300 hover:text-orange-500"
                 >
-                  <Settings className="mr-2 h-4 w-4" />
-                  {t('dashboard.columns')}
+                  <Settings className="mr-1 md:mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
+                  <span className="hidden sm:inline">{t('dashboard.columns')}</span>
+                  <span className="sm:hidden">{t('dashboard.columns_short', 'Cols')}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -677,7 +678,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
             </DropdownMenu>
 
             <Button
-              className={`h-11 rounded-full px-6 text-sm font-semibold shadow-sm ${
+              className={`h-9 md:h-11 rounded-full px-3 md:px-6 text-xs md:text-sm font-semibold shadow-sm ${
                 canManageCustomers()
                   ? 'bg-blue-500 text-white hover:bg-blue-600'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -685,11 +686,12 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
               onClick={canManageCustomers() ? handleExcelImport : undefined}
               disabled={!canManageCustomers()}
             >
-              <FileSpreadsheet className="mr-2 h-4 w-4" />
-              Import Excel
+              <FileSpreadsheet className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">{t('dashboard.import_excel', 'Import Excel')}</span>
+              <span className="sm:hidden">{t('dashboard.import', 'Import')}</span>
             </Button>
             <Button
-              className={`h-11 rounded-full px-6 text-sm font-semibold shadow-sm ${
+              className={`h-9 md:h-11 rounded-full px-3 md:px-6 text-xs md:text-sm font-semibold shadow-sm ${
                 canManageCustomers()
                   ? 'bg-orange-500 text-white hover:bg-orange-600'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -697,8 +699,9 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
               onClick={canManageCustomers() ? handleAddCustomer : undefined}
               disabled={!canManageCustomers()}
             >
-              <Plus className="mr-2 h-4 w-4" />
-              {t('dashboard.add_customer')}
+              <Plus className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">{t('dashboard.add_customer')}</span>
+              <span className="sm:hidden">{t('dashboard.add', 'Add')}</span>
             </Button>
           </div>
         </div>
@@ -707,12 +710,12 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
           <div className="relative flex-1">
             <Input
               placeholder={t('dashboard.enter_customer_name')}
-              className="h-11 rounded-full border border-transparent bg-gray-50 pl-12 text-sm shadow-inner focus:border-orange-200 focus:bg-white focus:ring-orange-200"
+              className="h-9 md:h-11 rounded-full border border-transparent bg-gray-50 pl-10 md:pl-12 text-xs md:text-sm shadow-inner focus:border-orange-200 focus:bg-white focus:ring-orange-200"
               value={filters.searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
               data-tour="customers-search-input"
             />
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="pointer-events-none absolute left-3 md:left-4 top-1/2 h-3.5 w-3.5 md:h-4 md:w-4 -translate-y-1/2 text-gray-400" />
           </div>
         </div>
       </div>

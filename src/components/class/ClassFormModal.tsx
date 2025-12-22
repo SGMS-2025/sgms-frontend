@@ -119,7 +119,10 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
 
       if (formBranchId) {
         try {
-          const trainersResp = await staffApi.getStaffListByBranch(formBranchId, { limit: 100 });
+          const trainersResp = await staffApi.getStaffListByBranch(formBranchId, {
+            limit: 100,
+            jobTitle: 'Personal Trainer'
+          });
           if (trainersResp?.success && trainersResp.data) {
             setTrainers(Array.isArray(trainersResp.data) ? trainersResp.data : []);
           } else {

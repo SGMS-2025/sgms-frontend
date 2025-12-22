@@ -16,6 +16,24 @@ export interface CustomerGoalTargets {
   metabolicAge?: number;
 }
 
+// Optional payload để backend tạo Training Progress đầu tiên từ Goal
+export interface InitialProgressPayload {
+  date?: string;
+  weight?: number;
+  height?: number;
+  strength?: number;
+  bodyFatPercentage?: number;
+  chest?: number;
+  waist?: number;
+  hips?: number;
+  arms?: number;
+  thighs?: number;
+  muscleMassPercentage?: number;
+  bodyWaterPercentage?: number;
+  metabolicAge?: number;
+  notes?: string;
+}
+
 export interface CustomerGoal {
   _id: string;
   id?: string;
@@ -58,6 +76,7 @@ export interface CreateCustomerGoalRequest {
   startDate: string;
   endDate: string;
   targets: CustomerGoalTargets;
+  initialProgress?: InitialProgressPayload;
 }
 
 export interface UpdateCustomerGoalRequest {
@@ -67,6 +86,7 @@ export interface UpdateCustomerGoalRequest {
   endDate?: string;
   targets?: Partial<CustomerGoalTargets>;
   status?: 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'EXPIRED';
+  initialProgress?: InitialProgressPayload;
 }
 
 export interface CustomerGoalListParams {

@@ -478,6 +478,7 @@ export interface PTCustomer {
   allergies?: string[];
   medicalConditions?: string[];
   contractType?: ContractType; // 'PT_PACKAGE' | 'MEMBERSHIP_KPI'
+  lastTrainingProgressDate?: string;
   package: {
     contractId: string;
     name: string;

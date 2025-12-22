@@ -16,7 +16,7 @@ import TimeOffRequestTab from '@/components/timeoff/TimeOffRequestTab';
 import { useWorkshiftPermissions } from '@/hooks/useWorkshiftPermissions';
 import { useEnsureWorkShift } from '@/hooks/useEnsureWorkShift';
 import { useBranchWorkingConfig } from '@/hooks/useBranchWorkingConfig';
-import { isVirtualWorkShift } from '@/utils/workshiftUtils';
+import { isVirtualWorkShift, getDateFromWorkShiftStartTime } from '@/utils/workshiftUtils';
 import { formatInVietnam } from '@/utils/datetime';
 import { useAuthState } from '@/hooks/useAuth';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
@@ -586,6 +586,7 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                   filterStartTime={currentWorkShift?.startTimeLocal}
                   filterEndTime={currentWorkShift?.endTimeLocal}
                   filterDayOfWeek={currentWorkShift?.dayOfTheWeek}
+                  filterDate={getDateFromWorkShiftStartTime(currentWorkShift?.startTime, selectedDate)}
                   onClassClick={(classId) => {
                     setSelectedClassId(classId);
                     setShowClassDetail(true);
@@ -611,24 +612,7 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
             ) : (
               <TimeOffRequestTab
                 staffId={currentWorkShift.staffId?._id || ''}
-                selectedDate={(() => {
-                  if (currentWorkShift?.startTime) {
-                    const utcDate = new Date(currentWorkShift.startTime);
-                    const vnDateStr = utcDate.toLocaleString('en-US', {
-                      timeZone: 'Asia/Ho_Chi_Minh',
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit'
-                    });
-                    const [month, day, year] = vnDateStr.split('/');
-                    return new Date(
-                      Number.parseInt(year, 10),
-                      Number.parseInt(month, 10) - 1,
-                      Number.parseInt(day, 10)
-                    );
-                  }
-                  return selectedDate || new Date();
-                })()}
+                selectedDate={getDateFromWorkShiftStartTime(currentWorkShift?.startTime, selectedDate)}
                 onTimeOffCreated={handleTimeOffCreated}
                 userRole={userRole}
                 workShift={currentWorkShift}
@@ -694,7 +678,7 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
             setSelectedClassId(null);
           }}
           classId={selectedClassId || undefined}
-          selectedDate={selectedDate} // Pass selected date from calendar
+          selectedDate={currentWorkShift?.startTime ? new Date(currentWorkShift.startTime) : selectedDate}
         />
       </DialogContent>
     </Dialog>

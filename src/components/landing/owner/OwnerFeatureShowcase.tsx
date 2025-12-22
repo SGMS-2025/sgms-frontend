@@ -1,12 +1,49 @@
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ScrollReveal from '@/components/common/ScrollReveal';
-import { ownerFeatures, ownerIntegrations } from '@/constants/ownerLanding';
 import { Badge } from '@/components/ui/badge';
 import { resolveIcon } from '@/utils/iconResolver';
 
 const OwnerFeatureShowcase = () => {
   const { t } = useTranslation();
+
+  // Lấy dữ liệu features từ translation keys
+  const ownerFeatures = [
+    {
+      title: t('owner.features.item_1.title'),
+      description: t('owner.features.item_1.description'),
+      icon: 'LayoutDashboard',
+      highlights: [t('owner.features.item_1.highlight_1'), t('owner.features.item_1.highlight_2')]
+    },
+    {
+      title: t('owner.features.item_2.title'),
+      description: t('owner.features.item_2.description'),
+      icon: 'Workflow',
+      highlights: [t('owner.features.item_2.highlight_1'), t('owner.features.item_2.highlight_2')]
+    },
+    {
+      title: t('owner.features.item_3.title'),
+      description: t('owner.features.item_3.description'),
+      icon: 'CalendarRange',
+      highlights: [t('owner.features.item_3.highlight_1'), t('owner.features.item_3.highlight_2')]
+    }
+  ];
+
+  // Lấy dữ liệu integrations từ translation keys
+  const ownerIntegrations = [
+    {
+      name: t('owner.features.integration.item_1.name'),
+      description: t('owner.features.integration.item_1.description')
+    },
+    {
+      name: t('owner.features.integration.item_2.name'),
+      description: t('owner.features.integration.item_2.description')
+    },
+    {
+      name: t('owner.features.integration.item_3.name'),
+      description: t('owner.features.integration.item_3.description')
+    }
+  ];
 
   return (
     <section id="owner-features" className="bg-gradient-to-b from-slate-50 via-white to-orange-50/30 py-24">

@@ -2,7 +2,6 @@ import * as Icons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import ScrollReveal from '@/components/common/ScrollReveal';
-import { ownerWorkflow } from '@/constants/ownerLanding';
 
 const resolveIcon = (iconName: string): LucideIcon => {
   const IconComponent = Icons[iconName as keyof typeof Icons];
@@ -16,6 +15,28 @@ const resolveIcon = (iconName: string): LucideIcon => {
 
 const OwnerAutomationSection = () => {
   const { t } = useTranslation();
+
+  // Lấy dữ liệu workflow từ translation keys
+  const ownerWorkflow = [
+    {
+      title: t('owner.automation.workflow.item_1.title'),
+      description: t('owner.automation.workflow.item_1.description'),
+      result: t('owner.automation.workflow.item_1.result'),
+      icon: 'PlugZap'
+    },
+    {
+      title: t('owner.automation.workflow.item_2.title'),
+      description: t('owner.automation.workflow.item_2.description'),
+      result: t('owner.automation.workflow.item_2.result'),
+      icon: 'Waypoints'
+    },
+    {
+      title: t('owner.automation.workflow.item_3.title'),
+      description: t('owner.automation.workflow.item_3.description'),
+      result: t('owner.automation.workflow.item_3.result'),
+      icon: 'Sparkles'
+    }
+  ];
 
   return (
     <section
@@ -64,39 +85,53 @@ const OwnerAutomationSection = () => {
 
             <div className="relative space-y-6">
               <div className="rounded-3xl border border-orange-100 bg-orange-50/60 p-6">
-                <p className="text-xs uppercase tracking-widest text-orange-500">Customer Journey</p>
+                <p className="text-xs uppercase tracking-widest text-orange-500">
+                  {t('owner.automation.customer_journey.title')}
+                </p>
                 <div className="mt-4 space-y-4 text-sm text-slate-700">
                   <div className="flex items-center justify-between rounded-2xl border border-orange-100 bg-white px-4 py-3">
-                    <span className="font-medium text-slate-900">Đăng ký thử miễn phí</span>
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs text-emerald-700">Tự động</span>
+                    <span className="font-medium text-slate-900">
+                      {t('owner.automation.customer_journey.step_1.label')}
+                    </span>
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs text-emerald-700">
+                      {t('owner.automation.customer_journey.step_1.status')}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between rounded-2xl border border-orange-100 bg-white px-4 py-3">
-                    <span className="font-medium text-slate-900">Chăm sóc & upsell</span>
-                    <span className="text-xs text-orange-600">Workflow 5 bước</span>
+                    <span className="font-medium text-slate-900">
+                      {t('owner.automation.customer_journey.step_2.label')}
+                    </span>
+                    <span className="text-xs text-orange-600">
+                      {t('owner.automation.customer_journey.step_2.status')}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between rounded-2xl border border-orange-100 bg-white px-4 py-3">
-                    <span className="font-medium text-slate-900">Gia hạn & thanh toán</span>
-                    <span className="rounded-full bg-orange-100 px-3 py-1 text-xs text-orange-600">1 cú click</span>
+                    <span className="font-medium text-slate-900">
+                      {t('owner.automation.customer_journey.step_3.label')}
+                    </span>
+                    <span className="rounded-full bg-orange-100 px-3 py-1 text-xs text-orange-600">
+                      {t('owner.automation.customer_journey.step_3.status')}
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div className="rounded-3xl border border-orange-100 bg-white p-6 text-sm text-slate-700">
                 <p className="text-xs font-semibold uppercase tracking-widest text-orange-500">
-                  Cảnh báo theo thời gian thực
+                  {t('owner.automation.real_time_alerts.title')}
                 </p>
                 <ul className="mt-4 space-y-3">
                   <li className="flex items-start gap-2">
                     <span className="mt-1 inline-flex size-2 rounded-full bg-rose-400" />
-                    <span>Chi nhánh Quận 7 đạt 65% KPI doanh thu tuần – đề xuất kích hoạt ưu đãi gói 3 tháng.</span>
+                    <span>{t('owner.automation.real_time_alerts.alert_1')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="mt-1 inline-flex size-2 rounded-full bg-emerald-400" />
-                    <span>Lịch làm việc HLV Duy: thêm 2 khung giờ trống phù hợp nhu cầu khách VIP.</span>
+                    <span>{t('owner.automation.real_time_alerts.alert_2')}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="mt-1 inline-flex size-2 rounded-full bg-sky-400" />
-                    <span>Camera check-in phát hiện hội viên chưa gia hạn. Gửi nhắc qua Zalo OA.</span>
+                    <span>{t('owner.automation.real_time_alerts.alert_3')}</span>
                   </li>
                 </ul>
               </div>

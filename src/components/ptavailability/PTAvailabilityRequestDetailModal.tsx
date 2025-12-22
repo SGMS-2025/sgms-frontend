@@ -314,8 +314,6 @@ const PTAvailabilityRequestDetailModal: React.FC<PTAvailabilityRequestDetailModa
                     selectedSlots={request.slots}
                     readOnly={true}
                     slotDuration={30}
-                    minTime="06:00"
-                    maxTime="22:00"
                     staffId={request.staffId._id}
                     startDate={gridStartDate}
                     workingDays={workingDays}

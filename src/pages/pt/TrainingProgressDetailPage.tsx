@@ -12,7 +12,19 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Plus, Calendar, Weight, Dumbbell, Target, MoreVertical, Loader2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Plus,
+  Calendar,
+  Weight,
+  Dumbbell,
+  Target,
+  MoreVertical,
+  Loader2,
+  ClipboardList,
+  UtensilsCrossed,
+  Crosshair
+} from 'lucide-react';
 import { TrainingProgressChart } from '@/components/pt/TrainingProgressChart';
 import { TrainingProgressRadarChart } from '@/components/pt/TrainingProgressRadarChart';
 import { TrainingLogTable } from '@/components/pt/TrainingLogTable';
@@ -570,7 +582,9 @@ export default function TrainingProgressDetailPage() {
     strength: progress.strength
   }));
 
-  const filteredChartData = chartFilter === '4weeks' ? chartData.slice(-4) : chartData;
+  // progressList is returned in DESC order (newest first) from the API.
+  // For "last 4 weeks" we want the most recent records, not the oldest ones.
+  const filteredChartData = chartFilter === '4weeks' ? chartData.slice(0, 4) : chartData;
   const chartToggleClass = (active: boolean) =>
     `rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
       active ? 'bg-white text-[#101D33] shadow-sm' : 'text-slate-600 hover:text-slate-900'
@@ -597,23 +611,25 @@ export default function TrainingProgressDetailPage() {
             {/* Header Section */}
             <div className="space-y-4">
               {/* Breadcrumb */}
-              <div className="flex items-center text-sm text-gray-600">
-                <button onClick={handleBack} className="hover:text-[#F05A29] transition-colors">
+              <div className="flex items-center text-sm text-gray-600 overflow-x-auto hide-scrollbar">
+                <button onClick={handleBack} className="hover:text-[#F05A29] transition-colors whitespace-nowrap">
                   {t('progress_detail.breadcrumb.customers')}
                 </button>
                 <span className="mx-2">/</span>
-                <span className="text-gray-400">{customer.name}</span>
+                <span className="text-gray-400 truncate">{customer.name}</span>
                 <span className="mx-2">/</span>
-                <span className="text-[#F05A29] font-medium">{t('progress_detail.breadcrumb.progress')}</span>
+                <span className="text-[#F05A29] font-medium whitespace-nowrap">
+                  {t('progress_detail.breadcrumb.progress')}
+                </span>
               </div>
 
               {/* Customer Info & Actions */}
-              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+              <div className="flex flex-col md:flex-row md:items-center gap-4 md:justify-between">
                 {/* Customer Info */}
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-14 w-14 md:h-16 md:w-16 flex-shrink-0">
                     <AvatarImage src={customer.avatar} alt={customer.name} />
-                    <AvatarFallback className="bg-[#F05A29] text-white text-lg">
+                    <AvatarFallback className="bg-[#F05A29] text-white text-base md:text-lg">
                       {customer.name
                         .split(' ')
                         .map((n: string) => n[0])
@@ -621,22 +637,22 @@ export default function TrainingProgressDetailPage() {
                     </AvatarFallback>
                   </Avatar>
 
-                  <div className="space-y-1">
-                    <h1 className="text-2xl font-bold text-[#101D33]">{customer.name}</h1>
-                    <p className="text-gray-600">{customer.package}</p>
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <h1 className="text-xl md:text-2xl font-bold text-[#101D33] truncate">{customer.name}</h1>
+                    <p className="text-sm md:text-base text-gray-600 truncate">{customer.package}</p>
                   </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-3">
-                  <Button variant="outline" onClick={handleBack} className="flex items-center gap-2">
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={handleBack} className="flex items-center justify-center gap-2">
                     <ArrowLeft className="h-4 w-4" />
                     {t('progress_detail.back_to_detail')}
                   </Button>
 
                   <Button
                     onClick={() => setIsAddFormOpen(true)}
-                    className="bg-[#F05A29] hover:bg-[#E04A1F] text-white flex items-center gap-2"
+                    className="bg-[#F05A29] hover:bg-[#E04A1F] text-white flex items-center justify-center gap-2"
                   >
                     <Plus className="h-4 w-4" />
                     {t('progress_detail.add_progress')}
@@ -645,14 +661,14 @@ export default function TrainingProgressDetailPage() {
               </div>
 
               {/* Stats Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                 <Card>
-                  <CardContent className="p-4 text-center">
-                    <div className="flex items-center justify-center mb-2">
-                      <Weight className="h-8 w-8 text-[#F05A29]" />
+                  <CardContent className="p-3 md:p-4 text-center">
+                    <div className="flex items-center justify-center mb-1 md:mb-2">
+                      <Weight className="h-6 w-6 md:h-8 md:w-8 text-[#F05A29]" />
                     </div>
-                    <p className="text-sm text-gray-600">{t('progress_detail.stats.weight_now')}</p>
-                    <p className="text-2xl font-bold text-[#101D33]">
+                    <p className="text-xs md:text-sm text-gray-600 truncate">{t('progress_detail.stats.weight_now')}</p>
+                    <p className="text-lg md:text-2xl font-bold text-[#101D33]">
                       {customerStats?.currentWeight ||
                         progressList[0]?.weight ||
                         t('progress_detail.stats.not_available')}{' '}
@@ -662,12 +678,14 @@ export default function TrainingProgressDetailPage() {
                 </Card>
 
                 <Card>
-                  <CardContent className="p-4 text-center">
-                    <div className="flex items-center justify-center mb-2">
-                      <Dumbbell className="h-8 w-8 text-[#F05A29]" />
+                  <CardContent className="p-3 md:p-4 text-center">
+                    <div className="flex items-center justify-center mb-1 md:mb-2">
+                      <Dumbbell className="h-6 w-6 md:h-8 md:w-8 text-[#F05A29]" />
                     </div>
-                    <p className="text-sm text-gray-600">{t('progress_detail.stats.strength_score')}</p>
-                    <p className="text-2xl font-bold text-[#101D33]">
+                    <p className="text-xs md:text-sm text-gray-600 truncate">
+                      {t('progress_detail.stats.strength_score')}
+                    </p>
+                    <p className="text-lg md:text-2xl font-bold text-[#101D33] truncate">
                       {customerStats?.currentStrengthScore ||
                         progressList[0]?.strength ||
                         t('progress_detail.stats.not_available')}
@@ -676,24 +694,26 @@ export default function TrainingProgressDetailPage() {
                 </Card>
 
                 <Card>
-                  <CardContent className="p-4 text-center">
-                    <div className="flex items-center justify-center mb-2">
-                      <Target className="h-8 w-8 text-[#F05A29]" />
+                  <CardContent className="p-3 md:p-4 text-center">
+                    <div className="flex items-center justify-center mb-1 md:mb-2">
+                      <Target className="h-6 w-6 md:h-8 md:w-8 text-[#F05A29]" />
                     </div>
-                    <p className="text-sm text-gray-600">{t('progress_detail.stats.bmi')}</p>
-                    <p className="text-2xl font-bold text-[#101D33]">
+                    <p className="text-xs md:text-sm text-gray-600 truncate">{t('progress_detail.stats.bmi')}</p>
+                    <p className="text-lg md:text-2xl font-bold text-[#101D33]">
                       {customerStats?.currentBMI || progressList[0]?.bmi || t('progress_detail.stats.not_available')}
                     </p>
                   </CardContent>
                 </Card>
 
                 <Card>
-                  <CardContent className="p-4 text-center">
-                    <div className="flex items-center justify-center mb-2">
-                      <Calendar className="h-8 w-8 text-[#F05A29]" />
+                  <CardContent className="p-3 md:p-4 text-center">
+                    <div className="flex items-center justify-center mb-1 md:mb-2">
+                      <Calendar className="h-6 w-6 md:h-8 md:w-8 text-[#F05A29]" />
                     </div>
-                    <p className="text-sm text-gray-600">{t('progress_detail.stats.last_updated')}</p>
-                    <p className="text-sm font-medium text-[#101D33]">
+                    <p className="text-xs md:text-sm text-gray-600 truncate">
+                      {t('progress_detail.stats.last_updated')}
+                    </p>
+                    <p className="text-xs md:text-sm font-medium text-[#101D33] truncate">
                       {progressList[0]?.date || t('progress_detail.stats.not_available')}
                     </p>
                   </CardContent>
@@ -711,11 +731,7 @@ export default function TrainingProgressDetailPage() {
                 {/* Radar Chart - Body Metrics Overview */}
                 {/* currentData = most recent record with body measurements */}
                 {/* previousData = second most recent record with body measurements */}
-                <TrainingProgressRadarChart
-                  currentData={radarCurrentData}
-                  previousData={radarFirstData}
-                  goalData={activeGoal}
-                />
+                <TrainingProgressRadarChart currentData={radarCurrentData} previousData={radarFirstData} />
 
                 {/* Training Progress Line Chart */}
                 <Card>
@@ -826,9 +842,9 @@ export default function TrainingProgressDetailPage() {
                     trainerId={customer.trainerId}
                     branchId={''} // Backend will extract from serviceContract if available
                     initialGoal={activeGoal}
-                    onSubmit={() => {
+                    onSubmit={async () => {
+                      await Promise.all([refetchGoal(), refetch()]);
                       setIsGoalFormOpen(false);
-                      refetchGoal();
                     }}
                     onCancel={() => setIsGoalFormOpen(false)}
                   />
@@ -838,27 +854,31 @@ export default function TrainingProgressDetailPage() {
 
             {/* Meal Plans Section */}
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-xl font-bold text-[#101D33]">
-                  {t('progress_detail.meal_plan.title')}
-                </CardTitle>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleGenerateMealPlan}
-                    className="bg-[#4CAF50] hover:bg-[#45a049] text-white"
-                    disabled={generatingMealPlan || creatingMealPlan}
-                  >
-                    {generatingMealPlan
-                      ? t('progress_detail.meal_plan.generating')
-                      : t('progress_detail.meal_plan.generate')}
-                  </Button>
-                  <Button
-                    onClick={openCreate}
-                    className="bg-[#F05A29] hover:bg-[#E04A1F] text-white"
-                    disabled={creatingMealPlan || generatingMealPlan}
-                  >
-                    {t('progress_detail.meal_plan.create')}
-                  </Button>
+              <CardHeader className="pb-4">
+                <div className="flex flex-col gap-3">
+                  <CardTitle className="text-lg md:text-xl font-bold text-[#101D33]">
+                    {t('progress_detail.meal_plan.title')}
+                  </CardTitle>
+                  <div className="grid grid-cols-2 gap-2 md:flex md:gap-2">
+                    <Button
+                      onClick={handleGenerateMealPlan}
+                      className="bg-[#4CAF50] hover:bg-[#45a049] text-white text-xs md:text-sm whitespace-nowrap"
+                      disabled={generatingMealPlan || creatingMealPlan}
+                      size="sm"
+                    >
+                      {generatingMealPlan
+                        ? t('progress_detail.meal_plan.generating')
+                        : t('progress_detail.meal_plan.generate')}
+                    </Button>
+                    <Button
+                      onClick={openCreate}
+                      className="bg-[#F05A29] hover:bg-[#E04A1F] text-white text-xs md:text-sm whitespace-nowrap"
+                      disabled={creatingMealPlan || generatingMealPlan}
+                      size="sm"
+                    >
+                      {t('progress_detail.meal_plan.create')}
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -878,18 +898,18 @@ export default function TrainingProgressDetailPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         {pagedPlans.map((plan) => (
                           <div key={plan._id} className="border rounded-lg p-3 bg-white shadow-sm">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="font-semibold text-[#101D33] line-clamp-1">
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="font-semibold text-sm md:text-base text-[#101D33] line-clamp-2 flex-1 min-w-0">
                                 {plan.name || 'Meal Plan'}
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="secondary" className="capitalize">
+                              <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+                                <Badge variant="secondary" className="capitalize text-xs">
                                   {(plan.status ?? 'unknown').toLowerCase()}
                                 </Badge>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-                                      <MoreVertical className="h-4 w-4" />
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 md:h-8 md:w-8 p-0">
+                                      <MoreVertical className="h-3.5 w-3.5 md:h-4 md:w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
@@ -1020,15 +1040,32 @@ export default function TrainingProgressDetailPage() {
               </DialogContent>
             </Dialog>
 
-            {/* Floating Add Button for Mobile */}
+            {/* Floating Add Button for Mobile with Menu */}
             {!isDesktop && (
-              <Button
-                onClick={() => setIsAddFormOpen(true)}
-                className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-[#F05A29] hover:bg-[#E04A1F] shadow-lg z-50"
-                size="icon"
-              >
-                <Plus className="h-6 w-6" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-[#F05A29] hover:bg-[#E04A1F] shadow-lg z-50"
+                    size="icon"
+                  >
+                    <Plus className="h-6 w-6" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 mb-2">
+                  <DropdownMenuItem onClick={() => setIsAddFormOpen(true)} className="cursor-pointer py-3">
+                    <ClipboardList className="h-4 w-4 mr-2" />
+                    {t('progress_detail.add_progress')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={openCreate} className="cursor-pointer py-3">
+                    <UtensilsCrossed className="h-4 w-4 mr-2" />
+                    {t('progress_detail.meal_plan.create')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsGoalFormOpen(true)} className="cursor-pointer py-3">
+                    <Crosshair className="h-4 w-4 mr-2" />
+                    {activeGoal ? t('goal_form.edit_title', 'Edit Goal') : t('goal_form.create_title', 'Create Goal')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </>
         )}

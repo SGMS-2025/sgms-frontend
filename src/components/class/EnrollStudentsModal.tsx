@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Users, AlertCircle } from 'lucide-react';
@@ -13,14 +12,6 @@ import { usePendingCustomers } from '@/hooks/usePendingCustomers';
 import { useClassEnrollment } from '@/hooks/useClassEnrollment';
 import type { EnrollStudentsModalProps } from '@/types/class/EnrollStudentsModal';
 import { toast } from 'sonner';
-
-// Helper function to convert MongoDB Decimal to number
-const toNumber = (value: any): number => {
-  if (typeof value === 'number') return value;
-  if (typeof value === 'string') return parseFloat(value);
-  if (value?.$numberDecimal) return parseFloat(value.$numberDecimal);
-  return 0;
-};
 
 export const EnrollStudentsModal: React.FC<EnrollStudentsModalProps> = ({ classId, isOpen, onClose, onSuccess }) => {
   const { t } = useTranslation();
@@ -121,8 +112,7 @@ export const EnrollStudentsModal: React.FC<EnrollStudentsModalProps> = ({ classI
           {classInfo && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-sm text-blue-900">
-                <span className="font-semibold">{t('class.enrollstudents.capacity_label')}:</span>{' '}
-                {toNumber(classInfo.currentEnrollment)}/{toNumber(classInfo.capacity)}
+                <span className="font-semibold">{t('class.enrollstudents.capacity_label')}:</span>
                 {classInfo.isFull && <Badge className="ml-2 bg-red-500">{t('class.enrollstudents.status_full')}</Badge>}
                 {!classInfo.isFull && (
                   <Badge className="ml-2 bg-green-500">
