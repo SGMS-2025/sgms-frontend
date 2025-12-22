@@ -570,7 +570,9 @@ export default function TrainingProgressDetailPage() {
     strength: progress.strength
   }));
 
-  const filteredChartData = chartFilter === '4weeks' ? chartData.slice(-4) : chartData;
+  // progressList is returned in DESC order (newest first) from the API.
+  // For "last 4 weeks" we want the most recent records, not the oldest ones.
+  const filteredChartData = chartFilter === '4weeks' ? chartData.slice(0, 4) : chartData;
   const chartToggleClass = (active: boolean) =>
     `rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
       active ? 'bg-white text-[#101D33] shadow-sm' : 'text-slate-600 hover:text-slate-900'
@@ -711,11 +713,7 @@ export default function TrainingProgressDetailPage() {
                 {/* Radar Chart - Body Metrics Overview */}
                 {/* currentData = most recent record with body measurements */}
                 {/* previousData = second most recent record with body measurements */}
-                <TrainingProgressRadarChart
-                  currentData={radarCurrentData}
-                  previousData={radarFirstData}
-                  goalData={activeGoal}
-                />
+                <TrainingProgressRadarChart currentData={radarCurrentData} previousData={radarFirstData} />
 
                 {/* Training Progress Line Chart */}
                 <Card>
@@ -826,9 +824,9 @@ export default function TrainingProgressDetailPage() {
                     trainerId={customer.trainerId}
                     branchId={''} // Backend will extract from serviceContract if available
                     initialGoal={activeGoal}
-                    onSubmit={() => {
+                    onSubmit={async () => {
+                      await Promise.all([refetchGoal(), refetch()]);
                       setIsGoalFormOpen(false);
-                      refetchGoal();
                     }}
                     onCancel={() => setIsGoalFormOpen(false)}
                   />

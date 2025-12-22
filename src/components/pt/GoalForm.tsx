@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, ArrowRight, ChevronDown, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { useCustomerGoal } from '@/hooks/useCustomerGoal';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { trainingProgressApi } from '@/services/api/trainingProgressApi';
 import type {
   CreateCustomerGoalRequest,
   UpdateCustomerGoalRequest,
@@ -61,6 +62,30 @@ export const GoalForm: React.FC<GoalFormProps> = ({
     metabolicAge: ''
   });
 
+  // Baseline data to create initial training progress
+  const [baselineData, setBaselineData] = useState({
+    weight: '',
+    height: '',
+    strength: '',
+    bodyFatPercentage: '',
+    chest: '',
+    waist: '',
+    hips: '',
+    arms: '',
+    thighs: '',
+    muscleMassPercentage: '',
+    bodyWaterPercentage: '',
+    metabolicAge: '',
+    notes: ''
+  });
+
+  const targetInputClass =
+    'bg-[#FFF7F3] border-[#F05A29]/70 focus-visible:ring-[#F05A29] focus-visible:ring-2 focus-visible:ring-offset-0 focus:border-[#F05A29]';
+
+  const handleBaselineChange = (field: keyof typeof baselineData, value: string) => {
+    setBaselineData((prev) => ({ ...prev, [field]: value }));
+  };
+
   const [showTargets, setShowTargets] = useState(false);
   const [startDateOpen, setStartDateOpen] = useState(false);
   const [endDateOpen, setEndDateOpen] = useState(false);
@@ -78,7 +103,10 @@ export const GoalForm: React.FC<GoalFormProps> = ({
   }, [formData.endDate]);
 
   useEffect(() => {
-    if (initialGoal) {
+    const loadInitialData = async () => {
+      if (!initialGoal) return;
+
+      // Prefill targets from goal (cột Mục tiêu)
       setFormData({
         name: initialGoal.name || '',
         description: initialGoal.description || '',
@@ -97,6 +125,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
         bodyWaterPercentage: initialGoal.targets?.bodyWaterPercentage?.toString() || '',
         metabolicAge: initialGoal.targets?.metabolicAge?.toString() || ''
       });
+
       setShowTargets(
         !!(
           initialGoal.targets?.weight ||
@@ -113,8 +142,45 @@ export const GoalForm: React.FC<GoalFormProps> = ({
           initialGoal.targets?.metabolicAge
         )
       );
-    }
-  }, [initialGoal]);
+
+      // Load training progress đầu tiên để fill cột "Hiện tại"
+      try {
+        const response = await trainingProgressApi.getTrainingProgressList({
+          customerId,
+          serviceContractId,
+          sortBy: 'trackingDate',
+          sortOrder: 'asc',
+          limit: 1
+        });
+
+        if (response.success && response.data.progressRecords.length > 0) {
+          const first = response.data.progressRecords[0];
+          setBaselineData((prev) => ({
+            ...prev,
+            weight: first.weight != null ? first.weight.toString() : '',
+            height: first.height != null ? first.height.toString() : '',
+            strength: first.strength != null ? first.strength.toString() : '',
+            bodyFatPercentage: first.bodyFatPercentage != null ? first.bodyFatPercentage.toString() : '',
+            chest: first.chest != null ? first.chest.toString() : '',
+            waist: first.waist != null ? first.waist.toString() : '',
+            hips: first.hips != null ? first.hips.toString() : '',
+            arms: first.arms != null ? first.arms.toString() : '',
+            thighs: first.thighs != null ? first.thighs.toString() : '',
+            muscleMassPercentage: first.muscleMassPercentage != null ? first.muscleMassPercentage.toString() : '',
+            bodyWaterPercentage: first.bodyWaterPercentage != null ? first.bodyWaterPercentage.toString() : '',
+            metabolicAge: first.metabolicAge != null ? first.metabolicAge.toString() : '',
+            notes: first.notes || prev.notes
+          }));
+        }
+      } catch (err) {
+        // Không chặn form nếu load baseline lỗi
+        // eslint-disable-next-line no-console
+        console.error('Failed to load first training progress for goal edit:', err);
+      }
+    };
+
+    loadInitialData();
+  }, [initialGoal, customerId, serviceContractId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,6 +200,22 @@ export const GoalForm: React.FC<GoalFormProps> = ({
     const end = new Date(formData.endDate);
     if (end <= start) {
       toast.error(t('goal_form.end_date_after_start', 'End date must be after start date'));
+      return;
+    }
+
+    // Require baseline (current) core fields
+    if (!baselineData.weight.trim() || !baselineData.height.trim() || !baselineData.strength.trim()) {
+      toast.error(
+        t('goal_form.validation.current_core_required', 'Vui lòng nhập đầy đủ cân nặng, chiều cao và sức mạnh HIỆN TẠI')
+      );
+      return;
+    }
+
+    // Require target core fields
+    if (!formData.weight.trim() || !formData.height.trim() || !formData.strength.trim()) {
+      toast.error(
+        t('goal_form.validation.target_core_required', 'Vui lòng nhập đầy đủ cân nặng, chiều cao và sức mạnh MỤC TIÊU')
+      );
       return;
     }
 
@@ -282,6 +364,39 @@ export const GoalForm: React.FC<GoalFormProps> = ({
       return;
     }
 
+    // Helper: build initialProgress payload từ baselineData
+    const buildInitialProgressPayload = () => {
+      // Bắt buộc phải có đủ 3 giá trị chính mới gửi initialProgress
+      if (!baselineData.weight.trim() || !baselineData.height.trim() || !baselineData.strength.trim()) {
+        return undefined;
+      }
+
+      const toNumber = (value?: string) => {
+        if (!value || value.trim() === '') return undefined;
+        const num = parseFloat(value);
+        return Number.isFinite(num) ? num : undefined;
+      };
+
+      return {
+        date: formData.startDate,
+        weight: toNumber(baselineData.weight),
+        height: toNumber(baselineData.height),
+        strength: toNumber(baselineData.strength),
+        bodyFatPercentage: toNumber(baselineData.bodyFatPercentage),
+        chest: toNumber(baselineData.chest),
+        waist: toNumber(baselineData.waist),
+        hips: toNumber(baselineData.hips),
+        arms: toNumber(baselineData.arms),
+        thighs: toNumber(baselineData.thighs),
+        muscleMassPercentage: toNumber(baselineData.muscleMassPercentage),
+        bodyWaterPercentage: toNumber(baselineData.bodyWaterPercentage),
+        metabolicAge: toNumber(baselineData.metabolicAge),
+        notes: baselineData.notes?.trim() || undefined
+      };
+    };
+
+    const initialProgress = buildInitialProgressPayload();
+
     try {
       if (isEditing && initialGoal) {
         const updateData: UpdateCustomerGoalRequest = {
@@ -289,7 +404,9 @@ export const GoalForm: React.FC<GoalFormProps> = ({
           description: formData.description || undefined,
           startDate: formData.startDate,
           endDate: formData.endDate,
-          targets
+          targets,
+          // Nếu có baseline mới thì gửi initialProgress cho backend xử lý (nếu backend hỗ trợ)
+          initialProgress
         };
         const response = await updateGoal(initialGoal._id || initialGoal.id || '', updateData);
         if (response.success) {
@@ -309,7 +426,8 @@ export const GoalForm: React.FC<GoalFormProps> = ({
           description: formData.description || undefined,
           startDate: formData.startDate,
           endDate: formData.endDate,
-          targets
+          targets,
+          initialProgress
         };
         const response = await createGoal(createData);
         if (response.success) {
@@ -333,7 +451,7 @@ export const GoalForm: React.FC<GoalFormProps> = ({
           id="name"
           value={formData.name}
           onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-          placeholder={t('goal_form.name_placeholder', 'e.g., Giảm cân & tăng cơ - Q1 2025')}
+          placeholder={t('goal_form.name_placeholder', 'Nhập tên mục tiêu (ví dụ: Giảm mỡ Q1 2025)')}
           required
         />
       </div>
@@ -345,13 +463,13 @@ export const GoalForm: React.FC<GoalFormProps> = ({
           id="description"
           value={formData.description}
           onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-          placeholder={t('goal_form.description_placeholder', 'Describe your goal...')}
+          placeholder={t('goal_form.description_placeholder', 'Mô tả mục tiêu bạn muốn đạt được...')}
           rows={3}
         />
       </div>
 
       {/* Dates */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="startDate">{t('goal_form.start_date', 'Start Date')} *</Label>
           <Popover open={startDateOpen} onOpenChange={setStartDateOpen} modal={false}>
@@ -427,185 +545,373 @@ export const GoalForm: React.FC<GoalFormProps> = ({
       </div>
 
       {/* Targets Toggle */}
-      <div className="border rounded-lg">
+      <div className="border rounded-lg bg-white shadow-sm">
         <button
           type="button"
           onClick={() => setShowTargets(!showTargets)}
           className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50 rounded-lg transition-colors"
         >
           <span className="font-medium text-[#101D33]">{t('goal_form.targets', 'Targets')} *</span>
-          <span className={`transform transition-transform ${showTargets ? 'rotate-180' : ''}`}>▼</span>
+          <ChevronDown className={`h-4 w-4 transition-transform ${showTargets ? 'rotate-180' : ''}`} />
         </button>
 
         {showTargets && (
           <div className="px-4 pb-4 space-y-4">
-            {/* Basic Targets */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="flex flex-col gap-3 rounded-lg bg-slate-50/80 px-3 py-3">
+              <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                <Info className="mt-0.5 h-4 w-4 text-[#F05A29]" />
+                <p>
+                  {t(
+                    'goal_form.targets_helper',
+                    'Cột Hiện tại dùng làm mốc ban đầu; cột Mục tiêu là đích đến. Sao chép nhanh từ Hiện tại nếu mục tiêu gần với mốc xuất phát.'
+                  )}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-700">
+                  {t('goal_form.current_column', 'Hiện tại')}
+                </span>
+                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="rounded-full border border-[#F05A29]/30 bg-[#FFF7F3] px-3 py-1 text-xs font-medium text-[#F05A29]">
+                  {t('goal_form.target_column', 'Mục tiêu')}
+                </span>
+              </div>
+            </div>
+            {/* Basic: Current vs Target */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="weight">{t('goal_form.weight', 'Weight (kg)')}</Label>
-                <Input
-                  id="weight"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="500"
-                  placeholder="70"
-                  value={formData.weight}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, weight: e.target.value }))}
-                />
+                <Label>{t('goal_form.weight', 'Weight (kg)')}</Label>
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                  <Input
+                    id="currentWeight"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="500"
+                    placeholder="..."
+                    value={baselineData.weight}
+                    onChange={(e) => handleBaselineChange('weight', e.target.value)}
+                  />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground mx-auto" />
+                  <Input
+                    id="targetWeight"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="500"
+                    placeholder="..."
+                    value={formData.weight}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, weight: e.target.value }))}
+                    className={targetInputClass}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="height">{t('goal_form.height', 'Height (cm)')}</Label>
-                <Input
-                  id="height"
-                  type="number"
-                  step="1"
-                  min="0"
-                  max="300"
-                  placeholder="175"
-                  value={formData.height}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, height: e.target.value }))}
-                />
+                <Label>{t('goal_form.height', 'Height (cm)')}</Label>
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                  <Input
+                    id="currentHeight"
+                    type="number"
+                    step="1"
+                    min="0"
+                    max="300"
+                    placeholder="..."
+                    value={baselineData.height}
+                    onChange={(e) => handleBaselineChange('height', e.target.value)}
+                  />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground mx-auto" />
+                  <Input
+                    id="targetHeight"
+                    type="number"
+                    step="1"
+                    min="0"
+                    max="300"
+                    placeholder="..."
+                    value={formData.height}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, height: e.target.value }))}
+                    className={targetInputClass}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="strength">{t('goal_form.strength', 'Strength')}</Label>
-                <Input
-                  id="strength"
-                  type="number"
-                  step="1"
-                  min="0"
-                  max="100"
-                  placeholder="80"
-                  value={formData.strength}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, strength: e.target.value }))}
-                />
+                <Label>{t('goal_form.strength', 'Strength')}</Label>
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                  <Input
+                    id="currentStrength"
+                    type="number"
+                    step="1"
+                    min="0"
+                    max="100"
+                    placeholder="..."
+                    value={baselineData.strength}
+                    onChange={(e) => handleBaselineChange('strength', e.target.value)}
+                  />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground mx-auto" />
+                  <Input
+                    id="targetStrength"
+                    type="number"
+                    step="1"
+                    min="0"
+                    max="100"
+                    placeholder="..."
+                    value={formData.strength}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, strength: e.target.value }))}
+                    className={targetInputClass}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Body Measurements */}
-            <div className="grid grid-cols-3 gap-4">
+            {/* Measurements: Current vs Target */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="chest">{t('goal_form.chest', 'Chest (cm)')}</Label>
-                <Input
-                  id="chest"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="300"
-                  placeholder="95"
-                  value={formData.chest}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, chest: e.target.value }))}
-                />
+                <Label>{t('goal_form.chest', 'Chest (cm)')}</Label>
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                  <Input
+                    id="currentChest"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="300"
+                    placeholder="..."
+                    value={baselineData.chest}
+                    onChange={(e) => handleBaselineChange('chest', e.target.value)}
+                  />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground mx-auto" />
+                  <Input
+                    id="targetChest"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="300"
+                    placeholder="..."
+                    value={formData.chest}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, chest: e.target.value }))}
+                    className={targetInputClass}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="waist">{t('goal_form.waist', 'Waist (cm)')}</Label>
-                <Input
-                  id="waist"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="300"
-                  placeholder="80"
-                  value={formData.waist}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, waist: e.target.value }))}
-                />
+                <Label>{t('goal_form.waist', 'Waist (cm)')}</Label>
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                  <Input
+                    id="currentWaist"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="300"
+                    placeholder="..."
+                    value={baselineData.waist}
+                    onChange={(e) => handleBaselineChange('waist', e.target.value)}
+                  />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground mx-auto" />
+                  <Input
+                    id="targetWaist"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="300"
+                    placeholder="..."
+                    value={formData.waist}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, waist: e.target.value }))}
+                    className={targetInputClass}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="hips">{t('goal_form.hips', 'Hips (cm)')}</Label>
-                <Input
-                  id="hips"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="300"
-                  placeholder="95"
-                  value={formData.hips}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, hips: e.target.value }))}
-                />
+                <Label>{t('goal_form.hips', 'Hips (cm)')}</Label>
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                  <Input
+                    id="currentHips"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="300"
+                    placeholder="..."
+                    value={baselineData.hips}
+                    onChange={(e) => handleBaselineChange('hips', e.target.value)}
+                  />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground mx-auto" />
+                  <Input
+                    id="targetHips"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="300"
+                    placeholder="..."
+                    value={formData.hips}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, hips: e.target.value }))}
+                    className={targetInputClass}
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="arms">{t('goal_form.arms', 'Arms (cm)')}</Label>
-                <Input
-                  id="arms"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  placeholder="35"
-                  value={formData.arms}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, arms: e.target.value }))}
-                />
+                <Label>{t('goal_form.arms', 'Arms (cm)')}</Label>
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                  <Input
+                    id="currentArms"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    placeholder="..."
+                    value={baselineData.arms}
+                    onChange={(e) => handleBaselineChange('arms', e.target.value)}
+                  />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground mx-auto" />
+                  <Input
+                    id="targetArms"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    placeholder="..."
+                    value={formData.arms}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, arms: e.target.value }))}
+                    className={targetInputClass}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="thighs">{t('goal_form.thighs', 'Thighs (cm)')}</Label>
-                <Input
-                  id="thighs"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="150"
-                  placeholder="55"
-                  value={formData.thighs}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, thighs: e.target.value }))}
-                />
+                <Label>{t('goal_form.thighs', 'Thighs (cm)')}</Label>
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                  <Input
+                    id="currentThighs"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="150"
+                    placeholder="..."
+                    value={baselineData.thighs}
+                    onChange={(e) => handleBaselineChange('thighs', e.target.value)}
+                  />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground mx-auto" />
+                  <Input
+                    id="targetThighs"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="150"
+                    placeholder="..."
+                    value={formData.thighs}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, thighs: e.target.value }))}
+                    className={targetInputClass}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="bodyFatPercentage">{t('goal_form.body_fat', 'Body Fat %')}</Label>
-                <Input
-                  id="bodyFatPercentage"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  placeholder="18"
-                  value={formData.bodyFatPercentage}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, bodyFatPercentage: e.target.value }))}
-                />
+                <Label>{t('goal_form.body_fat', 'Body Fat %')}</Label>
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                  <Input
+                    id="currentBodyFat"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    placeholder="..."
+                    value={baselineData.bodyFatPercentage}
+                    onChange={(e) => handleBaselineChange('bodyFatPercentage', e.target.value)}
+                  />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground mx-auto" />
+                  <Input
+                    id="targetBodyFat"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    placeholder="..."
+                    value={formData.bodyFatPercentage}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, bodyFatPercentage: e.target.value }))}
+                    className={targetInputClass}
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="muscleMassPercentage">{t('goal_form.muscle_mass', 'Muscle Mass %')}</Label>
-                <Input
-                  id="muscleMassPercentage"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  placeholder="45"
-                  value={formData.muscleMassPercentage}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, muscleMassPercentage: e.target.value }))}
-                />
+                <Label>{t('goal_form.muscle_mass', 'Muscle Mass %')}</Label>
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                  <Input
+                    id="currentMuscleMass"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    placeholder="..."
+                    value={baselineData.muscleMassPercentage}
+                    onChange={(e) => handleBaselineChange('muscleMassPercentage', e.target.value)}
+                  />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground mx-auto" />
+                  <Input
+                    id="targetMuscleMass"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    placeholder="..."
+                    value={formData.muscleMassPercentage}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, muscleMassPercentage: e.target.value }))}
+                    className={targetInputClass}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="bodyWaterPercentage">{t('goal_form.body_water', 'Body Water %')}</Label>
-                <Input
-                  id="bodyWaterPercentage"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  placeholder="55"
-                  value={formData.bodyWaterPercentage}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, bodyWaterPercentage: e.target.value }))}
-                />
+                <Label>{t('goal_form.body_water', 'Body Water %')}</Label>
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                  <Input
+                    id="currentBodyWater"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    placeholder="..."
+                    value={baselineData.bodyWaterPercentage}
+                    onChange={(e) => handleBaselineChange('bodyWaterPercentage', e.target.value)}
+                  />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground mx-auto" />
+                  <Input
+                    id="targetBodyWater"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    placeholder="..."
+                    value={formData.bodyWaterPercentage}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, bodyWaterPercentage: e.target.value }))}
+                    className={targetInputClass}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="metabolicAge">{t('goal_form.metabolic_age', 'Metabolic Age')}</Label>
-                <Input
-                  id="metabolicAge"
-                  type="number"
-                  step="1"
-                  min="1"
-                  max="150"
-                  placeholder="25"
-                  value={formData.metabolicAge}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, metabolicAge: e.target.value }))}
-                />
+                <Label>{t('goal_form.metabolic_age', 'Metabolic Age')}</Label>
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                  <Input
+                    id="currentMetabolicAge"
+                    type="number"
+                    step="1"
+                    min="1"
+                    max="150"
+                    placeholder="..."
+                    value={baselineData.metabolicAge}
+                    onChange={(e) => handleBaselineChange('metabolicAge', e.target.value)}
+                  />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground mx-auto" />
+                  <Input
+                    id="targetMetabolicAge"
+                    type="number"
+                    step="1"
+                    min="1"
+                    max="150"
+                    placeholder="..."
+                    value={formData.metabolicAge}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, metabolicAge: e.target.value }))}
+                    className={targetInputClass}
+                  />
+                </div>
               </div>
             </div>
           </div>
