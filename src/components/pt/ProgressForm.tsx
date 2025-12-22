@@ -582,7 +582,7 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
             type="number"
             step="0.1"
             min="0"
-            placeholder="72.5"
+            placeholder={t('progress_form.placeholder.weight', 'Nhập cân nặng (kg)')}
             value={formData.weight}
             onChange={(e) => handleFieldChange('weight', e.target.value)}
             className="w-full"
@@ -595,7 +595,7 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
             type="number"
             step="1"
             min="0"
-            placeholder="175"
+            placeholder={t('progress_form.placeholder.height', 'Nhập chiều cao (cm)')}
             value={formData.height}
             onChange={(e) => handleFieldChange('height', e.target.value)}
             className="w-full"
@@ -630,7 +630,7 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
                   type="number"
                   step="0.1"
                   min="0"
-                  placeholder="95"
+                  placeholder={t('progress_form.placeholder.chest', 'Nhập vòng ngực')}
                   value={formData.chest}
                   onChange={(e) => handleFieldChange('chest', e.target.value)}
                 />
@@ -642,7 +642,7 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
                   type="number"
                   step="0.1"
                   min="0"
-                  placeholder="80"
+                  placeholder={t('progress_form.placeholder.waist', 'Nhập vòng eo')}
                   value={formData.waist}
                   onChange={(e) => handleFieldChange('waist', e.target.value)}
                 />
@@ -654,7 +654,7 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
                   type="number"
                   step="0.1"
                   min="0"
-                  placeholder="95"
+                  placeholder={t('progress_form.placeholder.hips', 'Nhập vòng mông')}
                   value={formData.hips}
                   onChange={(e) => handleFieldChange('hips', e.target.value)}
                 />
@@ -670,7 +670,7 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
                   type="number"
                   step="0.1"
                   min="0"
-                  placeholder="35"
+                  placeholder={t('progress_form.placeholder.arms', 'Nhập vòng tay')}
                   value={formData.arms}
                   onChange={(e) => handleFieldChange('arms', e.target.value)}
                 />
@@ -682,7 +682,7 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
                   type="number"
                   step="0.1"
                   min="0"
-                  placeholder="55"
+                  placeholder={t('progress_form.placeholder.thighs', 'Nhập vòng đùi')}
                   value={formData.thighs}
                   onChange={(e) => handleFieldChange('thighs', e.target.value)}
                 />
@@ -695,7 +695,7 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
                   step="0.1"
                   min="0"
                   max="100"
-                  placeholder="15"
+                  placeholder={t('progress_form.placeholder.body_fat', 'Nhập % mỡ cơ thể')}
                   value={formData.bodyFatPercentage}
                   onChange={(e) => handleFieldChange('bodyFatPercentage', e.target.value)}
                 />
@@ -712,7 +712,7 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
                   step="0.1"
                   min="0"
                   max="100"
-                  placeholder="40"
+                  placeholder={t('progress_form.placeholder.muscle_mass', 'Nhập % cơ bắp')}
                   value={formData.muscleMassPercentage}
                   onChange={(e) => handleFieldChange('muscleMassPercentage', e.target.value)}
                 />
@@ -725,7 +725,7 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
                   step="0.1"
                   min="0"
                   max="100"
-                  placeholder="55"
+                  placeholder={t('progress_form.placeholder.body_water', 'Nhập % nước')}
                   value={formData.bodyWaterPercentage}
                   onChange={(e) => handleFieldChange('bodyWaterPercentage', e.target.value)}
                 />
@@ -738,7 +738,7 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
                   step="1"
                   min="1"
                   max="150"
-                  placeholder="25"
+                  placeholder={t('progress_form.placeholder.metabolic_age', 'Nhập tuổi trao đổi chất')}
                   value={formData.metabolicAge}
                   onChange={(e) => handleFieldChange('metabolicAge', e.target.value)}
                 />
@@ -769,16 +769,16 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
       </div>
 
       {/* Exercises */}
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label htmlFor="exercises">{t('progress_form.exercises', 'Bài tập (phân cách bằng dấu phẩy)')}</Label>
         <Input
           id="exercises"
-          placeholder="Squat, Bench Press, Deadlift"
+          placeholder={t('progress_form.placeholder.exercises', 'Ví dụ: Squat, Bench Press, Deadlift')}
           value={formData.exercises}
           onChange={(e) => handleFieldChange('exercises', e.target.value)}
           className="w-full"
         />
-      </div>
+      </div> */}
 
       {/* Notes */}
       <div className="space-y-2">
