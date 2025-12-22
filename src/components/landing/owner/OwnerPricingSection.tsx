@@ -2,10 +2,53 @@ import { useTranslation } from 'react-i18next';
 import ScrollReveal from '@/components/common/ScrollReveal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ownerPricing } from '@/constants/ownerLanding';
 
 const OwnerPricingSection = () => {
   const { t } = useTranslation();
+
+  // Lấy dữ liệu pricing từ translation keys
+  const ownerPricing = [
+    {
+      name: t('owner.pricing.item_1.name'),
+      price: t('owner.pricing.item_1.price'),
+      description: t('owner.pricing.item_1.description'),
+      features: [
+        t('owner.pricing.item_1.feature_1'),
+        t('owner.pricing.item_1.feature_2'),
+        t('owner.pricing.item_1.feature_3'),
+        t('owner.pricing.item_1.feature_4')
+      ],
+      cta: t('owner.pricing.item_1.cta')
+    },
+    {
+      name: t('owner.pricing.item_2.name'),
+      price: t('owner.pricing.item_2.price'),
+      description: t('owner.pricing.item_2.description'),
+      badge: t('owner.pricing.item_2.badge'),
+      features: [
+        t('owner.pricing.item_2.feature_1'),
+        t('owner.pricing.item_2.feature_2'),
+        t('owner.pricing.item_2.feature_3'),
+        t('owner.pricing.item_2.feature_4'),
+        t('owner.pricing.item_2.feature_5')
+      ],
+      cta: t('owner.pricing.item_2.cta'),
+      mostPopular: true
+    },
+    {
+      name: t('owner.pricing.item_3.name'),
+      price: t('owner.pricing.item_3.price'),
+      description: t('owner.pricing.item_3.description'),
+      features: [
+        t('owner.pricing.item_3.feature_1'),
+        t('owner.pricing.item_3.feature_2'),
+        t('owner.pricing.item_3.feature_3'),
+        t('owner.pricing.item_3.feature_4'),
+        t('owner.pricing.item_3.feature_5')
+      ],
+      cta: t('owner.pricing.item_3.cta')
+    }
+  ];
 
   return (
     <section

@@ -1,10 +1,28 @@
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ScrollReveal from '@/components/common/ScrollReveal';
-import { ownerBenefits } from '@/constants/ownerLanding';
 
 const OwnerBenefitsSection = () => {
   const { t } = useTranslation();
+
+  // Lấy dữ liệu benefits từ translation keys
+  const ownerBenefits = [
+    {
+      title: t('owner.benefits.item_1.title'),
+      description: t('owner.benefits.item_1.description'),
+      painPoint: t('owner.benefits.item_1.painPoint')
+    },
+    {
+      title: t('owner.benefits.item_2.title'),
+      description: t('owner.benefits.item_2.description'),
+      painPoint: t('owner.benefits.item_2.painPoint')
+    },
+    {
+      title: t('owner.benefits.item_3.title'),
+      description: t('owner.benefits.item_3.description'),
+      painPoint: t('owner.benefits.item_3.painPoint')
+    }
+  ];
 
   return (
     <section id="owner-benefits" className="bg-white py-24 relative">
