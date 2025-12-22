@@ -678,7 +678,12 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
             setSelectedClassId(null);
           }}
           classId={selectedClassId || undefined}
-          selectedDate={selectedDate} // Pass selected date from calendar
+          selectedDate={
+            // Lấy ngày từ workShift.startTime nếu có, nếu không thì dùng selectedDate
+            // Điều này đảm bảo khi xem điểm danh class, ngày được truyền vào là ngày của shift đó
+            // thay vì ngày hiện tại, để có thể hiển thị cảnh báo nếu là ngày tương lai
+            currentWorkShift?.startTime ? new Date(currentWorkShift.startTime) : selectedDate
+          }
         />
       </DialogContent>
     </Dialog>
