@@ -47,7 +47,7 @@ export const SubscriptionPackageCard = ({
 
       {/* Popular Badge */}
       {isPopular && (
-        <div className="absolute -top-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white shadow-lg shadow-orange-500/40">
+        <div className="absolute top-1 left-1/2 z-20 -translate-x-1/2 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white shadow-lg shadow-orange-500/40">
           {t('subscription.card.popular')}
         </div>
       )}
