@@ -398,143 +398,162 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Statistics Section */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="rounded-2xl border border-border bg-card shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
+      <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-3">
+        <Card className="rounded-xl md:rounded-2xl border border-border bg-card shadow-sm">
+          <CardHeader className="pb-2 md:pb-3 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium flex items-center gap-2">
+              <FileText className="h-3 w-3 md:h-4 md:w-4 text-primary" />
               {t('customer_detail.contracts.stats.total_contracts')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{contracts.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+          <CardContent className="p-3 md:p-6 pt-0">
+            <div className="text-xl md:text-2xl font-bold text-foreground">{contracts.length}</div>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-1">
               {t('customer_detail.contracts.stats.contracts_created')}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border border-amber-200 bg-amber-50/50 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              {t('customer_detail.contracts.stats.missing_contracts')}
+        <Card className="rounded-xl md:rounded-2xl border border-amber-200 bg-amber-50/50 shadow-sm">
+          <CardHeader className="pb-2 md:pb-3 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium flex items-center gap-2">
+              <AlertTriangle className="h-3 w-3 md:h-4 md:w-4 text-amber-600" />
+              <span className="truncate">{t('customer_detail.contracts.stats.missing_contracts')}</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-600">
+          <CardContent className="p-3 md:p-6 pt-0">
+            <div className="text-xl md:text-2xl font-bold text-amber-600">
               {loadingMissingContracts ? '...' : contractsWithoutDocuments.length}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-1">
               {t('customer_detail.contracts.stats.services_need_contract')}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border border-border bg-card shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-green-600" />
+        <Card className="rounded-xl md:rounded-2xl border border-border bg-card shadow-sm">
+          <CardHeader className="pb-2 md:pb-3 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium flex items-center gap-2">
+              <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-green-600" />
               {t('customer_detail.contracts.stats.completion')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+          <CardContent className="p-3 md:p-6 pt-0">
+            <div className="text-xl md:text-2xl font-bold text-green-600">
               {contracts.length > 0
                 ? Math.round((contracts.length / (contracts.length + contractsWithoutDocuments.length)) * 100)
                 : 0}
               %
             </div>
-            <p className="text-xs text-muted-foreground mt-1">{t('customer_detail.contracts.stats.completion_rate')}</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground mt-1">
+              {t('customer_detail.contracts.stats.completion_rate')}
+            </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Missing Contracts Alert */}
       {!loadingMissingContracts && contractsWithoutDocuments.length > 0 && (
-        <Alert className="rounded-2xl border-amber-200 bg-amber-50/50">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertTitle className="text-amber-900">{t('customer_detail.contracts.alert.title')}</AlertTitle>
-          <AlertDescription className="text-amber-800">
-            <p className="mb-3">
-              {t('customer_detail.contracts.alert.description', { count: contractsWithoutDocuments.length })}
-            </p>
-            <div className="space-y-2">
-              {contractsWithoutDocuments.map((contract) => (
-                <div
-                  key={contract._id}
-                  className="flex items-center justify-between rounded-xl border border-amber-200 bg-white p-3"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
-                        {getTypeBadgeLabel(contract.type)}
-                      </Badge>
-                      <span className="font-medium text-sm">{contract.name}</span>
+        <Alert className="rounded-xl md:rounded-2xl border-amber-200 bg-amber-50/50 p-3 md:p-4">
+          <div className="flex gap-2 md:gap-3">
+            <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <AlertTitle className="text-amber-900 text-xs md:text-base font-semibold mb-1 md:mb-2">
+                {t('customer_detail.contracts.alert.title')}
+              </AlertTitle>
+              <AlertDescription className="text-amber-800">
+                <p className="mb-2 md:mb-3 text-[10px] md:text-sm leading-relaxed">
+                  {t('customer_detail.contracts.alert.description', { count: contractsWithoutDocuments.length })}
+                </p>
+                <div className="space-y-2">
+                  {contractsWithoutDocuments.map((contract) => (
+                    <div
+                      key={contract._id}
+                      className="rounded-lg md:rounded-xl border border-amber-200 bg-white p-2.5 md:p-3 space-y-2"
+                    >
+                      <div className="flex items-start gap-2">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] md:text-xs bg-primary/10 text-primary border-primary/20 flex-shrink-0"
+                        >
+                          {getTypeBadgeLabel(contract.type)}
+                        </Badge>
+                        <span className="font-medium text-xs md:text-sm text-foreground leading-tight">
+                          {contract.name}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 text-[10px] md:text-xs text-muted-foreground">
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3 flex-shrink-0" />
+                            <span className="whitespace-nowrap">{formatDate(contract.startDate, locale)}</span>
+                          </span>
+                          <span className="font-semibold text-amber-700 whitespace-nowrap">
+                            {formatCurrency(contract.total)}
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleQuickCreateContract(contract)}
+                        disabled={creatingContract}
+                        className="rounded-full border-amber-300 text-amber-700 hover:bg-amber-100 w-full text-xs h-8 font-medium"
+                      >
+                        <Plus className="h-3 w-3 mr-1.5" />
+                        {t('customer_detail.contracts.create_contract')}
+                      </Button>
                     </div>
-                    <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                      <span>
-                        <Calendar className="inline h-3 w-3 mr-1" />
-                        {formatDate(contract.startDate, locale)}
-                      </span>
-                      <span className="font-semibold text-amber-700">{formatCurrency(contract.total)}</span>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleQuickCreateContract(contract)}
-                    disabled={creatingContract}
-                    className="rounded-full border-amber-300 text-amber-700 hover:bg-amber-100"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    {t('customer_detail.contracts.create_contract')}
-                  </Button>
+                  ))}
                 </div>
-              ))}
+              </AlertDescription>
             </div>
-          </AlertDescription>
+          </div>
         </Alert>
       )}
 
       <div>
-        <h3 className="text-lg font-semibold text-foreground">
+        <h3 className="text-base md:text-lg font-semibold text-foreground">
           {t('customer_detail.contracts.list_title')} ({contracts.length})
         </h3>
-        <p className="text-sm text-muted-foreground">{t('customer_detail.contracts.list_description')}</p>
+        <p className="text-xs md:text-sm text-muted-foreground">{t('customer_detail.contracts.list_description')}</p>
       </div>
 
       {contracts.length === 0 ? (
-        <Card className="rounded-2xl border border-dashed border-border bg-muted/30 shadow-none">
-          <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-            <FileText className="h-12 w-12 text-muted-foreground" />
+        <Card className="rounded-xl md:rounded-2xl border border-dashed border-border bg-muted/30 shadow-none">
+          <CardContent className="flex flex-col items-center justify-center gap-3 py-12 md:py-16 text-center">
+            <FileText className="h-10 w-10 md:h-12 md:w-12 text-muted-foreground" />
             <div>
-              <p className="font-semibold text-foreground">{t('customer_detail.contracts.empty.title')}</p>
-              <p className="text-sm text-muted-foreground">{t('customer_detail.contracts.empty.description')}</p>
+              <p className="font-semibold text-sm md:text-base text-foreground">
+                {t('customer_detail.contracts.empty.title')}
+              </p>
+              <p className="text-xs md:text-sm text-muted-foreground">
+                {t('customer_detail.contracts.empty.description')}
+              </p>
             </div>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3 md:gap-4">
           {contracts.map((contract) => (
             <Card
               key={contract._id}
-              className="rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
+              className="rounded-xl md:rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
             >
-              <CardContent className="p-5">
-                <div className="space-y-4">
+              <CardContent className="p-3 md:p-5">
+                <div className="space-y-3 md:space-y-4">
                   {/* Header */}
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-start justify-between gap-2 md:gap-3">
+                    <div className="flex-1 space-y-1.5 md:space-y-2 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
                         {getContractTypeBadge(t, contract.contractType)}
                         {getStatusBadge(contract.status, t, 'outline')}
                         {contract.isTemplate && (
                           <Badge
                             variant="outline"
-                            className="text-xs font-medium bg-purple-500/10 text-purple-700 border-purple-200"
+                            className="text-[10px] md:text-xs font-medium bg-purple-500/10 text-purple-700 border-purple-200"
                           >
                             {t('contracts.template')}
                           </Badge>
@@ -542,31 +561,35 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                         {contract.signersCount !== undefined && contract.signersCount !== null && (
                           <Badge
                             variant="outline"
-                            className="text-xs font-medium bg-gray-100 text-gray-700 border-gray-200"
+                            className="text-[10px] md:text-xs font-medium bg-gray-100 text-gray-700 border-gray-200"
                           >
                             {t('customer_detail.contracts.details.signers', { count: contract.signersCount })}
                           </Badge>
                         )}
                       </div>
-                      <h4 className="font-semibold text-foreground">{contract.title}</h4>
-                      {contract.description && <p className="text-sm text-muted-foreground">{contract.description}</p>}
+                      <h4 className="font-semibold text-sm md:text-base text-foreground truncate">{contract.title}</h4>
+                      {contract.description && (
+                        <p className="text-xs md:text-sm text-muted-foreground line-clamp-2">{contract.description}</p>
+                      )}
                     </div>
                   </div>
 
                   {/* Details Grid */}
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="flex items-start gap-2 text-sm">
-                      <FileText className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">{t('customer_detail.contracts.details.file')}</p>
-                        <p className="font-medium text-foreground">{contract.fileName}</p>
+                  <div className="grid gap-2 md:gap-3 grid-cols-1 sm:grid-cols-2">
+                    <div className="flex items-start gap-2 text-xs md:text-sm">
+                      <FileText className="mt-0.5 h-3 w-3 md:h-4 md:w-4 text-muted-foreground flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] md:text-xs text-muted-foreground">
+                          {t('customer_detail.contracts.details.file')}
+                        </p>
+                        <p className="font-medium text-foreground truncate">{contract.fileName}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-2 text-sm">
-                      <Calendar className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">
+                    <div className="flex items-start gap-2 text-xs md:text-sm">
+                      <Calendar className="mt-0.5 h-3 w-3 md:h-4 md:w-4 text-muted-foreground flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] md:text-xs text-muted-foreground">
                           {t('customer_detail.contracts.details.created_date')}
                         </p>
                         <p className="font-medium text-foreground">{formatDate(contract.createdAt, locale)}</p>
@@ -574,13 +597,13 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                     </div>
 
                     {contract.branchId && (
-                      <div className="flex items-start gap-2 text-sm">
-                        <Tag className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-xs text-muted-foreground">
+                      <div className="flex items-start gap-2 text-xs md:text-sm">
+                        <Tag className="mt-0.5 h-3 w-3 md:h-4 md:w-4 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] md:text-xs text-muted-foreground">
                             {t('customer_detail.contracts.details.branch')}
                           </p>
-                          <p className="font-medium text-foreground">
+                          <p className="font-medium text-foreground truncate">
                             {typeof contract.branchId === 'object' ? contract.branchId.branchName : '—'}
                           </p>
                         </div>
@@ -588,16 +611,18 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                     )}
 
                     {contract.tags && contract.tags.length > 0 && (
-                      <div className="flex items-start gap-2 text-sm">
-                        <Tag className="mt-0.5 h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-xs text-muted-foreground">{t('customer_detail.contracts.details.tags')}</p>
+                      <div className="flex items-start gap-2 text-xs md:text-sm">
+                        <Tag className="mt-0.5 h-3 w-3 md:h-4 md:w-4 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] md:text-xs text-muted-foreground">
+                            {t('customer_detail.contracts.details.tags')}
+                          </p>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {contract.tags.map((tag) => {
                               const translationKey = `admin.contracts.tags.${tag}`;
                               const translated = t(translationKey as never, tag);
                               return (
-                                <Badge key={tag} variant="outline" className="text-xs">
+                                <Badge key={tag} variant="outline" className="text-[10px] md:text-xs">
                                   {translated}
                                 </Badge>
                               );
@@ -657,10 +682,11 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                       size="sm"
                       onClick={() => handleOpenViewer(contract)}
                       disabled={contract.status === 'deleted'}
-                      className="rounded-full"
+                      className="rounded-full h-7 md:h-8 text-xs"
                     >
                       <Eye className="mr-1 h-3 w-3" />
-                      {t('contracts.view')}
+                      <span className="hidden sm:inline">{t('contracts.view')}</span>
+                      <span className="sm:hidden">{t('contracts.view', 'View')}</span>
                     </Button>
                     {contract.status === 'signed' ? (
                       // For signed documents, only show View and Download
@@ -669,10 +695,11 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                         size="sm"
                         onClick={() => handleDownloadDocument(contract)}
                         disabled={false}
-                        className="rounded-full"
+                        className="rounded-full h-7 md:h-8 text-xs"
                       >
                         <Download className="mr-1 h-3 w-3" />
-                        {t('contracts.download', 'Download')}
+                        <span className="hidden sm:inline">{t('contracts.download', 'Download')}</span>
+                        <span className="sm:hidden">DL</span>
                       </Button>
                     ) : (
                       // For non-signed documents, show Edit, Send/Cancel Invite, and Refresh
@@ -682,10 +709,11 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                           size="sm"
                           onClick={() => handleOpenEditor(contract)}
                           disabled={contract.status === 'deleted'}
-                          className="rounded-full"
+                          className="rounded-full h-7 md:h-8 text-xs"
                         >
                           <Edit className="mr-1 h-3 w-3" />
-                          {t('contracts.edit')}
+                          <span className="hidden sm:inline">{t('contracts.edit')}</span>
+                          <span className="sm:hidden">Edit</span>
                         </Button>
                         {hasInvites(contract) ? (
                           <Button
@@ -693,10 +721,11 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                             size="sm"
                             onClick={() => handleCancelInvite(contract)}
                             disabled={contract.status === 'deleted'}
-                            className="rounded-full bg-red-500 text-white hover:bg-red-600"
+                            className="rounded-full bg-red-500 text-white hover:bg-red-600 h-7 md:h-8 text-xs"
                           >
                             <XCircle className="mr-1 h-3 w-3" />
-                            {t('contracts.cancel_invite', 'Cancel Invite')}
+                            <span className="hidden sm:inline">{t('contracts.cancel_invite', 'Cancel')}</span>
+                            <span className="sm:hidden">Cancel</span>
                           </Button>
                         ) : (
                           <Button
@@ -704,10 +733,11 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                             size="sm"
                             onClick={() => handleOpenSending(contract)}
                             disabled={contract.status === 'deleted'}
-                            className="rounded-full bg-orange-500 text-white hover:bg-orange-600"
+                            className="rounded-full bg-orange-500 text-white hover:bg-orange-600 h-7 md:h-8 text-xs"
                           >
                             <Send className="mr-1 h-3 w-3" />
-                            {t('contracts.send')}
+                            <span className="hidden sm:inline">{t('contracts.send')}</span>
+                            <span className="sm:hidden">Send</span>
                           </Button>
                         )}
                         <Button
@@ -715,11 +745,12 @@ export const ContractDocumentsTab: React.FC<ContractDocumentsTabProps> = ({ cust
                           size="sm"
                           onClick={() => handleRefreshDocument(contract._id)}
                           disabled={contract.status === 'deleted'}
-                          className="rounded-full"
+                          className="rounded-full h-7 md:h-8 text-xs"
                           title={t('customer_detail.contracts.refresh_status')}
                         >
                           <RefreshCw className="mr-1 h-3 w-3" />
-                          {t('customer_detail.contracts.refresh')}
+                          <span className="hidden sm:inline">{t('customer_detail.contracts.refresh')}</span>
+                          <span className="sm:hidden">↻</span>
                         </Button>
                       </>
                     )}

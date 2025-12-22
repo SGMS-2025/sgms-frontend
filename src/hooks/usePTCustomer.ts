@@ -210,6 +210,63 @@ export const usePTCustomerFilters = (customers: PTCustomer[]) => {
       return matchesSearch && matchesStatus && matchesExpiration && matchesSessions;
     });
 
+    // Helper function to get urgency level (inline to avoid dependency issues)
+    const getUrgencyLevel = (customer: PTCustomer): 'expired' | 'urgent' | 'active' | 'pending' => {
+      if (customer.package.status === 'EXPIRED') return 'expired';
+      if (customer.package.status === 'PENDING_ACTIVATION') return 'pending';
+
+      // For MEMBERSHIP_KPI customers (no sessions), only check expiration days
+      if (customer.contractType === 'MEMBERSHIP_KPI') {
+        const endDate = new Date(customer.package.endDate);
+        const now = new Date();
+        const days = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        if (days > 0 && days <= 7) return 'urgent';
+        return 'active';
+      }
+
+      // For PT_PACKAGE customers, check both expiration and sessions
+      const endDate = new Date(customer.package.endDate);
+      const now = new Date();
+      const days = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      if (days > 0 && days <= 7) return 'urgent';
+
+      // Check sessions only for PT packages
+      if (customer.package.sessionsRemaining <= 3 && customer.package.sessionsRemaining > 0) return 'urgent';
+
+      return 'active';
+    };
+
+    // Sort customers based on selected sort option
+    filtered.sort((a, b) => {
+      if (filters.sortBy === 'NEAREST_EXPIRATION') {
+        // Priority-based sorting: Expired > Urgent > Active > Pending
+        const aUrgency = getUrgencyLevel(a);
+        const bUrgency = getUrgencyLevel(b);
+
+        const urgencyOrder = { expired: 0, urgent: 1, active: 2, pending: 3 };
+        if (urgencyOrder[aUrgency] !== urgencyOrder[bUrgency]) {
+          return urgencyOrder[aUrgency] - urgencyOrder[bUrgency];
+        }
+
+        // Within same urgency level, sort by end date (soonest first)
+        return new Date(a.package.endDate).getTime() - new Date(b.package.endDate).getTime();
+      } else if (filters.sortBy === 'RECENTLY_UPDATED') {
+        // Sort by latest training progress date
+        const aDate = a.lastTrainingProgressDate ? new Date(a.lastTrainingProgressDate).getTime() : 0;
+        const bDate = b.lastTrainingProgressDate ? new Date(b.lastTrainingProgressDate).getTime() : 0;
+
+        if (aDate !== bDate) {
+          return bDate - aDate; // Most recent first
+        }
+
+        // If same or no progress, fall back to contract start date
+        return new Date(b.package.startDate).getTime() - new Date(a.package.startDate).getTime();
+      } else if (filters.sortBy === 'NEWEST_CONTRACT') {
+        return new Date(b.package.startDate).getTime() - new Date(a.package.startDate).getTime();
+      }
+      return 0;
+    });
+
     return filtered;
   }, [customers, debouncedSearch, filters]);
 

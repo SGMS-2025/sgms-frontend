@@ -105,11 +105,11 @@ export const PTSidebar: React.FC = () => {
     <div
       className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out h-full ${
         isCollapsed ? 'w-16 items-center' : 'w-64'
-      }`}
+      } shadow-lg lg:shadow-none`}
     >
       <SidebarHeader isCollapsed={isCollapsed} subtitle="Personal Trainer" />
 
-      <div className={`flex-1 py-4 ${isCollapsed ? 'px-1' : 'px-3'}`}>
+      <div className={`flex-1 py-4 overflow-y-auto hide-scrollbar ${isCollapsed ? 'px-1' : 'px-3'}`}>
         <Sidebar items={menuItems} isCollapsed={isCollapsed} />
 
         {/* Schedule Dropdown */}

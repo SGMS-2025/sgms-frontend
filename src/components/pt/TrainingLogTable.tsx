@@ -291,8 +291,8 @@ export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit
                   <td className="py-4 px-4">
                     <StrengthBadge strength={log.strength} />
                   </td>
-                  <td className="py-4 px-4 max-w-xs">
-                    <p className="text-sm text-gray-700 truncate" title={log.notes}>
+                  <td className="py-4 px-4">
+                    <p className="text-sm text-gray-700 line-clamp-2 max-w-xs" title={log.notes}>
                       {log.notes}
                     </p>
                   </td>
@@ -350,7 +350,7 @@ export const TrainingLogTable: React.FC<TrainingLogTableProps> = ({ logs, onEdit
           {log.notes && (
             <div className="mb-3">
               <p className="text-xs text-gray-500 mb-1">{t('training_log.table.note_label')}</p>
-              <p className="text-sm text-gray-700">{log.notes}</p>
+              <p className="text-sm text-gray-700 line-clamp-3">{log.notes}</p>
             </div>
           )}
 

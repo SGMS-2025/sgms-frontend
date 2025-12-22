@@ -177,7 +177,7 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
             <div className="flex flex-wrap gap-3 lg:flex-nowrap lg:items-center">
               <Select value={filters.statusFilter} onValueChange={handleStatusFilterChange}>
                 <SelectTrigger
-                  className="w-full lg:w-[160px] rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0"
+                  className="w-full lg:w-[200px] rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0"
                   style={{ height: '48px', paddingTop: '12px', paddingBottom: '12px' }}
                 >
                   <SelectValue placeholder={t('pt_customer.status')} />
@@ -192,7 +192,7 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
 
               <Select value={filters.expirationFilter} onValueChange={handleExpirationFilterChange}>
                 <SelectTrigger
-                  className="w-full lg:w-[160px] rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0"
+                  className="w-full lg:w-[200px] rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0"
                   style={{ height: '48px', paddingTop: '12px', paddingBottom: '12px' }}
                 >
                   <SelectValue placeholder={t('pt_customer.expiration_filter')} />
@@ -207,7 +207,7 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
 
               <Select value={filters.sessionsFilter} onValueChange={handleSessionsFilterChange}>
                 <SelectTrigger
-                  className="w-full lg:w-[160px] rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0"
+                  className="w-full lg:w-[200px] rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0"
                   style={{ height: '48px', paddingTop: '12px', paddingBottom: '12px' }}
                 >
                   <SelectValue placeholder={t('pt_customer.sessions_remaining')} />
@@ -220,16 +220,24 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
                 </SelectContent>
               </Select>
 
+              {/* Sort By Dropdown */}
               <Select value={filters.sortBy} onValueChange={handleSortChange}>
                 <SelectTrigger
-                  className="w-full lg:w-[180px] rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0"
+                  className="w-full lg:w-[200px] rounded-[20px] bg-white border-gray-200 focus:ring-[#F05A29] focus:ring-offset-0"
                   style={{ height: '48px', paddingTop: '12px', paddingBottom: '12px' }}
                 >
-                  <SelectValue placeholder={t('pt_customer.sort_by')} />
+                  <SelectValue placeholder={t('pt_customer.sort.label', 'Sort by')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="NEAREST_EXPIRATION">{t('pt_customer.sort.nearest_expiration')}</SelectItem>
-                  <SelectItem value="NEWEST_CONTRACT">{t('pt_customer.sort.newest_contract')}</SelectItem>
+                  <SelectItem value="NEAREST_EXPIRATION">
+                    {t('pt_customer.sort.nearest_expiration', 'Nearest expiration')}
+                  </SelectItem>
+                  <SelectItem value="RECENTLY_UPDATED">
+                    {t('pt_customer.sort.recently_updated', 'Recently updated')}
+                  </SelectItem>
+                  <SelectItem value="NEWEST_CONTRACT">
+                    {t('pt_customer.sort.newest_contract', 'Newest contract')}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
