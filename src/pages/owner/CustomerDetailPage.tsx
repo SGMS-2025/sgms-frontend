@@ -4,8 +4,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
-  CalendarCheck,
-  CalendarDays,
   CreditCard,
   Dumbbell,
   FileText,
@@ -95,26 +93,6 @@ const InfoField = ({ label, value }: { label: string; value?: ReactNode }) => (
       {value ?? <span className="text-muted-foreground">—</span>}
     </div>
   </div>
-);
-
-type PlaceholderCardProps = {
-  icon: LucideIcon;
-  title: string;
-  description: string;
-};
-
-const PlaceholderCard = ({ icon: Icon, title, description }: PlaceholderCardProps) => (
-  <Card className="rounded-3xl border border-dashed border-border/60 bg-muted/30 shadow-none">
-    <CardContent className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-        <Icon className="h-5 w-5" />
-      </span>
-      <div className="space-y-1">
-        <p className="text-base font-semibold text-foreground">{title}</p>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
-    </CardContent>
-  </Card>
 );
 
 const CustomerDetailPage: React.FC = () => {
@@ -642,24 +620,6 @@ const CustomerDetailPage: React.FC = () => {
                 {t('customer_detail.tabs.general')}
               </TabsTrigger>
               <TabsTrigger
-                value="workouts"
-                className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wide transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
-                {t('customer_detail.tabs.workouts')}
-              </TabsTrigger>
-              <TabsTrigger
-                value="attendance"
-                className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wide transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
-                {t('customer_detail.tabs.attendance')}
-              </TabsTrigger>
-              <TabsTrigger
-                value="class-booking"
-                className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wide transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
-              >
-                {t('customer_detail.tabs.class_booking')}
-              </TabsTrigger>
-              <TabsTrigger
                 value="payment"
                 className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-wide transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
               >
@@ -934,30 +894,6 @@ const CustomerDetailPage: React.FC = () => {
                 </CardContent>
               </Card>
             )}
-          </TabsContent>
-
-          <TabsContent value="workouts" className="pt-4">
-            <PlaceholderCard
-              icon={Dumbbell}
-              title={t('customer_detail.placeholders.workouts.title')}
-              description={t('customer_detail.placeholders.workouts.description')}
-            />
-          </TabsContent>
-
-          <TabsContent value="attendance" className="pt-4">
-            <PlaceholderCard
-              icon={CalendarCheck}
-              title={t('customer_detail.placeholders.attendance.title')}
-              description={t('customer_detail.placeholders.attendance.description')}
-            />
-          </TabsContent>
-
-          <TabsContent value="class-booking" className="pt-4">
-            <PlaceholderCard
-              icon={CalendarDays}
-              title={t('customer_detail.placeholders.class_booking.title')}
-              description={t('customer_detail.placeholders.class_booking.description')}
-            />
           </TabsContent>
 
           <TabsContent value="payment" className="pt-4">

@@ -15,13 +15,15 @@ interface LanguageSwitcherProps {
   className?: string;
   showText?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  onLanguageChange?: () => void;
 }
 
 const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   variant = 'default',
   className = '',
   showText = true,
-  size = 'md'
+  size = 'md',
+  onLanguageChange
 }) => {
   const { t } = useTranslation();
   const { language, setLanguage } = useLanguage();
@@ -30,6 +32,11 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
     { code: 'en', name: t('landing.language_switcher.english'), flag: '🇺🇸' },
     { code: 'vi', name: t('landing.language_switcher.vietnamese'), flag: '🇻🇳' }
   ];
+
+  const handleLanguageChange = (langCode: string) => {
+    setLanguage(langCode);
+    onLanguageChange?.();
+  };
 
   const currentLanguage = languages.find((lang) => lang.code === language) || languages[0];
 
@@ -95,29 +102,21 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   // Sidebar variant - dropdown menu item style
   if (variant === 'sidebar') {
     return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className={`${getSizeClasses()} ${getVariantClasses()} ${className}`}>
-            <Globe className={getIconClasses()} />
-            {showText && <span className="font-medium">{currentLanguage.name}</span>}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" side="right" sideOffset={8} className="w-48">
-          {languages.map((lang) => (
-            <DropdownMenuItem
-              key={lang.code}
-              onClick={() => setLanguage(lang.code)}
-              className="flex items-center justify-between cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{lang.flag}</span>
-                <span className="font-medium">{lang.name}</span>
-              </div>
-              {language === lang.code && <Check className="h-4 w-4 text-orange-500" />}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <>
+        {languages.map((lang) => (
+          <DropdownMenuItem
+            key={lang.code}
+            onClick={() => handleLanguageChange(lang.code)}
+            className="flex items-center justify-between cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{lang.flag}</span>
+              <span className="font-medium">{lang.name}</span>
+            </div>
+            {language === lang.code && <Check className="h-4 w-4 text-orange-500" />}
+          </DropdownMenuItem>
+        ))}
+      </>
     );
   }
 
@@ -136,7 +135,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
         {languages.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
-            onClick={() => setLanguage(lang.code)}
+            onClick={() => handleLanguageChange(lang.code)}
             className="flex items-center justify-between cursor-pointer"
           >
             <div className="flex items-center gap-2">

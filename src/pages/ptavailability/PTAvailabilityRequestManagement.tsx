@@ -176,20 +176,20 @@ const PTAvailabilityRequestManagement: React.FC = () => {
   const canCreate = isPT;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 md:space-y-6 p-3 md:p-6">
       <div className="basic-management">
         {/* Header */}
-        <div className="flex flex-col gap-6 mb-8">
+        <div className="flex flex-col gap-4 md:gap-6 mb-6 md:mb-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex-1">
-              <span className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-orange-500">
-                <Calendar className="h-3.5 w-3.5" />
+              <span className="inline-flex items-center gap-1.5 md:gap-2 rounded-full bg-orange-50 px-2.5 md:px-3 py-1 text-[10px] md:text-xs font-semibold uppercase tracking-wider md:tracking-widest text-orange-500">
+                <Calendar className="h-3 w-3 md:h-3.5 md:w-3.5" />
                 {t('pt_availability.badge', 'PT AVAILABILITY')}
               </span>
-              <h2 className="mt-3 text-xl sm:text-2xl font-semibold text-gray-900">
+              <h2 className="mt-2 md:mt-3 text-lg sm:text-xl md:text-2xl font-semibold text-gray-900">
                 {t('pt_availability.management_title', 'PT Availability Request Management')}
               </h2>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-xs md:text-sm text-gray-500">
                 {t(
                   'pt_availability.management_description',
                   'Manage and approve 1vs1 schedule registration requests from PTs'
@@ -199,11 +199,14 @@ const PTAvailabilityRequestManagement: React.FC = () => {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               {canCreate && (
                 <Button
-                  className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto"
+                  className="bg-orange-500 hover:bg-orange-600 w-full sm:w-auto h-9 md:h-10 text-xs md:text-sm"
                   onClick={() => setIsCreateModalOpen(true)}
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  {t('pt_availability.create_request', '+ Create PT 1vs1 Schedule Request')}
+                  <Plus className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 md:mr-2" />
+                  <span className="hidden sm:inline">
+                    {t('pt_availability.create_request', 'Create PT 1vs1 Schedule Request')}
+                  </span>
+                  <span className="sm:hidden">Create Request</span>
                 </Button>
               )}
             </div>
@@ -211,84 +214,84 @@ const PTAvailabilityRequestManagement: React.FC = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid w-full gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-8">
-          <div className="rounded-2xl border border-orange-100 bg-[#FFF6EE] p-4">
-            <div className="text-xs font-semibold uppercase tracking-wide text-orange-500">
-              {t('pt_availability.stats.total', 'Total Requests')}
+        <div className="grid w-full gap-3 md:gap-4 grid-cols-2 xl:grid-cols-4 mb-6 md:mb-8">
+          <div className="rounded-xl md:rounded-2xl border border-orange-100 bg-[#FFF6EE] p-3 md:p-4">
+            <div className="text-[10px] md:text-xs font-semibold uppercase tracking-wide text-orange-500">
+              {t('pt_availability.stats.total', 'Total')}
             </div>
-            <div className="mt-2 flex items-end justify-between">
-              <div className="text-3xl font-bold text-gray-900">{stats?.totalRequests || 0}</div>
-              <div className="rounded-full bg-white/70 p-2 text-orange-500">
-                <Target className="h-5 w-5" />
+            <div className="mt-1.5 md:mt-2 flex items-end justify-between">
+              <div className="text-2xl md:text-3xl font-bold text-gray-900">{stats?.totalRequests || 0}</div>
+              <div className="rounded-full bg-white/70 p-1.5 md:p-2 text-orange-500">
+                <Target className="h-4 w-4 md:h-5 md:w-5" />
               </div>
             </div>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-1 md:mt-2 text-[10px] md:text-xs text-gray-500 line-clamp-1">
               {currentBranch
                 ? `${t('pt_availability.stats.total_helper', 'Tổng số yêu cầu')} - ${currentBranch.branchName}`
                 : t('pt_availability.stats.total_helper', 'Tổng số yêu cầu')}
             </p>
           </div>
 
-          <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-4">
-            <div className="text-xs font-semibold uppercase tracking-wide text-yellow-600">
+          <div className="rounded-xl md:rounded-2xl border border-yellow-100 bg-yellow-50 p-3 md:p-4">
+            <div className="text-[10px] md:text-xs font-semibold uppercase tracking-wide text-yellow-600">
               {t('pt_availability.stats.pending', 'Pending')}
             </div>
-            <div className="mt-2 flex items-end justify-between text-gray-900">
-              <span className="text-3xl font-semibold">{stats?.pendingRequests || 0}</span>
-              <div className="rounded-full bg-white p-2 text-yellow-600">
-                <Clock className="h-5 w-5" />
+            <div className="mt-1.5 md:mt-2 flex items-end justify-between text-gray-900">
+              <span className="text-2xl md:text-3xl font-semibold">{stats?.pendingRequests || 0}</span>
+              <div className="rounded-full bg-white p-1.5 md:p-2 text-yellow-600">
+                <Clock className="h-4 w-4 md:h-5 md:w-5" />
               </div>
             </div>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-1 md:mt-2 text-[10px] md:text-xs text-gray-500 line-clamp-1">
               {t('pt_availability.stats.pending_helper', 'Yêu cầu đang chờ phê duyệt')}
             </p>
           </div>
 
-          <div className="rounded-2xl border border-green-100 bg-green-50 p-4">
-            <div className="text-xs font-semibold uppercase tracking-wide text-green-600">
+          <div className="rounded-xl md:rounded-2xl border border-green-100 bg-green-50 p-3 md:p-4">
+            <div className="text-[10px] md:text-xs font-semibold uppercase tracking-wide text-green-600">
               {t('pt_availability.stats.approved', 'Approved')}
             </div>
-            <div className="mt-2 flex items-end justify-between text-gray-900">
-              <span className="text-3xl font-semibold">{stats?.approvedRequests || 0}</span>
-              <div className="rounded-full bg-white p-2 text-green-600">
-                <CheckCircle2 className="h-5 w-5" />
+            <div className="mt-1.5 md:mt-2 flex items-end justify-between text-gray-900">
+              <span className="text-2xl md:text-3xl font-semibold">{stats?.approvedRequests || 0}</span>
+              <div className="rounded-full bg-white p-1.5 md:p-2 text-green-600">
+                <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5" />
               </div>
             </div>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-1 md:mt-2 text-[10px] md:text-xs text-gray-500 line-clamp-1">
               {t('pt_availability.stats.approved_helper', 'Yêu cầu đã được phê duyệt')}
             </p>
           </div>
 
-          <div className="rounded-2xl border border-red-100 bg-red-50 p-4">
-            <div className="text-xs font-semibold uppercase tracking-wide text-red-600">
+          <div className="rounded-xl md:rounded-2xl border border-red-100 bg-red-50 p-3 md:p-4">
+            <div className="text-[10px] md:text-xs font-semibold uppercase tracking-wide text-red-600">
               {t('pt_availability.stats.rejected', 'Rejected')}
             </div>
-            <div className="mt-2 flex items-end justify-between text-gray-900">
-              <span className="text-3xl font-semibold">{stats?.rejectedRequests || 0}</span>
-              <div className="rounded-full bg-white p-2 text-red-600">
-                <XCircle className="h-5 w-5" />
+            <div className="mt-1.5 md:mt-2 flex items-end justify-between text-gray-900">
+              <span className="text-2xl md:text-3xl font-semibold">{stats?.rejectedRequests || 0}</span>
+              <div className="rounded-full bg-white p-1.5 md:p-2 text-red-600">
+                <XCircle className="h-4 w-4 md:h-5 md:w-5" />
               </div>
             </div>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-1 md:mt-2 text-[10px] md:text-xs text-gray-500 line-clamp-1">
               {t('pt_availability.stats.rejected_helper', 'Yêu cầu đã bị từ chối')}
             </p>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="mb-6">
+        <div className="mb-4 md:mb-6">
           <Card className="shadow-sm border-0 bg-white">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex flex-wrap items-center gap-3">
+            <CardContent className="p-3 md:p-4 lg:p-6">
+              <div className="flex flex-wrap items-center gap-2 md:gap-3">
                 {/* Search Bar */}
-                <div className="flex-1 min-w-[200px]">
+                <div className="flex-1 min-w-[150px] md:min-w-[200px]">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Search className="absolute left-2.5 md:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5 md:w-4 md:h-4" />
                     <Input
-                      placeholder={t('pt_availability.search_placeholder', 'Search by PT name, notes...')}
+                      placeholder={t('pt_availability.search_placeholder', 'Search...')}
                       value={searchValue}
                       onChange={(e) => handleSearch(e.target.value)}
-                      className="pl-10 h-11 text-sm border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg"
+                      className="pl-8 md:pl-10 h-9 md:h-11 text-xs md:text-sm border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg"
                     />
                   </div>
                 </div>
@@ -300,11 +303,11 @@ const PTAvailabilityRequestManagement: React.FC = () => {
                       <Button
                         variant="outline"
                         className={cn(
-                          'h-11 w-full sm:w-[240px] justify-start text-left font-normal border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg pr-8',
+                          'h-9 md:h-11 w-full sm:w-[200px] md:sm:w-[240px] justify-start text-left font-normal border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg pr-8 text-xs md:text-sm',
                           !dateRange.from && !dateRange.to && 'text-muted-foreground'
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <CalendarIcon className="mr-1.5 md:mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
                         {dateRange.from && dateRange.to ? (
                           <>
                             {format(dateRange.from, 'dd/MM/yyyy')} - {format(dateRange.to, 'dd/MM/yyyy')}
@@ -350,9 +353,9 @@ const PTAvailabilityRequestManagement: React.FC = () => {
                 </div>
 
                 {/* Status Filter */}
-                <div className="w-full sm:w-32 lg:w-36">
+                <div className="w-full sm:w-28 md:w-32 lg:w-36">
                   <Select value={statusFilter} onValueChange={handleStatusFilter}>
-                    <SelectTrigger className="h-11 border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg">
+                    <SelectTrigger className="h-9 md:h-11 text-xs md:text-sm border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg">
                       <SelectValue placeholder={t('common.all_status', 'All Status')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -365,18 +368,18 @@ const PTAvailabilityRequestManagement: React.FC = () => {
                 </div>
 
                 {/* View Toggle Buttons */}
-                <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+                <div className="flex gap-0.5 md:gap-1 bg-gray-100 p-0.5 md:p-1 rounded-lg">
                   <Button
                     variant={viewMode === 'card' ? 'default' : 'ghost'}
                     onClick={() => setViewMode('card')}
                     className={cn(
-                      'h-9 px-3 rounded-md transition-all',
+                      'h-8 md:h-9 px-2 md:px-3 rounded-md transition-all',
                       viewMode === 'card'
                         ? 'bg-white shadow-sm text-gray-900'
                         : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
                     )}
                   >
-                    <Grid3X3 className="w-4 h-4" />
+                    <Grid3X3 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                   </Button>
                   <Button
                     variant={viewMode === 'table' ? 'default' : 'ghost'}
@@ -388,7 +391,7 @@ const PTAvailabilityRequestManagement: React.FC = () => {
                         : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
                     )}
                   >
-                    <List className="w-4 h-4" />
+                    <List className="w-3.5 h-3.5 md:w-4 md:h-4" />
                   </Button>
                 </div>
               </div>

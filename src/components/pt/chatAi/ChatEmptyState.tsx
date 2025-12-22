@@ -23,33 +23,33 @@ const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onSendMessage,
   sending
 }) => (
-  <div className="flex-1 flex items-center justify-center p-6">
-    <div className="text-center w-full max-w-3xl mx-auto space-y-8">
+  <div className="flex-1 flex items-center justify-center p-3 md:p-6">
+    <div className="text-center w-full max-w-3xl mx-auto space-y-4 md:space-y-8">
       <div className="space-y-2">
-        <h2 className="text-2xl font-semibold tracking-tight">
+        <h2 className="text-lg md:text-2xl font-semibold tracking-tight px-2">
           {t('chat.empty_state.title') || 'Chúng ta nên bắt đầu từ đâu?'}
         </h2>
       </div>
-      <div className="bg-muted/60 dark:bg-muted/20 rounded-full pl-6 pr-2 py-0 flex items-center gap-2 text-left shadow-inner w-full max-w-5xl mx-auto border border-border/50">
+      <div className="bg-muted/60 dark:bg-muted/20 rounded-full pl-4 md:pl-6 pr-1 md:pr-2 py-0 flex items-center gap-1 md:gap-2 text-left shadow-inner w-full max-w-5xl mx-auto border border-border/50">
         <input
           ref={heroInputRef}
           value={messageInput}
           onChange={(e) => onMessageInputChange(e.target.value)}
           onKeyDown={onHeroKeyPress}
           placeholder={t('chat.empty_state.placeholder') || 'Hỏi bất kỳ điều gì'}
-          className="flex-1 bg-transparent text-base focus:outline-none"
+          className="flex-1 bg-transparent text-sm md:text-base focus:outline-none"
         />
         <button
           type="button"
           onClick={onSendMessage}
           disabled={!messageInput.trim() || sending}
           className={cn(
-            'h-12 w-12 flex items-center justify-center rounded-full text-primary transition',
+            'h-10 w-10 md:h-12 md:w-12 flex items-center justify-center rounded-full text-primary transition flex-shrink-0',
             !messageInput.trim() || sending ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/10'
           )}
           aria-label={t('chat.send_message') || 'Send message'}
         >
-          <Send className="h-6 w-6" />
+          <Send className="h-5 w-5 md:h-6 md:w-6" />
         </button>
       </div>
     </div>

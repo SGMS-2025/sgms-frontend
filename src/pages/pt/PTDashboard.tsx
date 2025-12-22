@@ -393,52 +393,61 @@ const PTDashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl bg-gradient-to-r from-[#f05a29] via-[#ff7a45] to-[#ffa76a] text-white p-6 shadow-xl border border-white/10 overflow-hidden relative">
+    <div className="space-y-4 md:space-y-6">
+      <div className="rounded-2xl md:rounded-3xl bg-gradient-to-r from-[#f05a29] via-[#ff7a45] to-[#ffa76a] text-white p-4 md:p-6 shadow-xl border border-white/10 overflow-hidden relative">
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_left,#ffffff,transparent_35%)]" />
-        <div className="flex flex-col lg:flex-row justify-between gap-6 relative z-10">
-          <div className="space-y-3">
-            <Badge variant="outline" className="bg-white/15 text-white border-white/30">
-              <Sparkles className="w-4 h-4 mr-2" />
+        <div className="flex flex-col lg:flex-row justify-between gap-4 md:gap-6 relative z-10">
+          <div className="space-y-2 md:space-y-3">
+            <Badge variant="outline" className="bg-white/15 text-white border-white/30 text-xs md:text-sm">
+              <Sparkles className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
               {t('pt.dashboard.heading', 'Personal Trainer Dashboard')}
             </Badge>
-            <h1 className="text-3xl font-semibold leading-tight">
+            <h1 className="text-xl md:text-3xl font-semibold leading-tight">
               {t('pt.dashboard.greeting', { name: fullName, defaultValue: 'Welcome back, {{name}}' })}
             </h1>
-            <p className="text-white/70 max-w-2xl">
+            <p className="text-white/70 max-w-2xl text-sm md:text-base">
               {t('pt.dashboard.subtitle', 'Monitor sessions, clients, and KPIs in one focused view.')}
             </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <Badge className="bg-white text-[#f05a29] px-3 py-1 rounded-full font-medium border-0">
+            <div className="flex flex-wrap items-center gap-2 md:gap-3">
+              <Badge className="bg-white text-[#f05a29] px-2 md:px-3 py-1 rounded-full font-medium border-0 text-xs md:text-sm">
                 {t('pt.dashboard.branch_label', 'Branch')}: {branchName}
               </Badge>
-              <Badge variant="outline" className="border-white/40 text-white px-3 py-1 rounded-full">
-                <Calendar className="w-4 h-4 mr-1" />
+              <Badge
+                variant="outline"
+                className="border-white/40 text-white px-2 md:px-3 py-1 rounded-full text-xs md:text-sm"
+              >
+                <Calendar className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                 {todaysSchedules.length} {t('pt.dashboard.stats.sessions_today', "Today's sessions")}
               </Badge>
-              <Badge variant="outline" className="border-white/40 text-white px-3 py-1 rounded-full">
-                <Clock className="w-4 h-4 mr-1" />
+              <Badge
+                variant="outline"
+                className="border-white/40 text-white px-2 md:px-3 py-1 rounded-full text-xs md:text-sm"
+              >
+                <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                 {(weeklyMinutes / 60).toFixed(1)}h {t('pt.dashboard.stats.weekly_hours', 'scheduled this week')}
               </Badge>
             </div>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2 md:gap-3">
               <Button
-                className="bg-white text-[#f05a29] hover:bg-white/90"
+                size="sm"
+                className="bg-white text-[#f05a29] hover:bg-white/90 h-8 md:h-10 text-xs md:text-sm"
                 onClick={() => navigate('/manage/pt/calendar')}
               >
                 {t('pt.dashboard.quick_access.calendar', 'Open calendar')}
-                <ArrowUpRight className="w-4 h-4 ml-2" />
+                <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 ml-1 md:ml-2" />
               </Button>
               <Button
+                size="sm"
                 variant="outline"
-                className="bg-transparent border-white/50 text-white hover:bg-white/10"
+                className="bg-transparent border-white/50 text-white hover:bg-white/10 h-8 md:h-10 text-xs md:text-sm"
                 onClick={() => navigate('/manage/pt/clients')}
               >
                 {t('pt.dashboard.quick_access.clients', 'Manage clients')}
               </Button>
               <Button
+                size="sm"
                 variant="ghost"
-                className="text-white hover:bg-white/10"
+                className="text-white hover:bg-white/10 h-8 md:h-10 text-xs md:text-sm"
                 onClick={() => navigate('/manage/pt/clients')}
               >
                 {t('pt.dashboard.quick_access.log_progress', 'Log progress')}
@@ -446,32 +455,34 @@ const PTDashboard: React.FC = () => {
             </div>
           </div>
           <Card className="bg-white/15 backdrop-blur border-white/25 text-white w-full lg:w-96">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5" />
+            <CardHeader className="p-3 md:p-6">
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <Clock className="w-4 h-4 md:w-5 md:h-5" />
                 {t('pt.dashboard.next_session.title', 'Next session')}
               </CardTitle>
-              <CardDescription className="text-white/70">
+              <CardDescription className="text-white/70 text-xs md:text-sm">
                 {t('pt.dashboard.next_session.subtitle', 'Keep the day tight and predictable')}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 md:p-6 pt-0">
               {nextSchedule ? (
-                <div className="p-4 rounded-2xl bg-white/10 border border-white/25">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-white/70">{formatScheduleLabel(nextSchedule)}</p>
-                      <p className="text-lg font-semibold">
+                <div className="p-3 md:p-4 rounded-xl md:rounded-2xl bg-white/10 border border-white/25">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs md:text-sm text-white/70 truncate">{formatScheduleLabel(nextSchedule)}</p>
+                      <p className="text-base md:text-lg font-semibold truncate">
                         {nextSchedule.name || t('pt.dashboard.session_default', '1-1 Session')}
                       </p>
-                      <p className="text-sm text-white/70">{nextSchedule.branchId?.branchName || branchName}</p>
+                      <p className="text-xs md:text-sm text-white/70 truncate">
+                        {nextSchedule.branchId?.branchName || branchName}
+                      </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold">
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs md:text-sm font-semibold whitespace-nowrap">
                         {nextSchedule.timeRange?.startTime?.slice(0, 5)} -{' '}
                         {nextSchedule.timeRange?.endTime?.slice(0, 5)}
                       </p>
-                      <p className="text-xs text-white/70">
+                      <p className="text-xs text-white/70 whitespace-nowrap">
                         {t('pt.dashboard.next_session.duration', '{{minutes}} minutes', {
                           minutes: getScheduleDurationMinutes(nextSchedule)
                         })}
@@ -480,7 +491,7 @@ const PTDashboard: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-white/70">
+                <p className="text-xs md:text-sm text-white/70">
                   {t('pt.dashboard.next_session.none', 'No sessions booked for the next days')}
                 </p>
               )}
@@ -490,46 +501,50 @@ const PTDashboard: React.FC = () => {
       </div>
 
       <Card className="shadow-sm">
-        <CardHeader className="flex items-center justify-between gap-4">
+        <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 p-4 md:p-6">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-[#F05A29]" />
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <MessageCircle className="w-4 h-4 md:w-5 md:h-5 text-[#F05A29]" />
               {t('pt.dashboard.action_center.title', 'Action center')}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs md:text-sm">
               {t('pt.dashboard.action_center.subtitle', 'Quick actions to stay ahead today')}
             </CardDescription>
           </div>
-          <div className="flex items-center gap-3 text-xs text-gray-500">
-            <span>
+          <div className="flex items-center gap-2 md:gap-3 text-xs text-gray-500">
+            <span className="hidden md:inline">
               {t('pt.dashboard.last_updated', 'Last updated')}:{' '}
               {lastUpdated ? lastUpdated.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '--'}
             </span>
-            <Button size="sm" variant="outline" onClick={handleRefresh} disabled={refreshing}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? t('pt.dashboard.refreshing', 'Refreshing...') : t('pt.dashboard.refresh', 'Refresh')}
+            <Button size="sm" variant="outline" onClick={handleRefresh} disabled={refreshing} className="h-8">
+              <RefreshCw className={`w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="text-xs md:text-sm">
+                {refreshing ? t('pt.dashboard.refreshing', 'Refreshing...') : t('pt.dashboard.refresh', 'Refresh')}
+              </span>
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2 md:space-y-3 p-4 md:p-6 pt-0">
           {actionItems.length === 0 ? (
-            <p className="text-sm text-gray-600">{t('pt.dashboard.action_center.empty', 'All caught up for now!')}</p>
+            <p className="text-xs md:text-sm text-gray-600">
+              {t('pt.dashboard.action_center.empty', 'All caught up for now!')}
+            </p>
           ) : (
             actionItems.map((item, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-gray-200 hover:border-[#F05A29] transition-colors"
+                className="flex items-center justify-between gap-2 md:gap-3 p-3 md:p-4 rounded-xl md:rounded-2xl border border-gray-200 hover:border-[#F05A29] transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-[#F05A29] bg-opacity-10">{item.icon}</div>
-                  <div>
-                    <p className="font-semibold text-gray-900">{item.title}</p>
-                    <p className="text-sm text-gray-600">{item.description}</p>
+                <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                  <div className="p-1.5 md:p-2 rounded-full bg-[#F05A29] bg-opacity-10 flex-shrink-0">{item.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 text-sm md:text-base truncate">{item.title}</p>
+                    <p className="text-xs md:text-sm text-gray-600 truncate">{item.description}</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={item.onClick}>
-                  {item.cta}
-                  <ArrowUpRight className="w-4 h-4 ml-2" />
+                <Button variant="ghost" size="sm" onClick={item.onClick} className="h-8 flex-shrink-0">
+                  <span className="hidden md:inline">{item.cta}</span>
+                  <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 md:ml-2" />
                 </Button>
               </div>
             ))
@@ -559,84 +574,86 @@ const PTDashboard: React.FC = () => {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <Card className="shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-[#F05A29]" />
-              {t('pt.dashboard.stats.sessions_today', "Today's sessions")}
+          <CardHeader className="pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium text-gray-600 flex items-center gap-1 md:gap-2">
+              <Calendar className="w-3 h-3 md:w-4 md:h-4 text-[#F05A29]" />
+              <span className="truncate">{t('pt.dashboard.stats.sessions_today', "Today's sessions")}</span>
             </CardTitle>
-            <CardDescription className="text-xs text-gray-500">
+            <CardDescription className="text-[10px] md:text-xs text-gray-500 hidden md:block">
               {t('pt.dashboard.stats.sessions_today_helper', 'Booked in your calendar')}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900">{todaysSchedules.length}</div>
+          <CardContent className="p-3 md:p-6 pt-0">
+            <div className="text-2xl md:text-3xl font-bold text-gray-900">{todaysSchedules.length}</div>
           </CardContent>
         </Card>
 
         <Card className="shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-              <Users className="w-4 h-4 text-[#F05A29]" />
-              {t('pt.dashboard.stats.active_clients', 'Active clients')}
+          <CardHeader className="pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium text-gray-600 flex items-center gap-1 md:gap-2">
+              <Users className="w-3 h-3 md:w-4 md:h-4 text-[#F05A29]" />
+              <span className="truncate">{t('pt.dashboard.stats.active_clients', 'Active clients')}</span>
             </CardTitle>
-            <CardDescription className="text-xs text-gray-500">
+            <CardDescription className="text-[10px] md:text-xs text-gray-500 hidden md:block">
               {t('pt.dashboard.stats.active_clients_helper', 'Assigned to you')}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900">{loading ? '—' : totalCustomers}</div>
+          <CardContent className="p-3 md:p-6 pt-0">
+            <div className="text-2xl md:text-3xl font-bold text-gray-900">{loading ? '—' : totalCustomers}</div>
           </CardContent>
         </Card>
 
         <Card className="shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-500" />
-              {t('pt.dashboard.stats.at_risk', 'At risk / expiring')}
+          <CardHeader className="pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium text-gray-600 flex items-center gap-1 md:gap-2">
+              <AlertTriangle className="w-3 h-3 md:w-4 md:h-4 text-amber-500" />
+              <span className="truncate">{t('pt.dashboard.stats.at_risk', 'At risk / expiring')}</span>
             </CardTitle>
-            <CardDescription className="text-xs text-gray-500">
+            <CardDescription className="text-[10px] md:text-xs text-gray-500 hidden md:block">
               {t('pt.dashboard.stats.at_risk_helper', 'Low sessions or soon expiring')}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900">{customerStats.expiringSoon}</div>
+          <CardContent className="p-3 md:p-6 pt-0">
+            <div className="text-2xl md:text-3xl font-bold text-gray-900">{customerStats.expiringSoon}</div>
           </CardContent>
         </Card>
 
         <Card className="shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-              <Dumbbell className="w-4 h-4 text-[#F05A29]" />
-              {t('pt.dashboard.stats.sessions_remaining', 'Sessions remaining')}
+          <CardHeader className="pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium text-gray-600 flex items-center gap-1 md:gap-2">
+              <Dumbbell className="w-3 h-3 md:w-4 md:h-4 text-[#F05A29]" />
+              <span className="truncate">{t('pt.dashboard.stats.sessions_remaining', 'Sessions remaining')}</span>
             </CardTitle>
-            <CardDescription className="text-xs text-gray-500">
+            <CardDescription className="text-[10px] md:text-xs text-gray-500 hidden md:block">
               {t('pt.dashboard.stats.sessions_remaining_helper', 'Across active packages')}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900">{sessionsRemaining}</div>
+          <CardContent className="p-3 md:p-6 pt-0">
+            <div className="text-2xl md:text-3xl font-bold text-gray-900">{sessionsRemaining}</div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6">
         <Card className="xl:col-span-2 shadow-sm">
-          <CardHeader className="flex items-center justify-between">
+          <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 p-4 md:p-6">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-[#F05A29]" />
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <Clock className="w-4 h-4 md:w-5 md:h-5 text-[#F05A29]" />
                 {t('pt.dashboard.upcoming.title', 'Upcoming sessions')}
               </CardTitle>
-              <CardDescription>{t('pt.dashboard.upcoming.subtitle', 'Next 7 days')}</CardDescription>
+              <CardDescription className="text-xs md:text-sm">
+                {t('pt.dashboard.upcoming.subtitle', 'Next 7 days')}
+              </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <div className="flex items-center rounded-full border border-gray-200 overflow-hidden">
                 <Button
                   variant={upcomingFilter === 'today' ? 'default' : 'ghost'}
                   size="sm"
-                  className="rounded-none"
+                  className="rounded-none h-8 text-xs md:text-sm"
                   onClick={() => setUpcomingFilter('today')}
                 >
                   {t('pt.dashboard.upcoming.filter_today', 'Today')}
@@ -644,18 +661,22 @@ const PTDashboard: React.FC = () => {
                 <Button
                   variant={upcomingFilter === 'week' ? 'default' : 'ghost'}
                   size="sm"
-                  className="rounded-none"
+                  className="rounded-none h-8 text-xs md:text-sm"
                   onClick={() => setUpcomingFilter('week')}
                 >
                   {t('pt.dashboard.upcoming.filter_week', 'Next 7 days')}
                 </Button>
               </div>
-              <Button variant="outline" onClick={() => navigate('/manage/pt/calendar')}>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/manage/pt/calendar')}
+                className="h-8 text-xs md:text-sm"
+              >
                 {t('pt.dashboard.upcoming.view_all', 'View calendar')}
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2 md:space-y-3 p-4 md:p-6 pt-0">
             {schedulesError ? (
               <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
                 <div className="flex items-center gap-2">
@@ -667,29 +688,38 @@ const PTDashboard: React.FC = () => {
                 </Button>
               </div>
             ) : filteredUpcoming.length === 0 ? (
-              <p className="text-sm text-gray-500">{t('pt.dashboard.upcoming.empty', 'No sessions scheduled yet.')}</p>
+              <p className="text-xs md:text-sm text-gray-500">
+                {t('pt.dashboard.upcoming.empty', 'No sessions scheduled yet.')}
+              </p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
                 {filteredUpcoming.map((schedule) => {
                   const status = getStatusStyles(schedule.status);
                   return (
                     <div
                       key={schedule._id}
-                      className="p-4 rounded-2xl border border-gray-200 hover:border-[#F05A29] transition-colors"
+                      className="p-3 md:p-4 rounded-xl md:rounded-2xl border border-gray-200 hover:border-[#F05A29] transition-colors"
                     >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs text-gray-500">{formatScheduleLabel(schedule)}</p>
-                          <p className="font-semibold text-gray-900">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] md:text-xs text-gray-500 truncate">
+                            {formatScheduleLabel(schedule)}
+                          </p>
+                          <p className="font-semibold text-gray-900 text-sm md:text-base truncate">
                             {schedule.name || t('pt.dashboard.session_default', '1-1 Session')}
                           </p>
-                          <p className="text-xs text-gray-500">{schedule.branchId?.branchName || branchName}</p>
+                          <p className="text-[10px] md:text-xs text-gray-500 truncate">
+                            {schedule.branchId?.branchName || branchName}
+                          </p>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <Badge className={status.className} variant="outline">
+                        <div className="flex flex-col items-end gap-1 md:gap-2 flex-shrink-0">
+                          <Badge
+                            className={`${status.className} text-[10px] md:text-xs px-1.5 md:px-2 py-0.5`}
+                            variant="outline"
+                          >
                             {status.label}
                           </Badge>
-                          <Badge className="bg-[#F05A29] bg-opacity-10 text-[#F05A29] border-0">
+                          <Badge className="bg-[#F05A29] bg-opacity-10 text-[#F05A29] border-0 text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 whitespace-nowrap">
                             {schedule.timeRange?.startTime?.slice(0, 5)} - {schedule.timeRange?.endTime?.slice(0, 5)}
                           </Badge>
                         </div>

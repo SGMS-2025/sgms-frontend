@@ -90,12 +90,12 @@ const ChatConversationPanel: React.FC<ChatConversationPanelProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col rounded-xl border bg-card text-card-foreground shadow-sm min-h-0">
+    <div className="flex-1 flex flex-col rounded-xl border bg-card text-card-foreground shadow-sm min-h-0 ml-0 lg:ml-0">
       {selectedSessionId ? (
         <>
-          <div className="border-b px-3 py-2">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-mb font-semibold flex-1 min-w-0 overflow-x-auto whitespace-nowrap pr-4">
+          <div className="border-b px-3 md:px-4 py-2 md:py-3">
+            <div className="flex items-center justify-between gap-2 md:gap-3">
+              <h3 className="text-sm md:text-base font-semibold flex-1 min-w-0 truncate pr-2 md:pr-4">
                 {room?.title ||
                   resolveRoomTitle(
                     pendingRoom?.sessionId === selectedSessionId ? pendingRoom?.title : room?.title,
@@ -104,24 +104,24 @@ const ChatConversationPanel: React.FC<ChatConversationPanelProps> = ({
                   t('chat.conversation') ||
                   'Conversation'}
               </h3>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 md:gap-2">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={onRefreshMessages}
                   disabled={messagesLoading}
-                  className="h-8 w-8"
+                  className="h-7 w-7 md:h-8 md:w-8"
                 >
-                  <RefreshCw className={cn('h-4 w-4', messagesLoading && 'animate-spin')} />
+                  <RefreshCw className={cn('h-3 w-3 md:h-4 md:w-4', messagesLoading && 'animate-spin')} />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={(e) => onRequestClear(selectedSessionId, e)}
                   disabled={isSelectedRoomTemp}
-                  className="h-8 w-8"
+                  className="h-7 w-7 md:h-8 md:w-8"
                 >
-                  <Trash2 className="h-4 w-4 text-destructive" />
+                  <Trash2 className="h-3 w-3 md:h-4 md:w-4 text-destructive" />
                 </Button>
               </div>
             </div>
@@ -163,10 +163,10 @@ const ChatConversationPanel: React.FC<ChatConversationPanelProps> = ({
               </div>
             </ScrollArea>
 
-            <div className="px-4 py-1.5">
+            <div className="px-2 md:px-4 py-1.5 md:py-2">
               <div
                 className={cn(
-                  'flex gap-2 border bg-background shadow-sm px-3 py-1 transition-all',
+                  'flex gap-2 border bg-background shadow-sm px-2 md:px-3 py-1 transition-all',
                   isTextareaExpanded ? 'items-end rounded-lg' : 'items-center rounded-full'
                 )}
               >
@@ -177,14 +177,14 @@ const ChatConversationPanel: React.FC<ChatConversationPanelProps> = ({
                   onKeyDown={onTextareaKeyPress}
                   placeholder={t('chat.type_message') || 'Type your message...'}
                   rows={1}
-                  className="min-h-[32px] max-h-48 resize-none border-0 bg-transparent pl-2 pr-0 py-0 shadow-none leading-[32px] break-all focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="min-h-[32px] max-h-48 resize-none border-0 bg-transparent pl-1 md:pl-2 pr-0 py-0 shadow-none leading-[32px] break-all focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
                   disabled={sending}
                 />
                 <Button
                   onClick={onSendMessage}
                   disabled={!messageInput.trim() || sending}
                   size="icon"
-                  className="h-8 w-8 rounded-full"
+                  className="h-7 w-7 md:h-8 md:w-8 rounded-full flex-shrink-0"
                 >
                   <Send className="h-3 w-3" />
                 </Button>

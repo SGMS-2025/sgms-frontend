@@ -389,7 +389,6 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
       // Step 1: Create progress
       const createResponse = await createProgress(progressData);
       if (!createResponse.success) {
-        toast.error(createResponse.message || t('toast.progress_save_failed'));
         setIsSubmitting(false);
         return;
       }

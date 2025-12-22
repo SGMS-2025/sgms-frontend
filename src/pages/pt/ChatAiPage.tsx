@@ -5,6 +5,8 @@ import { format } from 'date-fns';
 import { DeleteConfirmationModal } from '@/components/ui/delete-confirmation-modal';
 import ChatSidebar from '../../components/pt/chatAi/ChatSidebar';
 import ChatConversationPanel from '../../components/pt/chatAi/ChatConversationPanel';
+import { Button } from '@/components/ui/button';
+import { MoreVertical } from 'lucide-react';
 import type { ChatMessage, SendMessageRequest } from '@/types/api/Chat';
 
 const SINGLE_LINE_TEXTAREA_HEIGHT = 32;
@@ -24,6 +26,7 @@ const ChatAiPage: React.FC = () => {
   const messageInputRef = useRef<HTMLTextAreaElement | null>(null);
   const heroInputRef = useRef<HTMLInputElement | null>(null);
   const [isTextareaExpanded, setIsTextareaExpanded] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const autoResizeTextarea = useCallback(() => {
     const textarea = messageInputRef.current;
@@ -73,7 +76,7 @@ const ChatAiPage: React.FC = () => {
     }
   }, [selectedSessionId]);
 
-  const handleSelectRoom = (sessionId: string) => setSelectedSessionId(sessionId);
+  const handleSelectRoom = (sessionId: string | null) => setSelectedSessionId(sessionId);
 
   const getNewChatTitle = () => {
     const label = t('chat.new_chat_room');
@@ -291,19 +294,55 @@ const ChatAiPage: React.FC = () => {
   }, [selectedSessionId, sending, optimisticMessages]);
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] gap-4 p-2 overflow-hidden">
-      <ChatSidebar
-        t={t}
-        roomsLoading={roomsLoading}
-        visibleRooms={visibleRooms}
-        pendingRoom={pendingRoom}
-        showPendingRoom={showPendingRoom}
-        selectedSessionId={selectedSessionId}
-        onSelectRoom={handleSelectRoom}
-        onNewChat={handleNewChat}
-        onRequestClear={handleRequestClear}
-        resolveRoomTitle={resolveRoomTitle}
-      />
+    <div className="relative flex h-[calc(100vh-8rem)] gap-2 md:gap-4 p-1 md:p-2 overflow-hidden">
+      {/* Mobile Menu Button - Only show when sidebar is closed */}
+      {!isMobileSidebarOpen && (
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setIsMobileSidebarOpen(true)}
+          className="fixed top-[5.5rem] left-2 z-[110] lg:hidden h-10 w-10 shadow-lg bg-background"
+        >
+          <MoreVertical className="h-5 w-5" />
+        </Button>
+      )}
+
+      {/* Overlay for mobile */}
+      {isMobileSidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-[100] lg:hidden" onClick={() => setIsMobileSidebarOpen(false)} />
+      )}
+
+      <div
+        className={`
+        fixed lg:relative
+        inset-y-0 left-0
+        z-[101]
+        w-60 lg:w-60
+        transition-transform duration-300 ease-in-out
+        ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}
+      >
+        <ChatSidebar
+          t={t}
+          roomsLoading={roomsLoading}
+          visibleRooms={visibleRooms}
+          pendingRoom={pendingRoom}
+          showPendingRoom={showPendingRoom}
+          selectedSessionId={selectedSessionId}
+          onSelectRoom={(sessionId: string | null) => {
+            handleSelectRoom(sessionId);
+            setIsMobileSidebarOpen(false);
+          }}
+          onNewChat={() => {
+            handleNewChat();
+            setIsMobileSidebarOpen(false);
+          }}
+          onRequestClear={handleRequestClear}
+          resolveRoomTitle={resolveRoomTitle}
+          isMobileSidebarOpen={isMobileSidebarOpen}
+          onMobileToggle={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+        />
+      </div>
 
       <ChatConversationPanel
         t={t}

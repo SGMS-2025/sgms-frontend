@@ -242,6 +242,7 @@ export const UserProfileSection: React.FC<UserProfileProps> = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const [open, setOpen] = React.useState(false);
 
   const displayName = user?.fullName || user?.username || t('sidebar.account') || 'User';
 
@@ -299,7 +300,7 @@ export const UserProfileSection: React.FC<UserProfileProps> = ({
 
       <DropdownMenuSeparator />
 
-      <LanguageSwitcher variant="sidebar" />
+      <LanguageSwitcher variant="sidebar" onLanguageChange={() => setOpen(false)} />
 
       <DropdownMenuSeparator />
 
@@ -313,7 +314,7 @@ export const UserProfileSection: React.FC<UserProfileProps> = ({
   if (isCollapsed) {
     return (
       <div className="px-1 py-2 border-t border-gray-200 flex justify-center">
-        <DropdownMenu>
+        <DropdownMenu open={open} onOpenChange={setOpen}>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
@@ -344,7 +345,7 @@ export const UserProfileSection: React.FC<UserProfileProps> = ({
 
   return (
     <div className={`py-2 border-t border-gray-200 ${isCollapsed ? 'px-1 flex justify-center' : 'px-3'}`}>
-      <DropdownMenu>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
           <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors duration-200 w-full">
             <Avatar className="w-8 h-8">
