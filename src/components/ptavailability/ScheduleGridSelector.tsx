@@ -19,8 +19,6 @@ interface ScheduleGridSelectorProps {
   endDate?: Date;
   timeSlots?: string[]; // Array of time strings like ['06:00', '06:30', ...]
   slotDuration?: number; // Duration in minutes, default 30
-  minTime?: string; // Fallback if no branchConfig
-  maxTime?: string; // Fallback if no branchConfig
   className?: string;
   staffId?: string; // Staff ID to fetch existing requests
   readOnly?: boolean; // If true, slots cannot be modified
@@ -298,6 +296,21 @@ const isSlotOverlappingWithClass = (
     const classDays = cls.schedulePattern.daysOfWeek || [];
     if (!classDays.includes(dayName)) continue;
 
+    if (cls.startDate && cls.endDate) {
+      const currentDate = new Date(date);
+      currentDate.setHours(0, 0, 0, 0);
+
+      const classStartDate = new Date(cls.startDate);
+      classStartDate.setHours(0, 0, 0, 0);
+
+      const classEndDate = new Date(cls.endDate);
+      classEndDate.setHours(23, 59, 59, 999); // Set to end of day to include the end date
+
+      if (currentDate < classStartDate || currentDate > classEndDate) {
+        continue; // Skip this class if date is outside its date range
+      }
+    }
+
     const classStart = timeToMinutes(cls.schedulePattern.startTime);
     const classEnd = timeToMinutes(cls.schedulePattern.endTime);
 
@@ -349,8 +362,6 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
   startDate,
   timeSlots,
   slotDuration = 30,
-  minTime = '06:00',
-  maxTime = '22:00',
   className,
   staffId,
   readOnly = false,
@@ -582,7 +593,7 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
     return slots;
   }, [existingRequests, currentWeekStart]);
 
-  // Generate time slots based on branchConfig.defaultShifts or fallback to minTime/maxTime
+  // Generate time slots based on branchConfig.defaultShifts only
   const generatedTimeSlots = useMemo(() => {
     if (timeSlots) return timeSlots;
 
@@ -608,9 +619,9 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
       });
     }
 
-    // Fallback to original logic with minTime/maxTime
-    return generateTimeSlots(minTime, maxTime, slotDuration);
-  }, [timeSlots, minTime, maxTime, slotDuration, branchConfig?.defaultShifts]);
+    // If no branchConfig, return empty array (no time slots to display)
+    return [];
+  }, [timeSlots, slotDuration, branchConfig?.defaultShifts]);
 
   // Handle slot click - toggle selection
   const handleSlotClick = (date: Date, timeSlot: string) => {

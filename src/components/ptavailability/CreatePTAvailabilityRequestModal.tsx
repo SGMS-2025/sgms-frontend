@@ -726,8 +726,6 @@ export const CreatePTAvailabilityRequestModal: React.FC<CreatePTAvailabilityRequ
                     setValue('slots', slots, { shouldValidate: true });
                   }}
                   slotDuration={30}
-                  minTime="06:00"
-                  maxTime="22:00"
                   staffId={currentStaff?._id}
                   workingDays={workingDays}
                   branchConfig={branchConfig || undefined}

@@ -91,3 +91,25 @@ export const getDayOfWeekName = (date: Date): DayOfWeek => {
   const dayIndex = date.getDay();
   return dayNames[dayIndex];
 };
+
+/**
+ * Extract date from workshift startTime in Vietnam timezone
+ * Falls back to provided date or current date if startTime is not available
+ * @param startTime - Workshift startTime (ISO string or Date)
+ * @param fallbackDate - Optional fallback date
+ * @returns Date object in Vietnam timezone
+ */
+export const getDateFromWorkShiftStartTime = (startTime?: string | Date, fallbackDate?: Date): Date => {
+  if (startTime) {
+    const utcDate = new Date(startTime);
+    const vnDateStr = utcDate.toLocaleString('en-US', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const [month, day, year] = vnDateStr.split('/');
+    return new Date(Number.parseInt(year, 10), Number.parseInt(month, 10) - 1, Number.parseInt(day, 10));
+  }
+  return fallbackDate || new Date();
+};
