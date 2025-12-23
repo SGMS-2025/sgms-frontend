@@ -383,7 +383,7 @@ export function Header({ menuItems, customActions, showLandingToggle = true }: H
             ) : (
               <div className="hidden md:flex items-center space-x-2">
                 {customActions}
-                <Button variant="ghost" className={getSignUpButtonClasses()} onClick={() => navigate('/login')}>
+                <Button variant="ghost" className={getSignUpButtonClasses()} onClick={() => navigate('/register')}>
                   {t('navbar.register')}
                 </Button>
                 <Button className={getSignInButtonClasses()} onClick={() => navigate('/login')}>
@@ -425,7 +425,7 @@ export function Header({ menuItems, customActions, showLandingToggle = true }: H
                   <Button
                     variant="ghost"
                     className="w-full text-orange-500 bg-orange-50 hover:bg-orange-100 text-sm rounded-xl py-3"
-                    onClick={() => navigate('/login')}
+                    onClick={() => navigate('/register')}
                   >
                     {t('navbar.register')}
                   </Button>
