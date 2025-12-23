@@ -20,8 +20,13 @@ const CustomerLayoutContent: React.FC = () => {
       {/* Mobile Sidebar Overlay */}
       {isMobileOpen && (
         <>
-          <div className="fixed inset-0 z-40 bg-transparent lg:hidden" onClick={() => setMobileOpen(false)} />
-          <div className="fixed inset-y-0 left-0 z-50 lg:hidden">
+          {/* Dark overlay backdrop with fade-in animation */}
+          <div
+            className="fixed inset-0 z-40 bg-black/50 lg:hidden animate-in fade-in-0 duration-300"
+            onClick={() => setMobileOpen(false)}
+          />
+          {/* Sidebar with slide-in animation */}
+          <div className="fixed inset-y-0 left-0 z-50 lg:hidden animate-in slide-in-from-left-full duration-300">
             <CustomerSidebar />
           </div>
         </>

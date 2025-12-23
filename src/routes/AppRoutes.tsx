@@ -73,6 +73,8 @@ import CustomerDashboard from '@/pages/customer/CustomerDashboard';
 import CustomerPayments from '@/pages/customer/CustomerPayments';
 import CustomerContracts from '@/pages/customer/CustomerContracts';
 import ClassCalendarPage from '@/pages/customer/ClassCalendarPage';
+import CustomerClasses from '@/pages/customer/CustomerClasses';
+import ClassAttendanceDetail from '@/pages/customer/ClassAttendanceDetail';
 import { CustomerLayout } from '@/layouts/CustomerLayout';
 import BusinessVerificationPage from '@/pages/auth/BusinessVerificationPage';
 import BusinessVerificationManagementPage from '@/pages/admin/BusinessVerificationManagementPage';
@@ -573,6 +575,10 @@ const AppRoutes: React.FC = () => {
 
           {/* Contracts Route */}
           <Route path="contracts" element={<CustomerContracts />} />
+
+          {/* My Attendance Routes */}
+          <Route path="my-attendance" element={<CustomerClasses />} />
+          <Route path="my-attendance/:classId" element={<ClassAttendanceDetail />} />
 
           <Route path="*" element={<Navigate to="/customer" replace />} />
         </Route>
