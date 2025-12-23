@@ -47,6 +47,13 @@ interface RealtimeNotificationEvent extends Event {
   };
 }
 
+// Enhanced WorkShift type with pre-computed date/time strings for optimization
+interface EnhancedWorkShift extends WorkShift {
+  _vnDateStr?: string; // Pre-computed Vietnam date string (YYYY-MM-DD)
+  _vnTimeStr?: string; // Pre-computed Vietnam time string (HH:MM)
+  _dateTimestamp?: number; // Pre-computed date timestamp for sorting
+}
+
 // Helper functions to reduce code duplication
 const getStaffId = (staffId: string | { _id: string } | undefined): string | undefined => {
   if (!staffId) return undefined;
@@ -491,7 +498,8 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     const dateStr = formatDateString(date);
     const shiftsOnSameDate = filteredWorkShifts.filter((workShift) => {
       // OPTIMIZATION: Use pre-computed date string if available
-      const shiftDateStr = (workShift as any)._vnDateStr || utcToVnDateString(workShift.startTime);
+      const enhancedShift = workShift as EnhancedWorkShift;
+      const shiftDateStr = enhancedShift._vnDateStr || utcToVnDateString(workShift.startTime);
       return shiftDateStr === dateStr;
     });
 
@@ -574,11 +582,11 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     const visibleStaff = staffList.slice(0, maxVisibleAvatars);
     const remainingCount = Math.max(0, staffCount - maxVisibleAvatars);
 
-    const firstShift = shiftsForSlot[0];
-    const startTimeStr = firstShift?.startTimeLocal || slot.startTime || '07:00';
-    const endTimeStr = firstShift?.endTimeLocal || slot.endTime || '08:00';
-    const [startHour, startMin] = startTimeStr.split(':').map(Number);
-    const [endHour, endMin] = endTimeStr.split(':').map(Number);
+    // Always display time range from branch config (slot), not from actual shifts
+    const slotStartTime = slot.startTime || '07:00';
+    const slotEndTime = slot.endTime || '08:00';
+    const [startHour, startMin] = slotStartTime.split(':').map(Number);
+    const [endHour, endMin] = slotEndTime.split(':').map(Number);
     const timeRange = `${formatTime(startHour, startMin)} - ${formatTime(endHour, endMin)}`;
 
     const hasPendingTimeOff =
@@ -984,8 +992,8 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
 
   // OPTIMIZATION 1: Pre-compute enhanced shifts with converted dates/times
   // This avoids repeated date conversions in every filter operation
-  const enhancedWorkShifts = useMemo(() => {
-    return workShifts.map((shift) => {
+  const enhancedWorkShifts = useMemo((): EnhancedWorkShift[] => {
+    return workShifts.map((shift): EnhancedWorkShift => {
       const vnDateStr = utcToVnDateString(shift.startTime);
       const vnTimeStr = utcToVnTimeString(shift.startTime);
 
@@ -1074,15 +1082,16 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     const combined = [...enhancedWorkShifts, ...virtualShifts];
 
     // Enhance virtual shifts that don't have pre-computed fields
-    return combined.map((shift) => {
-      if (!(shift as any)._vnDateStr) {
+    return combined.map((shift): EnhancedWorkShift | VirtualWorkShift => {
+      const enhancedShift = shift as EnhancedWorkShift;
+      if (!enhancedShift._vnDateStr) {
         return {
           ...shift,
           _vnDateStr: utcToVnDateString(shift.startTime),
           _vnTimeStr: utcToVnTimeString(shift.startTime)
-        };
+        } as EnhancedWorkShift;
       }
-      return shift;
+      return shift as EnhancedWorkShift;
     });
   }, [enhancedWorkShifts, workShifts, generateVirtualWorkShifts, selectedStaffId, loadingWorkShifts]);
 
@@ -1105,12 +1114,10 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
     return true;
   });
 
-  // Get workshifts that match a specific shift config (for rendering)
-  // PARTIALLY OPTIMIZED: Use pre-computed date strings when available
   const getWorkShiftsForShift = (
     date: Date,
     shiftConfig: { type?: string; startTime?: string; endTime?: string; hour?: number; display?: string }
-  ) => {
+  ): (WorkShift | VirtualWorkShift)[] => {
     // Handle old format with hour property
     if (shiftConfig.hour !== undefined) {
       // Legacy support - convert hour to time range
@@ -1123,38 +1130,44 @@ const StaffScheduleCalendar: React.FC<StaffScheduleCalendarProps> = ({ selectedS
       return [];
     }
 
+    // Parse slot time range
+    const [configStartHour, configStartMin] = shiftConfig.startTime.split(':').map(Number);
+    const [configEndHour, configEndMin] = shiftConfig.endTime.split(':').map(Number);
+    const configStartMinutes = configStartHour * 60 + configStartMin;
+    const configEndMinutes = configEndHour * 60 + configEndMin;
+
     const filteredShifts = filteredWorkShifts.filter((workShift) => {
+      const enhancedShift = workShift as EnhancedWorkShift;
+
       // OPTIMIZATION: Use pre-computed date string if available
-      const shiftDateStr = (workShift as any)._vnDateStr || utcToVnDateString(workShift.startTime);
+      const shiftDateStr = enhancedShift._vnDateStr || utcToVnDateString(workShift.startTime);
       const shiftDate = new Date(shiftDateStr);
       const shiftDateOnly = new Date(shiftDate.getFullYear(), shiftDate.getMonth(), shiftDate.getDate());
 
       // Check if shift is on the same date
       const isSameDate = shiftDateOnly.toDateString() === date.toDateString();
-
-      if (!shiftConfig.startTime || !shiftConfig.endTime) {
+      if (!isSameDate) {
         return false;
       }
 
-      // OPTIMIZATION: Use pre-computed time string if available
-      const vnTimeFromUtc = (workShift as any)._vnTimeStr || utcToVnTimeString(workShift.startTime);
+      // Get shift time range
+      const startTimeLocalStr = enhancedShift._vnTimeStr || utcToVnTimeString(workShift.startTime);
+      const endTimeLocalStr = workShift.endTimeLocal || '';
 
-      const startTimeLocalStr = vnTimeFromUtc;
-
-      if (!startTimeLocalStr) {
+      if (!startTimeLocalStr || !endTimeLocalStr) {
         return false;
       }
 
       const [shiftStartHour, shiftStartMin] = startTimeLocalStr.split(':').map(Number);
-      const [configStartHour, configStartMin] = shiftConfig.startTime.split(':').map(Number);
+      const [shiftEndHour, shiftEndMin] = endTimeLocalStr.split(':').map(Number);
+      const shiftStartMinutes = shiftStartHour * 60 + shiftStartMin;
+      const shiftEndMinutes = shiftEndHour * 60 + shiftEndMin;
 
-      // Check if workshift startTime matches shift config startTime exactly
-      const workShiftStartMinutes = shiftStartHour * 60 + shiftStartMin;
-      const configStartMinutes = configStartHour * 60 + configStartMin;
+      // Check if workshift overlaps with slot time range
+      // Overlap occurs when: shiftStart < slotEnd AND shiftEnd > slotStart
+      const hasOverlap = shiftStartMinutes < configEndMinutes && shiftEndMinutes > configStartMinutes;
 
-      const exactStartTimeMatch = workShiftStartMinutes === configStartMinutes;
-
-      return isSameDate && exactStartTimeMatch;
+      return hasOverlap;
     });
 
     const sortedShifts = [...filteredShifts].sort((a, b) => {
