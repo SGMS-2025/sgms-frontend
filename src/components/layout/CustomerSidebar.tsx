@@ -96,10 +96,9 @@ export const CustomerSidebar: React.FC = () => {
 
   return (
     <div
-      className={`bg-white border-r border-gray-200 flex flex-col h-screen fixed left-0 top-0 z-30 transition-all duration-300 max-w-[85vw] sm:max-w-none ${
-        isCollapsed ? 'w-16 overflow-hidden' : 'w-64 sm:w-72 lg:w-64'
-      }`}
-      style={isCollapsed ? { maxWidth: '64px', minWidth: '64px' } : {}}
+      className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out h-full ${
+        isCollapsed ? 'w-16 items-center' : 'w-64'
+      } shadow-lg lg:shadow-none`}
     >
       {/* Header */}
       <SidebarHeader isCollapsed={isCollapsed} subtitle="Customer" showMobileClose={true} />
