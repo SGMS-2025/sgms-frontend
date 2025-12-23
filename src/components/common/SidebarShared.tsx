@@ -178,44 +178,46 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
 
   return (
     <div className="flex items-center gap-3 px-3 py-4 border-b border-gray-200 dark:border-gray-800">
-      {/* Logo - Hidden on mobile */}
-      {!isMobile && (
-        <button
-          type="button"
-          className="flex-shrink-0 w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center overflow-hidden cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
-          onClick={() => {
-            if (isCollapsed) setCollapsed(false);
-          }}
-          title={isCollapsed ? 'Mở sidebar' : undefined}
-          aria-label={isCollapsed ? 'Mở sidebar' : undefined}
-        >
-          <img src={logoImage} alt="GYM SMART Logo" className="w-6 h-6 object-contain" />
-        </button>
-      )}
+      {/* Logo - Always visible */}
+      <button
+        type="button"
+        className="flex-shrink-0 w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center overflow-hidden cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
+        onClick={() => {
+          if (isCollapsed && !isMobile) setCollapsed(false);
+        }}
+        title={isCollapsed && !isMobile ? 'Mở sidebar' : undefined}
+        aria-label={isCollapsed && !isMobile ? 'Mở sidebar' : undefined}
+      >
+        <img src={logoImage} alt="GYM SMART Logo" className="w-6 h-6 object-contain" />
+      </button>
 
-      {!isCollapsed && !isMobile && (
+      {/* Title and Subtitle - Show on mobile when open, or desktop when not collapsed */}
+      {(isMobile || !isCollapsed) && (
         <div className="flex-1 min-w-0">
           <h1 className="text-lg font-bold text-gray-900 truncate">GYM SMART</h1>
-          <p className="text-xs text-gray-500 truncate">{subtitle}</p>
+          {/* Hide subtitle on mobile to save space */}
+          {!isMobile && <p className="text-xs text-gray-500 truncate">{subtitle}</p>}
         </div>
       )}
 
-      {showMobileClose && (
+      {/* Mobile Close Button */}
+      {showMobileClose && isMobile && (
         <button
           type="button"
-          className="lg:hidden flex-shrink-0 p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
+          className="flex-shrink-0 p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40"
           onClick={() => setMobileOpen(false)}
           title="Đóng menu"
           aria-label="Đóng menu"
         >
-          <X className="w-4 h-4" />
+          <X className="w-5 h-5" />
         </button>
       )}
 
-      {!isCollapsed && (
+      {/* Desktop Toggle Button - Only show when not collapsed */}
+      {!isCollapsed && !isMobile && (
         <button
           type="button"
-          className="hidden lg:flex ml-auto h-8 w-8 rounded-lg items-center justify-center transition-colors bg-gray-100 text-gray-700 hover:bg-orange-50 hover:text-orange-600 active:bg-orange-100 active:shadow-inner dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
+          className="ml-auto h-8 w-8 rounded-lg flex items-center justify-center transition-colors bg-gray-100 text-gray-700 hover:bg-orange-50 hover:text-orange-600 active:bg-orange-100 active:shadow-inner dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
           onClick={toggle}
           aria-pressed={!isCollapsed}
           aria-label="Đóng sidebar"

@@ -297,6 +297,43 @@ class ClassApi {
   }
 
   /**
+   * Get customer's enrolled classes with attendance statistics
+   * Used by Customer to view their classes list with attendance stats
+   * @returns List of enrolled classes with attendance data
+   */
+  async getMyClasses(): Promise<{ classes: unknown[] }> {
+    try {
+      const response = await api.get<{
+        data: { classes: unknown[] };
+      }>(`${this.baseURL}/my-classes`);
+      return convertMongoDecimalToNumbers(response.data.data) as { classes: unknown[] };
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Get customer's attendance summary for a specific class
+   * Used by Customer to view detailed attendance history
+   * @param classId - Class ID
+   * @param params - Filter parameters (startDate, endDate, sortOrder)
+   * @returns Attendance summary with statistics and history
+   */
+  async getMyAttendance(
+    classId: string,
+    params?: { startDate?: string; endDate?: string; sortOrder?: 'asc' | 'desc' }
+  ): Promise<unknown> {
+    try {
+      const response = await api.get<{
+        data: unknown;
+      }>(`${this.baseURL}/${classId}/my-attendance`, { params });
+      return convertMongoDecimalToNumbers(response.data.data) as unknown;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
    * ============================================
    * CONVENIENCE METHODS
    * ============================================

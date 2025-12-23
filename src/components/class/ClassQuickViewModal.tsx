@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Users, Clock, MapPin, Package, AlertCircle, Edit2, Info } from 'lucide-react';
+import { X, Users, Clock, MapPin, Package, AlertCircle, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -37,7 +37,7 @@ export const ClassQuickViewModal: React.FC<ClassQuickViewModalProps> = ({
   isOpen,
   onClose,
   onRefresh,
-  onEditClick,
+  onEditClick: _onEditClick,
   onEnrollClick
 }) => {
   const { t } = useTranslation();
@@ -77,10 +77,6 @@ export const ClassQuickViewModal: React.FC<ClassQuickViewModalProps> = ({
 
   const handleClose = () => {
     onClose();
-  };
-
-  const handleEdit = () => {
-    onEditClick?.(classId);
   };
 
   const handleEnroll = () => {
@@ -135,12 +131,6 @@ export const ClassQuickViewModal: React.FC<ClassQuickViewModalProps> = ({
                     <Button variant="outline" size="sm" onClick={handleEnroll}>
                       <Users className="w-4 h-4 mr-2" />
                       {t('class.quickview.button_enroll')}
-                    </Button>
-                  )}
-                  {onEditClick && (
-                    <Button size="sm" onClick={handleEdit}>
-                      <Edit2 className="w-4 h-4 mr-2" />
-                      {t('class.quickview.button_edit')}
                     </Button>
                   )}
                   <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 p-1">

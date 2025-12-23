@@ -731,7 +731,11 @@ export default function TrainingProgressDetailPage() {
                 {/* Radar Chart - Body Metrics Overview */}
                 {/* currentData = most recent record with body measurements */}
                 {/* previousData = second most recent record with body measurements */}
-                <TrainingProgressRadarChart currentData={radarCurrentData} previousData={radarFirstData} />
+                <TrainingProgressRadarChart
+                  currentData={radarCurrentData}
+                  previousData={radarFirstData}
+                  goalData={activeGoal}
+                />
 
                 {/* Training Progress Line Chart */}
                 <Card>
