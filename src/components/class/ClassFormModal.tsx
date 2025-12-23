@@ -458,7 +458,19 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
           message: translatedMessage
         });
       } else {
-        if (translatedMessage.toLowerCase().includes('service package')) {
+        // Check for working schedule configuration error
+        if (
+          finalErrorMessage.toLowerCase().includes('working schedule configuration') ||
+          finalErrorMessage.toLowerCase().includes('working schedule') ||
+          finalErrorMessage.toLowerCase().includes('lịch làm việc')
+        ) {
+          const errorMsg = t('class.form.error_working_config_required');
+          toast.error(errorMsg);
+          setError('root', {
+            type: 'server',
+            message: errorMsg
+          });
+        } else if (translatedMessage.toLowerCase().includes('service package')) {
           setError('servicePackageId', {
             type: 'server',
             message: translatedMessage
