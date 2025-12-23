@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Check, Circle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/utils/utils';
-import { format, addDays, eachDayOfInterval, isSameDay, subWeeks } from 'date-fns';
+import { format, addDays, eachDayOfInterval, isSameDay, subWeeks, startOfWeek } from 'date-fns';
 import { ptAvailabilityRequestApi } from '@/services/api/ptAvailabilityRequestApi';
 import { useCurrentUserStaff } from '@/hooks/useCurrentUserStaff';
 import type { PTAvailabilitySlot, PTAvailabilityRequest } from '@/types/api/PTAvailabilityRequest';
@@ -356,6 +356,11 @@ const isSlotInPendingRequest = (
   });
 };
 
+// Normalize to start of week (Monday) to match View registration schedule
+const getWeekStart = (date: Date): Date => {
+  return startOfWeek(date, { weekStartsOn: 1 });
+};
+
 export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
   selectedSlots,
   onSlotsChange,
@@ -376,7 +381,9 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startDate || today);
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(
+    startDate ? getWeekStart(startDate) : getWeekStart(today)
+  );
   const [existingRequests, setExistingRequests] = useState<PTAvailabilityRequest[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PTAvailabilityRequest[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -393,49 +400,19 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
   // Sync currentWeekStart with startDate prop when it changes
   useEffect(() => {
     if (startDate) {
-      setCurrentWeekStart(startDate);
+      setCurrentWeekStart(getWeekStart(startDate));
     }
   }, [startDate]);
 
-  // Generate all available dates (7 days from currentWeekStart, filter out past dates and non-working days)
+  // Generate all available dates (7 days from currentWeekStart)
+  // currentWeekStart is already normalized to Monday, so we get Mon-Sun
   const allAvailableDates = useMemo(() => {
-    const start = currentWeekStart;
-    const end = addDays(start, 6); // 7 days total
+    const start = currentWeekStart; // Already normalized to Monday
+    const end = addDays(start, 6); // 7 days total (Mon-Sun)
     const allDates = eachDayOfInterval({ start, end });
 
-    // In read-only mode, show all dates including past dates (for viewing existing requests)
-    if (readOnly) {
-      // Filter only non-working days if workingDays is provided
-      if (workingDays && workingDays.length > 0) {
-        return allDates.filter((date) => {
-          const dayOfWeek = date.getDay();
-          return workingDays.includes(dayOfWeek);
-        });
-      }
-      // If no workingDays restriction, show all 7 days
-      return allDates;
-    }
-
-    // In editable mode, filter out past dates and non-working days
-    return allDates.filter((date) => {
-      const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
-      // Filter out past dates - only show from today onwards
-      if (dateOnly < today) {
-        return false;
-      }
-
-      // Filter out non-working days if workingDays is provided
-      if (workingDays && workingDays.length > 0) {
-        const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-        if (!workingDays.includes(dayOfWeek)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [currentWeekStart, today, workingDays, readOnly]);
+    return allDates;
+  }, [currentWeekStart]);
 
   // On mobile: show only 3 days at a time, on desktop: show all days
   const dates = useMemo(() => {
@@ -713,7 +690,10 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
         const nextIndex = prev + 3;
         // If we've reached the end, move to next week and reset index
         if (nextIndex >= allAvailableDates.length) {
-          setCurrentWeekStart((current) => addDays(current, 7));
+          setCurrentWeekStart((current) => {
+            const nextWeek = addDays(current, 7);
+            return getWeekStart(nextWeek);
+          });
           return 0; // Reset to start of new week
         }
         return nextIndex;
@@ -728,12 +708,14 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
         if (prevIndex < 0) {
           setCurrentWeekStart((current) => {
             const prevStart = subWeeks(current, 1);
+            const normalizedPrevStart = getWeekStart(prevStart);
             // Don't allow going before today
             const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-            if (prevStart < todayOnly) {
-              return todayOnly;
+            const todayWeekStart = getWeekStart(todayOnly);
+            if (normalizedPrevStart < todayWeekStart) {
+              return todayWeekStart;
             }
-            return prevStart;
+            return normalizedPrevStart;
           });
           // Calculate how many days we can show from previous week
           // We'll reset to show the last 3 days of previous week, but this will be recalculated
@@ -749,27 +731,34 @@ export const ScheduleGridSelector: React.FC<ScheduleGridSelectorProps> = ({
   const handlePreviousWeek = () => {
     setCurrentWeekStart((prev) => {
       const prevStart = subWeeks(prev, 1);
+      // Normalize to Monday
+      const normalizedPrevStart = getWeekStart(prevStart);
 
       // In read-only mode, allow navigation to past weeks (to view old requests)
       if (readOnly) {
-        return prevStart;
+        return normalizedPrevStart;
       }
 
       // In editable mode, don't allow going before today
       const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      if (prevStart < todayOnly) {
-        return todayOnly;
+      const todayWeekStart = getWeekStart(todayOnly);
+      if (normalizedPrevStart < todayWeekStart) {
+        return todayWeekStart;
       }
-      return prevStart;
+      return normalizedPrevStart;
     });
   };
 
   const handleNextWeek = () => {
-    setCurrentWeekStart((prev) => addDays(prev, 7));
+    setCurrentWeekStart((prev) => {
+      const nextWeek = addDays(prev, 7);
+      // Normalize to Monday to ensure consistency
+      return getWeekStart(nextWeek);
+    });
   };
 
   const handleToday = () => {
-    setCurrentWeekStart(today);
+    setCurrentWeekStart(getWeekStart(today));
   };
 
   // Calculate week range for display

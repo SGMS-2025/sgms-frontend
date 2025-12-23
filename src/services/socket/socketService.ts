@@ -369,7 +369,6 @@ class SocketService implements SocketServiceInterface {
   private handlePTAvailabilityNotification(data: PTAvailabilityNotificationData) {
     // Don't show toast here - let the notification panel handle display
     // SocketContext will handle the notification directly from socket events
-    console.log('🔔 PT Availability notification received in socketService:', data);
 
     // Dispatch custom event for components to listen and update
     globalThis.dispatchEvent(

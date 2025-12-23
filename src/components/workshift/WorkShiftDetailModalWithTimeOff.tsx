@@ -86,6 +86,31 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
   // Get branch working config to auto-adjust endTime
   const branchId = currentWorkShift?.branchId?._id;
   const { config: branchConfig } = useBranchWorkingConfig(branchId);
+
+  // Find slot config that contains the work shift time
+  // This is used to display the correct time range (slot time) instead of work shift time
+  const slotConfig = useMemo(() => {
+    if (!branchConfig?.defaultShifts || !currentWorkShift?.startTimeLocal) {
+      return null;
+    }
+
+    const shiftStartTime = currentWorkShift.startTimeLocal;
+    const [shiftStartHour, shiftStartMin] = shiftStartTime.split(':').map(Number);
+    const shiftStartMinutes = shiftStartHour * 60 + shiftStartMin;
+
+    // Find slot that contains this work shift time
+    return branchConfig.defaultShifts.find((slot) => {
+      if (!slot.startTime || !slot.endTime) return false;
+
+      const [slotStartHour, slotStartMin] = slot.startTime.split(':').map(Number);
+      const [slotEndHour, slotEndMin] = slot.endTime.split(':').map(Number);
+      const slotStartMinutes = slotStartHour * 60 + slotStartMin;
+      const slotEndMinutes = slotEndHour * 60 + slotEndMin;
+
+      // Check if work shift start time is within slot range
+      return shiftStartMinutes >= slotStartMinutes && shiftStartMinutes < slotEndMinutes;
+    });
+  }, [branchConfig?.defaultShifts, currentWorkShift?.startTimeLocal]);
   const [formData, setFormData] = useState<{
     startTimeLocal?: string;
     endTimeLocal?: string;
@@ -583,8 +608,8 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                   error={classesError || null}
                   schedulesError={schedulesError || null}
                   staffId={workShift?.staffId?._id}
-                  filterStartTime={currentWorkShift?.startTimeLocal}
-                  filterEndTime={currentWorkShift?.endTimeLocal}
+                  filterStartTime={slotConfig?.startTime || currentWorkShift?.startTimeLocal}
+                  filterEndTime={slotConfig?.endTime || currentWorkShift?.endTimeLocal}
                   filterDayOfWeek={currentWorkShift?.dayOfTheWeek}
                   filterDate={getDateFromWorkShiftStartTime(currentWorkShift?.startTime, selectedDate)}
                   onClassClick={(classId) => {

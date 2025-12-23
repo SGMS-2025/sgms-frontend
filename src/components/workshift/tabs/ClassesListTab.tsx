@@ -70,6 +70,19 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
   const [progressCheckMap, setProgressCheckMap] = useState<Record<string, boolean>>({});
   const [checkingProgress, setCheckingProgress] = useState<Record<string, boolean>>({});
 
+  const normalizeTimeFormat = (timeString: string): string => {
+    if (!timeString) return '00:00';
+    // Remove seconds if present (HH:MM:SS -> HH:MM)
+    return timeString.substring(0, 5);
+  };
+
+  // Helper function to convert time string to minutes for comparison
+  const timeToMinutes = (timeString: string): number => {
+    const normalized = normalizeTimeFormat(timeString);
+    const [hours, minutes] = normalized.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
   // Filter classes by shift time if provided
   const filteredClasses = React.useMemo(() => {
     if (!filterStartTime || !filterEndTime || !filterDayOfWeek) {
@@ -115,12 +128,24 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
     });
   }, [classes, filterStartTime, filterEndTime, filterDayOfWeek, filterDate]);
 
-  // Filter schedules by time if provided
+  // Filter schedules by date and time slot
   const filteredSchedules = React.useMemo(() => {
     let result = schedules;
 
-    // Filter by time slot if provided
-    if (filterStartTime && filterEndTime && filterDayOfWeek) {
+    // Filter by date first (more specific than dayOfWeek) - this ensures we get schedules from the correct date
+    if (filterDate) {
+      result = result.filter((schedule) => {
+        const scheduleDate = new Date(schedule.scheduleDate);
+        const filterDateObj = new Date(filterDate);
+
+        // Compare dates only (ignore time)
+        scheduleDate.setHours(0, 0, 0, 0);
+        filterDateObj.setHours(0, 0, 0, 0);
+
+        return scheduleDate.getTime() === filterDateObj.getTime();
+      });
+    } else if (filterDayOfWeek) {
+      // Fallback: Filter by day of week only if filterDate is not provided
       result = result.filter((schedule) => {
         // Check if schedule date matches the day of week
         // Prefer workShiftsId.dayOfTheWeek if available (more accurate)
@@ -137,25 +162,36 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
           scheduleDayName = dayNames[utcDay];
         }
 
-        if (scheduleDayName !== filterDayOfWeek) {
-          return false;
-        }
+        return scheduleDayName === filterDayOfWeek;
+      });
+    }
 
+    // Filter by time slot if provided - only show schedules that overlap with the selected time slot (branch config)
+    if (filterStartTime && filterEndTime) {
+      const filterStartMinutes = timeToMinutes(filterStartTime);
+      const filterEndMinutes = timeToMinutes(filterEndTime);
+
+      result = result.filter((schedule) => {
         // Check if time overlaps
         // Support both timeRange object and direct startTime/endTime fields
         const scheduleWithTime = schedule as ScheduleWithTimeFields;
-        const scheduleStart = scheduleWithTime.timeRange?.startTime || scheduleWithTime.startTime || '00:00';
-        const scheduleEnd = scheduleWithTime.timeRange?.endTime || scheduleWithTime.endTime || '00:00';
+        const scheduleStartRaw = scheduleWithTime.timeRange?.startTime || scheduleWithTime.startTime || '00:00';
+        const scheduleEndRaw = scheduleWithTime.timeRange?.endTime || scheduleWithTime.endTime || '00:00';
 
-        // Simple overlap check: schedule starts before shift ends AND schedule ends after shift starts
-        const startMatch = scheduleStart <= filterEndTime && scheduleEnd >= filterStartTime;
+        // Normalize and convert to minutes for accurate comparison
+        const scheduleStartMinutes = timeToMinutes(scheduleStartRaw);
+        const scheduleEndMinutes = timeToMinutes(scheduleEndRaw);
 
-        return startMatch;
+        // Overlap check: schedule starts before shift ends AND schedule ends after shift starts
+        // This ensures we only show schedules that overlap with the branch config time slot
+        const hasOverlap = scheduleStartMinutes < filterEndMinutes && scheduleEndMinutes > filterStartMinutes;
+
+        return hasOverlap;
       });
     }
 
     return result;
-  }, [schedules, filterStartTime, filterEndTime, filterDayOfWeek]);
+  }, [schedules, filterDate, filterDayOfWeek, filterStartTime, filterEndTime]);
 
   // Combined data for table: Classes and Schedules
   type TableRow = {
@@ -175,23 +211,6 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
 
   const tableRows = useMemo<TableRow[]>(() => {
     const rows: TableRow[] = [];
-
-    // Debug logs
-    console.log('[ClassesListTab] Building table rows:', {
-      classesCount: classes.length,
-      schedulesCount: schedules.length,
-      filteredClassesCount: filteredClasses.length,
-      filteredSchedulesCount: filteredSchedules.length,
-      typeFilter,
-      schedules: schedules.map((s) => ({
-        id: s._id,
-        name: s.name,
-        type: s.type,
-        status: s.status,
-        scheduleDate: s.scheduleDate,
-        ptId: s.ptId?._id
-      }))
-    });
 
     // Add Classes
     filteredClasses.forEach((cls) => {
@@ -230,8 +249,7 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
       // Support both timeRange object and direct startTime/endTime fields
       const formatTime = (timeString?: string) => {
         if (!timeString) return '00:00';
-        // Remove seconds if present (HH:MM:SS -> HH:MM)
-        return timeString.substring(0, 5);
+        return normalizeTimeFormat(timeString);
       };
       const scheduleWithTime = schedule as ScheduleWithTimeFields;
       const startTime = formatTime(scheduleWithTime.timeRange?.startTime || scheduleWithTime.startTime);
@@ -638,6 +656,18 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
                           const key = `${row.customerId}-${row.serviceContractId}-${dateStr}`;
                           const hasProgress = progressCheckMap[key];
                           const isChecking = checkingProgress[key];
+
+                          // Check if schedule date is in the future
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          const scheduleDateOnly = new Date(scheduleDate);
+                          scheduleDateOnly.setHours(0, 0, 0, 0);
+                          const isFutureDate = scheduleDateOnly > today;
+
+                          // Don't show button if date is in the future
+                          if (isFutureDate) {
+                            return null;
+                          }
 
                           // Show button if no progress exists for this specific date
                           // (or if still checking and no progress found yet)
