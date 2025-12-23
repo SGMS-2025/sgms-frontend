@@ -97,7 +97,7 @@ const HeroSection: React.FC<LandingPageProps> = ({ className = '' }) => {
               />
               <Button
                 className="px-6 py-3 text-sm font-semibold rounded-xl whitespace-nowrap bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 shadow-[0_4px_14px_0_rgba(249,115,22,0.25)] hover:shadow-[0_6px_20px_0_rgba(249,115,22,0.4)] hover:-translate-y-0.5 transition-all duration-300"
-                onClick={() => navigate('/login')}
+                onClick={() => navigate('/register')}
               >
                 {t('landing.hero.start_button')}
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -110,7 +110,7 @@ const HeroSection: React.FC<LandingPageProps> = ({ className = '' }) => {
           <div className="flex flex-col sm:flex-row gap-4 pt-2 justify-center lg:justify-start">
             <Button
               className="px-8 py-4 text-base font-semibold rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 shadow-[0_4px_14px_0_rgba(249,115,22,0.25)] hover:shadow-[0_6px_20px_0_rgba(249,115,22,0.4)] hover:-translate-y-0.5 transition-all duration-300"
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/register')}
             >
               {t('landing.hero.register_button')}
               <ChevronRight className="w-5 h-5 ml-2" />
