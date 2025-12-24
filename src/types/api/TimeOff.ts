@@ -161,6 +161,8 @@ export interface TimeOffListProps {
   onCancel?: (id: string) => void;
   userRole?: string;
   currentUserId?: string;
+  pagination?: PaginationResponse | null;
+  onPageChange?: (page: number) => void;
 }
 
 export interface TimeOffFiltersProps {

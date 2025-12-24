@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,7 @@ const PTAvailabilityRequestManagement: React.FC = () => {
   const { currentStaff } = useCurrentUserStaff();
   const { currentBranch } = useBranch();
   const [searchValue, setSearchValue] = useState('');
+  const [localSearchValue, setLocalSearchValue] = useState('');
   const [statusFilter, setStatusFilter] = useState<PTAvailabilityRequestStatus | 'ALL'>('ALL');
   const [selectedRequest, setSelectedRequest] = useState<PTAvailabilityRequest | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -50,6 +51,7 @@ const PTAvailabilityRequestManagement: React.FC = () => {
   });
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const previousRangeRef = useRef<{ from?: Date; to?: Date } | undefined>(undefined);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Date range filters for API
   const dateFilters =
@@ -80,14 +82,36 @@ const PTAvailabilityRequestManagement: React.FC = () => {
     }
   }, [currentBranch?._id, updateFilters]);
 
-  const handleSearch = (value: string) => {
-    setSearchValue(value);
-    updateFilters({
-      search: value || undefined,
-      branchId: currentBranch?._id,
-      page: 1
-    });
-  };
+  // Cleanup search timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleSearch = useCallback(
+    (value: string) => {
+      setLocalSearchValue(value);
+
+      // Clear previous timeout
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+
+      // Set new timeout to update filters after 500ms of inactivity
+      searchTimeoutRef.current = setTimeout(() => {
+        setSearchValue(value);
+        updateFilters({
+          search: value || undefined,
+          branchId: currentBranch?._id,
+          page: 1
+        });
+      }, 500);
+    },
+    [currentBranch?._id, updateFilters]
+  );
 
   const handleStatusFilter = (value: string) => {
     const newStatus = value as PTAvailabilityRequestStatus | 'ALL';
@@ -289,7 +313,7 @@ const PTAvailabilityRequestManagement: React.FC = () => {
                     <Search className="absolute left-2.5 md:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5 md:w-4 md:h-4" />
                     <Input
                       placeholder={t('pt_availability.search_placeholder', 'Search...')}
-                      value={searchValue}
+                      value={localSearchValue}
                       onChange={(e) => handleSearch(e.target.value)}
                       className="pl-8 md:pl-10 h-9 md:h-11 text-xs md:text-sm border-gray-200 focus:border-orange-500 focus:ring-orange-500 rounded-lg"
                     />

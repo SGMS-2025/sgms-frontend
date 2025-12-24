@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, LayoutGrid, List, Users, Trash2, AlertCircle, Search, BookOpen, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -53,18 +53,21 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
   const branchId = propBranchId || currentBranch?._id;
 
   const [search, setSearch] = useState('');
+  const [localSearch, setLocalSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'INACTIVE' | 'ALL'>('ACTIVE');
   const [startTimeFilter, setStartTimeFilter] = useState<string>('');
   const [endTimeFilter, setEndTimeFilter] = useState<string>('');
+  const [timeFilterError, setTimeFilterError] = useState<string>('');
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
   const [formModal, setFormModal] = useState<{ open: boolean; classId?: string }>({ open: false });
   const [enrollModal, setEnrollModal] = useState<{ open: boolean; classId?: string }>({ open: false });
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; classId?: string }>({ open: false });
   const [viewModal, setViewModal] = useState<{ open: boolean; classId?: string }>({ open: false });
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const timeOptions = React.useMemo(() => {
     const times: string[] = [];
-    for (let hour = 6; hour <= 22; hour++) {
+    for (let hour = 4; hour <= 23; hour++) {
       times.push(`${hour.toString().padStart(2, '0')}:00`);
     }
     return times;
@@ -75,14 +78,36 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
       branchId: branchId || undefined,
       status: statusFilter === 'ALL' ? undefined : statusFilter,
       search: search || undefined,
-      startTime: startTimeFilter || undefined,
-      endTime: endTimeFilter || undefined,
       limit: 9
     }),
-    [branchId, statusFilter, search, startTimeFilter, endTimeFilter]
+    [branchId, statusFilter, search]
   );
 
   const { classes, loading, error, pagination, refetch, nextPage, prevPage, goToPage } = useClassList(classListParams);
+
+  // Cleanup search timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Handle search with debounce
+  const handleSearch = useCallback((value: string) => {
+    setLocalSearch(value);
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Set new timeout to update search after 500ms
+    searchTimeoutRef.current = setTimeout(() => {
+      setSearch(value);
+    }, 500);
+  }, []);
 
   const { sortState, handleSort, getSortIcon } = useTableSort();
 
@@ -93,7 +118,8 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
 
     let filteredClasses = classes;
 
-    if (startTimeFilter || endTimeFilter) {
+    // Filter by startTime and endTime (client-side only)
+    if ((startTimeFilter || endTimeFilter) && !timeFilterError) {
       filteredClasses = classes.filter((cls) => {
         if (!cls.schedulePattern) {
           return false;
@@ -145,7 +171,7 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
           return '';
       }
     });
-  }, [classes, sortState, startTimeFilter, endTimeFilter]);
+  }, [classes, sortState, startTimeFilter, endTimeFilter, timeFilterError]);
 
   const { deleteClass, loading: deleting } = useClass({
     onSuccess: () => {
@@ -210,81 +236,111 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
         </div>
 
         {/* Controls: Search, Filter, View Toggle */}
-        <div className="flex gap-2 flex-wrap">
-          {/* Search */}
-          <div className="relative flex-1 min-w-[250px]" data-tour="class-search-container">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
-            <Input
-              placeholder={t('class.list.search_placeholder')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 text-sm sm:text-base bg-white border-gray-300 shadow-sm"
-              data-tour="class-search-input"
-            />
+        <div className="space-y-2">
+          <div className="flex gap-2 flex-wrap">
+            {/* Search */}
+            <div className="relative flex-1 min-w-[250px]" data-tour="class-search-container">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
+              <Input
+                placeholder={t('class.list.search_placeholder')}
+                value={localSearch}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10 text-sm sm:text-base bg-white border-gray-300 shadow-sm"
+                data-tour="class-search-input"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as 'ACTIVE' | 'INACTIVE' | 'ALL')}>
+              <SelectTrigger className="w-[140px] bg-white border-gray-300 shadow-sm" data-tour="class-status-filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ACTIVE">{t('class.list.filter_active')}</SelectItem>
+                <SelectItem value="INACTIVE">{t('class.list.filter_inactive')}</SelectItem>
+                <SelectItem value="ALL">{t('class.list.filter_all')}</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Start Time Filter */}
+            <Select
+              value={startTimeFilter || 'all'}
+              onValueChange={(val) => {
+                const newStartTime = val === 'all' ? '' : val;
+                setStartTimeFilter(newStartTime);
+                // Validate when both times are set
+                if (newStartTime && endTimeFilter && newStartTime >= endTimeFilter) {
+                  setTimeFilterError(t('class.list.time_filter_error'));
+                } else {
+                  setTimeFilterError('');
+                }
+              }}
+            >
+              <SelectTrigger
+                className={`w-[130px] bg-white border-gray-300 shadow-sm ${timeFilterError && startTimeFilter ? 'border-red-500' : ''}`}
+              >
+                <SelectValue placeholder="Giờ bắt đầu" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('common.all')}</SelectItem>
+                {timeOptions.map((time) => (
+                  <SelectItem key={time} value={time}>
+                    {time}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* End Time Filter */}
+            <Select
+              value={endTimeFilter || 'all'}
+              onValueChange={(val) => {
+                const newEndTime = val === 'all' ? '' : val;
+                setEndTimeFilter(newEndTime);
+                // Validate when both times are set
+                if (startTimeFilter && newEndTime && startTimeFilter >= newEndTime) {
+                  setTimeFilterError(t('class.list.time_filter_error'));
+                } else {
+                  setTimeFilterError('');
+                }
+              }}
+            >
+              <SelectTrigger
+                className={`w-[130px] bg-white border-gray-300 shadow-sm ${timeFilterError && endTimeFilter ? 'border-red-500' : ''}`}
+              >
+                <SelectValue placeholder="Giờ kết thúc" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('common.all')}</SelectItem>
+                {timeOptions.map((time) => (
+                  <SelectItem key={time} value={time}>
+                    {time}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* View Toggle */}
+            <div className="flex gap-2" data-tour="class-view-mode-toggle">
+              <Button
+                variant={viewMode === 'card' ? 'default' : 'outline'}
+                onClick={() => setViewMode('card')}
+                className="h-9 px-3"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'table' ? 'default' : 'outline'}
+                onClick={() => setViewMode('table')}
+                className="h-9 px-3"
+              >
+                <List className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
-          {/* Status Filter */}
-          <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val as 'ACTIVE' | 'INACTIVE' | 'ALL')}>
-            <SelectTrigger className="w-[140px] bg-white border-gray-300 shadow-sm" data-tour="class-status-filter">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ACTIVE">{t('class.list.filter_active')}</SelectItem>
-              <SelectItem value="INACTIVE">{t('class.list.filter_inactive')}</SelectItem>
-              <SelectItem value="ALL">{t('class.list.filter_all')}</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Start Time Filter */}
-          <Select
-            value={startTimeFilter || 'all'}
-            onValueChange={(val) => setStartTimeFilter(val === 'all' ? '' : val)}
-          >
-            <SelectTrigger className="w-[130px] bg-white border-gray-300 shadow-sm">
-              <SelectValue placeholder="Giờ bắt đầu" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('common.all')}</SelectItem>
-              {timeOptions.map((time) => (
-                <SelectItem key={time} value={time}>
-                  {time}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* End Time Filter */}
-          <Select value={endTimeFilter || 'all'} onValueChange={(val) => setEndTimeFilter(val === 'all' ? '' : val)}>
-            <SelectTrigger className="w-[130px] bg-white border-gray-300 shadow-sm">
-              <SelectValue placeholder="Giờ kết thúc" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('common.all')}</SelectItem>
-              {timeOptions.map((time) => (
-                <SelectItem key={time} value={time}>
-                  {time}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* View Toggle */}
-          <div className="flex gap-2" data-tour="class-view-mode-toggle">
-            <Button
-              variant={viewMode === 'card' ? 'default' : 'outline'}
-              onClick={() => setViewMode('card')}
-              className="h-9 px-3"
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'table' ? 'default' : 'outline'}
-              onClick={() => setViewMode('table')}
-              className="h-9 px-3"
-            >
-              <List className="w-4 h-4" />
-            </Button>
-          </div>
+          {/* Time Filter Error Message - Display below filters */}
+          {timeFilterError && <div className="text-sm text-red-600 mt-1">{timeFilterError}</div>}
         </div>
       </div>
 
@@ -480,7 +536,7 @@ export const ClassListView: React.FC<ClassListViewProps> = ({ branchId: propBran
       </div>
 
       {/* Pagination */}
-      {!loading && !error && classes.length > 0 && pagination && (
+      {!loading && !error && sortedClasses.length > 0 && pagination && pagination.totalPages > 0 && (
         <div className="border-t pt-4 flex items-center justify-between" data-tour="class-pagination">
           <div className="text-sm text-gray-600">
             {t('class.list.pagination_page')} <span className="font-medium">{pagination.currentPage}</span>{' '}

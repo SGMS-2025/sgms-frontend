@@ -58,6 +58,7 @@ export interface CommissionPolicyListParams {
   servicePackageId?: string;
   membershipPlanId?: string;
   status?: CommissionPolicyStatus | 'all' | 'ALL';
+  search?: string;
 }
 
 // Commission Policy List Response
