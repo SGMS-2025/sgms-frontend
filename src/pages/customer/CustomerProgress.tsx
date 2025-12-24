@@ -212,9 +212,19 @@ export default function CustomerProgress() {
     };
   }, [customerId, getCustomerStats]);
 
-  const recordsWithMeasurements = useMemo(
+  // Filter out initial progress records (created when setting goal)
+  const actualProgressList = useMemo(
     () =>
       progressList.filter(
+        (r) =>
+          !r.notes || (typeof r.notes === 'string' && !r.notes.toLowerCase().includes('initial progress from goal'))
+      ),
+    [progressList]
+  );
+
+  const recordsWithMeasurements = useMemo(
+    () =>
+      actualProgressList.filter(
         (r) =>
           r.chest ||
           r.waist ||
@@ -226,19 +236,19 @@ export default function CustomerProgress() {
           r.bodyWaterPercentage ||
           r.metabolicAge
       ),
-    [progressList]
+    [actualProgressList]
   );
 
-  const radarCurrentData = recordsWithMeasurements[0] || progressList[0] || null;
+  const radarCurrentData = recordsWithMeasurements[0] || actualProgressList[0] || null;
   const radarFirstData = useMemo(() => {
-    if (!progressList.length) return null;
-    const baseline = recordsWithMeasurements.length > 1 ? recordsWithMeasurements.at(-1) : progressList.at(-1);
+    if (!actualProgressList.length) return null;
+    const baseline = recordsWithMeasurements.length > 1 ? recordsWithMeasurements.at(-1) : actualProgressList.at(-1);
     if (!baseline) return null;
     if (radarCurrentData && baseline.id && radarCurrentData.id && baseline.id === radarCurrentData.id) {
       return null;
     }
     return baseline;
-  }, [progressList, recordsWithMeasurements, radarCurrentData]);
+  }, [actualProgressList, recordsWithMeasurements, radarCurrentData]);
 
   const chartData = progressList.map((progress) => ({
     date: progress.date,

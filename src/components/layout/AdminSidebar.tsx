@@ -4,8 +4,6 @@ import {
   LayoutDashboard,
   Users,
   Building2,
-  ShieldCheck,
-  Settings,
   LogOut,
   UserCircle,
   PanelLeft,
@@ -267,45 +265,6 @@ export const AdminSidebar: React.FC = () => {
       onClick: () => {
         navigate('/admin/accounts');
       }
-    },
-    {
-      icon: <ShieldCheck className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.roles_permissions', 'Phân quyền'),
-      href: '/admin/roles',
-      isActive: location.pathname === '/admin/roles',
-      onClick: () => {
-        navigate('/admin/roles');
-      }
-    },
-    {
-      icon: <BarChart3 className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.reports', 'Báo cáo & Thống kê'),
-      href: '/admin/reports',
-      isActive: location.pathname === '/admin/reports',
-      onClick: () => {
-        navigate('/admin/reports');
-      }
-    },
-    {
-      icon: <FileText className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.logs', 'Nhật ký hệ thống'),
-      href: '/admin/logs',
-      isActive: location.pathname === '/admin/logs',
-      onClick: () => {
-        navigate('/admin/logs');
-      }
-    }
-  ];
-
-  const secondaryNavItems: SidebarItemType[] = [
-    {
-      icon: <Settings className="w-5 h-5 stroke-[1.75]" />,
-      label: t('sidebar.system_settings', 'Cài đặt hệ thống'),
-      href: '/admin/settings',
-      isActive: location.pathname === '/admin/settings',
-      onClick: () => {
-        navigate('/admin/settings');
-      }
     }
   ];
 
@@ -322,21 +281,6 @@ export const AdminSidebar: React.FC = () => {
       {/* Main Navigation */}
       <div className={`flex-1 py-2 overflow-y-auto ${isCollapsed ? 'px-1' : 'px-3'}`}>
         <Sidebar items={mainNavItems} isCollapsed={isCollapsed} title={t('sidebar.main_menu', 'Menu chính')} />
-
-        {/* Secondary Navigation */}
-        {!isCollapsed && (
-          <div className="mt-6">
-            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 px-3">
-              {t('sidebar.settings', 'Cài đặt')}
-            </div>
-            <Sidebar items={secondaryNavItems} isCollapsed={isCollapsed} />
-          </div>
-        )}
-        {isCollapsed && (
-          <div className="mt-1">
-            <Sidebar items={secondaryNavItems} isCollapsed={isCollapsed} />
-          </div>
-        )}
       </div>
 
       {/* User Profile */}
