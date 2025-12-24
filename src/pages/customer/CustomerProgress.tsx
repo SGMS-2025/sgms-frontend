@@ -21,6 +21,9 @@ import {
 } from '@/components/ui/pagination';
 import type { CustomerStats } from '@/types/forms/Progress';
 import { Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { MealPlanDetail } from '@/components/pt/MealPlanDetail';
+import type { MealPlan } from '@/types/api/MealPlan';
 
 export default function CustomerProgress() {
   const { t } = useTranslation();
@@ -47,6 +50,7 @@ export default function CustomerProgress() {
   const { activeGoal, loading: goalLoading, error: goalError } = useCustomerGoal(customerId || undefined);
 
   const [mealPlanPage, setMealPlanPage] = useState(1);
+  const [selectedMealPlan, setSelectedMealPlan] = useState<MealPlan | null>(null);
 
   const mealPlanParams = useMemo(
     () => ({
@@ -135,7 +139,12 @@ export default function CustomerProgress() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {mealPlans.map((plan) => (
-          <div key={plan._id} className="border rounded-lg p-3 bg-white shadow-sm">
+          <button
+            key={plan._id}
+            type="button"
+            className="border rounded-lg p-3 bg-white shadow-sm text-left hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-[#F05A29]"
+            onClick={() => setSelectedMealPlan(plan)}
+          >
             <div className="flex items-center justify-between mb-2">
               <div className="font-semibold text-[#101D33] line-clamp-1">{plan.name || 'Meal Plan'}</div>
               <Badge variant="secondary" className="capitalize">
@@ -149,7 +158,7 @@ export default function CustomerProgress() {
                 })}
               </div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     );
@@ -352,7 +361,7 @@ export default function CustomerProgress() {
         </div>
 
         {/* Goal (read-only) */}
-        <GoalCard goal={activeGoal} currentProgress={radarCurrentData} />
+        <GoalCard goal={activeGoal} currentProgress={radarCurrentData} baselineProgress={radarFirstData} />
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -447,6 +456,25 @@ export default function CustomerProgress() {
             )}
           </CardContent>
         </Card>
+
+        {/* Meal plan detail dialog */}
+        <Dialog
+          open={!!selectedMealPlan}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedMealPlan(null);
+            }
+          }}
+        >
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>{t('progress_detail.meal_plan.title')}</DialogTitle>
+            </DialogHeader>
+            <div className="max-h-[75vh] overflow-y-auto pr-1">
+              {selectedMealPlan && <MealPlanDetail mealPlan={selectedMealPlan} readOnly />}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

@@ -722,7 +722,12 @@ export default function TrainingProgressDetailPage() {
             </div>
 
             {/* Goal Card - Between Stats and Charts */}
-            <GoalCard goal={activeGoal} currentProgress={radarCurrentData} onEdit={() => setIsGoalFormOpen(true)} />
+            <GoalCard
+              goal={activeGoal}
+              currentProgress={radarCurrentData}
+              baselineProgress={radarFirstData}
+              onEdit={() => setIsGoalFormOpen(true)}
+            />
 
             {/* Main Content */}
             <div className="space-y-6">

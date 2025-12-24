@@ -11,6 +11,7 @@ import type { TrainingProgressDisplay as ProgressDisplay } from '@/types/api/Tra
 interface GoalCardProps {
   goal: CustomerGoalDisplay | null;
   currentProgress: ProgressDisplay | null;
+  baselineProgress?: ProgressDisplay | null;
   onEdit?: () => void;
 }
 
@@ -24,7 +25,7 @@ interface MetricProgress {
   label: string;
 }
 
-export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdit }) => {
+export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, baselineProgress, onEdit }) => {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -69,10 +70,12 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
     if (!goal || !currentProgress || !goal.targets) return {};
 
     const progress: Record<string, MetricProgress> = {};
+    const getInitialValue = <K extends keyof ProgressDisplay>(key: K) => baselineProgress?.[key];
 
     // Weight - lower is better
     if (goal.targets.weight != null && currentProgress.weight != null) {
-      const { percentage } = calculateProgress(currentProgress.weight, goal.targets.weight, false);
+      const initial = baselineProgress?.weight;
+      const { percentage } = calculateProgress(currentProgress.weight, goal.targets.weight, false, initial);
       progress.weight = {
         current: currentProgress.weight,
         target: goal.targets.weight,
@@ -86,10 +89,12 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
 
     // Body Fat - lower is better
     if (goal.targets.bodyFatPercentage != null && currentProgress.bodyFatPercentage != null) {
+      const initial = baselineProgress?.bodyFatPercentage;
       const { percentage } = calculateProgress(
         currentProgress.bodyFatPercentage,
         goal.targets.bodyFatPercentage,
-        false
+        false,
+        initial
       );
       progress.bodyFatPercentage = {
         current: currentProgress.bodyFatPercentage,
@@ -104,10 +109,12 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
 
     // Muscle Mass - higher is better
     if (goal.targets.muscleMassPercentage != null && currentProgress.muscleMassPercentage != null) {
+      const initial = baselineProgress?.muscleMassPercentage;
       const { percentage } = calculateProgress(
         currentProgress.muscleMassPercentage,
         goal.targets.muscleMassPercentage,
-        true
+        true,
+        initial
       );
       progress.muscleMassPercentage = {
         current: currentProgress.muscleMassPercentage,
@@ -122,7 +129,8 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
 
     // Strength - higher is better
     if (goal.targets.strength != null && currentProgress.strength != null) {
-      const { percentage } = calculateProgress(currentProgress.strength, goal.targets.strength, true);
+      const initial = baselineProgress?.strength;
+      const { percentage } = calculateProgress(currentProgress.strength, goal.targets.strength, true, initial);
       progress.strength = {
         current: currentProgress.strength,
         target: goal.targets.strength,
@@ -136,7 +144,8 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
 
     // BMI - depends on target (usually lower is better)
     if (goal.targets.bmi != null && currentProgress.bmi != null) {
-      const { percentage } = calculateProgress(currentProgress.bmi, goal.targets.bmi, false);
+      const initial = baselineProgress?.bmi;
+      const { percentage } = calculateProgress(currentProgress.bmi, goal.targets.bmi, false, initial);
       progress.bmi = {
         current: currentProgress.bmi,
         target: goal.targets.bmi,
@@ -161,10 +170,13 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
       const targetKey = key as keyof typeof goal.targets;
       const progressKey = key as keyof typeof currentProgress;
       if (goal.targets[targetKey] != null && currentProgress[progressKey] != null) {
+        const initialValue = getInitialValue(progressKey as keyof ProgressDisplay);
+        const initial = typeof initialValue === 'number' ? initialValue : undefined;
         const { percentage } = calculateProgress(
           currentProgress[progressKey] as number,
           goal.targets[targetKey] as number,
-          isHigherBetter
+          isHigherBetter,
+          initial
         );
         progress[key] = {
           current: currentProgress[progressKey] as number,
@@ -180,10 +192,12 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
 
     // Body Water - higher is better
     if (goal.targets.bodyWaterPercentage != null && currentProgress.bodyWaterPercentage != null) {
+      const initial = baselineProgress?.bodyWaterPercentage;
       const { percentage } = calculateProgress(
         currentProgress.bodyWaterPercentage,
         goal.targets.bodyWaterPercentage,
-        true
+        true,
+        initial
       );
       progress.bodyWaterPercentage = {
         current: currentProgress.bodyWaterPercentage,
@@ -198,7 +212,8 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
 
     // Metabolic Age - lower is better
     if (goal.targets.metabolicAge != null && currentProgress.metabolicAge != null) {
-      const { percentage } = calculateProgress(currentProgress.metabolicAge, goal.targets.metabolicAge, false);
+      const initial = baselineProgress?.metabolicAge;
+      const { percentage } = calculateProgress(currentProgress.metabolicAge, goal.targets.metabolicAge, false, initial);
       progress.metabolicAge = {
         current: currentProgress.metabolicAge,
         target: goal.targets.metabolicAge,
@@ -211,7 +226,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
     }
 
     return progress;
-  }, [goal, currentProgress, t]);
+  }, [goal, currentProgress, baselineProgress, t]);
 
   // Calculate overall progress percentage (average of all metrics)
   const overallProgress = useMemo(() => {
