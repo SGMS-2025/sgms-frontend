@@ -140,6 +140,14 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
   // Use the hook for updating customer status
   const { updateCustomerStatus } = useUpdateCustomerStatus();
 
+  // Reset search when branch changes
+  React.useEffect(() => {
+    if (currentBranch?._id) {
+      setFilters((prev) => ({ ...prev, searchTerm: '' }));
+      setBackendSearchTerm('');
+    }
+  }, [currentBranch]);
+
   // Reset pagination when branch changes
   React.useEffect(() => {
     if (currentBranch) {
@@ -495,8 +503,8 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
       .sort((a, b) => a - b);
   }, [pagination]);
 
-  // Show loading state
-  if (loading) {
+  // Show loading state only on initial load (when no data yet)
+  if (loading && customerList.length === 0) {
     return (
       <div className="bg-white rounded-lg p-6 border-2 border-gray-200 shadow-sm">
         <div className="flex items-center justify-center h-64">

@@ -82,6 +82,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
   const [filters, setFilters] = useState<StaffFilters>({
     searchTerm: ''
   });
+  const [backendSearchTerm, setBackendSearchTerm] = useState('');
 
   const [selectedStaff, setSelectedStaff] = useState<StaffDisplay | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -120,49 +121,52 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
   // Use the hook for updating staff status
   const { updateStaffStatus } = useUpdateStaffStatus();
 
+  // Reset search when branch changes
   React.useEffect(() => {
-    // Only update filters when branch is loaded (not during initial loading)
-    // This prevents fetching all staff when branch is still loading
+    if (!branchLoading && currentBranch?._id) {
+      setFilters((prev) => ({ ...prev, searchTerm: '' }));
+      setBackendSearchTerm('');
+    }
+  }, [currentBranch?._id, branchLoading]);
+
+  // Debounce search term
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setBackendSearchTerm(filters.searchTerm);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [filters.searchTerm]);
+
+  // Update backend filters when branch or debounced search changes
+  React.useEffect(() => {
     if (branchLoading) {
       return; // Wait for branch to load
     }
 
-    if (currentBranch?._id) {
-      updateFilters({ branchId: currentBranch._id, page: 1 });
-    } else {
-      updateFilters({ branchId: undefined, page: 1 });
-    }
-  }, [currentBranch?._id, branchLoading, updateFilters]);
+    const branchId = currentBranch?._id;
+    const search = backendSearchTerm || undefined;
 
-  // Filter out current user's staff record, search, and sort staff list using the utility function
-  // Note: Branch filtering is already handled by API via branchId parameter, so we don't filter again here
+    updateFilters({
+      branchId,
+      search,
+      page: 1
+    });
+  }, [currentBranch?._id, backendSearchTerm, branchLoading, updateFilters]);
+
+  // Filter out current user's staff record and sort staff list using the utility function
+  // Note: Branch filtering and search are already handled by API via branchId and search parameters
   const sortedStaffList = useMemo(() => {
-    let filteredStaffList = currentUser
+    const filteredStaffList = currentUser
       ? staffList.filter((staff) => {
           return staff.email !== currentUser.email;
         })
       : staffList;
 
-    // Frontend search filter (API search parameter may not cover all fields)
-    if (filters.searchTerm) {
-      const searchTerm = filters.searchTerm.toLowerCase();
-      filteredStaffList = filteredStaffList.filter((staff) => {
-        return (
-          staff.name.toLowerCase().includes(searchTerm) ||
-          staff.email.toLowerCase().includes(searchTerm) ||
-          staff.phone.toLowerCase().includes(searchTerm) ||
-          staff.jobTitle.toLowerCase().includes(searchTerm) ||
-          staff.branch.toLowerCase().includes(searchTerm) ||
-          staff.branches.some((branch) => branch.branchName.toLowerCase().includes(searchTerm))
-        );
-      });
-    }
-
     return sortArray(filteredStaffList, sortState, (item, field) => {
       const extractor = staffSortConfig[field as keyof typeof staffSortConfig];
       return extractor ? extractor(item) : '';
     });
-  }, [staffList, sortState, currentUser, filters.searchTerm]);
+  }, [staffList, sortState, currentUser]);
 
   const totalStaffCount = staffStats?.totalStaff ?? sortedStaffList.length;
   const activeStaffCount =
@@ -325,8 +329,8 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({ onAddStaff }) 
       .sort((a, b) => a - b);
   }, [pagination]);
 
-  // Show loading state
-  if (loading) {
+  // Show loading state only on initial load (when no data yet)
+  if (loading && staffList.length === 0) {
     return (
       <div className="bg-white rounded-lg p-6 border-2 border-gray-200 shadow-sm">
         <div className="flex items-center justify-center h-64">
