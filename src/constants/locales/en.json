@@ -2233,7 +2233,7 @@
   "dashboard.customer_management": "Customer Management",
   "dashboard.customer_overview_title": "Customer Overview",
   "dashboard.customer_overview_subtitle": "Monitor customer memberships and engagement across your facilities.",
-  "dashboard.search_placeholder": "Search by name, phone, membership, PT/Class...",
+  "dashboard.search_placeholder": "Search menu items",
   "dashboard.total_customers_helper": "Total customers",
   "dashboard.columns": "Columns",
   "dashboard.select_columns": "Select columns",

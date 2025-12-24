@@ -4617,7 +4617,7 @@
   "schedule_types.personal_training_description": "Buổi huấn luyện một thầy một trò",
   "schedule_types.free_time_description": "Khung thời gian có sẵn",
   "schedule_types.maintenance_description": "Thời gian bảo trì thiết bị",
-  "dashboard.search_placeholder": "Tìm kiếm theo tên, số điện thoại, gói tập, PT/Lớp...",
+  "dashboard.search_placeholder": "Tìm menu nhanh",
   "branch_detail.disable_branch_title": "Tắt chi nhánh",
   "branch_detail.disable_branch_description": "Bạn có chắc chắn muốn tắt chi nhánh này không?",
   "branch_detail.warning_title": "Lưu ý quan trọng",

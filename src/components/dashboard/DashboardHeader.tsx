@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Search, Bell } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { useSocketNotifications } from '@/hooks/useSocket';
@@ -11,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useBranch } from '@/contexts/BranchContext';
 import { BranchSelectorButton } from '@/components/dashboard/BranchSelectorButton';
 import type { BranchDisplay } from '@/types/api/Branch';
+import { NavigationSearch } from '@/components/dashboard/NavigationSearch';
 
 interface DashboardHeaderProps {
   title?: string;
@@ -80,13 +80,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ title, hideBra
 
         {/* Center - Search bar (hidden on mobile) */}
         <div className="hidden md:flex flex-1 max-w-md mx-4 lg:mx-8">
-          <div className="relative w-full">
-            <Input
-              placeholder={t('dashboard.search_placeholder')}
-              className="h-10 rounded-full border border-gray-200 bg-white pl-10 text-sm shadow-sm focus:border-orange-200 focus:ring-orange-200"
-            />
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          </div>
+          <NavigationSearch />
         </div>
 
         {/* Right side - Icons and User Profile */}
