@@ -80,6 +80,7 @@ export const KPIManagement: React.FC = () => {
   const [disableDialogOpen, setDisableDialogOpen] = useState(false);
   const [kpiToDisable, setKpiToDisable] = useState<KPIDisplay | null>(null);
   const prevBranchIdRef = useRef<string | undefined>(undefined);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Use the custom sort hook
   const { sortState, handleSort, getSortIcon } = useTableSort<KPISortField>();
@@ -179,31 +180,26 @@ export const KPIManagement: React.FC = () => {
     };
   }, [currentBranch?._id, fetchStats, refetch]);
 
+  // Cleanup search timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Disable KPI hook
   const { disableKPI } = useDisableKPI();
 
-  // Filter and sort KPI list
+  // Sort KPI list (search is now handled by backend)
   const filteredAndSortedKPIList = useMemo(() => {
-    let filtered = kpiList;
-
-    // Apply search filter
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter((kpi) => {
-        return (
-          kpi.staffName.toLowerCase().includes(term) ||
-          kpi.branchName.toLowerCase().includes(term) ||
-          kpi.period.toLowerCase().includes(term)
-        );
-      });
-    }
-
-    // Apply sorting
-    return sortArray(filtered, sortState, (item, field) => {
+    // Apply sorting only (search is done on backend)
+    return sortArray(kpiList, sortState, (item, field) => {
       const extractor = kpiSortConfig[field as keyof typeof kpiSortConfig];
       return extractor ? extractor(item) : '';
     });
-  }, [kpiList, searchTerm, sortState]);
+  }, [kpiList, sortState]);
 
   // Handle disable KPI - open dialog
   const handleDisableKPI = (kpi: KPIDisplay) => {
@@ -243,9 +239,22 @@ export const KPIManagement: React.FC = () => {
     });
   };
 
-  // Handle search change
+  // Handle search change with debounce
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
+
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Debounce search to avoid too many API calls
+    searchTimeoutRef.current = setTimeout(() => {
+      updateFilters({
+        search: value.trim() || undefined,
+        page: 1 // Reset to page 1 when searching
+      });
+    }, 500); // Wait 500ms after user stops typing
   };
 
   // Handle view KPI
@@ -668,7 +677,7 @@ export const KPIManagement: React.FC = () => {
           {pagination && (
             <div className="mt-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="text-sm text-gray-500">
-                {`${t('dashboard.showing', 'Hiển thị')} ${(pagination.currentPage - 1) * pagination.itemsPerPage + 1} - ${Math.min(pagination.currentPage * pagination.itemsPerPage, filteredAndSortedKPIList.length)} ${t('dashboard.of_total', 'của')} ${filteredAndSortedKPIList.length} ${t('kpi.items', 'KPI')}`}
+                {`${t('dashboard.showing', 'Hiển thị')} ${(pagination.currentPage - 1) * pagination.itemsPerPage + 1} - ${Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} ${t('dashboard.of_total', 'của')} ${pagination.totalItems} ${t('kpi.items', 'KPI')}`}
               </div>
               <Pagination className="justify-end md:justify-center">
                 <PaginationContent>
