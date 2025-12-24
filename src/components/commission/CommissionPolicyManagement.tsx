@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Search, Percent, FileText, Loader2, AlertCircle, HelpCircle, XCircle, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -52,10 +52,13 @@ export const CommissionPolicyManagement: React.FC = () => {
     status: 'ACTIVE',
     search: ''
   });
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { policies, loading, error, pagination, refetch, updateFilters, goToPage } = useCommissionPolicyList({
     status: filters.status === 'all' ? undefined : filters.status,
-    scope: filters.scope === 'all' ? undefined : (filters.scope as 'BRANCH' | 'ROLE' | 'PACKAGE' | 'GLOBAL' | undefined)
+    scope:
+      filters.scope === 'all' ? undefined : (filters.scope as 'BRANCH' | 'ROLE' | 'PACKAGE' | 'GLOBAL' | undefined),
+    search: filters.search.trim() || undefined
   });
 
   const { deletePolicy, loading: deleteLoading } = useDeleteCommissionPolicy();
@@ -81,21 +84,65 @@ export const CommissionPolicyManagement: React.FC = () => {
     fetchStats();
   }, [filters.scope]);
 
-  // Filter policies by search term
-  const filteredPolicies = useMemo(() => {
-    if (filters.search === '') return policies;
+  // Cleanup search timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
-    const searchTerm = filters.search.toLowerCase();
-    return policies.filter((policy) => {
-      const scopeLabel = getScopeLabel(policy.scope);
-      const detail = getPolicyDetail(policy);
-      return (
-        scopeLabel.toLowerCase().includes(searchTerm) ||
-        detail.toLowerCase().includes(searchTerm) ||
-        policy.commissionRate.toString().includes(searchTerm)
-      );
-    });
-  }, [policies, filters.search]);
+  // Helper functions - must be defined before useMemo that uses them
+  const getScopeLabel = useCallback(
+    (scope: string) => {
+      switch (scope) {
+        case 'BRANCH':
+          return t('commission.scope.branch', 'Chi nhánh');
+        case 'ROLE':
+          return t('commission.scope.role', 'Vai trò');
+        case 'PACKAGE':
+          return t('commission.scope.package', 'Gói dịch vụ');
+        case 'GLOBAL':
+          return t('commission.scope.global', 'Toàn hệ thống');
+        default:
+          return scope;
+      }
+    },
+    [t]
+  );
+
+  const getPolicyDetail = useCallback(
+    (policy: CommissionPolicy) => {
+      if (policy.scope === 'PACKAGE') {
+        if (policy.servicePackageId) {
+          if (typeof policy.servicePackageId === 'object') {
+            return policy.servicePackageId.name;
+          }
+        }
+        if (policy.membershipPlanId) {
+          if (typeof policy.membershipPlanId === 'object') {
+            return policy.membershipPlanId.name;
+          }
+        }
+        return '-';
+      }
+      if (policy.scope === 'BRANCH' && policy.branchId) {
+        return typeof policy.branchId === 'object' ? policy.branchId.branchName : '-';
+      }
+      if (policy.scope === 'ROLE') {
+        return policy.roleType || '-';
+      }
+      if (policy.scope === 'GLOBAL') {
+        return t('commission.scope.global', 'Toàn hệ thống');
+      }
+      return '-';
+    },
+    [t]
+  );
+
+  // Policies are already filtered by backend, no need for client-side filtering
+  const filteredPolicies = policies;
 
   // Handle status filter change
   const handleStatusFilterChange = (value: string) => {
@@ -117,9 +164,23 @@ export const CommissionPolicyManagement: React.FC = () => {
     setSelectedPolicies(new Set());
   };
 
-  // Handle search change
+  // Handle search change with debounce
   const handleSearchChange = (value: string) => {
     setFilters({ ...filters, search: value });
+
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Debounce search to avoid too many API calls
+    searchTimeoutRef.current = setTimeout(() => {
+      updateFilters({
+        search: value.trim() || undefined,
+        page: 1 // Reset to page 1 when searching
+      });
+    }, 500); // Wait 500ms after user stops typing
+
     // Clear selection when search changes
     setSelectedPolicies(new Set());
   };
@@ -304,47 +365,6 @@ export const CommissionPolicyManagement: React.FC = () => {
           setStats(response.data);
         }
       });
-  };
-
-  const getScopeLabel = (scope: string) => {
-    switch (scope) {
-      case 'BRANCH':
-        return t('commission.scope.branch', 'Chi nhánh');
-      case 'ROLE':
-        return t('commission.scope.role', 'Vai trò');
-      case 'PACKAGE':
-        return t('commission.scope.package', 'Gói dịch vụ');
-      case 'GLOBAL':
-        return t('commission.scope.global', 'Toàn hệ thống');
-      default:
-        return scope;
-    }
-  };
-
-  const getPolicyDetail = (policy: CommissionPolicy) => {
-    if (policy.scope === 'PACKAGE') {
-      if (policy.servicePackageId) {
-        if (typeof policy.servicePackageId === 'object') {
-          return policy.servicePackageId.name;
-        }
-      }
-      if (policy.membershipPlanId) {
-        if (typeof policy.membershipPlanId === 'object') {
-          return policy.membershipPlanId.name;
-        }
-      }
-      return '-';
-    }
-    if (policy.scope === 'BRANCH' && policy.branchId) {
-      return typeof policy.branchId === 'object' ? policy.branchId.branchName : '-';
-    }
-    if (policy.scope === 'ROLE') {
-      return policy.roleType || '-';
-    }
-    if (policy.scope === 'GLOBAL') {
-      return t('commission.scope.global', 'Toàn hệ thống');
-    }
-    return '-';
   };
 
   // Pagination pages calculation

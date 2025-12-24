@@ -28,6 +28,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/utils/utils';
 import { useExpenses, useExpenseStats } from '@/hooks/useExpenses';
 import { useBranch } from '@/contexts/BranchContext';
+import { useDebounce } from '@/hooks/common/useDebounce';
 import type { Expense, ExpenseCategory, ExpenseFilters, ExpenseStatus, ExpenseListParams } from '@/types/api/Expenses';
 import { EXPENSE_CATEGORY_DISPLAY } from '@/types/api/Expenses';
 import type { DateRange } from 'react-day-picker';
@@ -58,6 +59,11 @@ export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
       endDate: ''
     });
 
+    // Local search state for immediate UI update
+    const [localSearch, setLocalSearch] = useState('');
+    // Debounced search value for API calls (500ms delay)
+    const debouncedSearch = useDebounce(localSearch, 500);
+
     const [datePickerOpen, setDatePickerOpen] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize] = useState(10);
@@ -66,7 +72,7 @@ export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
     const { expenses, loading, error, pagination, updateFilters, refetch } = useExpenses({
       page: currentPage,
       limit: pageSize,
-      search: filters.search || undefined,
+      search: debouncedSearch || undefined,
       category: filters.category && filters.category !== 'all' ? (filters.category as ExpenseCategory) : undefined,
       status: 'ACTIVE', // Only show active expenses
       branchId: currentBranch?._id, // Use current branch from context
@@ -76,6 +82,32 @@ export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
       sortOrder: 'desc'
     });
     const { stats, loading: statsLoading, error: statsError, refetch: refetchStats } = useExpenseStats();
+
+    // Update API when debouncedSearch changes (with debounce delay)
+    useEffect(() => {
+      // Reset page to 1 when search changes
+      if (currentPage !== 1) {
+        setCurrentPage(1);
+      }
+
+      // Update filters state
+      setFilters((prev) => ({ ...prev, search: debouncedSearch }));
+
+      // Trigger API update with debounced search
+      updateFilters({
+        page: 1,
+        limit: pageSize,
+        search: debouncedSearch || undefined,
+        category: filters.category && filters.category !== 'all' ? (filters.category as ExpenseCategory) : undefined,
+        status: 'ACTIVE',
+        branchId: currentBranch?._id,
+        startDate: filters.startDate || undefined,
+        endDate: filters.endDate || undefined,
+        sortBy: 'createdAt',
+        sortOrder: 'desc'
+      });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [debouncedSearch]); // Only trigger when debouncedSearch changes
 
     // Refetch when currentBranch changes (avoid infinite loop)
     useEffect(() => {
@@ -89,7 +121,7 @@ export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
         updateFilters({
           page: 1,
           limit: pageSize,
-          search: filters.search || undefined,
+          search: debouncedSearch || undefined,
           category: filters.category && filters.category !== 'all' ? (filters.category as ExpenseCategory) : undefined,
           status: 'ACTIVE', // Only show active expenses
           branchId: currentBranchId,
@@ -103,7 +135,7 @@ export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
       currentBranch?._id,
       updateFilters,
       pageSize,
-      filters.search,
+      debouncedSearch,
       filters.category,
       filters.startDate,
       filters.endDate
@@ -114,10 +146,18 @@ export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
       setFilters(newFilters);
       setCurrentPage(1);
 
+      // For search, update localSearch which will trigger debounce
+      if (key === 'search') {
+        setLocalSearch(value);
+        // Don't call updateFilters here, let debounce handle it
+        return;
+      }
+
+      // For other filters, update immediately
       updateFilters({
         page: 1,
         limit: pageSize,
-        search: newFilters.search || undefined,
+        search: debouncedSearch || undefined,
         category:
           newFilters.category && newFilters.category !== 'all' ? (newFilters.category as ExpenseCategory) : undefined,
         status: 'ACTIVE', // Only show active expenses
@@ -160,14 +200,14 @@ export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
 
     const statsFilters = useMemo<ExpenseListParams>(
       () => ({
-        search: filters.search || undefined,
+        search: debouncedSearch || undefined,
         category: filters.category && filters.category !== 'all' ? (filters.category as ExpenseCategory) : undefined,
         status: 'ACTIVE' as ExpenseStatus,
         branchId: currentBranch?._id,
         startDate: filters.startDate || undefined,
         endDate: filters.endDate || undefined
       }),
-      [filters.search, filters.category, filters.startDate, filters.endDate, currentBranch?._id]
+      [debouncedSearch, filters.category, filters.startDate, filters.endDate, currentBranch?._id]
     );
 
     useEffect(() => {
@@ -263,8 +303,11 @@ export const ExpenseList = forwardRef<ExpenseListRef, ExpenseListProps>(
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder={t('expenses.search_placeholder', 'Tìm kiếm chi phí...')}
-                  value={filters.search}
-                  onChange={(e) => handleFilterChange('search', e.target.value)}
+                  value={localSearch}
+                  onChange={(e) => {
+                    setLocalSearch(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="pl-10 h-11"
                   data-tour="expense-search-input"
                 />

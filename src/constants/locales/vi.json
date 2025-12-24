@@ -6223,7 +6223,8 @@
       "delete_description": "Bạn có chắc chắn muốn xóa lớp học này không? Hành động này không thể hoàn tác.",
       "button_cancel": "Hủy",
       "button_delete": "Xóa",
-      "button_deleting": "Đang xóa..."
+      "button_deleting": "Đang xóa...",
+      "time_filter_error": "Giờ bắt đầu phải nhỏ hơn giờ kết thúc"
     },
     "tour": {
       "button": "Hướng dẫn",

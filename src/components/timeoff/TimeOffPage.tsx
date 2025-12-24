@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -36,10 +36,12 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
   const [showDetailSheet, setShowDetailSheet] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  const [localSearchValue, setLocalSearchValue] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Determine if user can view all requests or only their own
   const canViewAll = userRole === 'owner';
@@ -82,6 +84,15 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
       });
     }
   }, [currentBranch?._id, updateFilters]);
+
+  // Cleanup search timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const { approveTimeOff, rejectTimeOff, cancelTimeOff, deleteTimeOff } = useTimeOffOperations();
 
@@ -184,14 +195,27 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
     refetch();
   };
 
-  const handleSearchChange = (value: string) => {
-    setSearchValue(value);
-    updateFilters({
-      search: value.trim() || undefined,
-      branchId: currentBranch?._id,
-      page: 1 // Reset to first page when search changes
-    });
-  };
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setLocalSearchValue(value);
+
+      // Clear previous timeout
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+
+      // Set new timeout to update filters after 500ms of inactivity
+      searchTimeoutRef.current = setTimeout(() => {
+        setSearchValue(value);
+        updateFilters({
+          search: value.trim() || undefined,
+          branchId: currentBranch?._id,
+          page: 1 // Reset to first page when search changes
+        });
+      }, 500);
+    },
+    [currentBranch?._id, updateFilters]
+  );
 
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
@@ -305,7 +329,7 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
           onCreateNew={userRole !== 'owner' ? handleCreateNew : undefined}
           onRefresh={handleRefresh}
           onExport={handleExport}
-          searchValue={searchValue}
+          searchValue={localSearchValue}
           onSearchChange={handleSearchChange}
           statusFilter={statusFilter}
           onStatusFilterChange={handleStatusFilterChange}
@@ -318,6 +342,8 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
           showStats={true}
           showHeader={true}
           onStartTour={startTimeOffTour}
+          pagination={pagination}
+          onPageChange={goToPage}
           stats={{
             total: timeOffs.length,
             pending: timeOffs.filter((t) => t.status === 'PENDING').length,
@@ -326,42 +352,6 @@ const TimeOffPage: React.FC<TimeOffPageProps> = ({ userRole, showHighlight = fal
             cancelled: timeOffs.filter((t) => t.status === 'CANCELLED').length
           }}
         />
-      )}
-
-      {/* Pagination - Desktop only */}
-      {!isMobile && pagination && pagination.totalPages > 1 && (
-        <Card>
-          <CardContent className="py-4">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                {t('common.showing')} {(pagination.page - 1) * pagination.limit + 1} -{' '}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} {t('common.of')} {pagination.total}{' '}
-                {t('timeoff.requests')}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => goToPage(pagination.page - 1)}
-                  disabled={!pagination.hasPrev}
-                >
-                  {t('common.previous')}
-                </Button>
-                <span className="text-sm text-gray-600">
-                  {t('common.page')} {pagination.page} {t('common.of')} {pagination.totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => goToPage(pagination.page + 1)}
-                  disabled={!pagination.hasNext}
-                >
-                  {t('common.next')}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       )}
 
       {/* Modals */}

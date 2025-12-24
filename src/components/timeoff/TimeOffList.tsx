@@ -124,6 +124,13 @@ const TimeOffList: React.FC<
     showStats?: boolean;
     showHeader?: boolean;
     onStartTour?: () => void;
+    pagination?: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    } | null;
+    onPageChange?: (page: number) => void;
     stats?: {
       total: number;
       pending: number;
@@ -158,14 +165,14 @@ const TimeOffList: React.FC<
   showStats = true,
   showHeader = true,
   onStartTour,
+  pagination,
+  onPageChange,
   stats
 }) => {
   const { t } = useTranslation();
 
-  // State for view mode and pagination
+  // State for view mode (removed currentPage - using server-side pagination)
   const [viewMode, setViewMode] = React.useState<'card' | 'table'>('card');
-  const [currentPage, setCurrentPage] = React.useState(1);
-  const itemsPerPage = 8;
   const [dateRange, setDateRange] = React.useState<{ from: Date | undefined; to: Date | undefined }>({
     from: startDate,
     to: endDate
@@ -211,24 +218,13 @@ const TimeOffList: React.FC<
     }
   };
 
-  // Filter and sort requests
-  const filteredTimeOffs = React.useMemo(() => {
-    let filtered = timeOffs.filter((timeOff) => {
-      const matchesStatus = statusFilter === 'ALL' || timeOff.status === statusFilter;
-      const matchesType = typeFilter === 'ALL' || timeOff.type === typeFilter;
-
-      const matchesSearch =
-        !searchValue ||
-        timeOff.reason?.toLowerCase().includes(searchValue.toLowerCase()) ||
-        (typeof timeOff.staffId === 'object' &&
-          timeOff.staffId?.userId?.fullName?.toLowerCase().includes(searchValue.toLowerCase()));
-
-      return matchesStatus && matchesType && matchesSearch;
-    });
+  // Sort requests (no filtering - backend handles all filtering)
+  const sortedTimeOffs = React.useMemo(() => {
+    let sorted = [...timeOffs];
 
     // Apply sorting
     if (sortState.field && sortState.order) {
-      filtered = sortArray(filtered, sortState, (item, field) => {
+      sorted = sortArray(sorted, sortState, (item, field) => {
         switch (field) {
           case 'reason':
             return item.reason?.toLowerCase() || '';
@@ -250,14 +246,10 @@ const TimeOffList: React.FC<
       });
     }
 
-    return filtered;
-  }, [timeOffs, statusFilter, typeFilter, searchValue, sortState]);
+    return sorted;
+  }, [timeOffs, sortState]);
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredTimeOffs.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedTimeOffs = filteredTimeOffs.slice(startIndex, endIndex);
+  // No client-side pagination - all data from backend is already paginated
 
   // Sync date range with props
   React.useEffect(() => {
@@ -290,7 +282,6 @@ const TimeOffList: React.FC<
 
       if (range.from && range.to && (hasDifferentDates || isSecondDateSelection)) {
         onDateRangeChange?.(range.from, range.to);
-        setCurrentPage(1);
         // Close calendar when both dates are selected
         setDatePickerOpen(false);
       } else if (range.from && !range.to) {
@@ -302,7 +293,6 @@ const TimeOffList: React.FC<
       setDateRange({ from: undefined, to: undefined });
       previousRangeRef.current = undefined;
       onDateRangeChange?.(undefined, undefined);
-      setCurrentPage(1);
     }
   };
 
@@ -315,14 +305,8 @@ const TimeOffList: React.FC<
     setDateRange({ from: undefined, to: undefined });
     previousRangeRef.current = undefined;
     onDateRangeChange?.(undefined, undefined);
-    setCurrentPage(1);
     setDatePickerOpen(false);
   };
-
-  // Reset to first page when filters change
-  React.useEffect(() => {
-    setCurrentPage(1);
-  }, [searchValue, statusFilter, typeFilter, startDate, endDate]);
 
   if (loading) {
     return (
@@ -621,7 +605,7 @@ const TimeOffList: React.FC<
 
         {/* Time Off Requests */}
         {viewMode === 'card' ? (
-          paginatedTimeOffs.length === 0 ? (
+          sortedTimeOffs.length === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
                 <div className="text-gray-400 mb-4">
@@ -645,7 +629,7 @@ const TimeOffList: React.FC<
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-tour="timeoff-list-cards">
-              {paginatedTimeOffs.map((timeOff) => (
+              {sortedTimeOffs.map((timeOff) => (
                 <TimeOffCard
                   key={timeOff._id}
                   timeOff={timeOff}
@@ -664,7 +648,7 @@ const TimeOffList: React.FC<
           )
         ) : (
           <div className="overflow-x-auto bg-white rounded-lg border border-gray-200 shadow-sm">
-            {paginatedTimeOffs.length === 0 ? (
+            {sortedTimeOffs.length === 0 ? (
               <div className="p-12 text-center">
                 <div className="text-gray-400 mb-4">
                   <Calendar className="w-12 h-12 mx-auto" />
@@ -744,7 +728,7 @@ const TimeOffList: React.FC<
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {paginatedTimeOffs.map((timeOff) => (
+                    {sortedTimeOffs.map((timeOff) => (
                       <tr key={timeOff._id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div>
@@ -848,22 +832,22 @@ const TimeOffList: React.FC<
         )}
 
         {/* Pagination */}
-        {totalPages > 1 && (
+        {pagination && pagination.totalPages > 1 && (
           <div className="flex justify-center mt-8" data-tour="timeoff-pagination">
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    onClick={() => onPageChange?.(Math.max(1, pagination.page - 1))}
+                    className={pagination.page === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                   />
                 </PaginationItem>
 
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
                   <PaginationItem key={page}>
                     <PaginationLink
-                      onClick={() => setCurrentPage(page)}
-                      isActive={currentPage === page}
+                      onClick={() => onPageChange?.(page)}
+                      isActive={pagination.page === page}
                       className="cursor-pointer"
                     >
                       {page}
@@ -873,8 +857,10 @@ const TimeOffList: React.FC<
 
                 <PaginationItem>
                   <PaginationNext
-                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    onClick={() => onPageChange?.(Math.min(pagination.totalPages, pagination.page + 1))}
+                    className={
+                      pagination.page === pagination.totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                    }
                   />
                 </PaginationItem>
               </PaginationContent>

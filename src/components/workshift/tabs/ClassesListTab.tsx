@@ -102,17 +102,22 @@ export const ClassesListTab: React.FC<ClassesListTabProps> = ({
       if (filterDate && cls.startDate && cls.endDate) {
         // Chuyển đổi filterDate về dạng Date object và chỉ lấy phần ngày (bỏ giờ)
         const currentDate = new Date(filterDate);
-        currentDate.setHours(0, 0, 0, 0);
+        currentDate.setUTCHours(0, 0, 0, 0);
 
         // Chuyển đổi startDate và endDate về dạng Date object
         const classStartDate = new Date(cls.startDate);
-        classStartDate.setHours(0, 0, 0, 0);
+        classStartDate.setUTCHours(0, 0, 0, 0);
 
         const classEndDate = new Date(cls.endDate);
-        classEndDate.setHours(23, 59, 59, 999); // Đặt về cuối ngày để bao gồm cả ngày kết thúc
+        classEndDate.setUTCHours(23, 59, 59, 999); // Đặt về cuối ngày để bao gồm cả ngày kết thúc
 
         // Kiểm tra xem ngày hiện tại có nằm trong khoảng startDate và endDate không
-        if (currentDate < classStartDate || currentDate > classEndDate) {
+        // Sử dụng getTime() để so sánh timestamp chính xác hơn
+        const currentTime = currentDate.getTime();
+        const startTime = classStartDate.getTime();
+        const endTime = classEndDate.getTime();
+
+        if (currentTime < startTime || currentTime > endTime) {
           return false;
         }
       }
