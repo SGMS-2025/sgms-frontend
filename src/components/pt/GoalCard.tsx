@@ -39,6 +39,10 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, basel
     // If we have initial value, calculate progress from initial to target
     if (initialValue !== undefined && initialValue !== target) {
       const totalChange = Math.abs(target - initialValue);
+      // If current equals initial (no actual progress yet), return 0%
+      if (Math.abs(current - initialValue) < 0.01) {
+        return { percentage: 0, isAchieved: false };
+      }
       const currentChange = Math.abs(current - initialValue);
       const percentage = Math.min(100, Math.max(0, (currentChange / totalChange) * 100));
       const isAchieved = isHigherBetter ? current >= target : current <= target;
@@ -55,19 +59,17 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, basel
       return { percentage, isAchieved };
     } else {
       // For lower is better (weight, body fat), we need initial value
-      // If no initial, assume we're starting from a higher value
-      const assumedInitial = Math.max(current, target) * 1.2; // Assume 20% above target
-      const totalChange = assumedInitial - target;
-      const currentChange = assumedInitial - current;
-      const percentage = Math.min(100, Math.max(0, (currentChange / totalChange) * 100));
-      const isAchieved = current <= target;
-      return { percentage, isAchieved };
+      // If no initial value provided, return 0% (cannot calculate progress without baseline)
+      return { percentage: 0, isAchieved: false };
     }
   };
 
   // Calculate progress for each target metric
   const targetProgress = useMemo(() => {
     if (!goal || !currentProgress || !goal.targets) return {};
+
+    // If no baseline progress, cannot calculate progress (need initial values)
+    if (!baselineProgress) return {};
 
     const progress: Record<string, MetricProgress> = {};
     const getInitialValue = <K extends keyof ProgressDisplay>(key: K) => baselineProgress?.[key];
@@ -231,10 +233,15 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, basel
   // Calculate overall progress percentage (average of all metrics)
   const overallProgress = useMemo(() => {
     const progresses = Object.values(targetProgress);
-    if (progresses.length === 0) return goal?.timeProgress || 0;
+    if (progresses.length === 0) return 0; // No metrics = 0% (not time-based)
+
+    // Check if we have any actual progress (not just initial values)
+    const hasActualProgress = progresses.some((p) => p.percentage > 0);
+    if (!hasActualProgress) return 0; // Only initial progress = 0%
+
     const avg = progresses.reduce((sum, p) => sum + p.percentage, 0) / progresses.length;
     return Math.round(avg);
-  }, [targetProgress, goal]);
+  }, [targetProgress]);
 
   if (!goal) {
     return (

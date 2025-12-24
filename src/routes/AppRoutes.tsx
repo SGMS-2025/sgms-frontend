@@ -66,7 +66,6 @@ import RescheduleManagementPage from '@/pages/owner/RescheduleManagementPage';
 import WalletPage from '@/pages/owner/WalletPage';
 import CustomerSecurity from '@/pages/customer/CustomerSecurity';
 import CustomerProgress from '@/pages/customer/CustomerProgress';
-import CustomerSchedule from '@/pages/customer/CustomerSchedule';
 import CustomerMembership from '@/pages/customer/CustomerMembership';
 import CustomerProfile from '@/pages/customer/CustomerProfile';
 import CustomerDashboard from '@/pages/customer/CustomerDashboard';
@@ -560,9 +559,6 @@ const AppRoutes: React.FC = () => {
 
           {/* Payment History Route */}
           <Route path="payments" element={<CustomerPayments />} />
-
-          {/* Schedule Route */}
-          <Route path="schedule" element={<CustomerSchedule />} />
 
           {/* Classes Calendar Route */}
           <Route path="my-classes" element={<ClassCalendarPage />} />
