@@ -4764,7 +4764,7 @@
   "businessVerification.field.email": "Email",
   "businessVerification.field.logo": "Logo phòng gym",
   "businessVerification.field.documents": "Giấy tờ xác thực",
-  "businessVerification.field.documentsHint": "Ảnh phòng gym, v.v.",
+  "businessVerification.field.documentsHint": "Giấy phép kinh doanh, Ảnh phòng gym.",
   "businessVerification.field.description": "Mô tả",
   "businessVerification.field.rejectionReason": "Lý do từ chối",
   "businessVerification.field.submittedAt": "Ngày gửi",
