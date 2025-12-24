@@ -11,553 +11,476 @@ export interface NavigationSearchItem {
   sectionLabel?: string;
 }
 
-export const NAVIGATION_SEARCH_ITEMS: NavigationSearchItem[] = [
-  // Owner / Manager - Main
+type SectionKey = 'main' | 'services' | 'schedule' | 'finance' | 'settings';
+
+const SECTION_META: Record<SectionKey, Pick<NavigationSearchItem, 'sectionKey' | 'sectionLabel'>> = {
+  main: { sectionKey: 'sidebar.main_menu', sectionLabel: 'Menu' },
+  services: { sectionKey: 'sidebar.business_services', sectionLabel: 'Services' },
+  schedule: { sectionKey: 'sidebar.schedule', sectionLabel: 'Schedule' },
+  finance: { sectionKey: 'sidebar.finance', sectionLabel: 'Finance' },
+  settings: { sectionKey: 'sidebar.settings', sectionLabel: 'Settings' }
+};
+
+type NavigationSearchGroup = {
+  roles: NavigationSearchRole[];
+  section: SectionKey;
+  items: Omit<NavigationSearchItem, 'roles' | 'sectionKey' | 'sectionLabel'>[];
+};
+
+const NAVIGATION_GROUPS: NavigationSearchGroup[] = [
   {
-    id: 'owner-dashboard',
     roles: ['OWNER', 'MANAGER'],
-    path: '/manage/owner',
-    labelKey: 'sidebar.dashboard',
-    fallbackLabel: 'Dashboard',
-    keywords: ['overview', 'home'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
+    section: 'main',
+    items: [
+      {
+        id: 'owner-dashboard',
+        path: '/manage/owner',
+        labelKey: 'sidebar.dashboard',
+        fallbackLabel: 'Dashboard',
+        keywords: ['overview', 'home']
+      },
+      {
+        id: 'owner-staff',
+        path: '/manage/staff',
+        labelKey: 'sidebar.staff',
+        fallbackLabel: 'Staff',
+        keywords: ['employee', 'nhan vien', 'manager']
+      },
+      {
+        id: 'owner-customers',
+        path: '/manage/customers',
+        labelKey: 'sidebar.customers',
+        fallbackLabel: 'Customers',
+        keywords: ['khach hang', 'client', 'customer']
+      },
+      {
+        id: 'owner-payments',
+        path: '/manage/payments',
+        labelKey: 'sidebar.payments',
+        fallbackLabel: 'Payments',
+        keywords: ['thanh toan', 'transaction', 'invoice']
+      },
+      {
+        id: 'owner-equipment',
+        path: '/manage/equipment',
+        labelKey: 'sidebar.equipment',
+        fallbackLabel: 'Equipment',
+        keywords: ['thiet bi', 'machine']
+      },
+      {
+        id: 'owner-testimonials',
+        path: '/manage/testimonials',
+        labelKey: 'sidebar.testimonials',
+        fallbackLabel: 'Testimonials',
+        keywords: ['review', 'feedback', 'danh gia']
+      },
+      {
+        id: 'owner-contracts',
+        path: '/manage/contracts',
+        labelKey: 'sidebar.contracts',
+        fallbackLabel: 'Contracts',
+        keywords: ['hop dong', 'agreement']
+      }
+    ]
   },
   {
-    id: 'owner-staff',
     roles: ['OWNER', 'MANAGER'],
-    path: '/manage/staff',
-    labelKey: 'sidebar.staff',
-    fallbackLabel: 'Staff',
-    keywords: ['employee', 'nhan vien', 'manager'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
+    section: 'services',
+    items: [
+      {
+        id: 'owner-pt-services',
+        path: '/manage/pt-services',
+        labelKey: 'sidebar.pt_services',
+        fallbackLabel: 'PT Services',
+        keywords: ['personal trainer', 'pt', 'goi pt']
+      },
+      {
+        id: 'owner-class-services',
+        path: '/manage/class-services',
+        labelKey: 'sidebar.class_services',
+        fallbackLabel: 'Class Services',
+        keywords: ['lop', 'class']
+      },
+      {
+        id: 'owner-promotions',
+        path: '/manage/discounts',
+        labelKey: 'sidebar.promotions',
+        fallbackLabel: 'Promotions',
+        keywords: ['khuyen mai', 'discount']
+      },
+      {
+        id: 'owner-memberships',
+        path: '/manage/memberships',
+        labelKey: 'sidebar.membership_plans',
+        fallbackLabel: 'Membership Plans',
+        keywords: ['goi tap', 'membership']
+      }
+    ]
   },
   {
-    id: 'owner-customers',
     roles: ['OWNER', 'MANAGER'],
-    path: '/manage/customers',
-    labelKey: 'sidebar.customers',
-    fallbackLabel: 'Customers',
-    keywords: ['khach hang', 'client', 'customer'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
+    section: 'schedule',
+    items: [
+      {
+        id: 'owner-work-schedule',
+        path: '/manage/workshifts/calendar',
+        labelKey: 'sidebar.work_schedule',
+        fallbackLabel: 'Work Schedule',
+        keywords: ['lich lam viec', 'shift']
+      },
+      {
+        id: 'owner-timeoff',
+        path: '/manage/timeoff',
+        labelKey: 'sidebar.time_off',
+        fallbackLabel: 'Time Off',
+        keywords: ['nghi phep', 'off']
+      },
+      {
+        id: 'owner-pt-availability',
+        path: '/manage/pt-availability-requests',
+        labelKey: 'sidebar.pt_availability_requests',
+        fallbackLabel: 'PT Availability',
+        keywords: ['availability', 'phe duyet pt']
+      },
+      {
+        id: 'owner-classes',
+        path: '/manage/classes',
+        labelKey: 'sidebar.classes',
+        fallbackLabel: 'Classes',
+        keywords: ['lop hoc', 'class']
+      }
+    ]
   },
   {
-    id: 'owner-payments',
     roles: ['OWNER', 'MANAGER'],
-    path: '/manage/payments',
-    labelKey: 'sidebar.payments',
-    fallbackLabel: 'Payments',
-    keywords: ['thanh toan', 'transaction', 'invoice'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
+    section: 'finance',
+    items: [
+      {
+        id: 'owner-expenses',
+        path: '/manage/expenses',
+        labelKey: 'sidebar.expenses',
+        fallbackLabel: 'Expenses',
+        keywords: ['chi phi', 'expense']
+      },
+      {
+        id: 'owner-kpi',
+        path: '/manage/kpi',
+        labelKey: 'sidebar.kpi',
+        fallbackLabel: 'KPI',
+        keywords: ['chiso', 'target', 'kpi']
+      },
+      {
+        id: 'owner-commission',
+        path: '/manage/commission-policies',
+        labelKey: 'sidebar.commission_policy',
+        fallbackLabel: 'Commission Policy',
+        keywords: ['hoa hong', 'commission']
+      }
+    ]
   },
   {
-    id: 'owner-equipment',
-    roles: ['OWNER', 'MANAGER'],
-    path: '/manage/equipment',
-    labelKey: 'sidebar.equipment',
-    fallbackLabel: 'Equipment',
-    keywords: ['thiet bi', 'machine'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'owner-testimonials',
-    roles: ['OWNER', 'MANAGER'],
-    path: '/manage/testimonials',
-    labelKey: 'sidebar.testimonials',
-    fallbackLabel: 'Testimonials',
-    keywords: ['review', 'feedback', 'danh gia'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'owner-contracts',
-    roles: ['OWNER', 'MANAGER'],
-    path: '/manage/contracts',
-    labelKey: 'sidebar.contracts',
-    fallbackLabel: 'Contracts',
-    keywords: ['hop dong', 'agreement'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  // Owner / Manager - Services
-  {
-    id: 'owner-pt-services',
-    roles: ['OWNER', 'MANAGER'],
-    path: '/manage/pt-services',
-    labelKey: 'sidebar.pt_services',
-    fallbackLabel: 'PT Services',
-    keywords: ['personal trainer', 'pt', 'goi pt'],
-    sectionKey: 'sidebar.business_services',
-    sectionLabel: 'Services'
-  },
-  {
-    id: 'owner-class-services',
-    roles: ['OWNER', 'MANAGER'],
-    path: '/manage/class-services',
-    labelKey: 'sidebar.class_services',
-    fallbackLabel: 'Class Services',
-    keywords: ['lop', 'class'],
-    sectionKey: 'sidebar.business_services',
-    sectionLabel: 'Services'
-  },
-  {
-    id: 'owner-promotions',
-    roles: ['OWNER', 'MANAGER'],
-    path: '/manage/discounts',
-    labelKey: 'sidebar.promotions',
-    fallbackLabel: 'Promotions',
-    keywords: ['khuyen mai', 'discount'],
-    sectionKey: 'sidebar.business_services',
-    sectionLabel: 'Services'
-  },
-  {
-    id: 'owner-memberships',
-    roles: ['OWNER', 'MANAGER'],
-    path: '/manage/memberships',
-    labelKey: 'sidebar.membership_plans',
-    fallbackLabel: 'Membership Plans',
-    keywords: ['goi tap', 'membership'],
-    sectionKey: 'sidebar.business_services',
-    sectionLabel: 'Services'
-  },
-  // Owner / Manager - Schedule
-  {
-    id: 'owner-work-schedule',
-    roles: ['OWNER', 'MANAGER'],
-    path: '/manage/workshifts/calendar',
-    labelKey: 'sidebar.work_schedule',
-    fallbackLabel: 'Work Schedule',
-    keywords: ['lich lam viec', 'shift'],
-    sectionKey: 'sidebar.schedule',
-    sectionLabel: 'Schedule'
-  },
-  {
-    id: 'owner-timeoff',
-    roles: ['OWNER', 'MANAGER'],
-    path: '/manage/timeoff',
-    labelKey: 'sidebar.time_off',
-    fallbackLabel: 'Time Off',
-    keywords: ['nghi phep', 'off'],
-    sectionKey: 'sidebar.schedule',
-    sectionLabel: 'Schedule'
-  },
-  {
-    id: 'owner-pt-availability',
-    roles: ['OWNER', 'MANAGER'],
-    path: '/manage/pt-availability-requests',
-    labelKey: 'sidebar.pt_availability_requests',
-    fallbackLabel: 'PT Availability',
-    keywords: ['availability', 'phe duyet pt'],
-    sectionKey: 'sidebar.schedule',
-    sectionLabel: 'Schedule'
-  },
-  {
-    id: 'owner-classes',
-    roles: ['OWNER', 'MANAGER'],
-    path: '/manage/classes',
-    labelKey: 'sidebar.classes',
-    fallbackLabel: 'Classes',
-    keywords: ['lop hoc', 'class'],
-    sectionKey: 'sidebar.schedule',
-    sectionLabel: 'Schedule'
-  },
-  // Owner / Manager - Finance
-  {
-    id: 'owner-expenses',
-    roles: ['OWNER', 'MANAGER'],
-    path: '/manage/expenses',
-    labelKey: 'sidebar.expenses',
-    fallbackLabel: 'Expenses',
-    keywords: ['chi phi', 'expense'],
-    sectionKey: 'sidebar.finance',
-    sectionLabel: 'Finance'
-  },
-  {
-    id: 'owner-kpi',
-    roles: ['OWNER', 'MANAGER'],
-    path: '/manage/kpi',
-    labelKey: 'sidebar.kpi',
-    fallbackLabel: 'KPI',
-    keywords: ['chiso', 'target', 'kpi'],
-    sectionKey: 'sidebar.finance',
-    sectionLabel: 'Finance'
-  },
-  {
-    id: 'owner-commission',
-    roles: ['OWNER', 'MANAGER'],
-    path: '/manage/commission-policies',
-    labelKey: 'sidebar.commission_policy',
-    fallbackLabel: 'Commission Policy',
-    keywords: ['hoa hong', 'commission'],
-    sectionKey: 'sidebar.finance',
-    sectionLabel: 'Finance'
-  },
-  // Personal Trainer
-  {
-    id: 'pt-dashboard',
     roles: ['PT'],
-    path: '/manage/pt',
-    labelKey: 'sidebar.dashboard',
-    fallbackLabel: 'Dashboard',
-    keywords: ['overview'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
+    section: 'main',
+    items: [
+      {
+        id: 'pt-dashboard',
+        path: '/manage/pt',
+        labelKey: 'sidebar.dashboard',
+        fallbackLabel: 'Dashboard',
+        keywords: ['overview']
+      },
+      {
+        id: 'pt-clients',
+        path: '/manage/pt/clients',
+        labelKey: 'pt.sidebar.clients',
+        fallbackLabel: 'My Clients',
+        keywords: ['khach hang', 'client', 'pt']
+      },
+      {
+        id: 'pt-register-package',
+        path: '/manage/pt/customers',
+        labelKey: 'pt.sidebar.registerPackage',
+        fallbackLabel: 'Register Package',
+        keywords: ['dang ky goi', 'package']
+      },
+      {
+        id: 'pt-attendance',
+        path: '/manage/pt/attendance',
+        labelKey: 'pt.sidebar.attendanceHistory',
+        fallbackLabel: 'Attendance History',
+        keywords: ['diem danh', 'attendance']
+      },
+      {
+        id: 'pt-equipment-issues',
+        path: '/manage/pt/equipment-issues',
+        labelKey: 'pt.sidebar.equipmentIssues',
+        fallbackLabel: 'Equipment Issues',
+        keywords: ['su co thiet bi', 'issue']
+      },
+      {
+        id: 'pt-kpi',
+        path: '/manage/pt/kpi',
+        labelKey: 'pt.sidebar.myKPI',
+        fallbackLabel: 'My KPI',
+        keywords: ['kpi', 'target']
+      },
+      {
+        id: 'pt-chat',
+        path: '/manage/pt/chat',
+        labelKey: 'pt.sidebar.aiChat',
+        fallbackLabel: 'AI Chat',
+        keywords: ['chat', 'assistant']
+      }
+    ]
   },
   {
-    id: 'pt-clients',
     roles: ['PT'],
-    path: '/manage/pt/clients',
-    labelKey: 'pt.sidebar.clients',
-    fallbackLabel: 'My Clients',
-    keywords: ['khach hang', 'client', 'pt'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
+    section: 'schedule',
+    items: [
+      {
+        id: 'pt-calendar',
+        path: '/manage/pt/calendar',
+        labelKey: 'pt.sidebar.schedule',
+        fallbackLabel: 'My Schedule',
+        keywords: ['lich', 'schedule']
+      },
+      {
+        id: 'pt-timeoff',
+        path: '/manage/pt/timeoff',
+        labelKey: 'sidebar.time_off',
+        fallbackLabel: 'Time Off',
+        keywords: ['nghi', 'time off']
+      },
+      {
+        id: 'pt-availability',
+        path: '/manage/pt/pt-availability-requests',
+        labelKey: 'sidebar.pt_availability_requests',
+        fallbackLabel: 'PT Availability Requests',
+        keywords: ['availability', 'phe duyet']
+      }
+    ]
   },
   {
-    id: 'pt-register-package',
-    roles: ['PT'],
-    path: '/manage/pt/customers',
-    labelKey: 'pt.sidebar.registerPackage',
-    fallbackLabel: 'Register Package',
-    keywords: ['dang ky goi', 'package'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'pt-attendance',
-    roles: ['PT'],
-    path: '/manage/pt/attendance',
-    labelKey: 'pt.sidebar.attendanceHistory',
-    fallbackLabel: 'Attendance History',
-    keywords: ['diem danh', 'attendance'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'pt-equipment-issues',
-    roles: ['PT'],
-    path: '/manage/pt/equipment-issues',
-    labelKey: 'pt.sidebar.equipmentIssues',
-    fallbackLabel: 'Equipment Issues',
-    keywords: ['su co thiet bi', 'issue'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'pt-kpi',
-    roles: ['PT'],
-    path: '/manage/pt/kpi',
-    labelKey: 'pt.sidebar.myKPI',
-    fallbackLabel: 'My KPI',
-    keywords: ['kpi', 'target'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'pt-chat',
-    roles: ['PT'],
-    path: '/manage/pt/chat',
-    labelKey: 'pt.sidebar.aiChat',
-    fallbackLabel: 'AI Chat',
-    keywords: ['chat', 'assistant'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'pt-calendar',
-    roles: ['PT'],
-    path: '/manage/pt/calendar',
-    labelKey: 'pt.sidebar.schedule',
-    fallbackLabel: 'My Schedule',
-    keywords: ['lich', 'schedule'],
-    sectionKey: 'sidebar.schedule',
-    sectionLabel: 'Schedule'
-  },
-  {
-    id: 'pt-timeoff',
-    roles: ['PT'],
-    path: '/manage/pt/timeoff',
-    labelKey: 'sidebar.time_off',
-    fallbackLabel: 'Time Off',
-    keywords: ['nghi', 'time off'],
-    sectionKey: 'sidebar.schedule',
-    sectionLabel: 'Schedule'
-  },
-  {
-    id: 'pt-availability',
-    roles: ['PT'],
-    path: '/manage/pt/pt-availability-requests',
-    labelKey: 'sidebar.pt_availability_requests',
-    fallbackLabel: 'PT Availability Requests',
-    keywords: ['availability', 'phe duyet'],
-    sectionKey: 'sidebar.schedule',
-    sectionLabel: 'Schedule'
-  },
-  // Technician
-  {
-    id: 'technician-dashboard',
     roles: ['TECHNICIAN'],
-    path: '/manage/technician',
-    labelKey: 'sidebar.dashboard',
-    fallbackLabel: 'Dashboard',
-    keywords: ['overview'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
+    section: 'main',
+    items: [
+      {
+        id: 'technician-dashboard',
+        path: '/manage/technician',
+        labelKey: 'sidebar.dashboard',
+        fallbackLabel: 'Dashboard',
+        keywords: ['overview']
+      },
+      {
+        id: 'technician-equipment',
+        path: '/manage/technician/equipment',
+        labelKey: 'sidebar.equipment',
+        fallbackLabel: 'Equipment',
+        keywords: ['thiet bi']
+      },
+      {
+        id: 'technician-inventory',
+        path: '/manage/technician/equipment-inventory',
+        labelKey: 'sidebar.equipmentInventory',
+        fallbackLabel: 'Equipment Inventory',
+        keywords: ['kiem ke', 'inventory']
+      },
+      {
+        id: 'technician-attendance',
+        path: '/manage/technician/attendance',
+        labelKey: 'technician.sidebar.attendanceHistory',
+        fallbackLabel: 'Attendance History',
+        keywords: ['diem danh', 'attendance']
+      },
+      {
+        id: 'technician-issues',
+        path: '/manage/technician/equipment-issues',
+        labelKey: 'technician.sidebar.equipmentIssueHistory',
+        fallbackLabel: 'Equipment Issues',
+        keywords: ['su co', 'issue']
+      },
+      {
+        id: 'technician-maintenance',
+        path: '/manage/technician/maintenance',
+        labelKey: 'sidebar.maintenance',
+        fallbackLabel: 'Maintenance',
+        keywords: ['bao tri', 'maintenance']
+      },
+      {
+        id: 'technician-reports',
+        path: '/manage/technician/reports',
+        labelKey: 'sidebar.reports',
+        fallbackLabel: 'Reports',
+        keywords: ['bao cao', 'report']
+      }
+    ]
   },
   {
-    id: 'technician-equipment',
     roles: ['TECHNICIAN'],
-    path: '/manage/technician/equipment',
-    labelKey: 'sidebar.equipment',
-    fallbackLabel: 'Equipment',
-    keywords: ['thiet bi'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
+    section: 'schedule',
+    items: [
+      {
+        id: 'technician-calendar',
+        path: '/manage/technician/calendar',
+        labelKey: 'technician.sidebar.schedule',
+        fallbackLabel: 'My Schedule',
+        keywords: ['lich', 'schedule']
+      },
+      {
+        id: 'technician-timeoff',
+        path: '/manage/technician/timeoff',
+        labelKey: 'sidebar.time_off',
+        fallbackLabel: 'Time Off',
+        keywords: ['nghi', 'time off']
+      }
+    ]
   },
   {
-    id: 'technician-inventory',
-    roles: ['TECHNICIAN'],
-    path: '/manage/technician/equipment-inventory',
-    labelKey: 'sidebar.equipmentInventory',
-    fallbackLabel: 'Equipment Inventory',
-    keywords: ['kiem ke', 'inventory'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'technician-attendance',
-    roles: ['TECHNICIAN'],
-    path: '/manage/technician/attendance',
-    labelKey: 'technician.sidebar.attendanceHistory',
-    fallbackLabel: 'Attendance History',
-    keywords: ['diem danh', 'attendance'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'technician-issues',
-    roles: ['TECHNICIAN'],
-    path: '/manage/technician/equipment-issues',
-    labelKey: 'technician.sidebar.equipmentIssueHistory',
-    fallbackLabel: 'Equipment Issues',
-    keywords: ['su co', 'issue'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'technician-maintenance',
-    roles: ['TECHNICIAN'],
-    path: '/manage/technician/maintenance',
-    labelKey: 'sidebar.maintenance',
-    fallbackLabel: 'Maintenance',
-    keywords: ['bao tri', 'maintenance'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'technician-reports',
-    roles: ['TECHNICIAN'],
-    path: '/manage/technician/reports',
-    labelKey: 'sidebar.reports',
-    fallbackLabel: 'Reports',
-    keywords: ['bao cao', 'report'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'technician-calendar',
-    roles: ['TECHNICIAN'],
-    path: '/manage/technician/calendar',
-    labelKey: 'technician.sidebar.schedule',
-    fallbackLabel: 'My Schedule',
-    keywords: ['lich', 'schedule'],
-    sectionKey: 'sidebar.schedule',
-    sectionLabel: 'Schedule'
-  },
-  {
-    id: 'technician-timeoff',
-    roles: ['TECHNICIAN'],
-    path: '/manage/technician/timeoff',
-    labelKey: 'sidebar.time_off',
-    fallbackLabel: 'Time Off',
-    keywords: ['nghi', 'time off'],
-    sectionKey: 'sidebar.schedule',
-    sectionLabel: 'Schedule'
-  },
-  // Admin
-  {
-    id: 'admin-dashboard',
     roles: ['ADMIN'],
-    path: '/admin',
-    labelKey: 'sidebar.dashboard',
-    fallbackLabel: 'Dashboard',
-    keywords: ['overview'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
+    section: 'main',
+    items: [
+      {
+        id: 'admin-dashboard',
+        path: '/admin',
+        labelKey: 'sidebar.dashboard',
+        fallbackLabel: 'Dashboard',
+        keywords: ['overview']
+      },
+      {
+        id: 'admin-subscriptions',
+        path: '/admin/subscriptions',
+        labelKey: 'sidebar.subscriptions',
+        fallbackLabel: 'Subscriptions',
+        keywords: ['goi', 'subscription']
+      },
+      {
+        id: 'admin-subscription-packages',
+        path: '/admin/subscriptions/packages',
+        labelKey: 'sidebar.subscription_packages',
+        fallbackLabel: 'Subscription Packages',
+        keywords: ['packages', 'goi']
+      },
+      {
+        id: 'admin-contracts',
+        path: '/admin/contracts',
+        labelKey: 'sidebar.contracts',
+        fallbackLabel: 'Contracts',
+        keywords: ['hop dong']
+      },
+      {
+        id: 'admin-business-verification',
+        path: '/admin/business-verifications',
+        labelKey: 'sidebar.business_verification',
+        fallbackLabel: 'Business Verification',
+        keywords: ['xac thuc', 'business']
+      },
+      {
+        id: 'admin-users',
+        path: '/admin/accounts',
+        labelKey: 'sidebar.users',
+        fallbackLabel: 'Users',
+        keywords: ['tai khoan', 'account', 'user']
+      },
+      {
+        id: 'admin-roles',
+        path: '/admin/roles',
+        labelKey: 'sidebar.roles_permissions',
+        fallbackLabel: 'Roles & Permissions',
+        keywords: ['phan quyen', 'role', 'permission']
+      },
+      {
+        id: 'admin-reports',
+        path: '/admin/reports',
+        labelKey: 'sidebar.reports',
+        fallbackLabel: 'Reports',
+        keywords: ['bao cao', 'report']
+      },
+      {
+        id: 'admin-logs',
+        path: '/admin/logs',
+        labelKey: 'sidebar.logs',
+        fallbackLabel: 'System Logs',
+        keywords: ['nhat ky', 'log']
+      }
+    ]
   },
   {
-    id: 'admin-subscriptions',
     roles: ['ADMIN'],
-    path: '/admin/subscriptions',
-    labelKey: 'sidebar.subscriptions',
-    fallbackLabel: 'Subscriptions',
-    keywords: ['goi', 'subscription'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
+    section: 'settings',
+    items: [
+      {
+        id: 'admin-settings',
+        path: '/admin/settings',
+        labelKey: 'sidebar.system_settings',
+        fallbackLabel: 'System Settings',
+        keywords: ['cai dat', 'setting']
+      }
+    ]
   },
   {
-    id: 'admin-subscription-packages',
-    roles: ['ADMIN'],
-    path: '/admin/subscriptions/packages',
-    labelKey: 'sidebar.subscription_packages',
-    fallbackLabel: 'Subscription Packages',
-    keywords: ['packages', 'goi'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'admin-contracts',
-    roles: ['ADMIN'],
-    path: '/admin/contracts',
-    labelKey: 'sidebar.contracts',
-    fallbackLabel: 'Contracts',
-    keywords: ['hop dong'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'admin-business-verification',
-    roles: ['ADMIN'],
-    path: '/admin/business-verifications',
-    labelKey: 'sidebar.business_verification',
-    fallbackLabel: 'Business Verification',
-    keywords: ['xac thuc', 'business'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'admin-users',
-    roles: ['ADMIN'],
-    path: '/admin/accounts',
-    labelKey: 'sidebar.users',
-    fallbackLabel: 'Users',
-    keywords: ['tai khoan', 'account', 'user'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'admin-roles',
-    roles: ['ADMIN'],
-    path: '/admin/roles',
-    labelKey: 'sidebar.roles_permissions',
-    fallbackLabel: 'Roles & Permissions',
-    keywords: ['phan quyen', 'role', 'permission'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'admin-reports',
-    roles: ['ADMIN'],
-    path: '/admin/reports',
-    labelKey: 'sidebar.reports',
-    fallbackLabel: 'Reports',
-    keywords: ['bao cao', 'report'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'admin-logs',
-    roles: ['ADMIN'],
-    path: '/admin/logs',
-    labelKey: 'sidebar.logs',
-    fallbackLabel: 'System Logs',
-    keywords: ['nhat ky', 'log'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'admin-settings',
-    roles: ['ADMIN'],
-    path: '/admin/settings',
-    labelKey: 'sidebar.system_settings',
-    fallbackLabel: 'System Settings',
-    keywords: ['cai dat', 'setting'],
-    sectionKey: 'sidebar.settings',
-    sectionLabel: 'Settings'
-  },
-  // Customer
-  {
-    id: 'customer-dashboard',
     roles: ['CUSTOMER'],
-    path: '/customer',
-    labelKey: 'customer.sidebar.dashboard',
-    fallbackLabel: 'Dashboard',
-    keywords: ['overview'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'customer-progress',
-    roles: ['CUSTOMER'],
-    path: '/customer/progress',
-    labelKey: 'customer.sidebar.progress',
-    fallbackLabel: 'Progress',
-    keywords: ['tien do', 'progress'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'customer-payments',
-    roles: ['CUSTOMER'],
-    path: '/customer/payments',
-    labelKey: 'customer.sidebar.payments',
-    fallbackLabel: 'Payments',
-    keywords: ['thanh toan', 'payment'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'customer-membership',
-    roles: ['CUSTOMER'],
-    path: '/customer/membership',
-    labelKey: 'customer.sidebar.membership',
-    fallbackLabel: 'Membership',
-    keywords: ['goi tap', 'membership'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'customer-classes',
-    roles: ['CUSTOMER'],
-    path: '/customer/my-classes',
-    labelKey: 'customer.sidebar.my_classes',
-    fallbackLabel: 'My Classes',
-    keywords: ['lop', 'class'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'customer-attendance',
-    roles: ['CUSTOMER'],
-    path: '/customer/my-attendance',
-    labelKey: 'customer.sidebar.my_attendance',
-    fallbackLabel: 'My Attendance',
-    keywords: ['diem danh', 'attendance'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
-  },
-  {
-    id: 'customer-contracts',
-    roles: ['CUSTOMER'],
-    path: '/customer/contracts',
-    labelKey: 'customer.sidebar.contracts',
-    fallbackLabel: 'Contracts',
-    keywords: ['hop dong', 'contract'],
-    sectionKey: 'sidebar.main_menu',
-    sectionLabel: 'Menu'
+    section: 'main',
+    items: [
+      {
+        id: 'customer-dashboard',
+        path: '/customer',
+        labelKey: 'customer.sidebar.dashboard',
+        fallbackLabel: 'Dashboard',
+        keywords: ['overview']
+      },
+      {
+        id: 'customer-progress',
+        path: '/customer/progress',
+        labelKey: 'customer.sidebar.progress',
+        fallbackLabel: 'Progress',
+        keywords: ['tien do', 'progress']
+      },
+      {
+        id: 'customer-payments',
+        path: '/customer/payments',
+        labelKey: 'customer.sidebar.payments',
+        fallbackLabel: 'Payments',
+        keywords: ['thanh toan', 'payment']
+      },
+      {
+        id: 'customer-membership',
+        path: '/customer/membership',
+        labelKey: 'customer.sidebar.membership',
+        fallbackLabel: 'Membership',
+        keywords: ['goi tap', 'membership']
+      },
+      {
+        id: 'customer-classes',
+        path: '/customer/my-classes',
+        labelKey: 'customer.sidebar.my_classes',
+        fallbackLabel: 'My Classes',
+        keywords: ['lop', 'class']
+      },
+      {
+        id: 'customer-attendance',
+        path: '/customer/my-attendance',
+        labelKey: 'customer.sidebar.my_attendance',
+        fallbackLabel: 'My Attendance',
+        keywords: ['diem danh', 'attendance']
+      },
+      {
+        id: 'customer-contracts',
+        path: '/customer/contracts',
+        labelKey: 'customer.sidebar.contracts',
+        fallbackLabel: 'Contracts',
+        keywords: ['hop dong', 'contract']
+      }
+    ]
   }
 ];
+
+export const NAVIGATION_SEARCH_ITEMS: NavigationSearchItem[] = NAVIGATION_GROUPS.flatMap(
+  ({ roles, section, items }) => {
+    const sectionMeta = SECTION_META[section];
+    return items.map((item) => ({
+      ...item,
+      ...sectionMeta,
+      roles
+    }));
+  }
+);
