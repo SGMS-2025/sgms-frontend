@@ -353,6 +353,7 @@ export interface UseCustomerListOptions {
   limit?: number;
   page?: number;
   branchId?: string;
+  search?: string;
 }
 
 // Pagination interface for Customer Management (uses new format)
@@ -501,6 +502,7 @@ export interface PTCustomerListParams {
   branchId?: string;
   status?: string;
   packageType?: string;
+  searchTerm?: string;
 }
 
 export interface PTCustomerListResponse {
@@ -530,6 +532,7 @@ export interface UsePTCustomerListOptions {
   branchId?: string;
   status?: string;
   packageType?: string;
+  searchTerm?: string;
 }
 
 export interface UsePTCustomerListReturn {

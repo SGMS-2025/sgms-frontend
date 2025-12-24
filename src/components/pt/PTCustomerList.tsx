@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
@@ -23,6 +23,7 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
   const currentUser = useUser();
   const { currentBranch } = useBranch();
   const [selectedCustomer, setSelectedCustomer] = useState<PTCustomer | null>(null);
+  const [backendSearchTerm, setBackendSearchTerm] = useState('');
 
   // Use the current user's ID as trainerId if not provided
   const actualTrainerId = trainerId || currentUser?._id || '';
@@ -32,11 +33,17 @@ export default function PTCustomerList({ trainerId }: PTCustomerListProps) {
     trainerId: actualTrainerId,
     limit: 6, // Show 6 customers per page
     packageType: 'PT', // Only show PT packages
-    branchId: currentBranch?._id // Add branchId for permission validation
+    branchId: currentBranch?._id, // Add branchId for permission validation
+    searchTerm: backendSearchTerm
   });
 
   // Handle filtering and sorting
-  const { filters, filteredAndSortedCustomers, updateFilters } = usePTCustomerFilters(customerList);
+  const { filters, filteredAndSortedCustomers, updateFilters, debouncedSearch } = usePTCustomerFilters(customerList);
+
+  // Keep backend search term in sync with debounced UI input
+  useEffect(() => {
+    setBackendSearchTerm(debouncedSearch);
+  }, [debouncedSearch]);
 
   // Utility functions
   const { formatDate, calculateProgress, getUrgencyLevel } = usePTCustomerUtils();

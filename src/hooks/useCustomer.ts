@@ -23,7 +23,7 @@ export const useCustomerList = (options: UseCustomerListOptions = {}): UseCustom
   // Update params when options change
   useEffect(() => {
     setParams(options);
-  }, [options.limit, options.page, options.branchId]);
+  }, [options.limit, options.page, options.branchId, options.search]);
 
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
@@ -34,7 +34,8 @@ export const useCustomerList = (options: UseCustomerListOptions = {}): UseCustom
       page: params.page || 1,
       sortBy: 'createdAt',
       sortOrder: 'desc' as const,
-      ...(params.branchId && { branchId: params.branchId })
+      ...(params.branchId && { branchId: params.branchId }),
+      ...(params.search && { search: params.search })
     };
 
     const response = await customerApi.getCustomerList(requestParams);
@@ -81,7 +82,7 @@ export const useCustomerList = (options: UseCustomerListOptions = {}): UseCustom
     }
 
     setLoading(false);
-  }, [params.limit, params.page, params.branchId, t]);
+  }, [params.limit, params.page, params.branchId, params.search, t]);
 
   const refetch = useCallback(async () => {
     await fetchCustomers();

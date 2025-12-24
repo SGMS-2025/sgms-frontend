@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -98,6 +98,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
   const { currentBranch } = useBranch();
   const { canManageCustomer } = useCanManageCustomer();
   const { startCustomersTour } = useCustomersTour();
+  const [backendSearchTerm, setBackendSearchTerm] = useState('');
   // filter columns default
   const [filters, setFilters] = useState<CustomerFilters>({
     searchTerm: '',
@@ -132,7 +133,8 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
   // Use the custom hook to fetch data
   const { customerList, loading, error, pagination, refetch, goToPage } = useCustomerList({
     limit: 10,
-    branchId: currentBranch?._id
+    branchId: currentBranch?._id,
+    search: backendSearchTerm
   });
 
   // Use the hook for updating customer status
@@ -178,34 +180,23 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({ onAddCus
     };
   }, [branchId, refetch]);
 
-  // Filter customers by search and sort customer list using the utility function
+  // Debounce search and send to backend
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setBackendSearchTerm(filters.searchTerm.trim());
+      // Reset to page 1 when search changes
+      goToPage(1);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [filters.searchTerm, goToPage]);
+
+  // Sort customer list using the utility function
   const sortedCustomerList = useMemo(() => {
-    let filteredCustomerList = customerList;
-
-    // Frontend search filter
-    if (filters.searchTerm) {
-      const searchTerm = filters.searchTerm.toLowerCase();
-      filteredCustomerList = filteredCustomerList.filter((customer) => {
-        return (
-          (customer.name?.toLowerCase() || '').includes(searchTerm) ||
-          (customer.email?.toLowerCase() || '').includes(searchTerm) ||
-          (customer.phone?.toLowerCase() || '').includes(searchTerm) ||
-          (customer.membershipType?.toLowerCase() || '').includes(searchTerm) ||
-          (customer.membershipStatus?.toLowerCase() || '').includes(searchTerm) ||
-          (customer.serviceName?.toLowerCase() || '').includes(searchTerm) ||
-          (customer.ptServiceName?.toLowerCase() || '').includes(searchTerm) ||
-          (customer.classServiceName?.toLowerCase() || '').includes(searchTerm) ||
-          (customer.referrerStaffName?.toLowerCase() || '').includes(searchTerm) ||
-          (customer.branches || []).some((branch) => (branch.branchName?.toLowerCase() || '').includes(searchTerm))
-        );
-      });
-    }
-
-    return sortArray(filteredCustomerList, sortState, (item, field) => {
+    return sortArray(customerList, sortState, (item, field) => {
       const extractor = customerSortConfig[field as keyof typeof customerSortConfig];
       return extractor ? extractor(item) : '';
     });
-  }, [customerList, sortState, filters.searchTerm]);
+  }, [customerList, sortState]);
 
   const handleSearch = useCallback((value: string) => {
     setFilters((prev) => ({ ...prev, searchTerm: value }));
