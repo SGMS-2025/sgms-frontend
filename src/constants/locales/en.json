@@ -3592,6 +3592,7 @@
   "pt_customer.sort_by": "Sort by",
   "pt_customer.sort.nearest_expiration": "Nearest expiration",
   "pt_customer.sort.newest_contract": "Newest contract",
+  "pt_customer.sort.recently_updated": "Recently updated",
   "pt_customer.status": "Status",
   "pt_customer.filter.all_status": "All Status",
   "pt_customer.filter.active": "Active",

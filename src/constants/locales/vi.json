@@ -3591,6 +3591,7 @@
   "pt_customer.sort_by": "Sắp xếp theo",
   "pt_customer.sort.nearest_expiration": "Gần hết hạn nhất",
   "pt_customer.sort.newest_contract": "Hợp đồng mới nhất",
+  "pt_customer.sort.recently_updated": "Cập nhật gần nhất",
   "pt_customer.status": "Trạng thái",
   "pt_customer.filter.all_status": "Tất cả trạng thái",
   "pt_customer.filter.active": "Đang hoạt động",
