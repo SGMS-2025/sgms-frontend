@@ -4764,7 +4764,7 @@
   "businessVerification.field.email": "Email",
   "businessVerification.field.logo": "Gym logo",
   "businessVerification.field.documents": "Verification documents",
-  "businessVerification.field.documentsHint": "Business license, ID card, etc.",
+  "businessVerification.field.documentsHint": "Business license, Gym photos.",
   "businessVerification.field.description": "Description",
   "businessVerification.field.rejectionReason": "Rejection reason",
   "businessVerification.field.submittedAt": "Submission date",

@@ -76,6 +76,19 @@ export const useTestimonialList = (initialParams: TestimonialQueryParams = {}): 
     }
   }, []);
 
+  // Sync params when initialParams change
+  useEffect(() => {
+    setParams((prev) => {
+      const newParams = { ...prev, ...initialParams };
+      // Remove search if it's empty/undefined
+      if (!initialParams.search) {
+        delete newParams.search;
+      }
+      return newParams;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialParams.search, initialParams.limit, initialParams.page, initialParams.status]);
+
   useEffect(() => {
     fetchTestimonialList();
   }, [fetchTestimonialList]);

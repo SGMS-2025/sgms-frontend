@@ -62,6 +62,7 @@ export const TestimonialFeed: React.FC<TestimonialManagementProps> = ({ onAddTes
   }>({
     searchTerm: ''
   });
+  const [backendSearchTerm, setBackendSearchTerm] = useState('');
 
   const [selectedTestimonial, setSelectedTestimonial] = useState<TestimonialDisplay | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -75,14 +76,33 @@ export const TestimonialFeed: React.FC<TestimonialManagementProps> = ({ onAddTes
 
   // Use the custom hook to fetch data
   const { testimonialList, stats, loading, error, pagination, refetch, refetchStats, goToPage } = useTestimonialList({
-    limit: 10
+    limit: 10,
+    search: backendSearchTerm || undefined
   });
 
   // Use the hooks for updating testimonial status and deleting
   const { updateTestimonialStatus } = useUpdateTestimonialStatus();
   const { deleteTestimonial } = useDeleteTestimonial();
 
-  // Filter by current branch and search
+  // Reset search when branch changes
+  React.useEffect(() => {
+    if (currentBranch?._id) {
+      setFilters((prev) => ({ ...prev, searchTerm: '' }));
+      setBackendSearchTerm('');
+    }
+  }, [currentBranch]);
+
+  // Debounce search term
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setBackendSearchTerm(filters.searchTerm.trim());
+      // Reset to page 1 when search changes
+      goToPage(1);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [filters.searchTerm, goToPage]);
+
+  // Filter by current branch only (search is handled by backend)
   const sortedTestimonialList = useMemo(() => {
     let filteredTestimonialList = testimonialList;
 
@@ -93,20 +113,8 @@ export const TestimonialFeed: React.FC<TestimonialManagementProps> = ({ onAddTes
       });
     }
 
-    // Frontend search filter
-    if (filters.searchTerm) {
-      const searchTerm = filters.searchTerm.toLowerCase();
-      filteredTestimonialList = filteredTestimonialList.filter((testimonial) => {
-        return (
-          testimonial.title.toLowerCase().includes(searchTerm) ||
-          testimonial.content.toLowerCase().includes(searchTerm) ||
-          testimonial.createdBy.toLowerCase().includes(searchTerm)
-        );
-      });
-    }
-
     return filteredTestimonialList;
-  }, [testimonialList, currentBranch, filters.searchTerm]);
+  }, [testimonialList, currentBranch]);
 
   const handleSearch = (value: string) => {
     setFilters((prev) => ({ ...prev, searchTerm: value }));
@@ -248,8 +256,8 @@ export const TestimonialFeed: React.FC<TestimonialManagementProps> = ({ onAddTes
   // Maximum character limit for content preview (only truncate really long testimonials)
   const MAX_CONTENT_LENGTH = 400;
 
-  // Show loading state
-  if (loading) {
+  // Show loading state only on initial load (when no data yet)
+  if (loading && testimonialList.length === 0) {
     return (
       <div className="bg-white rounded-lg p-6 border-2 border-gray-200 shadow-sm">
         <div className="flex items-center justify-center h-64">
