@@ -5,11 +5,12 @@ import type { MealPlan, DayPlan, Meal, MealItem } from '@/types/api/MealPlan';
 
 type MealPlanDetailProps = {
   mealPlan: MealPlan;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  readOnly?: boolean;
 };
 
-export function MealPlanDetail({ mealPlan, onEdit, onDelete }: Readonly<MealPlanDetailProps>) {
+export function MealPlanDetail({ mealPlan, onEdit, onDelete, readOnly }: Readonly<MealPlanDetailProps>) {
   const { t } = useTranslation();
 
   const formatStatus = (status?: string) => {
@@ -37,14 +38,20 @@ export function MealPlanDetail({ mealPlan, onEdit, onDelete }: Readonly<MealPlan
             {formatStatus(mealPlan.status)}
           </Badge>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="text-sm" onClick={onEdit}>
-            {t('progress_detail.meal_plan.edit')}
-          </Button>
-          <Button variant="destructive" size="sm" className="text-sm" onClick={onDelete}>
-            {t('progress_detail.meal_plan.delete')}
-          </Button>
-        </div>
+        {!readOnly && (onEdit || onDelete) && (
+          <div className="flex gap-2">
+            {onEdit && (
+              <Button variant="outline" size="sm" className="text-sm" onClick={onEdit}>
+                {t('progress_detail.meal_plan.edit')}
+              </Button>
+            )}
+            {onDelete && (
+              <Button variant="destructive" size="sm" className="text-sm" onClick={onDelete}>
+                {t('progress_detail.meal_plan.delete')}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -54,7 +61,11 @@ export function MealPlanDetail({ mealPlan, onEdit, onDelete }: Readonly<MealPlan
           <div className="font-semibold text-[#0B1220]">
             {t('progress_detail.meal_plan.card.target_calories', { value: '' })}
           </div>
-          <div className="text-[#101D33]">{mealPlan.targetCalories ?? t('common.na')} cal</div>
+          <div className="text-[#101D33]">
+            {typeof mealPlan.targetCalories === 'number'
+              ? `${mealPlan.targetCalories.toFixed(1)} cal`
+              : `${t('common.na')} cal`}
+          </div>
           {mealPlan.notes ? (
             <div className="space-y-1">
               <div className="font-semibold text-[#0B1220]">
@@ -87,7 +98,9 @@ export function MealPlanDetail({ mealPlan, onEdit, onDelete }: Readonly<MealPlan
                 <div className="flex items-center justify-between">
                   <div className="font-semibold text-[#0B1220]">{day.day}</div>
                   <div className="text-sm text-gray-600">
-                    {t('progress_detail.meal_plan.card.day_total', { value: day.totalCalories ?? t('common.na') })}
+                    {t('progress_detail.meal_plan.card.day_total', {
+                      value: typeof day.totalCalories === 'number' ? day.totalCalories.toFixed(1) : t('common.na')
+                    })}
                   </div>
                 </div>
                 {day.meals?.length ? (
@@ -96,7 +109,9 @@ export function MealPlanDetail({ mealPlan, onEdit, onDelete }: Readonly<MealPlan
                       <div key={mealIdx} className="rounded-md border border-dashed bg-gray-50 px-3 py-2">
                         <div className="flex flex-wrap items-center gap-2 text-sm text-[#0F172A]">
                           <span className="font-medium">{formatMealType(meal.mealType)}</span>
-                          {meal.totalCalories ? <span className="text-gray-600">{meal.totalCalories} cal</span> : null}
+                          {typeof meal.totalCalories === 'number' ? (
+                            <span className="text-gray-600">{meal.totalCalories.toFixed(1)} cal</span>
+                          ) : null}
                           {meal.notes ? (
                             <span className="text-gray-700 italic">
                               {t('progress_detail.meal_plan.card.meal_notes', { value: meal.notes })}
