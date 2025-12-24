@@ -28,7 +28,8 @@ export const usePTCustomerList = (options: UsePTCustomerListOptions): UsePTCusto
         prevParams.limit !== options.limit ||
         prevParams.branchId !== options.branchId ||
         prevParams.status !== options.status ||
-        prevParams.packageType !== options.packageType;
+        prevParams.packageType !== options.packageType ||
+        prevParams.searchTerm !== options.searchTerm;
 
       // If nothing changed, return previous params to prevent unnecessary updates
       if (!hasChanged) {
@@ -37,12 +38,13 @@ export const usePTCustomerList = (options: UsePTCustomerListOptions): UsePTCusto
 
       const newParams = {
         ...options,
-        page: prevParams.page || options.page || 1 // Preserve current page if it exists
+        page: prevParams.page || options.page || 1, // Preserve current page if it exists
+        searchTerm: options.searchTerm
       };
       return newParams;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options.limit, options.branchId, options.status, options.packageType, options.trainerId]);
+  }, [options.limit, options.branchId, options.status, options.packageType, options.searchTerm, options.trainerId]);
 
   const fetchCustomers = useCallback(async () => {
     if (!params.trainerId) {
@@ -59,7 +61,8 @@ export const usePTCustomerList = (options: UsePTCustomerListOptions): UsePTCusto
       sortOrder: 'desc' as const,
       ...(params.branchId && { branchId: params.branchId }),
       ...(params.status && { status: params.status }),
-      ...(params.packageType && { packageType: params.packageType })
+      ...(params.packageType && { packageType: params.packageType }),
+      ...(params.searchTerm && { searchTerm: params.searchTerm })
     };
 
     const response = await customerApi.getCustomersByTrainer(params.trainerId, requestParams);
@@ -82,7 +85,15 @@ export const usePTCustomerList = (options: UsePTCustomerListOptions): UsePTCusto
     }
 
     setLoading(false);
-  }, [params.trainerId, params.limit, params.page, params.branchId, params.status, params.packageType]);
+  }, [
+    params.trainerId,
+    params.limit,
+    params.page,
+    params.branchId,
+    params.status,
+    params.packageType,
+    params.searchTerm
+  ]);
 
   const refetch = useCallback(async () => {
     await fetchCustomers();
@@ -176,11 +187,6 @@ export const usePTCustomerFilters = (customers: PTCustomer[]) => {
 
   const filteredAndSortedCustomers = useMemo(() => {
     const filtered = customers.filter((customer) => {
-      // Search filter
-      const matchesSearch =
-        customer.fullName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        customer.phone.includes(debouncedSearch);
-
       // Status filter
       const matchesStatus = filters.statusFilter === 'ALL' || customer.package.status === filters.statusFilter;
 
@@ -207,7 +213,7 @@ export const usePTCustomerFilters = (customers: PTCustomer[]) => {
         matchesSessions = customer.package.sessionsRemaining <= threshold;
       }
 
-      return matchesSearch && matchesStatus && matchesExpiration && matchesSessions;
+      return matchesStatus && matchesExpiration && matchesSessions;
     });
 
     // Helper function to get urgency level (inline to avoid dependency issues)
@@ -268,7 +274,7 @@ export const usePTCustomerFilters = (customers: PTCustomer[]) => {
     });
 
     return filtered;
-  }, [customers, debouncedSearch, filters]);
+  }, [customers, filters]);
 
   const updateFilters = useCallback((newFilters: Partial<PTCustomerFilters>) => {
     setFilters((prev) => ({ ...prev, ...newFilters }));
@@ -277,7 +283,8 @@ export const usePTCustomerFilters = (customers: PTCustomer[]) => {
   return {
     filters,
     filteredAndSortedCustomers,
-    updateFilters
+    updateFilters,
+    debouncedSearch
   };
 };
 

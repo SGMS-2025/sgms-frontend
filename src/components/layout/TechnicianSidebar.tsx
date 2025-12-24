@@ -1,13 +1,11 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  BarChart3,
   Dumbbell,
   Calendar,
   Building,
   Users,
   LayoutDashboard,
-  Wrench,
   FileText,
   ClipboardList,
   CalendarDays
@@ -78,23 +76,7 @@ export const TechnicianSidebar: React.FC = () => {
     }
   ];
 
-  // Add role-specific items
-  if (currentStaff?.jobTitle === 'Technician' || currentStaff?.jobTitle === 'Personal Trainer') {
-    mainNavItems.push(
-      {
-        icon: <Wrench className="w-5 h-5 stroke-[1.75]" />,
-        label: t('sidebar.maintenance'),
-        isActive: location.pathname.startsWith('/manage/technician/maintenance'),
-        onClick: () => handleNavigation('/manage/technician/maintenance')
-      },
-      {
-        icon: <BarChart3 className="w-5 h-5 stroke-[1.75]" />,
-        label: t('sidebar.reports'),
-        isActive: location.pathname.startsWith('/manage/technician/reports'),
-        onClick: () => handleNavigation('/manage/technician/reports')
-      }
-    );
-  }
+  // Add role-specific items (Maintenance and Reports removed)
 
   // For Personal Trainer - show schedule
   if (currentStaff?.jobTitle === 'Personal Trainer') {

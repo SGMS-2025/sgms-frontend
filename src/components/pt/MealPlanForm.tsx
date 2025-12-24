@@ -652,6 +652,7 @@ export const MealPlanForm = ({ initialValues, loading, onSubmit, isAiGenerated =
               );
               const calculatedTarget =
                 countedDays.length > 0 ? countedDays.reduce((sum, d) => sum + (d.totalCalories || 0), 0) : undefined;
+              const displayTarget = typeof calculatedTarget === 'number' ? calculatedTarget.toFixed(1) : '';
 
               return (
                 <div>
@@ -659,7 +660,7 @@ export const MealPlanForm = ({ initialValues, loading, onSubmit, isAiGenerated =
                     id="targetCalories"
                     type="number"
                     {...field}
-                    value={calculatedTarget ?? ''}
+                    value={displayTarget}
                     disabled
                     placeholder={t('meal_plan.form.target_calories_placeholder')}
                     className={cn(errors.targetCalories && 'border-red-500')}
@@ -717,6 +718,7 @@ export const MealPlanForm = ({ initialValues, loading, onSubmit, isAiGenerated =
           const dayErrors = errors.days?.[dayIdx];
           const mealsArrayMessage = getArrayErrorMessage(dayErrors?.meals);
           const dayTotals = daysWithTotals[dayIdx] || { totalCalories: undefined };
+          const displayDayTotal = typeof dayTotals.totalCalories === 'number' ? dayTotals.totalCalories.toFixed(1) : '';
 
           return (
             <Card key={dayField.id}>
@@ -764,7 +766,7 @@ export const MealPlanForm = ({ initialValues, loading, onSubmit, isAiGenerated =
                       <Input
                         className="w-full pr-12"
                         type="text"
-                        value={dayTotals.totalCalories ? `${dayTotals.totalCalories} cal` : ''}
+                        value={displayDayTotal ? `${displayDayTotal} cal` : ''}
                         disabled
                       />
                     </div>
@@ -798,6 +800,8 @@ export const MealPlanForm = ({ initialValues, loading, onSubmit, isAiGenerated =
                       {(day?.meals || []).map((_meal, mealIdx) => {
                         const mealErrors = dayErrors?.meals?.[mealIdx];
                         const mealTotals = mealsWithTotalsByDay[dayIdx]?.[mealIdx] || { totalCalories: undefined };
+                        const displayMealTotal =
+                          typeof mealTotals.totalCalories === 'number' ? mealTotals.totalCalories.toFixed(1) : '';
 
                         return (
                           <tr key={mealIdx} className="border-t">
@@ -847,7 +851,7 @@ export const MealPlanForm = ({ initialValues, loading, onSubmit, isAiGenerated =
                             </td>
                             <td className="p-2 align-middle w-24">
                               <div className="min-h-[54px] flex items-start">
-                                <Input type="number" value={mealTotals.totalCalories ?? ''} disabled className="w-24" />
+                                <Input type="number" value={displayMealTotal} disabled className="w-24" />
                               </div>
                             </td>
                             <td className="p-2 align-middle w-1/3">

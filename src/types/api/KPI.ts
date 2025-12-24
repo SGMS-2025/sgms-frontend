@@ -169,6 +169,7 @@ export interface KPIListParams {
   periodType?: KPIPeriodType;
   startDate?: string;
   endDate?: string;
+  search?: string;
 }
 
 // KPI List Response

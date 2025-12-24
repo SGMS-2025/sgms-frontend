@@ -11,6 +11,7 @@ import type { TrainingProgressDisplay as ProgressDisplay } from '@/types/api/Tra
 interface GoalCardProps {
   goal: CustomerGoalDisplay | null;
   currentProgress: ProgressDisplay | null;
+  baselineProgress?: ProgressDisplay | null;
   onEdit?: () => void;
 }
 
@@ -24,7 +25,7 @@ interface MetricProgress {
   label: string;
 }
 
-export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdit }) => {
+export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, baselineProgress, onEdit }) => {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -38,6 +39,10 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
     // If we have initial value, calculate progress from initial to target
     if (initialValue !== undefined && initialValue !== target) {
       const totalChange = Math.abs(target - initialValue);
+      // If current equals initial (no actual progress yet), return 0%
+      if (Math.abs(current - initialValue) < 0.01) {
+        return { percentage: 0, isAchieved: false };
+      }
       const currentChange = Math.abs(current - initialValue);
       const percentage = Math.min(100, Math.max(0, (currentChange / totalChange) * 100));
       const isAchieved = isHigherBetter ? current >= target : current <= target;
@@ -54,13 +59,8 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
       return { percentage, isAchieved };
     } else {
       // For lower is better (weight, body fat), we need initial value
-      // If no initial, assume we're starting from a higher value
-      const assumedInitial = Math.max(current, target) * 1.2; // Assume 20% above target
-      const totalChange = assumedInitial - target;
-      const currentChange = assumedInitial - current;
-      const percentage = Math.min(100, Math.max(0, (currentChange / totalChange) * 100));
-      const isAchieved = current <= target;
-      return { percentage, isAchieved };
+      // If no initial value provided, return 0% (cannot calculate progress without baseline)
+      return { percentage: 0, isAchieved: false };
     }
   };
 
@@ -68,11 +68,16 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
   const targetProgress = useMemo(() => {
     if (!goal || !currentProgress || !goal.targets) return {};
 
+    // If no baseline progress, cannot calculate progress (need initial values)
+    if (!baselineProgress) return {};
+
     const progress: Record<string, MetricProgress> = {};
+    const getInitialValue = <K extends keyof ProgressDisplay>(key: K) => baselineProgress?.[key];
 
     // Weight - lower is better
     if (goal.targets.weight != null && currentProgress.weight != null) {
-      const { percentage } = calculateProgress(currentProgress.weight, goal.targets.weight, false);
+      const initial = baselineProgress?.weight;
+      const { percentage } = calculateProgress(currentProgress.weight, goal.targets.weight, false, initial);
       progress.weight = {
         current: currentProgress.weight,
         target: goal.targets.weight,
@@ -86,10 +91,12 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
 
     // Body Fat - lower is better
     if (goal.targets.bodyFatPercentage != null && currentProgress.bodyFatPercentage != null) {
+      const initial = baselineProgress?.bodyFatPercentage;
       const { percentage } = calculateProgress(
         currentProgress.bodyFatPercentage,
         goal.targets.bodyFatPercentage,
-        false
+        false,
+        initial
       );
       progress.bodyFatPercentage = {
         current: currentProgress.bodyFatPercentage,
@@ -104,10 +111,12 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
 
     // Muscle Mass - higher is better
     if (goal.targets.muscleMassPercentage != null && currentProgress.muscleMassPercentage != null) {
+      const initial = baselineProgress?.muscleMassPercentage;
       const { percentage } = calculateProgress(
         currentProgress.muscleMassPercentage,
         goal.targets.muscleMassPercentage,
-        true
+        true,
+        initial
       );
       progress.muscleMassPercentage = {
         current: currentProgress.muscleMassPercentage,
@@ -122,7 +131,8 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
 
     // Strength - higher is better
     if (goal.targets.strength != null && currentProgress.strength != null) {
-      const { percentage } = calculateProgress(currentProgress.strength, goal.targets.strength, true);
+      const initial = baselineProgress?.strength;
+      const { percentage } = calculateProgress(currentProgress.strength, goal.targets.strength, true, initial);
       progress.strength = {
         current: currentProgress.strength,
         target: goal.targets.strength,
@@ -136,7 +146,8 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
 
     // BMI - depends on target (usually lower is better)
     if (goal.targets.bmi != null && currentProgress.bmi != null) {
-      const { percentage } = calculateProgress(currentProgress.bmi, goal.targets.bmi, false);
+      const initial = baselineProgress?.bmi;
+      const { percentage } = calculateProgress(currentProgress.bmi, goal.targets.bmi, false, initial);
       progress.bmi = {
         current: currentProgress.bmi,
         target: goal.targets.bmi,
@@ -161,10 +172,13 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
       const targetKey = key as keyof typeof goal.targets;
       const progressKey = key as keyof typeof currentProgress;
       if (goal.targets[targetKey] != null && currentProgress[progressKey] != null) {
+        const initialValue = getInitialValue(progressKey as keyof ProgressDisplay);
+        const initial = typeof initialValue === 'number' ? initialValue : undefined;
         const { percentage } = calculateProgress(
           currentProgress[progressKey] as number,
           goal.targets[targetKey] as number,
-          isHigherBetter
+          isHigherBetter,
+          initial
         );
         progress[key] = {
           current: currentProgress[progressKey] as number,
@@ -180,10 +194,12 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
 
     // Body Water - higher is better
     if (goal.targets.bodyWaterPercentage != null && currentProgress.bodyWaterPercentage != null) {
+      const initial = baselineProgress?.bodyWaterPercentage;
       const { percentage } = calculateProgress(
         currentProgress.bodyWaterPercentage,
         goal.targets.bodyWaterPercentage,
-        true
+        true,
+        initial
       );
       progress.bodyWaterPercentage = {
         current: currentProgress.bodyWaterPercentage,
@@ -198,7 +214,8 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
 
     // Metabolic Age - lower is better
     if (goal.targets.metabolicAge != null && currentProgress.metabolicAge != null) {
-      const { percentage } = calculateProgress(currentProgress.metabolicAge, goal.targets.metabolicAge, false);
+      const initial = baselineProgress?.metabolicAge;
+      const { percentage } = calculateProgress(currentProgress.metabolicAge, goal.targets.metabolicAge, false, initial);
       progress.metabolicAge = {
         current: currentProgress.metabolicAge,
         target: goal.targets.metabolicAge,
@@ -211,15 +228,20 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, onEdi
     }
 
     return progress;
-  }, [goal, currentProgress, t]);
+  }, [goal, currentProgress, baselineProgress, t]);
 
   // Calculate overall progress percentage (average of all metrics)
   const overallProgress = useMemo(() => {
     const progresses = Object.values(targetProgress);
-    if (progresses.length === 0) return goal?.timeProgress || 0;
+    if (progresses.length === 0) return 0; // No metrics = 0% (not time-based)
+
+    // Check if we have any actual progress (not just initial values)
+    const hasActualProgress = progresses.some((p) => p.percentage > 0);
+    if (!hasActualProgress) return 0; // Only initial progress = 0%
+
     const avg = progresses.reduce((sum, p) => sum + p.percentage, 0) / progresses.length;
     return Math.round(avg);
-  }, [targetProgress, goal]);
+  }, [targetProgress]);
 
   if (!goal) {
     return (
