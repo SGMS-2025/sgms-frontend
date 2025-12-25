@@ -27,7 +27,7 @@ interface UseEditServiceDialogReturn {
   open: boolean;
   setOpen: (open: boolean) => void;
   loadingPackage: boolean;
-  handleUpdate: () => void;
+  handleUpdate: () => Promise<void>;
   handleClose: () => void;
 }
 
