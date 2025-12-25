@@ -5749,7 +5749,7 @@
       "total_revenue": "Tổng Doanh Thu",
       "new_members": "Khách Hàng Mới",
       "renewals": "Gia Hạn",
-      "pt_sessions": "Buổi PT",
+      "pt_sessions": "Gói PT",
       "contracts": "Hợp Đồng"
     },
     "earnings": {
@@ -5773,7 +5773,7 @@
       "title": "Mục Tiêu KPI",
       "revenue": "Doanh thu",
       "new_members": "Khách hàng mới",
-      "pt_sessions": "Buổi PT",
+      "pt_sessions": "Gói PT",
       "contracts": "Hợp đồng"
     },
     "reward": {
@@ -5857,7 +5857,7 @@
       "target_revenue_placeholder": "Ví dụ: 50.000.000",
       "target_new_members": "Mục tiêu khách hàng mới",
       "target_new_members_placeholder": "Ví dụ: 10",
-      "target_pt_sessions": "Mục tiêu buổi PT",
+      "target_pt_sessions": "Mục tiêu gói PT",
       "target_pt_sessions_placeholder": "Ví dụ: 50",
       "target_contracts": "Mục tiêu hợp đồng",
       "target_contracts_placeholder": "Ví dụ: 20",
@@ -5892,7 +5892,7 @@
       "targets_required": "Vui lòng nhập ít nhất một mục tiêu KPI",
       "target_revenue_invalid": "Mục tiêu doanh thu phải là số dương",
       "target_new_members_invalid": "Mục tiêu khách hàng mới phải là số nguyên dương",
-      "target_pt_sessions_invalid": "Mục tiêu buổi PT phải là số nguyên dương",
+      "target_pt_sessions_invalid": "Mục tiêu gói PT phải là số nguyên dương",
       "target_contracts_invalid": "Mục tiêu hợp đồng phải là số nguyên dương",
       "reward_amount_required": "Vui lòng nhập số tiền thưởng",
       "reward_percentage_invalid": "Phần trăm thưởng phải từ 0 đến 100",
@@ -5912,7 +5912,7 @@
       "target_revenue": "Doanh thu",
       "target_new_members": "Khách hàng mới",
       "target_renewals": "Gia hạn",
-      "target_pt_sessions": "Buổi PT",
+      "target_pt_sessions": "Gói PT",
       "achievements": "Thành Tích",
       "actual_revenue": "Doanh thu thực tế",
       "actual_new_members": "Khách hàng mới",
