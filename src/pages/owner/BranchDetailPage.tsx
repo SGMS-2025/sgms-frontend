@@ -366,8 +366,6 @@ const BranchDetailPage: React.FC = () => {
             max: statsResult.data.branchUsage.max
           });
         }
-
-        toast.success(t('branch_detail.enable_success', { defaultValue: 'Chi nhánh đã được kích hoạt' }));
       })
       .catch((error) => {
         const errorMessage = extractAndTranslateApiError(error, t, 'branch_detail.enable_error');
@@ -399,8 +397,6 @@ const BranchDetailPage: React.FC = () => {
             max: statsResult.data.branchUsage.max
           });
         }
-
-        toast.success(t('branch_detail.disable_success', { defaultValue: 'Chi nhánh đã được tắt' }));
       })
       .catch((error) => {
         const errorMessage = extractAndTranslateApiError(error, t, 'branch_detail.disable_error');

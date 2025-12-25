@@ -24,19 +24,49 @@ export const getBMICategory = (bmi: number): string => {
 
 /**
  * Format date string for input field (YYYY-MM-DD)
- * @param dateString - Date string to format
- * @returns Formatted date string for input
+ * @param dateString - Date string to format (can be in various formats: YYYY-MM-DD, dd/MM/yyyy, etc.)
+ * @returns Formatted date string for input (YYYY-MM-DD)
  */
 export const formatDateForInput = (dateString: string): string => {
   if (!dateString) return new Date().toISOString().split('T')[0];
 
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) {
-    console.warn('Invalid date string:', dateString);
-    return new Date().toISOString().split('T')[0];
+  // Try to parse different date formats
+  let date: Date | null = null;
+
+  // First, try parsing as ISO string or standard format
+  date = new Date(dateString);
+  if (!isNaN(date.getTime())) {
+    return date.toISOString().split('T')[0];
   }
 
-  return date.toISOString().split('T')[0];
+  // If that fails, try parsing dd/MM/yyyy format (Vietnamese format)
+  const ddmmyyyyMatch = dateString.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (ddmmyyyyMatch) {
+    const [, day, month, year] = ddmmyyyyMatch;
+    // Create date in local timezone at noon to avoid timezone issues
+    // Then format as YYYY-MM-DD manually to avoid timezone conversion
+    const yearNum = Number.parseInt(year, 10);
+    const monthNum = Number.parseInt(month, 10) - 1;
+    const dayNum = Number.parseInt(day, 10);
+
+    // Validate date
+    date = new Date(yearNum, monthNum, dayNum);
+    if (
+      !isNaN(date.getTime()) &&
+      date.getFullYear() === yearNum &&
+      date.getMonth() === monthNum &&
+      date.getDate() === dayNum
+    ) {
+      // Format manually as YYYY-MM-DD to avoid timezone issues
+      const formattedMonth = String(monthNum + 1).padStart(2, '0');
+      const formattedDay = String(dayNum).padStart(2, '0');
+      return `${yearNum}-${formattedMonth}-${formattedDay}`;
+    }
+  }
+
+  // If all parsing fails, log warning and return today's date
+  console.warn('Invalid date string:', dateString);
+  return new Date().toISOString().split('T')[0];
 };
 
 /**

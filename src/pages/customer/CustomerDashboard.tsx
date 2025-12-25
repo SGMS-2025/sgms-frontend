@@ -116,22 +116,66 @@ const CustomerDashboard: React.FC = () => {
     enabled: true
   });
 
-  // Fetch progress stats
-  const { stats: progressStats, loading: progressStatsLoading } = useProgressStats('all', 'all');
-
   // Get customer ID for progress list
   const customerId = useMemo(() => {
     if (!user?.customer?._id && !user?.customerId) return '';
     return (user.customer?._id || user.customerId) as string;
   }, [user?.customer?._id, user?.customerId]);
 
+  // Fetch progress stats for sessions info (sessionsDone, sessionsTotal)
+  const { stats: progressStats, loading: progressStatsLoading } = useProgressStats('all', 'all');
+
   // Fetch progress list to get latest progress (including initial) if stats don't have data
-  const { progressList } = useTrainingProgress({
+  const { progressList, getCustomerStats } = useTrainingProgress({
     customerId,
     limit: 10,
     sortBy: 'trackingDate',
     sortOrder: 'desc'
   });
+
+  // Fetch customer stats (same as CustomerProgress page) to get currentWeight/currentBMI
+  const [customerStats, setCustomerStats] = useState<{
+    currentWeight: number | null;
+    currentBMI: number | null;
+    currentStrengthScore: number | null;
+  } | null>(null);
+  const [customerStatsLoading, setCustomerStatsLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadStats = async () => {
+      if (!customerId) {
+        setCustomerStats(null);
+        return;
+      }
+
+      setCustomerStatsLoading(true);
+      try {
+        const res = await getCustomerStats(customerId, { days: 30 });
+        if (!cancelled && res.success && res.data) {
+          setCustomerStats({
+            currentWeight: res.data.currentWeight ?? null,
+            currentBMI: res.data.currentBMI ?? null,
+            currentStrengthScore: res.data.currentStrengthScore ?? null
+          });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Failed to load customer stats:', err);
+        }
+      } finally {
+        if (!cancelled) {
+          setCustomerStatsLoading(false);
+        }
+      }
+    };
+
+    loadStats();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [customerId, getCustomerStats]);
 
   // Fetch active goal to calculate progress based on actual goal targets
   const { activeGoal } = useCustomerGoal(customerId || undefined);
@@ -450,30 +494,18 @@ const CustomerDashboard: React.FC = () => {
     // Get latest progress from progressList if stats don't have data
     const latestProgress = progressList && progressList.length > 0 ? progressList[0] : null;
 
-    // Debug logs
-    console.log('Wellness Metrics Debug:', {
-      hasProgressStats: !!progressStats,
-      progressStats,
-      progressListLength: progressList?.length || 0,
-      latestProgress,
-      customerId
-    });
-
-    // Use progressStats if available, otherwise fallback to latest progress from progressList
+    // Use customerStats (currentWeight/currentBMI) - same as CustomerProgress page
+    // This ensures both pages show the same data
     let currentWeight: number | null = null;
     let currentBMI: number | null = null;
 
-    // First try progressStats (excludes initial progress)
-    // Check if progressStats has actual data (not just empty object)
-    if (
-      progressStats &&
-      (progressStats.avgWeight != null || progressStats.maxWeight != null || progressStats.minWeight != null)
-    ) {
-      currentWeight = progressStats.avgWeight ?? progressStats.maxWeight ?? progressStats.minWeight ?? null;
-      currentBMI = progressStats.avgBMI ?? progressStats.maxBMI ?? progressStats.minBMI ?? null;
+    // First try customerStats (latest values, same as CustomerProgress page)
+    if (customerStats) {
+      currentWeight = customerStats.currentWeight ?? null;
+      currentBMI = customerStats.currentBMI ?? null;
     }
 
-    // If no data from stats, try latest progress (includes initial progress)
+    // If no data from customerStats, fallback to latest progress from progressList
     if (currentWeight == null && currentBMI == null && latestProgress) {
       currentWeight = latestProgress.weight ?? null;
       currentBMI = latestProgress.bmi ?? null;
@@ -512,21 +544,18 @@ const CustomerDashboard: React.FC = () => {
       ];
     }
 
-    // Calculate weight change if we have min and max
-    // For progressStats: use min/max from stats
-    // For latestProgress: need to get min/max from all progress records
-    let weightChange: string | null = null;
-    if (progressStats && progressStats.minWeight && progressStats.maxWeight) {
-      weightChange = (progressStats.maxWeight - progressStats.minWeight).toFixed(1);
-    } else if (latestProgress && progressList && progressList.length > 1) {
-      // If using latestProgress, calculate from all progress records
-      const weights = progressList.filter((p) => p.weight != null).map((p) => p.weight!);
-      if (weights.length > 0) {
-        const min = Math.min(...weights);
-        const max = Math.max(...weights);
-        if (min !== max) {
-          weightChange = (max - min).toFixed(1);
-        }
+    // Calculate weight change from baseline (initial) to current weight
+    // Get baseline (initial) progress from progressList (the oldest one, which is usually the initial)
+    const baselineProgress = progressList && progressList.length > 0 ? progressList[progressList.length - 1] : null;
+    const baselineWeight = baselineProgress?.weight ?? null;
+
+    let weightChange: number | null = null;
+    // Calculate change from baseline to current (not from min to max)
+    if (currentWeight != null && baselineWeight != null) {
+      weightChange = currentWeight - baselineWeight;
+      // Only show if there's a meaningful change (more than 0.1kg difference)
+      if (Math.abs(weightChange) < 0.1) {
+        weightChange = null;
       }
     }
 
@@ -545,9 +574,6 @@ const CustomerDashboard: React.FC = () => {
     let bmiProgress = 0;
     let changeProgress = 0;
 
-    // Get baseline (initial) progress from progressList (the oldest one, which is usually the initial)
-    const baselineProgress = progressList && progressList.length > 0 ? progressList[progressList.length - 1] : null;
-    const baselineWeight = baselineProgress?.weight ?? null;
     const baselineBMI = baselineProgress?.bmi ?? null;
 
     // Only calculate progress if we have a goal and actual progress (not just initial)
@@ -560,8 +586,21 @@ const CustomerDashboard: React.FC = () => {
         const targetWeight = activeGoal.targets.weight;
         const totalChange = Math.abs(targetWeight - baselineWeight);
         if (totalChange > 0) {
-          const currentChange = Math.abs(currentWeight - baselineWeight);
-          weightProgress = Math.min(100, Math.max(0, (currentChange / totalChange) * 100));
+          const currentChange = currentWeight - baselineWeight;
+          const targetDirection = targetWeight - baselineWeight; // Positive = tăng cân, Negative = giảm cân
+
+          // Check if moving in the right direction (towards target)
+          const isMovingTowardsTarget =
+            (targetDirection > 0 && currentChange > 0) || // Tăng cân: cả target và current đều tăng
+            (targetDirection < 0 && currentChange < 0); // Giảm cân: cả target và current đều giảm
+
+          if (isMovingTowardsTarget) {
+            // Moving towards target: positive progress
+            weightProgress = Math.min(100, Math.max(0, (Math.abs(currentChange) / totalChange) * 100));
+          } else {
+            // Moving away from target: negative progress
+            weightProgress = -Math.min(100, (Math.abs(currentChange) / totalChange) * 100);
+          }
         }
       }
     }
@@ -575,24 +614,51 @@ const CustomerDashboard: React.FC = () => {
         const targetBMI = activeGoal.targets.bmi;
         const totalChange = Math.abs(targetBMI - baselineBMI);
         if (totalChange > 0) {
-          const currentChange = Math.abs(currentBMI - baselineBMI);
-          bmiProgress = Math.min(100, Math.max(0, (currentChange / totalChange) * 100));
+          const currentChange = currentBMI - baselineBMI;
+          const targetDirection = targetBMI - baselineBMI; // Positive = tăng BMI, Negative = giảm BMI
+
+          // Check if moving in the right direction (towards target)
+          const isMovingTowardsTarget =
+            (targetDirection > 0 && currentChange > 0) || // Tăng BMI: cả target và current đều tăng
+            (targetDirection < 0 && currentChange < 0); // Giảm BMI: cả target và current đều giảm
+
+          if (isMovingTowardsTarget) {
+            // Moving towards target: positive progress
+            bmiProgress = Math.min(100, Math.max(0, (Math.abs(currentChange) / totalChange) * 100));
+          } else {
+            // Moving away from target: negative progress
+            bmiProgress = -Math.min(100, (Math.abs(currentChange) / totalChange) * 100);
+          }
         }
       }
     }
 
     // Weight change progress: only if we have actual change
-    if (weightChange && parseFloat(weightChange) !== 0) {
+    if (weightChange != null && Math.abs(weightChange) > 0.1) {
       // If there's a weight goal, calculate based on goal
       if (activeGoal?.targets?.weight != null && baselineWeight != null) {
         const targetWeight = activeGoal.targets.weight;
         const targetChange = Math.abs(targetWeight - baselineWeight);
         if (targetChange > 0) {
-          changeProgress = Math.min(100, Math.max(0, (Math.abs(parseFloat(weightChange)) / targetChange) * 100));
+          const targetDirection = targetWeight - baselineWeight; // Positive = tăng cân, Negative = giảm cân
+
+          // Check if moving in the right direction (towards target)
+          const isMovingTowardsTarget =
+            (targetDirection > 0 && weightChange > 0) || // Tăng cân: cả target và change đều dương
+            (targetDirection < 0 && weightChange < 0); // Giảm cân: cả target và change đều âm
+
+          if (isMovingTowardsTarget) {
+            // Moving towards target: positive progress
+            changeProgress = Math.min(100, Math.max(0, (Math.abs(weightChange) / targetChange) * 100));
+          } else {
+            // Moving away from target: negative progress
+            changeProgress = -Math.min(100, (Math.abs(weightChange) / targetChange) * 100);
+          }
         }
       } else {
         // Otherwise, use a reasonable scale (0-10kg = 0-100%)
-        changeProgress = Math.min(100, (Math.abs(parseFloat(weightChange)) / 10) * 100);
+        // Without goal, we can't determine direction, so always positive
+        changeProgress = Math.min(100, (Math.abs(weightChange) / 10) * 100);
       }
     }
 
@@ -615,7 +681,7 @@ const CustomerDashboard: React.FC = () => {
         label: t('customer.dashboard.weight_change', 'Weight Change'),
         value:
           weightChange !== null
-            ? `${parseFloat(weightChange) > 0 ? '+' : ''}${weightChange} kg`
+            ? `${weightChange > 0 ? '+' : ''}${weightChange.toFixed(1)} kg`
             : t('customer.dashboard.no_data', 'N/A'),
         progress: changeProgress,
         icon: TrendingUp,
@@ -649,9 +715,15 @@ const CustomerDashboard: React.FC = () => {
         color: 'text-indigo-600'
       }
     ];
-  }, [progressStats, progressList, activeGoal, customerId, t]);
+  }, [customerStats, progressList, activeGoal, customerId, t]);
 
-  const isLoading = authLoading || profileLoading || membershipLoading || scheduleLoading || progressStatsLoading;
+  const isLoading =
+    authLoading ||
+    profileLoading ||
+    membershipLoading ||
+    scheduleLoading ||
+    progressStatsLoading ||
+    customerStatsLoading;
 
   if (isLoading) {
     return (
@@ -757,9 +829,11 @@ const CustomerDashboard: React.FC = () => {
                   </div>
                 </div>
                 <div className="mt-3 space-y-2">
-                  <Progress value={metric.progress} className="h-2 bg-gray-100" />
+                  <Progress value={Math.max(0, metric.progress)} className="h-2 bg-gray-100" />
                   <div className="text-xs text-gray-500">
-                    {metric.progress}% {t('customer.dashboard.of_target', { defaultValue: 'of target' })}
+                    {metric.progress < 0 ? '-' : ''}
+                    {Math.round(Math.abs(metric.progress) * 10) / 10}%{' '}
+                    {t('customer.dashboard.of_target', { defaultValue: 'of target' })}
                   </div>
                 </div>
               </div>
