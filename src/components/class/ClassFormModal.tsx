@@ -458,8 +458,34 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
           message: translatedMessage
         });
       } else {
-        // Check for working schedule configuration error
+        // Check for branch closed day error
         if (
+          finalErrorMessage.toLowerCase().includes('branch is closed') ||
+          finalErrorMessage.toLowerCase().includes('cannot create schedule') ||
+          finalErrorMessage.toLowerCase().includes('phòng gym đóng cửa') ||
+          finalErrorMessage.toLowerCase().includes('không thể tạo lịch')
+        ) {
+          toast.error(translatedMessage);
+          setError('schedulePattern.daysOfWeek', {
+            type: 'server',
+            message: translatedMessage
+          });
+        }
+        // Check for class time outside working shifts error
+        else if (
+          finalErrorMessage.toLowerCase().includes('schedule time is not within') ||
+          finalErrorMessage.toLowerCase().includes('not within the configured work shifts') ||
+          finalErrorMessage.toLowerCase().includes('outside working shifts') ||
+          finalErrorMessage.toLowerCase().includes('giờ học không nằm trong giờ làm việc')
+        ) {
+          toast.error(translatedMessage);
+          setError('schedulePattern.startTime', {
+            type: 'server',
+            message: translatedMessage
+          });
+        }
+        // Check for working schedule configuration error
+        else if (
           finalErrorMessage.toLowerCase().includes('working schedule configuration') ||
           finalErrorMessage.toLowerCase().includes('working schedule') ||
           finalErrorMessage.toLowerCase().includes('lịch làm việc')
@@ -507,6 +533,7 @@ export const ClassFormModal: React.FC<ClassFormModalProps> = ({ isOpen, onClose,
             });
           }
         } else {
+          toast.error(translatedMessage);
           setError('root', {
             type: 'server',
             message: translatedMessage
