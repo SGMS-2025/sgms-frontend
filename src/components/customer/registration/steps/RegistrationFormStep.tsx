@@ -125,6 +125,8 @@ export const RegistrationFormStep: React.FC<RegistrationFormStepProps> = ({
                     setFormData((prev) => ({ ...prev, sessionCount: Number.parseInt(e.target.value, 10) || undefined }))
                   }
                   placeholder={t('pt_registration.session_count_placeholder')}
+                  disabled
+                  className="bg-muted cursor-not-allowed"
                 />
               </div>
             )}
@@ -230,6 +232,8 @@ export const RegistrationFormStep: React.FC<RegistrationFormStepProps> = ({
               promotions={promotions}
               selectedId={formData.discountCampaignId}
               onChange={(value) => handlePromotionChange(value === 'none' ? undefined : value, promotions)}
+              disabled={!formData.servicePackageId}
+              selectedPackageId={formData.servicePackageId}
             />
 
             <PaymentMethodSelector
