@@ -82,42 +82,42 @@ export const TrainingProgressRadarChart: React.FC<TrainingProgressRadarChartProp
       {
         metric: t('radar_chart.weight', 'Cân nặng'),
         current: current?.weight ? normalizeWeight(current.weight) : 0,
-        previous: previous?.weight ? normalizeWeight(previous.weight) : 50,
+        previous: previous?.weight ? normalizeWeight(previous.weight) : 0,
         goal: goalData?.targets?.weight ? normalizeWeight(goalData.targets.weight) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.bmi', 'BMI'),
         current: current?.bmi ? normalizeBMI(current.bmi) : 0,
-        previous: previous?.bmi ? normalizeBMI(previous.bmi) : 100,
+        previous: previous?.bmi ? normalizeBMI(previous.bmi) : 0,
         goal: goalData?.targets?.bmi ? normalizeBMI(goalData.targets.bmi) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.strength', 'Sức mạnh'),
         current: current?.strength ? normalizeStrength(current.strength) : 0,
-        previous: previous?.strength ? normalizeStrength(previous.strength) : 50,
+        previous: previous?.strength ? normalizeStrength(previous.strength) : 0,
         goal: goalData?.targets?.strength ? normalizeStrength(goalData.targets.strength) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.body_fat', 'Mỡ cơ thể'),
-        current: current?.bodyFatPercentage ? normalizeBodyFat(current.bodyFatPercentage) : 50,
-        previous: previous?.bodyFatPercentage ? normalizeBodyFat(previous.bodyFatPercentage) : 50,
+        current: current?.bodyFatPercentage ? normalizeBodyFat(current.bodyFatPercentage) : 0,
+        previous: previous?.bodyFatPercentage ? normalizeBodyFat(previous.bodyFatPercentage) : 0,
         goal: goalData?.targets?.bodyFatPercentage ? normalizeBodyFat(goalData.targets.bodyFatPercentage) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.muscle_mass', '% Cơ bắp'),
-        current: current?.muscleMassPercentage ? normalizeMuscleMass(current.muscleMassPercentage) : 50,
-        previous: previous?.muscleMassPercentage ? normalizeMuscleMass(previous.muscleMassPercentage) : 50,
+        current: current?.muscleMassPercentage ? normalizeMuscleMass(current.muscleMassPercentage) : 0,
+        previous: previous?.muscleMassPercentage ? normalizeMuscleMass(previous.muscleMassPercentage) : 0,
         goal: goalData?.targets?.muscleMassPercentage ? normalizeMuscleMass(goalData.targets.muscleMassPercentage) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.body_water', '% Nước'),
-        current: current?.bodyWaterPercentage ? normalizeBodyWater(current.bodyWaterPercentage) : 50,
-        previous: previous?.bodyWaterPercentage ? normalizeBodyWater(previous.bodyWaterPercentage) : 50,
+        current: current?.bodyWaterPercentage ? normalizeBodyWater(current.bodyWaterPercentage) : 0,
+        previous: previous?.bodyWaterPercentage ? normalizeBodyWater(previous.bodyWaterPercentage) : 0,
         goal: goalData?.targets?.bodyWaterPercentage ? normalizeBodyWater(goalData.targets.bodyWaterPercentage) : 0,
         fullMark: 100
       }
@@ -133,35 +133,35 @@ export const TrainingProgressRadarChart: React.FC<TrainingProgressRadarChartProp
       {
         metric: t('radar_chart.chest', 'Ngực'),
         current: current?.chest ? normalizeCircumference(current.chest, 70, 130) : 0,
-        previous: previous?.chest ? normalizeCircumference(previous.chest, 70, 130) : 50,
+        previous: previous?.chest ? normalizeCircumference(previous.chest, 70, 130) : 0,
         goal: goalData?.targets?.chest ? normalizeCircumference(goalData.targets.chest, 70, 130) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.waist', 'Eo'),
         current: current?.waist ? normalizeCircumference(current.waist, 50, 120) : 0,
-        previous: previous?.waist ? normalizeCircumference(previous.waist, 50, 120) : 50,
+        previous: previous?.waist ? normalizeCircumference(previous.waist, 50, 120) : 0,
         goal: goalData?.targets?.waist ? normalizeCircumference(goalData.targets.waist, 50, 120) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.hips', 'Mông'),
         current: current?.hips ? normalizeCircumference(current.hips, 70, 130) : 0,
-        previous: previous?.hips ? normalizeCircumference(previous.hips, 70, 130) : 50,
+        previous: previous?.hips ? normalizeCircumference(previous.hips, 70, 130) : 0,
         goal: goalData?.targets?.hips ? normalizeCircumference(goalData.targets.hips, 70, 130) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.arms', 'Tay'),
         current: current?.arms ? normalizeCircumference(current.arms, 20, 50) : 0,
-        previous: previous?.arms ? normalizeCircumference(previous.arms, 20, 50) : 50,
+        previous: previous?.arms ? normalizeCircumference(previous.arms, 20, 50) : 0,
         goal: goalData?.targets?.arms ? normalizeCircumference(goalData.targets.arms, 20, 50) : 0,
         fullMark: 100
       },
       {
         metric: t('radar_chart.thighs', 'Đùi'),
         current: current?.thighs ? normalizeCircumference(current.thighs, 40, 80) : 0,
-        previous: previous?.thighs ? normalizeCircumference(previous.thighs, 40, 80) : 50,
+        previous: previous?.thighs ? normalizeCircumference(previous.thighs, 40, 80) : 0,
         goal: goalData?.targets?.thighs ? normalizeCircumference(goalData.targets.thighs, 40, 80) : 0,
         fullMark: 100
       }

@@ -5749,7 +5749,7 @@
       "total_revenue": "Total Revenue",
       "new_members": "New Members",
       "renewals": "Renewals",
-      "pt_sessions": "PT Sessions",
+      "pt_sessions": "PT Packages",
       "contracts": "Contracts"
     },
     "earnings": {
@@ -5773,7 +5773,7 @@
       "title": "KPI Targets",
       "revenue": "Revenue",
       "new_members": "New Members",
-      "pt_sessions": "PT Sessions",
+      "pt_sessions": "PT Packages",
       "contracts": "Contracts"
     },
     "reward": {
@@ -5857,7 +5857,7 @@
       "target_revenue_placeholder": "e.g.: 50,000,000",
       "target_new_members": "New members target",
       "target_new_members_placeholder": "e.g.: 10",
-      "target_pt_sessions": "PT sessions target",
+      "target_pt_sessions": "PT packages target",
       "target_pt_sessions_placeholder": "e.g.: 50",
       "target_contracts": "Contracts target",
       "target_contracts_placeholder": "e.g.: 20",
@@ -5892,7 +5892,7 @@
       "targets_required": "Please enter at least one KPI target",
       "target_revenue_invalid": "Revenue target must be a positive number",
       "target_new_members_invalid": "New members target must be a positive integer",
-      "target_pt_sessions_invalid": "PT sessions target must be a positive integer",
+      "target_pt_sessions_invalid": "PT packages target must be a positive integer",
       "target_contracts_invalid": "Contracts target must be a positive integer",
       "reward_amount_required": "Please enter reward amount",
       "reward_percentage_invalid": "Reward percentage must be between 0 and 100",
@@ -5912,7 +5912,7 @@
       "target_revenue": "Revenue",
       "target_new_members": "New Members",
       "target_renewals": "Renewals",
-      "target_pt_sessions": "PT Sessions",
+      "target_pt_sessions": "PT Packages",
       "achievements": "Achievements",
       "actual_revenue": "Actual Revenue",
       "actual_new_members": "New Members",
