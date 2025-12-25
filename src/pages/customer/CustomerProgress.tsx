@@ -324,8 +324,11 @@ export default function CustomerProgress() {
                 <div className="animate-pulse h-8 bg-gray-200 rounded mt-2"></div>
               ) : (
                 <p className="text-2xl font-bold text-[#101D33]">
-                  {customerStats?.currentWeight || progressList[0]?.weight || t('progress_detail.stats.not_available')}{' '}
-                  {customerStats?.currentWeight || progressList[0]?.weight ? t('progress_detail.stats.kg') : ''}
+                  {/* Ưu tiên progressList[0] vì đó là tracking mới nhất (đã sort desc) */}
+                  {progressList[0]?.weight ||
+                    customerStats?.currentWeight ||
+                    t('progress_detail.stats.not_available')}{' '}
+                  {progressList[0]?.weight || customerStats?.currentWeight ? t('progress_detail.stats.kg') : ''}
                 </p>
               )}
             </CardContent>
@@ -337,8 +340,9 @@ export default function CustomerProgress() {
                 <div className="animate-pulse h-8 bg-gray-200 rounded mt-2"></div>
               ) : (
                 <p className="text-2xl font-bold text-[#101D33]">
-                  {customerStats?.currentStrengthScore ||
-                    progressList[0]?.strength ||
+                  {/* Ưu tiên progressList[0] vì đó là tracking mới nhất (đã sort desc) */}
+                  {progressList[0]?.strength ||
+                    customerStats?.currentStrengthScore ||
                     t('progress_detail.stats.not_available')}
                 </p>
               )}
@@ -351,7 +355,8 @@ export default function CustomerProgress() {
                 <div className="animate-pulse h-8 bg-gray-200 rounded mt-2"></div>
               ) : (
                 <p className="text-2xl font-bold text-[#101D33]">
-                  {customerStats?.currentBMI || progressList[0]?.bmi || t('progress_detail.stats.not_available')}
+                  {/* Ưu tiên progressList[0] vì đó là tracking mới nhất (đã sort desc) */}
+                  {progressList[0]?.bmi || customerStats?.currentBMI || t('progress_detail.stats.not_available')}
                 </p>
               )}
             </CardContent>
