@@ -43,8 +43,24 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, basel
       if (Math.abs(current - initialValue) < 0.01) {
         return { percentage: 0, isAchieved: false };
       }
-      const currentChange = Math.abs(current - initialValue);
-      const percentage = Math.min(100, Math.max(0, (currentChange / totalChange) * 100));
+
+      const currentChange = current - initialValue;
+      const targetDirection = target - initialValue; // Positive = tăng, Negative = giảm
+
+      // Check if moving in the right direction (towards target)
+      const isMovingTowardsTarget =
+        (targetDirection > 0 && currentChange > 0) || // Tăng: cả target và current đều tăng
+        (targetDirection < 0 && currentChange < 0); // Giảm: cả target và current đều giảm
+
+      let percentage: number;
+      if (isMovingTowardsTarget) {
+        // Moving towards target: positive progress
+        percentage = Math.min(100, Math.max(0, (Math.abs(currentChange) / totalChange) * 100));
+      } else {
+        // Moving away from target: negative progress
+        percentage = -Math.min(100, (Math.abs(currentChange) / totalChange) * 100);
+      }
+
       const isAchieved = isHigherBetter ? current >= target : current <= target;
       return { percentage, isAchieved };
     }
@@ -236,11 +252,11 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, basel
     if (progresses.length === 0) return 0; // No metrics = 0% (not time-based)
 
     // Check if we have any actual progress (not just initial values)
-    const hasActualProgress = progresses.some((p) => p.percentage > 0);
+    const hasActualProgress = progresses.some((p) => Math.abs(p.percentage) > 0.01);
     if (!hasActualProgress) return 0; // Only initial progress = 0%
 
     const avg = progresses.reduce((sum, p) => sum + p.percentage, 0) / progresses.length;
-    return Math.round(avg);
+    return Math.round(avg * 10) / 10; // Round to 1 decimal place, can be negative
   }, [targetProgress]);
 
   if (!goal) {
@@ -348,9 +364,12 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, basel
               <CheckCircle2 className="h-4 w-4 text-[#F05A29] flex-shrink-0" />
               {t('goal_card.overall_progress', 'Overall Progress')}
             </span>
-            <span className="text-lg font-bold text-[#F05A29]">{overallProgress}%</span>
+            <span className={`text-lg font-bold ${overallProgress < 0 ? 'text-red-600' : 'text-[#F05A29]'}`}>
+              {overallProgress < 0 ? '-' : ''}
+              {Math.abs(overallProgress).toFixed(1)}%
+            </span>
           </div>
-          <Progress value={overallProgress} className="h-3 bg-gray-200" />
+          <Progress value={Math.max(0, overallProgress)} className="h-3 bg-gray-200" />
           <div className="flex justify-between text-xs text-gray-500 mt-1">
             <span>{t('goal_card.completed', 'Completed')}</span>
             <span>
@@ -387,7 +406,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, basel
                               ? 'bg-gradient-to-r from-blue-500 to-blue-600'
                               : 'bg-gradient-to-r from-orange-500 to-orange-600'
                         }`}
-                        style={{ width: `${Math.min(100, metric.percentage)}%` }}
+                        style={{ width: `${Math.min(100, Math.max(0, metric.percentage))}%` }}
                       />
                     </div>
                     <span className="text-xs font-bold text-gray-800 sm:min-w-[70px] sm:text-right break-words">
@@ -397,8 +416,12 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, basel
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500">
-                      {metric.percentage != null ? metric.percentage.toFixed(0) : '0'}%
+                    <span
+                      className={`text-xs ${metric.percentage != null && metric.percentage < 0 ? 'text-red-600' : 'text-gray-500'}`}
+                    >
+                      {metric.percentage != null
+                        ? `${metric.percentage < 0 ? '-' : ''}${Math.abs(metric.percentage).toFixed(1)}%`
+                        : '0%'}
                     </span>
                     {metric.direction === 'up' ? (
                       <TrendingUp className="h-3 w-3 text-green-500 flex-shrink-0" />
@@ -446,13 +469,19 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, currentProgress, basel
                         {metric.unit} / {metric.target != null ? metric.target.toFixed(1) : 'N/A'}
                         {metric.unit}
                       </span>
-                      <span className="text-xs text-gray-500">
-                        ({metric.percentage != null ? metric.percentage.toFixed(0) : '0'}%)
+                      <span
+                        className={`text-xs ${metric.percentage != null && metric.percentage < 0 ? 'text-red-600' : 'text-gray-500'}`}
+                      >
+                        (
+                        {metric.percentage != null
+                          ? `${metric.percentage < 0 ? '-' : ''}${Math.abs(metric.percentage).toFixed(1)}%`
+                          : '0%'}
+                        )
                       </span>
                     </div>
                   </div>
                   <Progress
-                    value={Math.min(100, metric.percentage)}
+                    value={Math.min(100, Math.max(0, metric.percentage))}
                     className={`h-2.5 ${
                       isAchieved ? 'bg-green-100' : metric.isHigherBetter ? 'bg-blue-100' : 'bg-orange-100'
                     }`}

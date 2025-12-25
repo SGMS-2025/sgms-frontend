@@ -210,9 +210,11 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
   }, [formData.date]);
 
   // Update form when initialData changes (edit mode only)
+  // This ensures date is always from initialData and never gets overridden
   useEffect(() => {
     if (mode === 'edit' && initialData) {
-      setFormData(getInitialFormData('edit', initialData));
+      const newFormData = getInitialFormData('edit', initialData);
+      setFormData(newFormData);
       setShowBodyMeasurements(hasBodyMeasurements(initialData));
     }
   }, [mode, initialData]);
@@ -430,10 +432,14 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
     // EDIT MODE
     // =====================================================================
     if (mode === 'edit') {
-      const { progressId } = props;
+      const { progressId, initialData } = props;
+
+      // In edit mode, always use the original date from initialData to prevent date changes
+      // Convert initialData.date (dd/MM/yyyy) back to YYYY-MM-DD format for API
+      const originalDate = initialData?.date ? formatDateForInput(initialData.date) : formData.date;
 
       const updateData: UpdateTrainingProgressRequest = {
-        date: formData.date,
+        date: originalDate,
         weight,
         height,
         strength: formData.strength[0],
@@ -510,69 +516,82 @@ export const ProgressForm: React.FC<ProgressFormProps> = (props) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label htmlFor="date">{t('progress_form.date', 'Ngày')}</Label>
-          <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen} modal={false}>
-            <PopoverTrigger asChild>
-              <Button type="button" variant="outline" className="w-full justify-between text-left font-normal">
-                <span className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4" />
-                  {selectedDate
-                    ? format(selectedDate, 'dd/MM/yyyy', { locale: vi })
-                    : t('common.select_date', 'Select')}
-                </span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
-              align="start"
-              side="bottom"
-              sideOffset={8}
-              collisionPadding={8}
-            >
-              <CalendarComponent
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => {
-                  if (date) {
-                    const dateStr = format(date, 'yyyy-MM-dd');
-                    // Chỉ cho phép chọn nếu ngày có trong lịch và chưa có progress
-                    if (mode === 'add') {
-                      if (existingProgressDates.has(dateStr)) {
-                        toast.error(
-                          t(
-                            'progress_form.error.date_already_has_progress',
-                            'Ngày này đã có training progress. Mỗi ngày chỉ được thêm 1 progress.'
-                          )
-                        );
-                        return;
+          {mode === 'edit' ? (
+            // Edit mode: Date is readonly, cannot be changed
+            <Input
+              id="date"
+              type="text"
+              value={selectedDate ? format(selectedDate, 'dd/MM/yyyy', { locale: vi }) : ''}
+              readOnly
+              disabled
+              className="w-full bg-gray-50 cursor-not-allowed"
+            />
+          ) : (
+            // Add mode: Date can be selected via calendar
+            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen} modal={false}>
+              <PopoverTrigger asChild>
+                <Button type="button" variant="outline" className="w-full justify-between text-left font-normal">
+                  <span className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4" />
+                    {selectedDate
+                      ? format(selectedDate, 'dd/MM/yyyy', { locale: vi })
+                      : t('common.select_date', 'Select')}
+                  </span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-auto rounded-2xl border border-border bg-white p-0 shadow-lg z-[9999]"
+                align="start"
+                side="bottom"
+                sideOffset={8}
+                collisionPadding={8}
+              >
+                <CalendarComponent
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      const dateStr = format(date, 'yyyy-MM-dd');
+                      // Chỉ cho phép chọn nếu ngày có trong lịch và chưa có progress
+                      if (mode === 'add') {
+                        if (existingProgressDates.has(dateStr)) {
+                          toast.error(
+                            t(
+                              'progress_form.error.date_already_has_progress',
+                              'Ngày này đã có training progress. Mỗi ngày chỉ được thêm 1 progress.'
+                            )
+                          );
+                          return;
+                        }
+                        if (!ptScheduleDates.has(dateStr)) {
+                          toast.error(
+                            t(
+                              'progress_form.error.date_not_in_schedule',
+                              'Ngày này không có trong lịch PT của customer. Chỉ có thể thêm progress cho các ngày có lịch.'
+                            )
+                          );
+                          return;
+                        }
                       }
-                      if (!ptScheduleDates.has(dateStr)) {
-                        toast.error(
-                          t(
-                            'progress_form.error.date_not_in_schedule',
-                            'Ngày này không có trong lịch PT của customer. Chỉ có thể thêm progress cho các ngày có lịch.'
-                          )
-                        );
-                        return;
-                      }
+                      handleFieldChange('date', dateStr);
+                      setDatePickerOpen(false);
                     }
-                    handleFieldChange('date', dateStr);
-                    setDatePickerOpen(false);
-                  }
-                }}
-                disabled={(date) => {
-                  // Chỉ disable cho add mode
-                  if (mode !== 'add') return false;
+                  }}
+                  disabled={(date) => {
+                    // Chỉ disable cho add mode
+                    if (mode !== 'add') return false;
 
-                  const dateStr = format(date, 'yyyy-MM-dd');
-                  // Disable nếu ngày đã có progress hoặc không có trong lịch
-                  return existingProgressDates.has(dateStr) || !ptScheduleDates.has(dateStr);
-                }}
-                initialFocus
-                locale={vi}
-                className="bg-white"
-              />
-            </PopoverContent>
-          </Popover>
+                    const dateStr = format(date, 'yyyy-MM-dd');
+                    // Disable nếu ngày đã có progress hoặc không có trong lịch
+                    return existingProgressDates.has(dateStr) || !ptScheduleDates.has(dateStr);
+                  }}
+                  initialFocus
+                  locale={vi}
+                  className="bg-white"
+                />
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="weight">{t('progress_form.weight', 'Cân nặng (kg)')}</Label>
