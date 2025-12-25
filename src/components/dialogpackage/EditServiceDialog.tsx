@@ -20,6 +20,7 @@ interface EditServiceDialogProps {
       sessionCount?: number;
     }
   ) => void;
+  readonly onClose?: () => void;
   readonly loading: boolean;
   readonly serviceType: 'CLASS' | 'PT';
   readonly defaultMinParticipants?: number;
@@ -29,6 +30,7 @@ interface EditServiceDialogProps {
 export function EditServiceDialog({
   service,
   onSubmit,
+  onClose,
   loading,
   serviceType,
   defaultMinParticipants = 5,
@@ -48,7 +50,8 @@ export function EditServiceDialog({
     form,
     defaultMinParticipants,
     defaultMaxParticipants,
-    onSubmit
+    onSubmit,
+    onClose
   });
 
   return (
