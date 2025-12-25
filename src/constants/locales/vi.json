@@ -1145,6 +1145,7 @@
   "discount.create_branch_first": "Vui lòng tạo chi nhánh trước khi tạo chiến dịch giảm giá",
   "discount.create_branch": "Tạo chi nhánh",
   "discount.filtering_by_branch": "Đang lọc theo chi nhánh",
+  "discount.branch_required": "Vui lòng chọn chi nhánh từ dropdown trước",
   "discount.create_success": "Tạo chiến dịch giảm giá thành công!",
   "discount.tour": {
     "button": "Hướng dẫn",

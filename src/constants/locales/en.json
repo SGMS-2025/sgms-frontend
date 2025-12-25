@@ -1089,6 +1089,7 @@
   "discount.create_branch_first": "Please create a branch before creating a discount campaign",
   "discount.create_branch": "Create Branch",
   "discount.filtering_by_branch": "Filtering by branch",
+  "discount.branch_required": "Please select a branch from the dropdown first",
   "discount.create_success": "Discount campaign created successfully!",
   "discount.tour": {
     "button": "Guide",
