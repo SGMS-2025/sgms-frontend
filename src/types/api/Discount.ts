@@ -107,4 +107,5 @@ export interface DiscountCampaignApiData {
   startDate: string;
   endDate: string;
   status?: string;
+  branchId?: string | string[]; // Branch ID from dropdown selection
 }

@@ -151,10 +151,15 @@ const DiscountManagement: React.FC = () => {
   // Handle campaign actions
   const handleCreateCampaign = React.useCallback(
     async (data: DiscountCampaignFormData) => {
+      if (!currentBranch?._id) {
+        toast.error(t('discount.branch_required'));
+        return;
+      }
       const campaignData: DiscountCampaignApiData = {
         ...data,
         startDate: data.startDate.toISOString(),
-        endDate: data.endDate.toISOString()
+        endDate: data.endDate.toISOString(),
+        branchId: currentBranch._id // Use branchId from dropdown selection
       };
       await createCampaign(campaignData);
       toast.success(t('discount.create_success'));
@@ -162,16 +167,21 @@ const DiscountManagement: React.FC = () => {
       refetch();
       refetchStats();
     },
-    [createCampaign, refetch, refetchStats, t]
+    [createCampaign, refetch, refetchStats, t, currentBranch]
   );
 
   const handleUpdateCampaign = React.useCallback(
     async (data: DiscountCampaignFormData) => {
       if (!selectedCampaign) return;
+      if (!currentBranch?._id) {
+        toast.error(t('discount.branch_required'));
+        return;
+      }
       const campaignData: DiscountCampaignApiData = {
         ...data,
         startDate: data.startDate.toISOString(),
-        endDate: data.endDate.toISOString()
+        endDate: data.endDate.toISOString(),
+        branchId: currentBranch._id // Use branchId from dropdown selection
       };
       await updateCampaign(selectedCampaign._id, campaignData);
       toast.success(t('toast.discount_campaign_updated'));
@@ -180,7 +190,7 @@ const DiscountManagement: React.FC = () => {
       refetch();
       refetchStats();
     },
-    [updateCampaign, selectedCampaign, refetch, refetchStats, t]
+    [updateCampaign, selectedCampaign, refetch, refetchStats, t, currentBranch]
   );
 
   const handleDeleteCampaign = React.useCallback(async () => {
