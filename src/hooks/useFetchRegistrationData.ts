@@ -44,7 +44,8 @@ export const useFetchRegistrationData = ({
       // Fetch packages and promotions in parallel (always needed)
       const [packagesRes, promotionsRes] = await Promise.all([
         packageApi.getActivePackagesByBranch(branchId),
-        discountCampaignApi.getActiveCampaignsByBranch(branchId)
+        // Filter promotions by packageType to only show applicable ones
+        discountCampaignApi.getActiveCampaignsByBranch(branchId, { packageType })
       ]);
 
       // Set packages filtered by type (critical - registration can't proceed without packages)
@@ -55,6 +56,7 @@ export const useFetchRegistrationData = ({
       }
 
       // Set promotions (non-critical - registration can proceed without promotions)
+      // Backend already filters by usageLimit and packageType
       if (promotionsRes.success && promotionsRes.data) {
         setPromotions(promotionsRes.data);
       }

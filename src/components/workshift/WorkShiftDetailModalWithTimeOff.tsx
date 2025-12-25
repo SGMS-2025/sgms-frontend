@@ -13,7 +13,6 @@ import type {
 } from '@/types/api/WorkShift';
 import { workShiftApi } from '@/services/api/workShiftApi';
 import TimeOffRequestTab from '@/components/timeoff/TimeOffRequestTab';
-import { useWorkshiftPermissions } from '@/hooks/useWorkshiftPermissions';
 import { useEnsureWorkShift } from '@/hooks/useEnsureWorkShift';
 import { useBranchWorkingConfig } from '@/hooks/useBranchWorkingConfig';
 import { isVirtualWorkShift, getDateFromWorkShiftStartTime } from '@/utils/workshiftUtils';
@@ -41,7 +40,6 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
   userRole
 }) => {
   const { t } = useTranslation();
-  const { canEditWorkshift, canDeleteWorkshift } = useWorkshiftPermissions();
   const { ensureWorkShiftExists, isCreating: isEnsuringWorkshift } = useEnsureWorkShift();
   const { user } = useAuthState();
   const { currentStaff } = useCurrentUserStaff();
@@ -569,27 +567,9 @@ const WorkShiftDetailModalWithTimeOff: React.FC<WorkShiftDetailModalWithTimeOffP
                   </>
                 ) : (
                   <>
-                    {currentWorkShift.status === 'SCHEDULED' && canDeleteWorkshift() && !isVirtual && (
-                      <Button
-                        onClick={() => setShowConfirmDisable(true)}
-                        variant="outline"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
-                      >
-                        <Ban className="h-4 w-4 mr-2" />
-                        {t('workshift.disable')}
-                      </Button>
-                    )}
                     <Button variant="outline" onClick={onClose} className="border-gray-300 text-gray-700">
                       {t('common.close')}
                     </Button>
-                    {canEditWorkshift() && !isVirtual && (
-                      <Button
-                        onClick={() => setIsEditing(true)}
-                        className="bg-orange-600 hover:bg-orange-700 text-white"
-                      >
-                        {t('common.edit')}
-                      </Button>
-                    )}
                   </>
                 )}
               </div>

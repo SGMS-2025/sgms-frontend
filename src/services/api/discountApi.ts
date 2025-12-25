@@ -38,17 +38,28 @@ export const discountCampaignApi = {
 
   /**
    * Get all active campaigns (for dropdowns, etc.)
+   * @param params - Optional filters (packageType, branchId)
    */
-  getActiveCampaigns: async (): Promise<ApiResponse<DiscountCampaign[]>> => {
-    const response = await api.get<ApiResponse<DiscountCampaign[]>>('/discount-campaigns/active');
+  getActiveCampaigns: async (params?: {
+    packageType?: string;
+    branchId?: string;
+  }): Promise<ApiResponse<DiscountCampaign[]>> => {
+    const response = await api.get<ApiResponse<DiscountCampaign[]>>('/discount-campaigns/active', { params });
     return response.data;
   },
 
   /**
    * Get active campaigns for a specific branch
+   * @param branchId - Branch ID
+   * @param params - Optional filters (packageType)
    */
-  getActiveCampaignsByBranch: async (branchId: string): Promise<ApiResponse<DiscountCampaign[]>> => {
-    const response = await api.get<ApiResponse<DiscountCampaign[]>>(`/discount-campaigns/active/branch/${branchId}`);
+  getActiveCampaignsByBranch: async (
+    branchId: string,
+    params?: { packageType?: string }
+  ): Promise<ApiResponse<DiscountCampaign[]>> => {
+    const response = await api.get<ApiResponse<DiscountCampaign[]>>('/discount-campaigns/active', {
+      params: { branchId, ...params }
+    });
     return response.data;
   },
 

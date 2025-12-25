@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Eye, Edit, Power, Loader2, MoreHorizontal, CheckCircle, Circle, Clock3 } from 'lucide-react';
+import { Eye, Edit, MoreHorizontal, CheckCircle, Circle, Clock3 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
@@ -47,11 +47,11 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({
   assignedBranches,
   branchMap,
   branchesWithAccess,
-  mutatingPlanId,
+  mutatingPlanId: _mutatingPlanId,
   currentBranchId,
   onPreview,
   onEdit,
-  onToggleStatus
+  onToggleStatus: _onToggleStatus
 }) => {
   const { t } = useTranslation();
 
@@ -115,18 +115,6 @@ export const MembershipCard: React.FC<MembershipCardProps> = ({
                     {t('membershipManager.card.edit')}
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem
-                  onClick={() => onToggleStatus(plan)}
-                  disabled={mutatingPlanId === plan._id}
-                  className="flex items-center gap-2"
-                >
-                  {mutatingPlanId === plan._id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Power className={`h-4 w-4 ${plan.isActive ? 'text-emerald-600' : 'text-slate-400'}`} />
-                  )}
-                  {t('membershipManager.card.toggle')}
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

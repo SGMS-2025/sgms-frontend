@@ -43,12 +43,10 @@ export const MembershipFormStep: React.FC<MembershipFormStepProps> = ({
   formData,
   setFormData,
   plans,
-  promotions,
   staffList,
   selectedPlan,
   priceCalculation,
   handlePlanChange,
-  handlePromotionChange,
   currentStaff,
   loadingStaff = false,
   branchId
@@ -171,7 +169,8 @@ export const MembershipFormStep: React.FC<MembershipFormStepProps> = ({
           </div>
 
           <div className="space-y-4">
-            <div className="space-y-2">
+            {/* Promotion field hidden for membership */}
+            {/* <div className="space-y-2">
               <Label className="text-sm font-medium">{t('membership_registration.promotion_label')}</Label>
               <Select
                 value={formData.discountCampaignId || 'none'}
@@ -195,7 +194,7 @@ export const MembershipFormStep: React.FC<MembershipFormStepProps> = ({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
 
             {/* Staff/PT Selector */}
             <div className="space-y-2">

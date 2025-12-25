@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import type { ShiftConfig, RoleConfig, BranchWorkingConfigRequest } from '@/types/api/BranchWorkingConfig';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Trash2, Plus } from 'lucide-react';
 
 interface BranchWorkingConfigModalProps {
@@ -539,12 +538,6 @@ const BranchWorkingConfigModal: React.FC<BranchWorkingConfigModalProps> = ({ isO
                   {t('branch_working_config.add_role')}
                 </Button>
               </div>
-            </div>
-            {/* Active status */}
-            <div>
-              <label className="font-semibold">{t('branch_working_config.active_status')}</label>
-              <Checkbox checked={form.isActive} onCheckedChange={(v) => handleChange('isActive', v === true)} />{' '}
-              {t('branch_working_config.enable')}
             </div>
             {error && <div className="text-red-500 text-sm">{error}</div>}
             <div className="flex justify-end gap-2 mt-10 border-t pt-4 sticky bottom-0 bg-white">

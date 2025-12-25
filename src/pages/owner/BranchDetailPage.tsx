@@ -413,7 +413,7 @@ const BranchDetailPage: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-800">Đang tải thông tin chi nhánh...</h2>
+          <h2 className="text-xl font-semibold text-gray-800">{t('branch_detail.loading_branch_detail')}</h2>
         </div>
       </div>
     );
@@ -423,8 +423,8 @@ const BranchDetailPage: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Chi nhánh không tồn tại</h2>
-          <Button onClick={() => navigate('/manage/owner')}>Quay lại Dashboard</Button>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">{t('branch_detail.branch_not_found')}</h2>
+          <Button onClick={() => navigate('/manage/owner')}>{t('branch_detail.back_to_dashboard')}</Button>
         </div>
       </div>
     );
@@ -690,7 +690,9 @@ const BranchDetailPage: React.FC = () => {
               <CardHeader className="border-b border-slate-200/70">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <CardTitle className="text-xl font-semibold text-slate-900">Thông tin chi nhánh</CardTitle>
+                    <CardTitle className="text-xl font-semibold text-slate-900">
+                      {t('branch_detail.branch_info_card_title')}
+                    </CardTitle>
                     <p className="text-sm text-slate-500">{t('branch_detail.branch_info_title')}</p>
                   </div>
                   {isEditMode && (
@@ -803,7 +805,9 @@ const BranchDetailPage: React.FC = () => {
 
             <Card className="rounded-2xl border-orange-100 bg-white/95 text-slate-900 shadow-[0_20px_70px_rgba(240,90,41,0.12)] backdrop-blur">
               <CardHeader className="border-b border-orange-100/80">
-                <CardTitle className="text-lg font-semibold text-slate-900">Vận hành & nhân sự</CardTitle>
+                <CardTitle className="text-lg font-semibold text-slate-900">
+                  {t('branch_detail.operations_and_staff')}
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5 pt-6">
                 <div className="space-y-2">
@@ -881,7 +885,9 @@ const BranchDetailPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-wide text-orange-700/80">Tình trạng chi nhánh</p>
+                  <p className="text-xs uppercase tracking-wide text-orange-700/80">
+                    {t('branch_detail.branch_status_label')}
+                  </p>
                   <div className="flex items-center justify-between rounded-xl border border-orange-100 bg-white px-3 py-3 shadow-sm">
                     <div className="flex items-center gap-3">
                       <span
@@ -895,7 +901,7 @@ const BranchDetailPage: React.FC = () => {
                             ? t('branch_detail.status_active')
                             : t('branch_detail.status_inactive')}
                         </p>
-                        <p className="text-xs text-gray-600">Cập nhật nhanh ngay bên trái</p>
+                        <p className="text-xs text-gray-600">{t('branch_detail.status_update_hint')}</p>
                       </div>
                     </div>
                     <Badge
@@ -922,7 +928,9 @@ const BranchDetailPage: React.FC = () => {
                     {t('branch_detail.facilities')}
                   </CardTitle>
                   <p className="text-sm text-slate-500">
-                    {facilityCount > 0 ? `${facilityCount} tiện ích đã cấu hình` : 'Chưa có tiện ích nào'}
+                    {facilityCount > 0
+                      ? t('branch_detail.facilities_configured', { count: facilityCount })
+                      : t('branch_detail.facilities_empty')}
                   </p>
                 </div>
                 {branch.facilities && branch.facilities.length > 3 && !isEditMode && (
@@ -979,7 +987,7 @@ const BranchDetailPage: React.FC = () => {
                     ))
                   ) : (
                     <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-700">
-                      Chưa có tiện ích
+                      {t('branch_detail.no_facilities')}
                     </Badge>
                   )}
                 </div>

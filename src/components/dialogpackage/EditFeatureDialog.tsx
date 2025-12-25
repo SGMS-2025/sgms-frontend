@@ -12,11 +12,12 @@ type MatrixFeature = MatrixDisplayData['features'][0];
 interface EditFeatureDialogProps {
   readonly feature: MatrixFeature | null;
   readonly onSubmit: (id: string, v: { name: string }) => void;
+  readonly onClose?: () => void;
   readonly loading: boolean;
   readonly serviceType: 'CLASS' | 'PT';
 }
 
-export function EditFeatureDialog({ feature, onSubmit, loading, serviceType }: EditFeatureDialogProps) {
+export function EditFeatureDialog({ feature, onSubmit, onClose, loading, serviceType }: EditFeatureDialogProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
@@ -42,12 +43,20 @@ export function EditFeatureDialog({ feature, onSubmit, loading, serviceType }: E
 
     onSubmit(feature.id, { name: form.name.trim() });
     setOpen(false);
+    // Notify parent to reset feature state
+    if (onClose) {
+      onClose();
+    }
   };
 
   const handleClose = () => {
     form.setIsClosing(true);
     form.resetForm();
     setOpen(false);
+    // Notify parent to reset feature state
+    if (onClose) {
+      onClose();
+    }
     setTimeout(() => form.setIsClosing(false), 100);
   };
 

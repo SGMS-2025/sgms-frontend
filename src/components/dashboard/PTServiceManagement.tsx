@@ -98,12 +98,18 @@ export default function PTServiceManagement() {
   ) => {
     await updateService(id, { ...data, type: 'PT' });
     await reloadMatrix();
+  };
+
+  const handleCloseEditService = () => {
     setServiceToEdit(null);
   };
 
   const handleUpdateFeature = async (id: string, data: { name: string }) => {
     await updateFeature(id, data, 'PT');
     await reloadMatrix();
+  };
+
+  const handleCloseEditFeature = () => {
     setFeatureToEdit(null);
   };
 
@@ -444,12 +450,14 @@ export default function PTServiceManagement() {
       <EditServiceDialog
         service={serviceToEdit}
         onSubmit={handleUpdateService}
+        onClose={handleCloseEditService}
         loading={updateServiceLoading}
         serviceType="PT"
       />
       <EditFeatureDialog
         feature={featureToEdit}
         onSubmit={handleUpdateFeature}
+        onClose={handleCloseEditFeature}
         loading={updateFeatureLoading}
         serviceType="PT"
       />

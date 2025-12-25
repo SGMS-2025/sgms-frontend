@@ -71,10 +71,15 @@ export const useServiceRegistration = (
   const handlePackageChange = (packageId: string, packages: ServicePackage[]) => {
     const pkg = packages.find((p) => p._id === packageId);
     setSelectedPackage(pkg || null);
+
+    // Reset promotion when package changes
+    setSelectedPromotion(null);
+
     setFormData((prev) => ({
       ...prev,
       servicePackageId: packageId,
-      sessionCount: pkg?.sessionCount
+      sessionCount: pkg?.sessionCount,
+      discountCampaignId: undefined // Clear promotion
     }));
   };
 

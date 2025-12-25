@@ -19,14 +19,15 @@ interface UseEditServiceDialogOptions {
       maxParticipants?: number;
       sessionCount?: number;
     }
-  ) => void;
+  ) => void | Promise<void>;
+  onClose?: () => void;
 }
 
 interface UseEditServiceDialogReturn {
   open: boolean;
   setOpen: (open: boolean) => void;
   loadingPackage: boolean;
-  handleUpdate: () => void;
+  handleUpdate: () => Promise<void>;
   handleClose: () => void;
 }
 
@@ -35,7 +36,8 @@ export function useEditServiceDialog({
   form,
   defaultMinParticipants,
   defaultMaxParticipants,
-  onSubmit
+  onSubmit,
+  onClose
 }: UseEditServiceDialogOptions): UseEditServiceDialogReturn {
   const [open, setOpen] = useState(false);
   const [loadingPackage, setLoadingPackage] = useState(false);
@@ -125,10 +127,10 @@ export function useEditServiceDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [service?.id, defaultMinParticipants, defaultMaxParticipants, mapServiceToFormValues]);
 
-  const handleUpdate = useCallback(() => {
+  const handleUpdate = useCallback(async () => {
     if (!form.validateAll() || !service) return;
 
-    onSubmit(service.id, {
+    await onSubmit(service.id, {
       name: form.name.trim(),
       price: form.price ? parsePriceInput(form.price) : undefined,
       durationInMonths: form.duration ? Number(form.duration) : undefined,
@@ -138,15 +140,23 @@ export function useEditServiceDialog({
     });
 
     setOpen(false);
-  }, [form, service, onSubmit, defaultMinParticipants, defaultMaxParticipants]);
+    // Notify parent to reset service state
+    if (onClose) {
+      onClose();
+    }
+  }, [form, service, onSubmit, defaultMinParticipants, defaultMaxParticipants, onClose]);
 
   const handleClose = useCallback(() => {
     form.setIsClosing(true);
     form.resetForm();
     setOpen(false);
+    // Notify parent to reset service state
+    if (onClose) {
+      onClose();
+    }
     // Reset isClosing after a short delay to allow modal to close
     setTimeout(() => form.setIsClosing(false), 100);
-  }, [form]);
+  }, [form, onClose]);
 
   return {
     open,

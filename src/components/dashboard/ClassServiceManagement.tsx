@@ -97,12 +97,18 @@ export default function ClassServiceManagement() {
   ) => {
     await updateService(id, { ...data, type: 'CLASS' });
     await reloadMatrix();
+  };
+
+  const handleCloseEditService = () => {
     setServiceToEdit(null);
   };
 
   const handleUpdateFeature = async (id: string, data: { name: string }) => {
     await updateFeature(id, data, 'CLASS');
     await reloadMatrix();
+  };
+
+  const handleCloseEditFeature = () => {
     setFeatureToEdit(null);
   };
 
@@ -443,12 +449,14 @@ export default function ClassServiceManagement() {
       <EditServiceDialog
         service={serviceToEdit}
         onSubmit={handleUpdateService}
+        onClose={handleCloseEditService}
         loading={updateServiceLoading}
         serviceType="CLASS"
       />
       <EditFeatureDialog
         feature={featureToEdit}
         onSubmit={handleUpdateFeature}
+        onClose={handleCloseEditFeature}
         loading={updateFeatureLoading}
         serviceType="CLASS"
       />
